@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manna · Control</title>
+  <link rel="stylesheet" href="/core/app.css">
+  <link rel="stylesheet" href="/modules/projection/stage.css">
+  <link rel="stylesheet" href="/modules/playlist/panel.css">
+  <link rel="stylesheet" href="/roles/control.css">
+</head>
+<body data-tab="verses">
+  <div class="offline-bar">Sin conexión con el equipo principal. Reconectando…</div>
+
+  <header class="topbar">
+    <a class="brand" href="/" title="Cambiar la función de este dispositivo"><span class="brand-mark">M</span><span class="brand-name">Manna</span></a>
+    <div class="topbar-status" id="status"></div>
+    <div class="topbar-actions" id="actions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel" id="panel-nav"></aside>
+
+    <main class="panel" id="panel-verses">
+      <div id="verses"></div>
+      <div class="action-bar" id="action-bar"></div>
+    </main>
+
+    <aside class="panel" id="panel-side">
+      <div class="preview-box">
+        <div class="label"><span>Vista previa</span><span id="live-label"></span></div>
+        <div id="preview"></div>
+      </div>
+      <div class="seg" id="side-tabs">
+        <button data-t="styles" class="on">Estilos</button>
+        <button data-t="playlist">Guion de culto</button>
+      </div>
+      <div class="side-body" id="side-styles"></div>
+      <div class="side-body" id="side-playlist" hidden></div>
+    </aside>
+  </div>
+
+  <nav class="bottom-tabs" id="bottom-tabs">
+    <button data-tab="nav">Biblia</button>
+    <button data-tab="verses">Versículos</button>
+    <button data-tab="side">Proyección</button>
+  </nav>
+
+  <script type="module" src="/roles/control.js"></script>
+</body>
+</html>

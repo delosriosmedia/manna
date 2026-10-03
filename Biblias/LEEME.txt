@@ -1,0 +1,13 @@
+Copia en esta carpeta tus biblias en formato .xmm (OpenLP) o .xml.
+Manna las detecta solas: no hace falta reiniciar ni importarlas.
+
+Formatos aceptados:
+
+  .xmm   <bible><b n="Génesis"><c n="1"><v n="1">texto</v></c></b></bible>
+  .xml   <bible translation="..."><testament><book number="1">
+           <chapter number="1"><verse number="1">texto</verse></chapter></book></testament></bible>
+
+Incluida: Reina-Valera 1909 (dominio público, fuente: https://ebible.org/spaRV1909/).
+
+Las demás versiones (NVI, RVR1960, NTV, DHH, etc.) tienen derechos de autor:
+puedes usarlas en tu equipo, pero no se publican en el repositorio de GitHub.

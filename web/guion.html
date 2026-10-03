@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manna · Guion</title>
+  <link rel="stylesheet" href="/core/app.css">
+  <link rel="stylesheet" href="/modules/playlist/panel.css">
+  <style>
+    body { display: flex; flex-direction: column; height: 100dvh; }
+    .topbar { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--panel); border-bottom: 1px solid var(--border); }
+    #live { flex: 1; min-width: 0; text-align: right; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #list { flex: 1; overflow-y: auto; padding: 12px; max-width: 720px; width: 100%; margin: 0 auto; }
+    .pl-main { padding: 14px; font-size: 16px; }
+    .pl-preview { font-size: 13px; }
+    .bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: var(--panel); border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <div class="offline-bar">Sin conexión con el equipo principal. Reconectando…</div>
+  <header class="topbar">
+    <a class="brand" href="/" title="Cambiar la función de este dispositivo"><span class="brand-mark">M</span> Guion</a>
+    <div id="live"></div>
+  </header>
+  <div id="list"></div>
+  <div class="bar" id="bar"></div>
+  <script type="module" src="/roles/guion.js"></script>
+</body>
+</html>

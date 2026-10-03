@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manna</title>
+  <link rel="stylesheet" href="/core/app.css">
+  <style>
+    main { max-width: 520px; margin: 0 auto; padding: 40px 16px; }
+    header { text-align: center; margin-bottom: 28px; }
+    header .brand { justify-content: center; font-size: 26px; }
+    header .brand-mark { width: 44px; height: 44px; font-size: 22px; border-radius: 12px; }
+    .role {
+      display: block; width: 100%; text-align: left; padding: 16px; margin-bottom: 12px;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px; cursor: pointer;
+    }
+    .role:hover, .role:focus-visible { border-color: var(--accent); outline: none; }
+    .role.current { border-color: var(--live); }
+    .role h2 { font-size: 17px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .role p { margin: 4px 0 0; color: var(--muted); }
+    .tag { font-size: 11px; font-weight: 600; color: var(--muted); border: 1px solid var(--border); border-radius: 99px; padding: 2px 8px; }
+    .role.current .tag { color: var(--live); border-color: var(--live); }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="brand"><span class="brand-mark">M</span> Manna</div>
+      <p class="muted">Church projection app · Elige qué hará este dispositivo</p>
+    </header>
+    <div id="roles"></div>
+  </main>
+  <script type="module" src="/roles/home.js"></script>
+</body>
+</html>

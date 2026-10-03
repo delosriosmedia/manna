@@ -1,0 +1,14 @@
+{
+  "name": "manna",
+  "version": "0.2.0",
+  "description": "Manna - Church projection app",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node --test test/"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

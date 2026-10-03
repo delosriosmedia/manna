@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manna · Requisitos del equipo principal</title>
+  <style>
+    body { margin: 0; background: #0b1120; color: #e5e9f2; font: 16px/1.6 -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 720px; margin: 0 auto; padding: 40px 20px 60px; }
+    h1 { font-size: 26px; margin: 0 0 4px; }
+    h2 { font-size: 19px; margin: 0 0 8px; }
+    p { margin: 8px 0; }
+    .lead { color: #93a0b8; margin-bottom: 28px; }
+    .card { background: #111a2e; border: 1px solid #263352; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    .n { display: inline-grid; place-items: center; width: 28px; height: 28px; margin-right: 8px; border-radius: 50%; background: #f59e0b; color: #1c1203; font-weight: 800; font-size: 15px; }
+    a.btn { display: inline-block; margin: 8px 0; padding: 10px 18px; border-radius: 8px; background: #3b82f6; color: #fff; text-decoration: none; font-weight: 600; }
+    ol { margin: 8px 0; padding-left: 22px; }
+    code { background: #18233b; padding: 2px 6px; border-radius: 4px; }
+    .note { color: #93a0b8; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Faltan requisitos para iniciar Manna</h1>
+    <p class="lead">Solo el <strong>equipo principal</strong> (el que tiene conectado el proyector) necesita estos dos programas. Los celulares y demás equipos no instalan nada: entran por el navegador.</p>
+
+    <div class="card" id="node">
+      <h2><span class="n">1</span>Node.js (versión 18 o superior)</h2>
+      <p>Es el programa que hace funcionar el servidor de Manna. Es gratuito.</p>
+      <a class="btn" href="https://nodejs.org/es/download">Descargar Node.js</a>
+      <ol>
+        <li>En la página, elige la versión <strong>LTS</strong> y descarga el instalador para tu sistema: <code>.pkg</code> en Mac o <code>.msi</code> en Windows.</li>
+        <li>Abre el archivo descargado y pulsa <em>Continuar / Siguiente</em> hasta terminar. No hay que cambiar ninguna opción.</li>
+        <li>Cierra esta ventana y la ventana negra de Manna, y vuelve a abrir <strong>Iniciar Manna</strong>.</li>
+      </ol>
+    </div>
+
+    <div class="card" id="navegador">
+      <h2><span class="n">2</span>Google Chrome</h2>
+      <p>Manna lo usa para abrir la ventana de proyección a pantalla completa en el proyector. En Windows también sirve Microsoft Edge, que ya viene instalado.</p>
+      <a class="btn" href="https://www.google.com/chrome/">Descargar Google Chrome</a>
+      <ol>
+        <li>Descarga e instala Chrome normalmente.</li>
+        <li>En Mac, arrástralo a la carpeta <strong>Aplicaciones</strong>.</li>
+        <li>Vuelve a abrir <strong>Iniciar Manna</strong>.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h2>Cómo iniciar Manna</h2>
+      <ol>
+        <li><strong>Mac:</strong> doble clic en <code>Iniciar Manna.command</code>. La primera vez, si macOS lo bloquea, haz clic derecho sobre el archivo y elige <em>Abrir</em>.</li>
+        <li><strong>Windows:</strong> doble clic en <code>Iniciar Manna.bat</code>. Si aparece un aviso del Firewall, elige <em>Permitir acceso</em> en redes privadas; sin eso los celulares no podrán conectarse.</li>
+      </ol>
+      <p class="note">Las biblias van en la carpeta <code>Biblias</code>, en formato .xmm o .xml.</p>
+    </div>
+  </main>
+</body>
+</html>

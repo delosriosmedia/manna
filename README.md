@@ -1,90 +1,92 @@
-# 📖 Proyector Bíblico Local (Formato .XMM)
+# Manna - Church projection app
 
-Aplicación web local profesional diseñada para iglesias, conferencias y presentaciones bíblicas. Permite gestionar múltiples versiones de la Biblia en formato `.xmm` (usadas por aplicaciones como OpenLP), controlar la selección de pasajes desde una interfaz de operador y proyectar a pantalla completa en un segundo monitor o proyector.
+Aplicación web para proyectar la Biblia en la iglesia. Un equipo principal (el que tiene el proyector) hace de servidor, y cualquier celular, tableta o PC de la misma red local se conecta por el navegador y elige qué función cumplir.
 
----
+## Qué hace
 
-## 🚀 Cómo iniciar la aplicación
+- **Proyección automática**: al iniciar, detecta la segunda pantalla del equipo principal y abre ahí la proyección a pantalla completa. Si no hay segunda pantalla, lo avisa y no la abre. Se puede apagar y encender desde el control.
+- **Funciones por dispositivo**: cada dispositivo elige al entrar.
+  - **Control completo**: Biblia, búsqueda, estilos, guion y pantalla. Pide PIN.
+  - **Control del guion**: solo proyecta los pasajes guardados. Pensado para el celular. Pide PIN.
+  - **Pantalla de proyección**: espejo de la proyección principal. Sin PIN.
+- **Biblias**: lee los archivos `.xmm` (OpenLP) y `.xml` de la carpeta `Biblias/`. Basta copiar un archivo; aparece solo.
+- **Búsqueda**: por cita (`Juan 3:16-18`, `1 co 13 4`, `sal 23`) o por palabras, sin importar tildes ni mayúsculas.
+- **Rangos de versículos** y **ajuste automático** del tamaño del texto para que siempre quepa.
+- **Estilos**: tipografía, colores, sombra, fondos e imagen propia.
+- **Guion de culto**: lista de pasajes preparados, compartida entre todos los dispositivos.
 
-Tienes dos formas muy sencillas de abrirla:
+## Requisitos (solo en el equipo principal)
 
-### Opción 1: Ejecutable directo (Recomendado en Mac)
-1. Ve a la carpeta `proyector-biblico` en tu Finder.
-2. Haz doble clic en el archivo **`iniciar.command`**.
-3. Se abrirá automáticamente tu navegador web en `http://localhost:8000/index.html`.
+| Programa | Para qué | Descarga |
+| --- | --- | --- |
+| Node.js 18 o superior | Hace funcionar el servidor | https://nodejs.org/es/download |
+| Google Chrome (o Edge en Windows) | Ventana de proyección a pantalla completa | https://www.google.com/chrome/ |
 
-### Opción 2: Abrir directamente en el navegador
-- Puedes hacer doble clic directamente en el archivo **`index.html`** y abrirlo en Chrome, Edge, Safari o Firefox.
+Si falta alguno, Manna no arranca y abre `instalar.html` con las instrucciones. Los demás dispositivos no instalan nada.
 
----
+## Cómo iniciar
 
-## 🖥️ Cómo funciona el sistema de doble ventana
+1. Copia tus biblias a la carpeta `Biblias/`.
+2. Abre el lanzador:
+   - **Mac**: doble clic en `Iniciar Manna.command`. La primera vez, si macOS lo bloquea: clic derecho → *Abrir*.
+   - **Windows**: doble clic en `Iniciar Manna.bat`. Si el Firewall pregunta, permite el acceso en redes privadas.
+3. Se abre el control en el navegador y, si hay proyector conectado, la proyección en la segunda pantalla.
+4. Para conectar otro dispositivo: botón **Dispositivos** del control. Muestra la dirección, un código QR y el PIN.
 
-1. **Ventana de Control (`index.html`)**:
-   - Es la pantalla que maneja el operador / técnico de proyección en la computadora principal.
-   - En la barra superior, haz clic en el botón **"Abrir Proyector"**.
-   - Se abrirá una nueva ventana emergente llamada **Pantalla de Proyección** (`proyeccion.html`).
+Para apagar Manna, cierra la ventana del lanzador.
 
-2. **Ventana de Proyección (`proyeccion.html`)**:
-   - Arrastra esta ventana hacia tu **segundo monitor o proyector**.
-   - Haz **doble clic** sobre cualquier parte de la pantalla o presiona **F** / **F11** para ponerla en **Pantalla Completa**.
-   - La pantalla permanecerá limpia, sin barras de herramientas, bordes ni elementos distractores.
+## Atajos de teclado (control completo)
 
----
+| Tecla | Acción |
+| --- | --- |
+| Enter | Proyectar lo seleccionado |
+| ← → | Versículo anterior / siguiente (avanza la proyección si hay algo en vivo) |
+| B | Pantalla en negro |
+| C | Solo el fondo, sin texto |
+| / | Ir al buscador |
+| Mayús + clic | Seleccionar un rango de versículos |
 
-## 📚 Gestión de Biblias (.xmm)
+## Estructura del proyecto
 
-- La aplicación incluye una biblia de muestra precargada para que comiences de inmediato.
-- Para agregar tus propias biblias en formato `.xmm`:
-  1. En el panel izquierdo, haz clic en el botón **"📁 Biblias"**.
-  2. Arrastra y suelta tus archivos `.xmm` dentro de la zona punteada, o haz clic para seleccionarlos desde tu Mac.
-  3. Puedes subir tantas versiones como desees (por ejemplo: *Reina-Valera 1960*, *NVI*, *DHH*, *LBLA*, etc.).
-  4. Tus biblias se guardan localmente en el navegador (IndexedDB), por lo que **no tendrás que volver a cargarlas** cuando cierres y abras la aplicación.
+```
+server/
+  index.js, app.js      arranque y lista de módulos
+  roles.js              funciones que puede elegir un dispositivo y sus permisos
+  preflight.js          comprobación de requisitos
+  core/                 servidor HTTP, estado compartido, tiempo real, sesiones, almacenamiento
+  modules/
+    system/             sesiones, PIN, direcciones de red
+    bible/              lectura de .xmm/.xml, libros, citas, búsqueda
+    projection/         contenido en vivo, estilos, segunda pantalla
+    playlist/           guion de culto
+web/
+  core/                 conexión con el servidor y utilidades de interfaz
+  modules/              piezas de interfaz de cada módulo
+  roles/                una página por función: control, guion, proyeccion
+Biblias/                tus biblias (no se suben a GitHub, salvo la RV1909)
+data/                   ajustes, PIN, guion y fondos de este equipo (no se sube)
+test/                   pruebas (npm test)
+```
 
----
+### Cómo funciona
 
-## 🔍 Búsqueda Rápida y Navegación
+- El servidor guarda **todo el estado** (qué se proyecta, estilos, guion). Los dispositivos son vistas.
+- Los cambios llegan a todos por un canal en tiempo real (`GET /api/events`).
+- Las órdenes se envían como **acciones** (`POST /api/action`), cada una con un permiso que se comprueba según la función del dispositivo.
 
-1. **Buscador Inteligente**:
-   - **Por cita bíblica**: Escribe por ejemplo `Juan 3:16`, `Gn 1:1`, `Salmo 23` o `Rom 8:28` y presiona **Enter**. La aplicación saltará inmediatamente al libro, capítulo y versículo exacto.
-   - **Por texto o palabra clave**: Escribe cualquier palabra o frase (ej. `amor`, `principio`, `pastor`) y presiona **Enter** para ver todos los versículos coincidentes con resaltado.
-2. **Navegación tradicional**:
-   - Filtra por **Antiguo Testamento**, **Nuevo Testamento** o **Todos**.
-   - Elige el libro en la columna izquierda.
-   - Selecciona el número de capítulo en la cuadrícula superior.
-   - Haz **un clic** en cualquier versículo para verlo en el monitor de vista previa.
-   - Haz **doble clic** o presiona **Enter** para enviarlo de inmediato a la pantalla en vivo.
+### Añadir un módulo
 
----
+1. Crea `server/modules/<nombre>/index.js` que exporte `setup(app)` y regístralo en `server/app.js`.
+2. Dentro usa `app.store.register()` para su estado, `app.action()` para sus órdenes, `app.route()` para sus rutas y `app.storage()` para guardar datos.
+3. Crea su interfaz en `web/modules/<nombre>/` y úsala en las páginas de `web/roles/`.
+4. Si necesita una función nueva (o permisos nuevos para una existente), edita `server/roles.js`.
 
-## 🎮 Controles en Vivo y Atajos de Teclado
+No tiene dependencias externas: no hace falta `npm install`.
 
-| Tecla / Botón | Función |
-| :--- | :--- |
-| **Enter** / Botón `EN VIVO` | Transmite el versículo seleccionado a la pantalla de proyección |
-| **Flecha Derecha (▶)** | Avanza al siguiente versículo |
-| **Flecha Izquierda (◀)** | Retrocede al versículo anterior |
-| **Tecla B** / Botón `Negro` | Modo Blackout: Pantalla completamente negra para transiciones |
-| **Tecla C** / Botón `Fondo` | Oculta el texto pero mantiene el fondo artístico visible |
-| **Escape** | Desactiva la transmisión en vivo / cierra modales |
-| **F / F11** (en proyector) | Alterna modo Pantalla Completa |
+## Biblias y derechos de autor
 
----
+Se incluye la Reina-Valera 1909, de dominio público ([eBible.org](https://ebible.org/spaRV1909/)). Las demás versiones tienen derechos de autor y no forman parte de este repositorio: cada iglesia copia en `Biblias/` las que tenga derecho a usar.
 
-## 🎨 Personalización Visual del Proyector
+## Créditos
 
-En el panel derecho puedes ajustar el diseño visual en tiempo real:
-- **Tamaño de letra**: Ajustable desde 28px hasta 84px mediante slider.
-- **Tipografías**: Estilos modernos sans-serif, serif clásico, trebuchet e impact.
-- **Colores**: Personaliza el color del versículo y el color de la cita bíblica.
-- **Sombra de texto**: Opciones fuerte, suave o contorno para garantizar 100% de legibilidad sobre cualquier fondo.
-- **Fondos**: Elige entre degradados profesionales predefinidos, colores planos, o sube tu propia imagen de fondo personalizada.
-- **Filtro de Oscurecimiento**: Regula la opacidad de la capa negra sobre el fondo para mayor contraste.
-
----
-
-## 📋 Guión de Culto (Playlist)
-
-- Si preparas los pasajes bíblicos antes de la reunión, selecciona el versículo y presiona **"+ Guión"**.
-- En la pestaña **Guión de Culto** tendrás la lista de lecturas programadas.
-- Haz clic en cualquier lectura de la lista durante la reunión para proyectarla al instante sin tener que buscarla.
+Generación de códigos QR: [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) de Kazuhiko Arase (licencia MIT).

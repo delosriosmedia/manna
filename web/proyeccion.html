@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manna · Proyección</title>
+  <link rel="stylesheet" href="/modules/projection/stage.css">
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: none; }
+    #stage { position: fixed; inset: 0; }
+    #hint {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+      font: 14px -apple-system, "Segoe UI", sans-serif; color: #fff; background: rgba(0,0,0,.6);
+      padding: 6px 14px; border-radius: 99px; transition: opacity .6s; pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="stage"></div>
+  <div id="hint">Doble clic o tecla F para pantalla completa</div>
+  <script type="module" src="/roles/proyeccion.js"></script>
+</body>
+</html>
