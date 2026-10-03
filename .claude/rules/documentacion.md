@@ -11,7 +11,7 @@
 | Un módulo nuevo, un rol o un permiso | `README.md` (estructura), `.claude/rules/arquitectura.md`, `docs/ESTADO.md` |
 | Una convención o forma de programar | La regla correspondiente en `.claude/rules/` |
 | Comandos, stack o límites del proyecto | `CLAUDE.md` |
-| Requisitos del equipo principal | `README.md`, `instalar.html`, `server/preflight.js` y los lanzadores |
+| Requisitos del equipo principal o forma de abrir Manna | `README.md`, `instalacion/requisitos.html`, `server/preflight.js`, los instaladores de la raíz e `instalacion/abrir-windows.bat` |
 | Formatos o limpieza de biblias | `.claude/rules/biblias.md` y `Biblias/LEEME.txt` |
 | Un procedimiento repetible | La skill en `.claude/skills/` |
 | Algo queda sin probar o con un problema conocido | `docs/ESTADO.md` |

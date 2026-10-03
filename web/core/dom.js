@@ -31,6 +31,32 @@ export function toast(message, kind = 'info') {
   toastTimer = setTimeout(() => el.classList.remove('show'), kind === 'error' ? 4500 : 2500);
 }
 
+let leaving = false;
+
+// Navegación interna deliberada (cambiar de función, volver al inicio): no pide confirmación.
+export function go(url) {
+  leaving = true;
+  location.href = url;
+}
+
+// Deja de pedir confirmación al cerrar (por ejemplo, cuando Manna ya se apagó).
+export function allowLeaving() {
+  leaving = true;
+}
+
+// Pide confirmación al cerrar o recargar la pestaña, para no perder el control por un clic
+// equivocado. El texto del aviso lo pone el navegador y no se puede cambiar.
+export function confirmBeforeClose() {
+  window.addEventListener('beforeunload', (e) => {
+    if (leaving) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+  document.addEventListener('click', (e) => {
+    if (e.target.closest?.('a[href]')) leaving = true;
+  }, true);
+}
+
 // Envuelve una acción para mostrar el error en pantalla en lugar de dejarlo en la consola.
 export function guard(fn) {
   return async (...args) => {
@@ -38,7 +64,7 @@ export function guard(fn) {
       return await fn(...args);
     } catch (err) {
       // Sin sesión, o la sesión de este navegador cambió de función en otra pestaña.
-      if (err.status === 401 || err.status === 403) location.href = `/?volver=${encodeURIComponent(location.pathname)}`;
+      if (err.status === 401 || err.status === 403) go(`/?volver=${encodeURIComponent(location.pathname)}`);
       else toast(err.message, 'error');
       return undefined;
     }

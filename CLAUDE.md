@@ -11,16 +11,19 @@ Repositorio: https://github.com/delosriosmedia/manna
 
 ## Comandos
 
-- Iniciar: `node server/index.js` (o el lanzador `Iniciar Manna.command` / `.bat`)
+- Iniciar en desarrollo: `node server/index.js` (mensajes en la terminal; Ctrl+C para apagar)
+- Como lo abre el usuario: icono **Manna**, creado por `Instalar Manna en Windows.bat` / `Instalar Manna en Mac.command`. Arranca con `--segundo-plano` (sin ventana, registro en `data/manna.log`) y se apaga con el botón "Apagar" del control
 - Pruebas: `npm test`
 - Servidor de prueba sin abrir navegador ni tocar los datos reales:
-  `MANNA_NO_OPEN=1 MANNA_DATA="$TMPDIR/manna-prueba" PORT=8123 node server/index.js`
+  `MANNA_NAME=manna-prueba MANNA_NO_OPEN=1 MANNA_DATA="$TMPDIR/manna-prueba" PORT=8123 node server/index.js`
+- Pruebas en un Chrome real (paso a `manna.local`, aviso al cerrar, cambio de IP): `node scripts/probar-chrome.mjs`
 
 ## Stack
 
 - Servidor: Node.js 18+, módulos ES, **sin dependencias** (no hay `npm install`).
 - Web: HTML, CSS y JavaScript puro con módulos ES. **Sin framework ni paso de compilación.**
 - Tiempo real: Server-Sent Events (`GET /api/events`). Órdenes: `POST /api/action`.
+- Red: puerto 80 (8000 si está ocupado) y nombre `manna.local` anunciado por mDNS, hecho a mano en `server/modules/system/mdns.js`.
 - Datos locales en `data/` (JSON y medios). Biblias en `Biblias/`.
 
 ## Límites fijados por el dueño del proyecto
@@ -29,6 +32,8 @@ Repositorio: https://github.com/delosriosmedia/manna
 - No añadir dependencias externas, frameworks ni compilación sin aprobación explícita.
 - Las biblias con derechos de autor **nunca** se suben al repositorio (solo la Reina-Valera 1909).
 - Interfaz, mensajes, comentarios y documentación en **español**.
+- El equipo principal de la iglesia es **Windows**. Lo que afecte al arranque o al sistema debe funcionar ahí, aunque el desarrollo se haga en Mac.
+- Por ahora se aceptan Node.js y Chrome como requisitos del equipo principal. Compilar instaladores (Electron) está aplazado; ver `docs/ESTADO.md`.
 - La ventana de proyección del equipo principal solo se abre en una **segunda pantalla**; si no hay, se avisa y no se abre.
 - Todo rol que no sea "proyección" exige PIN desde dispositivos remotos.
 - El proyecto va a crecer con muchos módulos: todo lo nuevo entra como módulo, sin acoplarse a los existentes.

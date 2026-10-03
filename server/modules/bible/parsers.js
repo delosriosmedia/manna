@@ -49,6 +49,9 @@ export function cleanVerse(raw) {
     .trim();
 }
 
+// Marcadores de versículo omitido o unido al anterior: "--" o "(TEXT OMITTED)". No se proyectan.
+const isOmitted = (text) => !/[^\s\-–—]/.test(text) || /^\(text omitted\)$/i.test(text);
+
 // Devuelve { books: [{ n, name, abbr, chapters: [{ n, verses: [{ n, text }] }] }] } ordenado por libro.
 export function parseBible(source) {
   const format = FORMATS.find((f) => f.test.test(source));
@@ -79,8 +82,7 @@ export function parseBible(source) {
       let text = cleanVerse(m[4] || '');
       // Algunas versiones repiten el número del versículo al inicio del texto.
       if (text.startsWith(`${n} `)) text = text.slice(String(n).length + 1);
-      // "--" marca un versículo omitido o unido al anterior.
-      if (/[^\s\-–—]/.test(text)) chapter.verses.push({ n, text });
+      if (!isOmitted(text)) chapter.verses.push({ n, text });
     }
   }
 

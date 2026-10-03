@@ -3,6 +3,7 @@ import path from 'node:path';
 import { HttpError } from '../../core/router.js';
 import { listScreens, secondScreen } from './display.js';
 import { openKiosk } from './launcher.js';
+import { liveToRestore } from './live.js';
 
 const DEFAULT_STYLES = {
   fontSize: 48,
@@ -41,19 +42,43 @@ export default function setup(app) {
   const mediaDir = path.join(app.dataDir, 'media');
   fs.mkdirSync(mediaDir, { recursive: true });
 
+  const restore = liveToRestore(saved.data.live);
+  const restored = restore && services.bible.passage(restore.versionId, restore.ref);
+
   store.register('projection', {
-    mode: 'clear', // 'live' = contenido visible, 'clear' = solo fondo, 'black' = negro
-    item: null,
+    mode: restored ? restore.mode : 'clear', // 'live' = contenido visible, 'clear' = solo fondo, 'black' = negro
+    item: restored ? { kind: 'verses', ...restored } : null,
     styles: { ...DEFAULT_STYLES, ...saved.data.styles },
     display: { supported: true, hasSecond: false, on: saved.data.displayOn, open: false },
   });
   const get = () => store.get('projection');
 
   // ---- Contenido ----
+  // Cambia lo que está en pantalla y lo anota en disco (solo la cita, no el texto)
+  // para recuperarlo si el servidor se reinicia. Ver live.js.
+  function setLive(patch) {
+    store.set('projection', patch);
+    touchLive();
+  }
+
+  function touchLive() {
+    const { mode, item } = get();
+    saved.data.live = item ? { mode, item: { versionId: item.versionId, ref: item.ref }, at: Date.now() } : null;
+    saved.save();
+  }
+
+  // "at" marca la última vez que el servidor estuvo vivo con ese contenido.
+  const liveTimer = setInterval(() => { if (get().item) touchLive(); }, 60_000);
+  liveTimer.unref();
+  app.onClose(() => {
+    clearInterval(liveTimer);
+    if (get().item) touchLive();
+  });
+
   function show({ versionId, ref }) {
     const item = services.bible.passage(versionId, ref);
     if (!item) throw new HttpError(404, 'Ese pasaje no existe en la versión elegida.');
-    store.set('projection', { item: { kind: 'verses', ...item }, mode: 'live' });
+    setLive({ item: { kind: 'verses', ...item }, mode: 'live' });
     return item;
   }
 
@@ -68,11 +93,11 @@ export default function setup(app) {
 
   app.action('projection.mode', { permission: 'projection.control' }, ({ mode }) => {
     if (!['live', 'clear', 'black'].includes(mode)) throw new HttpError(400, 'Modo no válido.');
-    store.set('projection', { mode: mode === 'live' && !get().item ? 'clear' : mode });
+    setLive({ mode: mode === 'live' && !get().item ? 'clear' : mode });
   });
 
   app.action('projection.clear', { permission: 'projection.control' }, () => {
-    store.set('projection', { item: null, mode: 'clear' });
+    setLive({ item: null, mode: 'clear' });
   });
 
   // ---- Estilos ----

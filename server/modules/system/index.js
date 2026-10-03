@@ -1,29 +1,68 @@
-import os from 'node:os';
 import { HttpError } from '../../core/router.js';
+import { lanInterfaces, origin } from './network.js';
+import { createResponder } from './mdns.js';
 
-function lanAddresses(port) {
-  const urls = [];
-  for (const list of Object.values(os.networkInterfaces())) {
-    for (const net of list || []) {
-      if (net.family === 'IPv4' && !net.internal) urls.push(`http://${net.address}:${port}`);
+const REFRESH_MS = 10_000;
+
+// Módulo de sistema: funciones (roles), sesiones, PIN y cómo se llega a este equipo desde la red.
+export default function setup(app) {
+  const { store, sessions, settings } = app;
+
+  // addresses: direcciones numéricas, la primera es la recomendada (la que lleva el QR).
+  // nameUrl: dirección con nombre ("http://manna.local"), o null si no se pudo anunciar.
+  store.register('system', { name: 'Manna', addresses: [], port: null, hostname: null, nameUrl: null });
+
+  const base = (process.env.MANNA_NAME || 'manna').toLowerCase().replace(/[^a-z0-9-]/g, '') || 'manna';
+  const responder = createResponder({ base });
+  let announced = null;
+  let busy = false;
+  let failures = 0; // comprobaciones fallidas seguidas
+
+  async function refresh() {
+    if (busy || !app.port) return;
+    busy = true;
+    try {
+      const interfaces = await lanInterfaces();
+      // El nombre se anuncia en las redes reales. Si el servidor escucha en una sola dirección
+      // (MANNA_HOST), es esa la que se anuncia.
+      const real = interfaces.filter((i) => !i.virtual);
+      const networks = (real.length ? real : interfaces).map((i) => ({ via: i.address, address: process.env.MANNA_HOST || i.address, netmask: i.netmask }));
+      const signature = networks.map((n) => `${n.via}>${n.address}`).join();
+      // Se vuelve a anunciar el nombre si cambió la IP (router reiniciado, otra red)
+      // o si dejó de funcionar sin avisar (equipo que durmió, wifi que se cayó y volvió).
+      // Si la comprobación falla tres veces seguidas incluso recién rehecho, es que este sistema
+      // no permite hacerla; se deja de comprobar para no reiniciar el nombre sin parar.
+      const broken = failures < 3 && !(await responder.healthy());
+      failures = broken ? failures + 1 : 0;
+      if (signature !== announced || broken) {
+        announced = signature;
+        await responder.start(networks);
+      }
+
+      const hostname = responder.name;
+      const next = {
+        addresses: interfaces.map((i) => origin(i.address, app.port)),
+        port: app.port,
+        hostname,
+        nameUrl: hostname ? origin(hostname, app.port) : null,
+      };
+      const current = store.get('system');
+      if (Object.keys(next).some((k) => String(next[k]) !== String(current[k]))) store.set('system', next);
+    } finally {
+      busy = false;
     }
   }
-  return urls;
-}
+  app.services.network = { refresh };
 
-// Módulo de sistema: funciones (roles), sesiones, PIN y direcciones de red.
-export default function setup(app) {
-  const { store, sessions } = app;
-
-  store.register('system', { name: 'Manna', addresses: [], port: null });
-  const refreshAddresses = () => store.set('system', { addresses: lanAddresses(app.port), port: app.port });
-  store.on('listening', refreshAddresses);
-  // La IP puede cambiar si el equipo cambia de red.
-  const timer = setInterval(() => {
-    const next = lanAddresses(app.port);
-    if (next.join() !== store.get('system').addresses.join()) refreshAddresses();
-  }, 15_000);
-  timer.unref();
+  let timer = null;
+  store.on('listening', () => {
+    timer = setInterval(refresh, REFRESH_MS);
+    timer.unref();
+  });
+  app.onClose(async () => {
+    clearInterval(timer);
+    await responder.stop();
+  });
 
   const publicRoles = () => sessions.roles.map(({ id, name, description, path, requiresPin }) => ({ id, name, description, path, requiresPin }));
 
@@ -31,9 +70,22 @@ export default function setup(app) {
     role: ctx.session?.role || null,
     isLocal: ctx.isLocal,
     roles: publicRoles(),
+    serverId: settings.data.id,
+    nameUrl: store.get('system').nameUrl,
   }));
 
   app.route('POST', '/api/session', async (ctx) => sessions.open(ctx, await ctx.json()));
+
+  // Lo consulta una página abierta por la dirección numérica para saber si este dispositivo
+  // puede usar la dirección con nombre (ver web/core/upgrade.js). Por eso admite otros orígenes.
+  app.route('GET', '/api/ping', (ctx) => {
+    ctx.res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': '*',
+    });
+    ctx.res.end(JSON.stringify({ app: 'manna', id: settings.data.id }));
+  });
 
   // El PIN solo se puede ver desde el propio equipo servidor.
   app.route('GET', '/api/system/pin', (ctx) => {
@@ -43,5 +95,12 @@ export default function setup(app) {
 
   app.action('system.setPin', { permission: 'system.admin' }, ({ pin }) => {
     sessions.setPin(String(pin ?? ''));
+  });
+
+  // Botón "Apagar Manna" del control. Solo desde el propio equipo principal.
+  app.action('system.shutdown', { permission: 'system.admin' }, (_payload, ctx) => {
+    if (!ctx?.isLocal) throw new HttpError(403, 'Manna solo se puede apagar desde el equipo principal.');
+    // Se espera un instante para que la respuesta llegue al navegador antes de cerrar.
+    setTimeout(() => app.shutdown?.(), 300);
   });
 }

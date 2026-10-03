@@ -97,7 +97,6 @@ input[type='color'] { width: 100%; height: 36px; padding: 2px; background: var(-
 .modal-header h2 { font-size: 16px; }
 .modal-body { padding: 16px; }
 
-.offline-bar {
-  display: none; padding: 6px 12px; text-align: center; background: #7f1d1d; color: #fecaca; font-weight: 600;
-}
-body.offline .offline-bar { display: block; }
+.offline-bar { padding: 8px 12px; text-align: center; background: #7f1d1d; color: #fecaca; }
+.offline-bar[hidden] { display: none; }
+.offline-bar .btn { margin-left: 10px; min-height: 28px; background: transparent; border-color: #fca5a5; color: #fff; }

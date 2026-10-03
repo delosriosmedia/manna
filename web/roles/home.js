@@ -1,8 +1,10 @@
 import { session } from '../core/api.js';
 import { $, h, dialog, toast } from '../core/dom.js';
+import { preferStableAddress } from '../core/upgrade.js';
 
 // Pantalla de inicio: cada dispositivo elige su función. Las de control piden el PIN una vez.
 const info = await session.get();
+preferStableAddress(info);
 const back = new URLSearchParams(location.search).get('volver');
 
 function askPin(role) {

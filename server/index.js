@@ -8,7 +8,4 @@ if (major < 18) {
 }
 
 const { start } = await import('./app.js');
-start().catch((err) => {
-  console.error('\nNo se pudo iniciar Manna:', err.message);
-  process.exit(1);
-});
+await start();

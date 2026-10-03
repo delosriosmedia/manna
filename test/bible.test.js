@@ -39,7 +39,7 @@ test('cleanVerse quita notas, asteriscos y títulos de sección', () => {
 });
 
 test('parseBible lee el formato .xmm', () => {
-  const { books } = parseBible('<bible><b n="Juan"><c n="3"><v n="16">Porque de tal manera</v><v n="17">--</v></c></b></bible>');
+  const { books } = parseBible('<bible><b n="Juan"><c n="3"><v n="16">Porque de tal manera</v><v n="17">--</v><v n="18">\n (TEXT OMITTED) </v></c></b></bible>');
   assert.equal(books.length, 1);
   assert.equal(books[0].n, 43);
   assert.deepEqual(books[0].chapters[0].verses, [{ n: 16, text: 'Porque de tal manera' }]);

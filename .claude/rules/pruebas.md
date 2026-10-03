@@ -16,7 +16,11 @@ Lo que tiene interfaz se prueba en el navegador antes de darlo por hecho. Proced
 - El cambio se refleja en otro dispositivo (abrir `/proyeccion` en otra pestaña).
 - Permisos: un rol sin permiso recibe error y no ve el control.
 
-Usar siempre un servidor de prueba con `MANNA_DATA` temporal y `PORT` distinto de 8000, para no tocar el PIN, el guion ni los ajustes reales.
+Usar siempre un servidor de prueba con `MANNA_DATA` temporal, `PORT=8123` y `MANNA_NAME=manna-prueba`, para no tocar el PIN, el guion ni los ajustes reales, ni chocar con un Manna en uso.
+
+## En un Chrome real
+
+`node scripts/probar-chrome.mjs` comprueba lo que el navegador integrado no puede: el paso a la dirección con nombre, el aviso al cerrar la pestaña y la reconexión tras un cambio de IP. Ejecutarlo al tocar la conexión, las direcciones o la navegación entre páginas.
 
 ## Honestidad al informar
 

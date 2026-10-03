@@ -63,7 +63,8 @@ export function createBibleBrowser({ navEl, versesEl, onSelect, onProject }) {
     renderBooks();
     renderChapters();
     renderVerses();
-    select(sel?.start ?? data.verses[0].n, sel?.end);
+    list.scrollTop = 0;
+    select(sel?.start ?? data.verses[0].n, sel?.end, 'center');
   }
 
   // ---- Dibujo ----
@@ -119,36 +120,47 @@ export function createBibleBrowser({ navEl, versesEl, onSelect, onProject }) {
     };
   }
 
-  function select(a, b = a) {
+  // reveal: cómo llevar la selección a la vista.
+  //   'none'    no mover la lista. Es lo que usan los clics: si la lista se moviera, el segundo
+  //             clic de un doble clic caería sobre otro versículo.
+  //   'nearest' mover solo si no se ve (teclado, botones).
+  //   'center'  centrar (al llegar desde una búsqueda o cambiar de capítulo).
+  function select(a, b = a, reveal = 'none') {
     const first = view.verses[0]?.n;
     const last = view.verses.at(-1)?.n;
     if (first == null) return;
     const clamp = (n) => Math.min(Math.max(n, first), last);
     view.sel = { anchor: clamp(a), start: clamp(Math.min(a, b)), end: clamp(Math.max(a, b)) };
     paint();
-    list.querySelector(`.verse[data-n="${view.sel.start}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (reveal !== 'none') {
+      const target = reveal === 'nearest' && b > a ? view.sel.end : view.sel.start;
+      list.querySelector(`.verse[data-n="${target}"]`)?.scrollIntoView({ block: reveal });
+    }
     onSelect(selection());
   }
 
   // Amplía o reduce el rango por el final (útil en celular, donde no hay Mayús+clic).
   function extend(delta) {
-    if (view.sel) select(view.sel.start, Math.max(view.sel.start, view.sel.end + delta));
+    if (view.sel) select(view.sel.start, Math.max(view.sel.start, view.sel.end + delta), 'nearest');
   }
 
   // Mueve la selección un versículo, pasando de capítulo si hace falta.
   const move = guard(async (delta) => {
     if (!view.sel) return;
     const i = view.verses.findIndex((v) => v.n === (delta > 0 ? view.sel.end : view.sel.start)) + delta;
-    if (view.verses[i]) return select(view.verses[i].n);
+    if (view.verses[i]) return select(view.verses[i].n, undefined, 'nearest');
     const chapters = currentBook().chapters;
     const next = chapters[chapters.indexOf(view.chapter) + delta];
     if (next == null) return;
     await loadChapter(view.book, next);
-    if (delta < 0) select(view.verses.at(-1).n);
+    if (delta < 0) select(view.verses.at(-1).n, undefined, 'center');
   });
 
   const goTo = guard(async (ref) => {
-    await loadChapter(ref.book, ref.chapter, ref.verseStart ? { start: ref.verseStart, end: ref.verseEnd } : null);
+    const sel = ref.verseStart ? { start: ref.verseStart, end: ref.verseEnd } : null;
+    // Si el capítulo ya está en pantalla (p. ej. al avanzar con las flechas), no se recarga.
+    if (sel && ref.book === view.book && ref.chapter === view.chapter) select(sel.start, sel.end, 'nearest');
+    else await loadChapter(ref.book, ref.chapter, sel);
   });
 
   // ---- Búsqueda ----

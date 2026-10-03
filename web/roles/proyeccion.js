@@ -1,12 +1,15 @@
-import { connect, subscribe } from '../core/api.js';
+import { connect, session, subscribe } from '../core/api.js';
 import { $ } from '../core/dom.js';
 import { createStage } from '../modules/projection/stage.js';
+import { preferStableAddress } from '../core/upgrade.js';
 
 // Pantalla de proyección: solo muestra. La usan la ventana de la segunda pantalla
 // y cualquier dispositivo que elija esta función.
 const stage = createStage($('#stage'));
 subscribe('projection', (p) => stage.render(p));
 connect('proyeccion');
+// Una pantalla remota que entró por la IP pasa a la dirección con nombre si puede.
+session.get().then(preferStableAddress).catch(() => {});
 
 const toggleFullscreen = () => {
   if (document.fullscreenElement) document.exitFullscreen();

@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import http from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -8,13 +9,28 @@ import { createSessions } from './sessions.js';
 import { createRealtime } from './realtime.js';
 import { ROLES } from '../roles.js';
 
+// Puertos a intentar, en orden. Sin puerto fijado se prefiere el 80, que permite entrar sin
+// escribir ":8000" en la dirección; si no está disponible, del 8000 en adelante.
+export function portCandidates(fixed) {
+  const first = fixed || 8000;
+  const rest = Array.from({ length: 11 }, (_, i) => first + i);
+  return fixed ? rest : [80, ...rest];
+}
+
 // El "app" es lo que recibe cada módulo: estado compartido, rutas, acciones y almacenamiento.
 export function createApp({ rootDir, dataDir, biblesDir }) {
   fs.mkdirSync(dataDir, { recursive: true });
   fs.mkdirSync(biblesDir, { recursive: true });
 
   const storage = createStorage(dataDir);
-  const settings = storage('ajustes', { port: 8000 });
+  const settings = storage('ajustes', {});
+  // Identifica esta instalación (estos datos). Sirve para saber si un Manna que responde en la red
+  // es este mismo: al pulsar el icono dos veces, o al comprobar la dirección "manna.local".
+  if (!settings.data.id) {
+    settings.data.id = crypto.randomBytes(8).toString('hex');
+    settings.save();
+    settings.flush();
+  }
   const store = new Store();
   const sessions = createSessions({ storage, roles: ROLES });
   const router = createRouter({ webDir: path.join(rootDir, 'web'), mediaDir: path.join(dataDir, 'media'), sessions });
@@ -38,6 +54,7 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
       return def.handler(payload);
     },
     onClose(fn) { closers.push(fn); },
+    shutdown: null, // lo asigna server/app.js: apagado ordenado de todo el programa
     listen,
     close,
   };
@@ -54,21 +71,22 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
 
   let server;
   function listen() {
-    const first = Number(process.env.PORT) || settings.data.port || 8000;
+    const ports = portCandidates(Number(process.env.PORT) || settings.data.port);
     return new Promise((resolve, reject) => {
-      const attempt = (port) => {
+      const attempt = (i) => {
         server = http.createServer(router.handle);
         server.once('error', (err) => {
-          if (err.code === 'EADDRINUSE' && port < first + 10) attempt(port + 1);
+          // Ocupado por otro programa, o el sistema no deja usarlo: se prueba el siguiente.
+          if (['EADDRINUSE', 'EACCES'].includes(err.code) && i + 1 < ports.length) attempt(i + 1);
           else reject(err);
         });
-        server.listen(port, '0.0.0.0', () => {
-          app.port = port;
-          store.emit('listening', port);
-          resolve(port);
+        server.listen(ports[i], process.env.MANNA_HOST || '0.0.0.0', () => {
+          app.port = ports[i];
+          store.emit('listening', app.port);
+          resolve(app.port);
         });
       };
-      attempt(first);
+      attempt(0);
     });
   }
 

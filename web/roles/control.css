@@ -64,9 +64,19 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
 .swatches button { aspect-ratio: 1; border: 2px solid var(--border); border-radius: 6px; cursor: pointer; }
 .swatches button:hover { border-color: var(--text); }
 
+/* Pantalla final tras apagar Manna */
+.goodbye { margin: auto; padding: 24px; text-align: center; }
+.goodbye .brand-mark { display: inline-grid; width: 56px; height: 56px; font-size: 28px; border-radius: 14px; margin-bottom: 16px; }
+.goodbye h1 { font-size: 24px; margin-bottom: 8px; }
+
 /* Ventana de dispositivos */
+.steps { margin: 0 0 12px; padding-left: 20px; color: var(--muted); }
+.steps li { margin-bottom: 4px; }
 .device { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 12px; }
-.device code { font-size: 16px; font-weight: 700; user-select: all; }
+.device code { font-size: 20px; font-weight: 700; user-select: all; }
+.alt-addresses { margin-bottom: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); }
+.alt-addresses summary { cursor: pointer; color: var(--muted); }
+.alt-addresses p { margin: 8px 0; }
 .qr { width: 190px; padding: 8px; background: #fff; border-radius: 8px; line-height: 0; }
 
 /* ---- Tableta: se oculta la ayuda de teclado ---- */

@@ -1,0 +1,4 @@
+# Los .bat necesitan finales de línea de Windows; los scripts de Mac, de Unix.
+*.bat -text
+*.command text eol=lf
+*.sh text eol=lf

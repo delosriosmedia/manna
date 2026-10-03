@@ -94,7 +94,7 @@ export function createStylePanel(container) {
       const file = upload.files[0];
       upload.value = '';
       if (!file) return;
-      await api('/api/projection/background', { method: 'POST', headers: { 'Content-Type': file.type }, body: file });
+      await api('/api/projection/background', { method: 'POST', headers: { 'Content-Type': file.type }, body: file, timeout: 120_000 });
       toast('Imagen de fondo actualizada');
     }) });
 

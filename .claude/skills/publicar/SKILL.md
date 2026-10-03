@@ -30,7 +30,7 @@ Si fallan, detente e informa. No se publica con pruebas rotas.
 Confirma que entre los archivos a publicar no hay:
 
 - Biblias distintas de `Biblias/Reina Valera 1909.xmm`.
-- Nada de `data/`, ni archivos `.local`.
+- Nada de `data/` (incluye `manna.log` y `error.html`), ni archivos `.local`.
 - PIN, contraseñas o claves.
 
 ## 4. Documentación

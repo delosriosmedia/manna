@@ -11,16 +11,45 @@ function qr(text) {
   return box;
 }
 
-// Ventana "Dispositivos": dirección y QR para conectar celulares y otros equipos, y el PIN.
+// Lo que se escribe a mano en el navegador: sin "http://", que el navegador pone solo.
+const typed = (url) => url.replace(/^http:\/\//, '');
+
+// Ventana "Dispositivos": cómo conectar celulares y otros equipos, y el PIN.
+// - Un solo código QR, con la dirección numérica recomendada (funciona en cualquier dispositivo;
+//   al abrirla, la página pasa sola a la dirección con nombre si el dispositivo la entiende).
+// - Para escribir a mano se ofrece la dirección con nombre ("manna.local"), más corta y estable.
+// - Si el equipo tiene más de una red, las demás direcciones quedan como alternativa, plegadas.
 export async function openDevicesDialog(isLocal) {
-  const { addresses } = state.system;
+  const { addresses, nameUrl } = state.system;
   const body = [];
 
   if (!addresses.length) {
     body.push(h('p', { class: 'empty' }, 'Este equipo no está conectado a ninguna red. Conéctalo a la wifi o al cable para que otros dispositivos puedan entrar.'));
   } else {
-    body.push(h('p', { class: 'muted', style: 'margin-top: 0;' }, 'Con el dispositivo en la misma red, escanea el código o escribe la dirección en el navegador:'));
-    for (const url of addresses) body.push(h('div', { class: 'device' }, qr(url), h('code', {}, url)));
+    const code = h('div', {});
+    const address = h('code', {});
+    const fallback = h('p', { class: 'muted', style: 'margin: 0; text-align: center;' });
+    const show = (url) => {
+      code.replaceChildren(qr(url));
+      address.textContent = typed(nameUrl || url);
+      fallback.replaceChildren(...(nameUrl ? ['Si no abre, escribe ', h('strong', {}, typed(url))] : []));
+    };
+    show(addresses[0]);
+
+    body.push(
+      h('ol', { class: 'steps' },
+        h('li', {}, 'Conecta el celular o equipo a la ', h('strong', {}, 'misma red wifi'), ' que este equipo.'),
+        h('li', {}, 'Escanea el código con la cámara, o escribe esta dirección en el navegador:')),
+      h('div', { class: 'device' }, code, address, fallback),
+    );
+
+    if (addresses.length > 1) {
+      body.push(h('details', { class: 'alt-addresses' },
+        h('summary', {}, '¿No conecta? Probar con otra dirección'),
+        h('p', { class: 'muted' }, 'Este equipo está conectado a más de una red (por ejemplo, wifi y cable). Manna eligió la más probable. Si el dispositivo no logra entrar, elige otra y vuelve a escanear:'),
+        h('div', { class: 'row', style: 'flex-wrap: wrap;' }, ...addresses.map((url, i) =>
+          h('button', { class: 'btn', onclick: () => show(url) }, typed(url), i === 0 ? ' (recomendada)' : '')))));
+    }
   }
 
   if (isLocal) {

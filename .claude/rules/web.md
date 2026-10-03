@@ -7,9 +7,11 @@ paths:
 
 - JavaScript puro con módulos ES, cargado directo por el navegador. **Sin framework, sin compilación, sin CDN** (la red de la iglesia puede no tener internet). Las librerías de terceros se copian a `web/vendor/` con su licencia.
 - Rutas siempre absolutas desde la raíz (`/core/api.js`, `/modules/...`).
-- Comunicación con el servidor solo a través de `web/core/api.js`: `api()`, `action()`, `subscribe(ns, fn)`, `connect(rol)`.
+- Comunicación con el servidor solo a través de `web/core/api.js`: `api()`, `action()`, `subscribe(ns, fn)`, `connect(rol)`. Siempre con rutas relativas: la misma página puede estar abierta por `localhost`, por la IP o por `manna.local`.
 - Construir el DOM con `h()` de `web/core/dom.js`. **No usar `innerHTML` con datos** (texto bíblico, nombres, lo que venga del servidor).
 - Los manejadores de eventos que llaman al servidor se envuelven en `guard()`: muestra el error en pantalla y redirige al inicio si falta sesión.
+- Las páginas de control montan `mountConnectionBar()` (`web/core/connection.js`) y `confirmBeforeClose()`. Para navegar a propósito a otra página se usa `go(url)`, que no pide confirmación. La pantalla de proyección no muestra avisos de conexión.
+- En la lista de versículos, un clic nunca desplaza la lista (rompería el doble clic). Solo la desplazan el teclado, los botones y las búsquedas.
 - Cada módulo exporta funciones `createX(contenedor, opciones)` que montan su interfaz y se suscriben al estado. No guardan estado compartido por su cuenta.
 - Una página por rol: `web/<rol>.html` + `web/roles/<rol>.js`. Las páginas con permisos empiezan con `await ensureRole('<rol>')`.
 - Estilos: variables de `web/core/app.css`. Cada módulo trae su propio `.css` si lo necesita.

@@ -1,5 +1,8 @@
 // Canal en tiempo real (Server-Sent Events): el servidor empuja cada cambio de estado
 // a todos los dispositivos conectados. Las órdenes viajan aparte, por POST /api/action.
+// Eventos: 'state' (todo, al conectar), 'patch' (un espacio que cambió) y 'ping' (latido).
+const PING_MS = 10_000;
+
 export function createRealtime({ store, router }) {
   const clients = new Set();
 
@@ -38,9 +41,11 @@ export function createRealtime({ store, router }) {
     });
   });
 
+  // Latido: permite al cliente detectar una conexión que sigue abierta pero ya no recibe nada
+  // (wifi caída, router reiniciado). Si deja de llegar, el cliente reconecta. Ver web/core/api.js.
   const keepAlive = setInterval(() => {
-    for (const c of clients) c.res.write(': ping\n\n');
-  }, 20_000);
+    for (const c of clients) send(c.res, 'ping', {});
+  }, PING_MS);
   keepAlive.unref();
 
   return {

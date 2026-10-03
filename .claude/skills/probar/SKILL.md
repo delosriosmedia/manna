@@ -18,8 +18,10 @@ Si fallan, arréglalas antes de seguir.
 Puerto y datos aparte, para no tocar el PIN, el guion ni los ajustes reales. Ejecútalo en segundo plano:
 
 ```bash
-MANNA_NO_OPEN=1 MANNA_DATA="$TMPDIR/manna-prueba" PORT=8123 node server/index.js
+MANNA_NAME=manna-prueba MANNA_NO_OPEN=1 MANNA_DATA="$TMPDIR/manna-prueba" PORT=8123 node server/index.js
 ```
+
+`MANNA_NAME` evita anunciar `manna.local` y chocar con un Manna real de la misma red.
 
 El PIN de prueba aparece en la salida del servidor.
 
@@ -44,10 +46,39 @@ Abre `http://localhost:8123/control` y revisa, según lo que haya cambiado:
 
 La dirección de red y el estado completo están en `http://localhost:8123/api/state`.
 
-## 4. Lo que no se puede probar aquí
+## 4. Desconexiones
 
-La apertura en segunda pantalla, Windows y un celular real no se pueden verificar en el equipo de desarrollo. Si el cambio los toca, dilo con claridad y anótalo en la tabla "Probado y sin probar" de `docs/ESTADO.md`.
+Con `/control` y `/proyeccion` abiertos y un pasaje en vivo. El aviso rojo aparece en el control; la proyección debe mantener lo último sin mostrar mensajes.
 
-## 5. Al terminar
+| Caso | Cómo simularlo | Qué debe pasar |
+| --- | --- | --- |
+| El servidor se cae y vuelve | `pkill -f server/index.js`, esperar, volver a iniciarlo con los mismos datos | Aviso a los 2 s, explicación a los 10 s. Al volver: reconecta solo, lo que estaba en pantalla se recupera y la sesión sigue válida sin PIN |
+| Conexión congelada (wifi caída, router reiniciado) | `pkill -STOP -f server/index.js`, esperar 35 s, `pkill -CONT -f server/index.js` | Aviso en unos 30 s. Al reanudar: reconecta solo |
+| La dirección deja de responder (cambio de IP) | Reiniciar con `MANNA_HOST=<ip de red>` y la página abierta en `localhost` | El aviso se queda con la explicación; la página no se rompe. Al volver la dirección: reconecta solo |
+
+Los errores `ERR_CONNECTION_REFUSED` en la consola durante el corte son normales.
+
+## 5. Dirección con nombre, aviso al cerrar y cambio de IP
+
+El navegador integrado no abre nombres `.local` ni muestra el cuadro "¿Salir del sitio?". Eso se prueba en un Chrome real sin ventana:
+
+```bash
+node scripts/probar-chrome.mjs
+```
+
+Arranca sus propios servidores de prueba (no debe haber otro en el puerto 8123), tarda unos 2 minutos y termina con "Todo correcto" o con la lista de lo que falló. Ejecútalo al tocar `server/modules/system/`, `web/core/api.js`, `web/core/upgrade.js` o `confirmBeforeClose`.
+
+Comprobaciones sueltas del nombre:
+
+```bash
+dscacheutil -q host -a name manna-prueba.local      # macOS: debe dar la IP de este equipo
+curl -s http://manna-prueba.local:8123/api/ping
+```
+
+## 6. Lo que no se puede probar aquí
+
+La apertura en segunda pantalla, Windows como servidor y celulares reales (en especial si abren `manna.local`) no se pueden verificar en el equipo de desarrollo. Si el cambio los toca, dilo con claridad y anótalo en la tabla "Probado y sin probar" de `docs/ESTADO.md`.
+
+## 7. Al terminar
 
 Detén el servidor de prueba y borra `$TMPDIR/manna-prueba`. Informa qué se probó, qué falló y qué quedó sin probar.

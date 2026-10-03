@@ -1,5 +1,6 @@
-import { action, connect, onConnection, state, subscribe } from '../core/api.js';
-import { $, h, guard, toast } from '../core/dom.js';
+import { action, connect, disconnect, state, subscribe } from '../core/api.js';
+import { mountConnectionBar } from '../core/connection.js';
+import { $, h, allowLeaving, confirmBeforeClose, dialog, guard, toast } from '../core/dom.js';
 import { ensureRole } from '../core/session.js';
 import { createBibleBrowser } from '../modules/bible/browser.js';
 import { createStage } from '../modules/projection/stage.js';
@@ -60,16 +61,36 @@ const step = guard(async (delta) => {
   }
 });
 
+// ---- Apagar Manna ----
+function askShutdown() {
+  const box = dialog('Apagar Manna',
+    h('p', { style: 'margin-top: 0;' }, 'Se cerrará la proyección y los demás dispositivos se desconectarán.'),
+    h('div', { class: 'row', style: 'justify-content: flex-end;' },
+      h('button', { class: 'btn', onclick: () => box.close() }, 'Cancelar'),
+      h('button', { class: 'btn danger', onclick: guard(async () => {
+        await action('system.shutdown');
+        disconnect();
+        allowLeaving();
+        document.title = 'Manna · Apagado';
+        document.body.replaceChildren(h('main', { class: 'goodbye' },
+          h('span', { class: 'brand-mark' }, 'M'),
+          h('h1', {}, 'Manna está apagado'),
+          h('p', { class: 'muted' }, 'Ya puedes cerrar esta pestaña. Para volver a abrirlo, usa el icono Manna.')));
+      }) }, 'Apagar Manna')));
+}
+
 // ---- Barra superior ----
 const connection = h('span', { class: 'pill' }, h('span', { class: 'dot' }), h('span', {}));
 $('#status').append(connection);
-$('#actions').append(
+$('#actions').append(...[
   h('button', { class: 'btn', title: 'Versículo anterior (←)', onclick: () => step(-1) }, '◀'),
   h('button', { class: 'btn', title: 'Versículo siguiente (→)', onclick: () => step(1) }, '▶'),
   ...createModeButtons(),
   createDisplayToggle(),
   h('button', { class: 'btn', onclick: guard(() => openDevicesDialog(me.isLocal)) }, 'Dispositivos'),
-);
+  // Manna corre sin ventana propia: se apaga desde aquí, y solo en el equipo principal.
+  me.isLocal && h('button', { class: 'btn', title: 'Apagar Manna en este equipo', onclick: askShutdown }, 'Apagar'),
+].filter(Boolean));
 
 subscribe('conexiones', ({ porRol = {} }) => {
   const n = porRol.proyeccion || 0;
@@ -128,5 +149,6 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-onConnection((online) => document.body.classList.toggle('offline', !online));
+mountConnectionBar();
+confirmBeforeClose();
 connect('control');

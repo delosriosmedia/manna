@@ -22,7 +22,7 @@ Un formato nuevo se añade como entrada en `FORMATS` de `parsers.js`.
 
 ## Limpieza del texto (`cleanVerse`)
 
-Se aplica al cargar, no al mostrar. Hoy quita: llamadas de nota `[1]`, asteriscos, títulos de sección incrustados (bloques que empiezan con línea en blanco, típicos de la Biblia de Jerusalén), el número de versículo repetido al inicio y los versículos que solo contienen `--`.
+Se aplica al cargar, no al mostrar. Hoy quita: llamadas de nota `[1]`, asteriscos, títulos de sección incrustados (bloques que empiezan con línea en blanco, típicos de la Biblia de Jerusalén), el número de versículo repetido al inicio y los versículos omitidos (los que solo contienen `--` o `(TEXT OMITTED)`).
 
 Al tocar la limpieza: comprobar contra **todas** las biblias de `Biblias/` que no se pierde texto bíblico. Es preferible dejar un título de más que borrar un versículo.
 

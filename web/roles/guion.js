@@ -1,5 +1,6 @@
-import { action, connect, onConnection, subscribe } from '../core/api.js';
-import { $, h, guard } from '../core/dom.js';
+import { action, connect, subscribe } from '../core/api.js';
+import { mountConnectionBar } from '../core/connection.js';
+import { $, h, confirmBeforeClose, guard } from '../core/dom.js';
 import { ensureRole } from '../core/session.js';
 import { createModeButtons, describeLive } from '../modules/projection/controls.js';
 import { createPlaylistPanel } from '../modules/playlist/panel.js';
@@ -24,5 +25,6 @@ subscribe('projection', (p) => {
   $('#live').style.color = live.live ? 'var(--live)' : 'var(--muted)';
 });
 
-onConnection((online) => document.body.classList.toggle('offline', !online));
+mountConnectionBar();
+confirmBeforeClose();
 connect('guion');

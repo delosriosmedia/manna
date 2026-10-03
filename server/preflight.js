@@ -1,6 +1,6 @@
 import { findBrowser } from './modules/projection/launcher.js';
 
-// Requisitos del equipo servidor. Si falta alguno, Manna no arranca y se abre instalar.html.
+// Requisitos del equipo servidor. Si falta alguno, Manna no arranca y se abre instalacion/requisitos.html.
 export function checkRequirements() {
   const problems = [];
   const needsBrowser = process.platform === 'darwin' || process.platform === 'win32';

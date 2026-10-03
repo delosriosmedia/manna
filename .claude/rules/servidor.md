@@ -13,7 +13,10 @@ paths:
 - Lo que solo debe verse en el equipo principal se protege con `ctx.isLocal` (ejemplo: ver el PIN).
 - Archivos subidos van a `data/media/` y se sirven por `/media/`. En el estado se guarda la URL, nunca el contenido.
 - Guardado en disco: `storage.save()` (agrupa escrituras). No escribir JSON a mano.
-- Procesos externos (Chrome, `osascript`, PowerShell): solo en `modules/projection/display.js` y `launcher.js`, con rama para macOS, Windows y Linux. Lo que se añada debe contemplar al menos macOS y Windows.
+- Procesos externos (Chrome, `osascript`, PowerShell): solo en `modules/projection/display.js` y `launcher.js`, con rama para macOS, Windows y Linux. Lo que se añada debe contemplar al menos macOS y Windows. Al lanzar programas de consola en Windows, usar `windowsHide: true` (salvo para Chrome, que quedaría invisible).
+- Arranque (`server/app.js`): con `--segundo-plano` los mensajes van a `data/manna.log` y un fallo de arranque se muestra en una página (`data/error.html`). Antes de arrancar se comprueba si ya hay un Manna con los mismos datos; si lo hay, solo se abre el control. No escribir el PIN ni otros secretos en el registro.
+- Los lanzadores viven fuera de `server/`: `Instalar Manna en ….` (raíz) e `instalacion/`. Los `.bat` van en ASCII puro (sin tildes) y con finales de línea CRLF; pasan rutas a PowerShell por variables de entorno, nunca pegadas en el comando.
 - Recursos que hay que liberar al apagar (temporizadores, procesos, vigilancia de carpetas): registrar con `app.onClose()`.
-- Variables de entorno: `PORT`, `MANNA_DATA`, `MANNA_BIBLIAS`, `MANNA_NO_OPEN`.
+- Puerto: sin `PORT` fijado se intenta el 80 y, si no se puede, del 8000 en adelante (`portCandidates` en `core/app.js`). Usar siempre `app.port` y `origin()` de `modules/system/network.js`; no escribir `:8000` a mano.
+- Variables de entorno: `PORT`, `MANNA_DATA`, `MANNA_BIBLIAS`, `MANNA_NO_OPEN`, `MANNA_NAME` (nombre en la red, por defecto `manna`; en pruebas usar otro para no chocar con un Manna real) y `MANNA_HOST` (dirección en la que escucha y que se anuncia; por defecto todas. Solo para pruebas).
 - Comentarios: en español, y solo donde expliquen el porqué.
