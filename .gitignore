@@ -1,0 +1,12 @@
+# Biblias: tienen derechos de autor, no se publican
+Biblias/*
+!Biblias/LEEME.txt
+!Biblias/Reina Valera 1909.xmm
+ejemplo_biblia.xmm
+
+# Datos locales del servidor (ajustes, PIN, guion, fondos)
+data/
+
+node_modules/
+.DS_Store
+*.log
