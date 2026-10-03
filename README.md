@@ -66,6 +66,10 @@ web/
 Biblias/                tus biblias (no se suben a GitHub, salvo la RV1909)
 data/                   ajustes, PIN, guion y fondos de este equipo (no se sube)
 test/                   pruebas (npm test)
+docs/ESTADO.md          estado actual: qué funciona, qué falta probar, qué sigue
+CHANGELOG.md            historial de cambios por versión
+CLAUDE.md, AGENTS.md    instrucciones para asistentes de programación
+.claude/                reglas, procedimientos (skills) y automatizaciones de desarrollo
 ```
 
 ### Cómo funciona
@@ -82,6 +86,10 @@ test/                   pruebas (npm test)
 4. Si necesita una función nueva (o permisos nuevos para una existente), edita `server/roles.js`.
 
 No tiene dependencias externas: no hace falta `npm install`.
+
+### Para continuar el desarrollo
+
+Empieza por `CLAUDE.md` y `docs/ESTADO.md`. Las reglas del proyecto están en `.claude/rules/` y los procedimientos (crear un módulo, probar, publicar) en `.claude/skills/`. Son texto plano: sirven igual para una persona que para cualquier asistente de programación. Toda la documentación se actualiza con cada cambio.
 
 ## Biblias y derechos de autor
 
