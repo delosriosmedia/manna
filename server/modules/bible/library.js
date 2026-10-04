@@ -9,6 +9,8 @@ const EXTENSIONS = new Set(['.xmm', '.xml']);
 
 const LEVELS = [['exact', 'Frase exacta'], ['words', 'Todas las palabras'], ['similar', 'Parecidas']];
 const SEARCH_VERSION = 'RVR1960'; // sigla de la versión en la que se busca texto
+const LAST_OT_BOOK = 39;          // Malaquías: hasta aquí, Antiguo Testamento
+const SCOPES = ['all', 'ot', 'nt']; // dónde buscar: toda la Biblia, Antiguo o Nuevo Testamento
 
 // Biblioteca de biblias: lee la carpeta Biblias/, procesa cada versión la primera vez
 // que se usa y la deja en memoria.
@@ -162,8 +164,9 @@ export class BibleLibrary {
 
   // Búsqueda: primero intenta leerla como cita; si no, busca el texto. Los resultados van por
   // niveles (frase exacta, todas las palabras, parecidas), con lo encontrado marcado.
-  // id: la versión elegida; limit: cuántos resultados por nivel.
-  search(id, query, { limit = 40 } = {}) {
+  // id: la versión elegida; limit: cuántos resultados por nivel; scope: 'all', 'ot' (Antiguo
+  // Testamento) o 'nt' (Nuevo Testamento).
+  search(id, query, { limit = 40, scope = 'all' } = {}) {
     if (!this.#load(id)) return null;
     const ref = parseReference(query);
     const chapter = ref && this.chapter(id, ref.book, ref.chapter);
@@ -178,7 +181,12 @@ export class BibleLibrary {
     const bible = this.#parsed.get(searchId);
     const meta = this.#versions.get(searchId);
     const prepared = prepareQuery(query);
-    const found = bible.search.index.find(prepared);
+    const where = SCOPES.includes(scope) ? scope : 'all';
+    const everywhere = bible.search.index.find(prepared);
+    // El libro va en los millones de la clave de cada versículo.
+    const isOld = (doc) => bible.search.keys[doc] < (LAST_OT_BOOK + 1) * 1_000_000;
+    const inScope = (docs) => (where === 'all' ? docs : docs.filter((doc) => isOld(doc) === (where === 'ot')));
+    const found = { exact: inScope(everywhere.exact), words: inScope(everywhere.words), similar: inScope(everywhere.similar) };
 
     const levels = LEVELS.map(([level, label]) => ({
       id: level,
@@ -203,8 +211,9 @@ export class BibleLibrary {
       type: 'text',
       levels,
       total: levels.reduce((sum, level) => sum + level.total, 0),
-      // En qué versión se buscó (puede no ser la elegida).
+      // En qué versión se buscó (puede no ser la elegida) y en qué parte de la Biblia.
       version: { id: meta.id, name: meta.name, abbr: meta.abbr },
+      scope: where,
       ms: Math.round((performance.now() - started) * 10) / 10,
     };
   }

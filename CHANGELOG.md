@@ -4,6 +4,11 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.3.1 — 2026-10-04
+
+- **Comparador**: cada versículo lleva su número delante en las dos versiones, también cuando se proyecta uno solo.
+- **Búsqueda**: se puede buscar en toda la Biblia, solo en el Antiguo Testamento o solo en el Nuevo, con tres botones sobre los resultados. Manna recuerda la elección en cada dispositivo.
+
 ## 1.3.0 — 2026-10-04
 
 - **Comparador de versiones**, un módulo nuevo: el mismo pasaje en dos versiones, lado a lado o una sobre otra, cada una con su sigla y separadas por una línea. Se elige igual que en Biblia, viendo los dos textos junto a cada versículo.

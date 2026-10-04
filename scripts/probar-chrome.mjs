@@ -216,6 +216,18 @@ try {
   check('Enter va al versículo señalado, en la versión elegida', await run(`return ${pop}.hidden && document.querySelector('.ws[data-module=biblia] select').value === ${JSON.stringify(VERSION)}`) && (await text('.sel-ref')) === found[0].ref, found[0]?.ref);
   await press('Enter');
   check('y un segundo Enter lo proyecta', (await live()).ref === found[0].ref);
+  await write('en el principio');
+  const scopeOf = (id) => `${pop}.querySelector('.search-scope [data-scope=${id}]')`;
+  const firstRef = () => run(`return ${pop}.querySelector('.search-item strong')?.textContent`);
+  const everywhere = await run(`return ${pop}.querySelectorAll('.search-item').length`);
+  await click(scopeOf('nt'));
+  await sleep(700);
+  const onlyNew = { first: await firstRef(), count: await run(`return ${pop}.querySelectorAll('.search-item').length`), on: await run(`return ${scopeOf('nt')}.classList.contains('on')`) };
+  await click(scopeOf('ot'));
+  await sleep(700);
+  check('se puede buscar solo en un testamento', onlyNew.on && onlyNew.first === 'Juan 1:1' && onlyNew.count < everywhere && (await firstRef()) === 'Génesis 1:1', `${everywhere} en total, ${onlyNew.count} en el Nuevo`);
+  await click(scopeOf('all'));
+  await sleep(600);
   await write('jn 3 18');
   check('una cita ofrece ir al pasaje', (await run(`return ${pop}.querySelector('.search-item.go')?.textContent`))?.includes('Ir a Juan 3:18'));
   await write('zzzz');
@@ -289,7 +301,7 @@ try {
   await run(`const i = ${cmp}.querySelector('.search input'); i.value = 'jn 3 16'; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));`);
   await sleep(1200);
   check('junto a cada versículo se lee el de la otra versión, y avisa si falta', await run(`const row = (n) => ${cmp}.querySelector('.verse[data-n="' + n + '"]'); return row(16).children.length === 3 && row(16).children[2].textContent.startsWith('Porque tanto amó') && Boolean(row(17).querySelector('.absent'))`));
-  check('la vista previa muestra las dos versiones', await run(`const m = document.querySelectorAll('.dock .monitor')[1]; return m.querySelectorAll('.cmp-side').length === 2 && [...m.querySelectorAll('.cmp-label')].map(l => l.textContent).join() === 'RV1909,Versión de prueba'`));
+  check('la vista previa muestra las dos versiones, cada una con el número del versículo', await run(`const m = document.querySelectorAll('.dock .monitor')[1]; return m.querySelectorAll('.cmp-side').length === 2 && [...m.querySelectorAll('.cmp-label')].map(l => l.textContent).join() === 'RV1909,Versión de prueba' && [...m.querySelectorAll('.stage-vn')].map(n => n.textContent).join() === '16,16'`));
   await click(`${cmp}.querySelector('.seg [data-layout=rows]')`);
   await sleep(300);
   check('la disposición se elige antes de proyectar', await run(`return document.querySelectorAll('.dock .monitor')[1].querySelector('.cmp').dataset.layout === 'rows'`));

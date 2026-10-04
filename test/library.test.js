@@ -99,3 +99,25 @@ test('los resultados van por niveles y limit recorta cada uno sin cambiar el tot
   const cut = versions.search('moderna', 'el', { limit: 1 });
   assert.deepEqual([cut.levels[0].results.length, cut.levels[0].total], [1, 2]);
 });
+
+test('la búsqueda se puede limitar al Antiguo o al Nuevo Testamento', () => {
+  const dirBoth = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-test-testamentos-'));
+  fs.writeFileSync(path.join(dirBoth, 'Dos.xmm'), `<bible>
+    <b n="Génesis"><c n="1"><v n="1">En el principio fue creada la luz.</v></c></b>
+    <b n="Malaquías"><c n="4"><v n="6">La luz volverá al final.</v></c></b>
+    <b n="Mateo"><c n="5"><v n="14">Ustedes son la luz del mundo.</v></c></b>
+  </bible>`);
+  const both = new BibleLibrary(dirBoth);
+  both.scan();
+  try {
+    const refs = (scope) => both.search('dos', 'luz', { scope }).levels.flatMap((l) => l.results.map((r) => r.reference));
+    assert.deepEqual(refs('all'), ['Génesis 1:1', 'Malaquías 4:6', 'Mateo 5:14']);
+    assert.deepEqual(refs('ot'), ['Génesis 1:1', 'Malaquías 4:6']);
+    assert.deepEqual(refs('nt'), ['Mateo 5:14']);
+    // Un valor desconocido busca en toda la Biblia, y la respuesta dice dónde se buscó.
+    assert.deepEqual(refs('otra-cosa'), refs('all'));
+    assert.deepEqual([both.search('dos', 'luz', { scope: 'nt' }).scope, both.search('dos', 'luz', { scope: 'x' }).scope, both.search('dos', 'luz', { scope: 'nt' }).total], ['nt', 'all', 1]);
+  } finally {
+    fs.rmSync(dirBoth, { recursive: true, force: true });
+  }
+});

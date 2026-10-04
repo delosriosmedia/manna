@@ -39,9 +39,10 @@ export default function setup(app) {
     found(library.chapter(params.id, params.book, params.chapter)));
 
   // q: una cita o un texto. limit: cuántos resultados por nivel (para "ver más").
+  // en: 'ot' o 'nt' para buscar solo en el Antiguo o en el Nuevo Testamento.
   app.route('GET', '/api/bible/:id/search', ({ params, query }) => {
     const limit = Math.min(Math.max(Number(query.get('limit')) || 40, 1), 400);
-    return found(library.search(params.id, (query.get('q') || '').slice(0, 200), { limit }));
+    return found(library.search(params.id, (query.get('q') || '').slice(0, 200), { limit, scope: query.get('en') || 'all' }));
   });
 
   app.action('bible.rescan', { permission: 'bible.manage' }, rescan);

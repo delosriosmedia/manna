@@ -153,6 +153,7 @@ input[type='file'].input { padding: 6px; height: auto; }
 .badge.live { background: var(--live); color: #fff; }
 .chip { padding: 3px 10px; border: 1px solid var(--line); border-radius: 99px; color: var(--ink-2); white-space: nowrap; transition: background 0.15s var(--ease); }
 .chip:hover { border-color: var(--line-2); background: var(--s2); }
+.chip.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 .status { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-3); font-size: 12px; white-space: nowrap; }
 .status.warn { color: var(--accent); }
 .tally { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-4); flex-shrink: 0; }

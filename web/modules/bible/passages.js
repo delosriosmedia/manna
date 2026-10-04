@@ -7,6 +7,8 @@ const MAX_RECENT = 8;
 const SEARCH_PAUSE_MS = 150; // al escribir, se busca cuando los dedos paran un instante
 const SEARCH_LIMIT = 40;     // resultados por nivel; "ver más" lo amplía
 const SEARCH_MAX = 400;
+// Dónde se busca un texto. Se recuerda en este dispositivo.
+const SCOPES = [['all', 'Toda la Biblia'], ['ot', 'Antiguo Testamento'], ['nt', 'Nuevo Testamento']];
 
 // Un texto con lo encontrado resaltado. marks: tramos [inicio, fin) que da el servidor.
 function highlighted(text, marks) {
@@ -272,6 +274,7 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
   // frase exacta, todas las palabras, parecidas. Al elegir un resultado se va a ese versículo
   // en la versión que esté elegida.
   const found = { timer: null, request: 0, rows: [], active: -1, limit: SEARCH_LIMIT };
+  const scopeNow = () => (SCOPES.some(([id]) => id === prefs.get('buscar.en')) ? prefs.get('buscar.en') : 'all');
 
   function closeResults() {
     clearTimeout(found.timer);
@@ -297,7 +300,7 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
     const mine = found.request;
     let res;
     try {
-      res = await api(`/api/bible/${view.versionId}/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+      res = await api(`/api/bible/${view.versionId}/search?q=${encodeURIComponent(q)}&limit=${limit}&en=${scopeNow()}`);
     } catch (err) {
       if (mine === found.request) toast(err.message, 'error');
       return null;
@@ -359,11 +362,16 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
     }
 
     const where = `en ${res.version.name}`;
+    // Toda la Biblia, o solo un testamento. Al cambiarlo se vuelve a buscar lo mismo.
+    const scopes = h('div', { class: 'search-scope', role: 'group', 'aria-label': 'Dónde buscar' }, ...SCOPES.map(([id, label]) => h('button', {
+      class: `chip${id === res.scope ? ' on' : ''}`, dataset: { scope: id },
+      onclick: () => { prefs.set('buscar.en', id); searchNow(); searchInput.focus(); },
+    }, label)));
     if (!res.total) {
-      results.replaceChildren(h('div', { class: 'search-count' }, `Sin resultados para "${q}" ${where}`, close));
+      results.replaceChildren(h('div', { class: 'search-count' }, `Sin resultados para "${q}" ${where}`, close), scopes);
       return;
     }
-    const children = [h('div', { class: 'search-count' }, `${res.total} ${res.total === 1 ? 'resultado' : 'resultados'} ${where}`, close)];
+    const children = [h('div', { class: 'search-count' }, `${res.total} ${res.total === 1 ? 'resultado' : 'resultados'} ${where}`, close), scopes];
     for (const level of res.levels) {
       children.push(h('div', { class: 'search-level' }, h('span', {}, level.label), h('small', {}, String(level.total))));
       for (const hit of level.results) {

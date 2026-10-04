@@ -6,6 +6,7 @@
    Van por niveles (frase exacta, todas las palabras, parecidas), con lo encontrado resaltado. */
 .search-pop { position: absolute; z-index: var(--z-pop); top: 60px; left: 20px; right: 20px; max-height: 70%; overflow-y: auto; background: var(--s2); border: 1px solid var(--line-2); border-radius: var(--r-lg); box-shadow: 0 16px 40px rgba(3, 5, 10, 0.55); }
 .search-count { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 8px 6px 14px; background: var(--s2); border-bottom: 1px solid var(--line); color: var(--ink-3); font-size: 12px; }
+.search-scope { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
 .search-level { display: flex; align-items: baseline; gap: 8px; padding: 10px 14px 6px; background: var(--s1); border-bottom: 1px solid var(--line); font-weight: 600; font-size: 12px; }
 .search-level small { color: var(--ink-3); font: 500 11px var(--mono); }
 .search-item { display: block; width: 100%; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); }

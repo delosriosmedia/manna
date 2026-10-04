@@ -44,10 +44,10 @@ registerKind('verses', {
 
 const LAYOUTS = [['columns', 'columns', 'Lado a lado'], ['rows', 'rows', 'Una sobre otra']];
 
-// Texto de un pasaje dentro de un bloque: con el número delante si son varios versículos.
+// Texto de un pasaje al comparar: cada versículo con su número delante, también cuando es uno
+// solo, porque es lo que permite seguir con la vista el mismo versículo en las dos versiones.
 function verseNodes(verses) {
-  const many = verses.length > 1;
-  return verses.flatMap((v) => [many ? h('sup', { class: 'stage-vn' }, String(v.n)) : null, `${v.text} `]).filter(Boolean);
+  return verses.flatMap((v) => [h('sup', { class: 'stage-vn' }, String(v.n)), `${v.text} `]);
 }
 
 // Tipo de contenido "comparación": el mismo pasaje en dos versiones, cada una con su sigla,

@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Última actualización: 2026-10-04 · Versión: 1.3.0
+Última actualización: 2026-10-04 · Versión: 1.3.1
 
 Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver `.claude/rules/documentacion.md`). El historial está en `CHANGELOG.md`.
 
@@ -14,8 +14,8 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 - Roles por dispositivo: control completo, control del orden (solo operar), pantalla de proyección. PIN para los de control (el equipo principal no lo necesita).
 - **Logo e identidad**: el logo del dueño, en vector, integrado en la interfaz, los iconos del sistema y la pestaña del navegador. La versión se muestra junto al logo y sale de `package.json`.
 - **Biblia**: pasajes recientes, rejilla de libros, capítulos, versículos con selección de varios, vista previa en el panel.
-- **Búsqueda en la Biblia**: mientras se escribe. Una cita ("jn 3 16") lleva al pasaje. Un texto se busca **solo en la Reina-Valera 1960** (en la versión elegida, si no está instalada) y sale por niveles: frase exacta, todas las palabras y parecidas (otras formas de la palabra y sinónimos bíblicos), con lo encontrado resaltado. El resultado se abre en la versión que esté elegida. Con el teclado: flechas, Enter para ir al versículo y otro Enter para proyectarlo. El índice se prepara solo al arrancar.
-- **Comparador de versiones**: el mismo pasaje en dos versiones, lado a lado o una sobre otra, con la sigla de cada una. Se elige como en Biblia, viendo los dos textos junto a cada versículo; se proyecta, se añade al orden como elemento propio (tipo `compare`) y la disposición se cambia también al aire. Si a la segunda versión le falta un versículo, lo dice.
+- **Búsqueda en la Biblia**: mientras se escribe. Una cita ("jn 3 16") lleva al pasaje. Un texto se busca **solo en la Reina-Valera 1960** (en la versión elegida, si no está instalada) y sale por niveles: frase exacta, todas las palabras y parecidas (otras formas de la palabra y sinónimos bíblicos), con lo encontrado resaltado. El resultado se abre en la versión que esté elegida. Se puede limitar al Antiguo o al Nuevo Testamento. Con el teclado: flechas, Enter para ir al versículo y otro Enter para proyectarlo. El índice se prepara solo al arrancar.
+- **Comparador de versiones**: el mismo pasaje en dos versiones, lado a lado o una sobre otra, con la sigla de cada una y el número delante de cada versículo. Se elige como en Biblia, viendo los dos textos junto a cada versículo; se proyecta, se añade al orden como elemento propio (tipo `compare`) y la disposición se cambia también al aire. Si a la segunda versión le falta un versículo, lo dice.
 - **Orden del culto** (antes "guion"): elementos con tipo y pasos, secciones, reordenar arrastrando o por menú, cita rápida, miniaturas de los pasos que se despliegan y se recogen con un clic, "todo junto" para pasajes cortos, **nombre propio para cualquier elemento** (el original queda a la vista debajo y se recupera dejando el nombre vacío). Al abrir, la lista se coloca en lo que está al aire. El guion de versiones anteriores se convierte solo.
 - **Tipos de contenido** (`app.kind`): `verses`, `compare` y `testcard`. "Siguiente" recorre los pasos de un elemento y luego el orden. Cada tipo dice cómo se dibuja (`web/core/kinds.js`) y, si los tiene, qué **mandos en vivo** ofrece mientras está al aire; los mandos salen en el panel "Al aire" y en el detalle del elemento en el orden.
 - **Imagen de prueba** (Ajustes → Proyector de este equipo): encuadre, barras de color o blanco, con un cronómetro que marca lo mismo en todas las pantallas.
@@ -87,7 +87,7 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 - Los tipos de elemento futuros (himno, imagen, video, diapositivas) tienen icono, color y sitio en la interfaz, pero no existen: no se pueden añadir ni proyectar. Su icono y nombre provisionales están en `web/modules/kinds.js` y se quitan cuando llega cada módulo.
 - **ffmpeg y yt-dlp se piden ya, aunque todavía ningún módulo los usa** (llegan en las fases 5 a 7). En un equipo sin ellos, la revisión del equipo aparece en cada arranque hasta instalarlos; se continúa con un clic.
 - **Búsqueda sin tildes**: "oró" y "oro", o "creó" y "creo", son la misma palabra para el buscador. Las "parecidas" salen de reglas del español y de una lista de sinónimos (`server/core/search.js`), no de entender el texto: pueden traer alguna palabra que solo se parece. Van siempre al final.
-- **Televisor Samsung**: su navegador convierte `http://192.168.1.14` en `https://192.168.1.14/` (foto del dueño, 2026-10-04) y dice "No se encontró el servidor", porque Manna no ofrece páginas seguras. Falta probar la dirección con puerto (`http://192.168.1.14:8000`). Si también la convierte, la solución es que Manna ofrezca `https` con un certificado propio (fase 3), o usar el televisor como segunda pantalla.
+- **Televisor Samsung**: su navegador convierte `http://192.168.1.14` en `https://192.168.1.14/` (foto del dueño, 2026-10-04) y dice "No se encontró el servidor", porque Manna no ofrece páginas seguras. Con puerto (`http://192.168.1.14:8000`) tampoco abrió. Usarlo como segunda pantalla funciona, pero esa salida es para el proyector: tiene que abrir por su navegador. La fase 3 lo ataca por dos lados: que Manna ofrezca `https` con un certificado propio, y el control por red que trae el televisor (puertos 8001 y 8002), con el que Manna puede abrirle el navegador en la dirección correcta.
 - **Letras del himnario**: están las 613, pero 15 himnos tienen alguna parte de una sola línea, señal de que al copiarlas se perdieron líneas (48, 57, 58, 68, 83, 116, 128, 244, 265, 280, 318, 327, 458, 546 y 590). Hay además erratas sueltas. No afecta a nada hasta la fase 5.
 - En el comparador, dos archivos de la misma traducción (por ejemplo, las dos copias de Dios Habla Hoy) aparecen con la misma sigla.
 - "Instalar por mí" no existe para ffmpeg en Mac (no hay una descarga oficial única): ahí se instala con Homebrew, y la revisión da la orden.
@@ -134,14 +134,16 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 - **2026-10-04 · Ningún programa que falte bloquea el arranque**, tampoco el navegador. Se avisa de qué módulos funcionarán y cuáles no, y cada módulo avisa al abrirlo y ofrece instalar lo que le falta. (Sustituye a lo hecho en la fase 0, donde sin navegador no se entraba.)
 - **2026-10-04 · Letras de los himnos: se usan, en local.** El dueño tiene la licencia y las entregó en 13 archivos `.md`; están en `Contenido/Himnario/letras/`, fuera de GitHub. Manna las leerá de ahí (fase 5). Las categorías del himnario se toman de la agrupación de nuevohimnario.com: solo los nombres y qué himnos van en cada una.
 - **2026-10-04 · Una sola carpeta para lo de cada iglesia**: `Contenido/`, con las biblias, los himnos en video y las letras.
-- **2026-10-04 · La búsqueda de texto se hace solo en la Reina-Valera 1960**, no en todas las versiones.
+- **2026-10-04 · La búsqueda de texto se hace solo en la Reina-Valera 1960**, no en todas las versiones. Con filtro por testamento.
+- **2026-10-04 · El televisor tiene que funcionar como pantalla remota por su navegador.** Usarlo como segunda pantalla no vale: esa salida es del proyector.
+- **2026-10-04 · El himnario se queda después de las fases 3 y 4**, mientras el dueño revisa las letras. Las fases 3 (televisores) y 4 (imágenes) se trabajan a la vez.
 - **2026-10-04 · Informe de cada fase**: muestra de nuevo el plan con las fases superadas y las observaciones, y un apartado de cambios sugeridos (`docs/PLAN.md`, sección 11).
 
 ## Decisiones pendientes del dueño
 
 ### 0. Sugerencias al plan de la versión 2
 
-En `docs/PLAN.md`, sección 11. La que desbloquea trabajo: **que el dueño pruebe en el televisor `http://192.168.1.14:8000`** (con Manna reiniciado), para saber si la fase 3 necesita ofrecer páginas seguras (`https`).
+En `docs/PLAN.md`, sección 11.
 
 ### 1. Instaladores compilados (aplazada)
 
@@ -161,9 +163,9 @@ Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron*
 
 ## Próximos pasos
 
-- **Fase 3 del plan: televisores** (versión 1.4). El orden completo de las fases está en `docs/PLAN.md`.
+- **Fases 3 (televisores, versión 1.4) y 4 (imágenes, versión 1.5), a la vez.** El orden completo está en `docs/PLAN.md`.
 - **Probar en el equipo Windows de la iglesia**, en este orden: `Instalar Manna en Windows.bat`, abrir con el icono, **revisión del equipo e "Instalar por mí"**, aviso del Firewall, proyección en la segunda pantalla, imagen de prueba, botón "Apagar", y `manna.local` desde un celular.
-- Con el televisor Samsung: apagar Manna y volver a abrirlo (para que tome esta versión), y escribir en el navegador del televisor `http://192.168.1.14:8000`. Cuando conecte, proyectar la imagen de prueba y comprobar el cronómetro frente al del control. Alternativa que ya funciona: usar el televisor como segunda pantalla del Mac por AirPlay.
+- El dueño revisa las letras de los himnos (15 con partes incompletas, lista arriba) antes de la fase 5.
 - Que el dueño revise la versión para celular y tableta (se hizo sin maqueta previa) y diga qué ajustar.
 - Probar `manna.local` desde celulares reales (iPhone, Android 12 o posterior, Android antiguo) y con un router real.
 

@@ -1,6 +1,6 @@
 # Plan de trabajo: versión 2
 
-Estado: **aprobado por el dueño el 2026-10-04. En curso: fases 0, 1 y 2 terminadas, sigue la fase 3.**
+Estado: **aprobado por el dueño el 2026-10-04. En curso: fases 0, 1 y 2 terminadas; las fases 3 y 4 se trabajan a la vez.**
 Parte de la versión 1.0.0 y termina en la 2.0.0.
 
 Este documento es el plan y, al terminar, la base de la auditoría (sección 8). Se actualiza al cerrar cada fase: la sección 9 lleva el avance, la 10 cada cambio que se le hizo al plan y por qué, y la 11 los cambios que se le sugieren al dueño y aún no ha decidido.
@@ -250,6 +250,10 @@ Tomadas el 2026-10-04.
 | 12 | ¿En qué versiones se busca el texto? | **Solo en la Reina-Valera 1960.** Quitar la búsqueda en todas las versiones |
 | 13 | ¿Dónde pone cada iglesia sus archivos? | **En una sola carpeta** (`Contenido/`): versiones de la Biblia, himnario en video e himnario en texto |
 | 14 | Categorías del himnario | Las de nuevohimnario.com/Himnario: la misma agrupación y los mismos nombres, sin reproducir nada más |
+| 15 | ¿Himnario antes que imágenes? (S6) | **No.** El himnario espera dos fases (3 y 4) mientras el dueño revisa las letras |
+| 16 | Televisor (S5) | **Tiene que ser pantalla remota por su navegador.** Como segunda pantalla ya funciona, pero esa salida es para el proyector. Revisar el control por IP que trae el televisor |
+| 17 | Filtro de búsqueda (S4) | **Sí**, por testamento |
+| 18 | Orden de trabajo | Fase 3 y, a la vez, fase 4 |
 
 **Decisión 5 · Letras.** El dueño pidió incluirlas: las iglesias donde se usará Manna tienen la licencia de las letras y de toda la música oficial de la Iglesia Adventista del Séptimo Día. Cómo se resuelve:
 
@@ -328,9 +332,9 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 0 Cimientos | **Hecha** · 2026-10-04 | 1.1.0 | Ver abajo |
 | 1 Búsqueda | **Hecha** · 2026-10-04 | 1.2.0 | Ver abajo. Incluye el cambio de la revisión del equipo: ya nada bloquea |
 | 2 Comparador | **Hecha** · 2026-10-04 | 1.3.0 | Ver abajo. Incluye la carpeta `Contenido/`, la búsqueda solo en RVR1960 y el segundo puerto |
-| 3 Televisores | Siguiente | 1.4 | Causa confirmada (el televisor exige `https`). Falta una prueba del dueño: `http://192.168.1.14:8000` |
-| 4 Imágenes | Pendiente | 1.5 | |
-| 5 Himnario | Pendiente | 1.6 | Videos y letras ya están en `Contenido/Himnario/` |
+| 3 Televisores | **En curso** | 1.4 | El televisor exige `https` también con puerto. Se cierra con una prueba del dueño |
+| 4 Imágenes | **En curso** | 1.5 | A la vez que la 3 |
+| 5 Himnario | Pendiente | 1.6 | Videos y letras ya están en `Contenido/Himnario/`. El dueño revisa las letras |
 | 6 Videos y audios | Pendiente | 1.7 | |
 | 7 YouTube | Pendiente | 1.8 | |
 | 8 Diapositivas | Pendiente | 1.9 | PowerPoint oculto: solo se puede probar en Windows |
@@ -365,6 +369,7 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 - **Pantallas**: 9 tamaños, con la pantalla del comparador. La auditoría encontró y se corrigió que en tableta la cabecera del comparador no dejaba sitio al buscador.
 - **Sin probar**: el segundo puerto desde el televisor; el comparador en un celular real.
 - **Límites conocidos**: se comparan los versículos por su número; si dos versiones numeran distinto un pasaje, cada lado muestra lo que tiene con ese número.
+- **Ajustes pedidos tras la revisión del dueño (1.3.1)**: el número delante de cada versículo en el comparador, también con uno solo; y el filtro de la búsqueda por testamento.
 
 ## 10. Cambios al plan
 
@@ -401,14 +406,17 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-04 | Fase 2: el comparador no es un módulo aparte en el código, sino una segunda pantalla y un segundo tipo del módulo Biblia | Comparte con Biblia casi todo (lectura, selector de pasajes). Así ningún módulo importa archivos de otro |
 | 2026-10-04 | Fase 3: si el televisor también convierte la dirección con puerto, Manna tendrá que ofrecer `https` con certificado propio | Consecuencia de la foto. Sube el tamaño de la fase de M a L |
 
+| 2026-10-04 | Comparador: el número de cada versículo va siempre delante del texto | Pedido del dueño al revisar la fase 2 |
+| 2026-10-04 | Búsqueda con filtro por testamento (era la sugerencia S4) | Decisión 17 |
+| 2026-10-04 | El himnario no se adelanta (se rechaza S6): sigue después de las fases 3 y 4 | Decisión 15: el dueño está revisando las letras |
+| 2026-10-04 | Las fases 3 y 4 se trabajan a la vez | Decisión 18. La 3 depende de pruebas del dueño con el televisor; la 4 no |
+| 2026-10-04 | Fase 3: el televisor debe abrir por su navegador; se descarta dar por buena la segunda pantalla. Se añade el control por IP del televisor (era la sugerencia S5) | Decisión 16. La dirección con puerto 8000 tampoco abrió |
+
 ## 11. Cambios sugeridos al plan
 
 Propuestas del asistente que el dueño aún no ha decidido. Al decidirse, pasan a la sección 10 (si se aceptan) o se borran.
 
 | # | Sugerencia | Por qué | Qué cambiaría |
 | --- | --- | --- | --- |
-| S4 | Filtrar la búsqueda por testamento o por libro | Una palabra común da cientos de resultados; un filtro los acota | Un desplegable junto al buscador; medio día, cuando se pida |
-| S5 | Fase 3: decidir el camino para el televisor según la prueba del puerto 8000. Si no abre, elegir entre (a) que Manna ofrezca `https` con certificado propio, o (b) dar por bueno usar el televisor como segunda pantalla (Win + K, AirPlay) y no construir nada más | (a) son uno o dos días de trabajo que no se pueden probar sin el televisor, y el televisor mostrará un aviso que hay que aceptar. (b) ya funciona hoy | Con (b), la fase 3 se reduce al botón de pantalla completa y a documentar |
-| S6 | Hacer el Himnario (fase 5) antes que las imágenes (fase 4) | Los videos y las letras ya están en el equipo y es lo que el dueño quiere ver funcionando. Las imágenes no dependen del himnario ni al revés | Se intercambian las fases 4 y 5. "Más" en las pestañas del celular pasa a la fase del himnario |
-| S7 | Que el dueño revise los 15 himnos cuya letra parece incompleta (lista en `docs/ESTADO.md`) | Al copiar las letras se perdieron líneas en algunas partes | Nada en el plan; se corrigen los archivos `.md` y Manna los vuelve a leer solo |
+| S7 | Que el dueño revise los 15 himnos cuya letra parece incompleta (lista en `docs/ESTADO.md`) | Al copiar las letras se perdieron líneas en algunas partes. **En curso: el dueño las está revisando** | Nada en el plan; se corrigen los archivos `.md` y Manna los vuelve a leer solo |
 
