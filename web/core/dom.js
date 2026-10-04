@@ -1,4 +1,5 @@
 // Utilidades mínimas de interfaz, compartidas por todas las páginas.
+import { icon } from './icons.js';
 
 export const $ = (selector, root = document) => root.querySelector(selector);
 
@@ -73,13 +74,47 @@ export function guard(fn) {
 
 // Ventana modal sencilla. Devuelve { el, close }.
 export function dialog(title, ...content) {
-  const close = () => backdrop.remove();
+  const close = () => {
+    backdrop.remove();
+    document.removeEventListener('keydown', onKey);
+  };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
   const backdrop = h('div', { class: 'modal-backdrop', onclick: (e) => { if (e.target === backdrop) close(); } },
-    h('div', { class: 'modal', role: 'dialog', 'aria-label': title },
+    h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
       h('div', { class: 'modal-header' },
         h('h2', {}, title),
-        h('button', { class: 'icon-btn', onclick: close, 'aria-label': 'Cerrar' }, '×')),
+        h('button', { class: 'icon-btn sm', onclick: close, 'aria-label': 'Cerrar' }, icon('x', 16))),
       h('div', { class: 'modal-body' }, ...content)));
+  document.addEventListener('keydown', onKey);
   document.body.append(backdrop);
   return { el: backdrop, close };
+}
+
+// Menú desplegable junto a un botón. items: [{ label, icon?, note?, disabled?, onclick }] o '-' (separador).
+export function menu(anchor, items) {
+  document.querySelector('.menu')?.remove();
+  const el = h('div', { class: 'menu', role: 'menu' }, ...items.map((item) => (item === '-'
+    ? h('hr')
+    : h('button', {
+      role: 'menuitem', disabled: item.disabled,
+      onclick: () => { close(); item.onclick?.(); },
+    }, item.icon && icon(item.icon, 16), item.label, item.note && h('small', {}, item.note)))));
+  const close = () => {
+    el.remove();
+    document.removeEventListener('pointerdown', outside, true);
+    document.removeEventListener('keydown', onKey);
+  };
+  const outside = (e) => { if (!el.contains(e.target)) close(); };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  document.body.append(el);
+  // Se abre bajo el botón, sin salirse de la pantalla.
+  const a = anchor.getBoundingClientRect();
+  const m = el.getBoundingClientRect();
+  el.style.left = `${Math.max(8, Math.min(a.right - m.width, innerWidth - m.width - 8))}px`;
+  el.style.top = `${a.bottom + m.height + 8 > innerHeight ? Math.max(8, a.top - m.height - 4) : a.bottom + 4}px`;
+  setTimeout(() => {
+    document.addEventListener('pointerdown', outside, true);
+    document.addEventListener('keydown', onKey);
+  });
+  return close;
 }

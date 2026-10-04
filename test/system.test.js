@@ -36,13 +36,14 @@ test('rankAddresses deja al final las direcciones sin DHCP y omite IPv6 e intern
 
 test('liveToRestore recupera lo proyectado solo si el reinicio es reciente', () => {
   const now = 1_000_000_000;
-  const item = { versionId: 'rv1909', ref: { book: 43, chapter: 3, verseStart: 16, verseEnd: 16 } };
-  assert.deepEqual(liveToRestore({ mode: 'black', item, at: now - 60_000 }, now), { mode: 'black', ...item });
-  assert.equal(liveToRestore({ mode: 'live', item, at: now - RESTORE_WINDOW_MS - 1 }, now), null);
-  assert.equal(liveToRestore({ mode: 'live', item, at: now + 5000 }, now), null);
+  const source = { kind: 'verses', data: { versionId: 'rv1909', ref: { book: 43, chapter: 3, verseStart: 16, verseEnd: 16 } }, step: null, orderId: null };
+  assert.deepEqual(liveToRestore({ mode: 'black', source, at: now - 60_000 }, now), { mode: 'black', source });
+  assert.equal(liveToRestore({ mode: 'live', source, at: now - RESTORE_WINDOW_MS - 1 }, now), null);
+  assert.equal(liveToRestore({ mode: 'live', source, at: now + 5000 }, now), null);
   assert.equal(liveToRestore(null, now), null);
-  assert.equal(liveToRestore({ mode: 'live', item: null, at: now }, now), null);
-  assert.equal(liveToRestore({ mode: 'raro', item, at: now }, now).mode, 'live');
+  assert.equal(liveToRestore({ mode: 'live', source: null, at: now }, now), null);
+  assert.equal(liveToRestore({ mode: 'live', item: { versionId: 'rv1909' }, at: now }, now), null);
+  assert.equal(liveToRestore({ mode: 'raro', source, at: now }, now).mode, 'live');
 });
 
 // ---- Dirección con nombre (mDNS) y puertos ----

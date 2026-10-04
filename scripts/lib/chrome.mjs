@@ -11,10 +11,12 @@ export const sleep = (ms) => new Promise((r) => { setTimeout(r, ms); });
 
 let runs = 0;
 
-// Devuelve { send, evaluate, events, close }.
+// Devuelve { send, evaluate, events, close, acceptDialogs }.
 //   send(method, params)  orden del protocolo DevTools
 //   evaluate(expresión)   ejecuta JavaScript en la página y devuelve el valor
 //   events                eventos recibidos (por ejemplo, cuadros de diálogo)
+//   acceptDialogs         si es true, acepta solo el aviso "¿Salir del sitio?"; sin ello,
+//                         una navegación se queda esperando a que alguien responda
 export async function startChrome({ port = 9333 } = {}) {
   runs += 1;
   const debugPort = port + runs;
@@ -34,10 +36,12 @@ export async function startChrome({ port = 9333 } = {}) {
   let id = 0;
   const pending = new Map();
   const events = [];
+  const chrome = { events, acceptDialogs: false };
   ws.onmessage = (m) => {
     const msg = JSON.parse(m.data);
-    if (msg.id) pending.get(msg.id)?.(msg);
-    else events.push(msg);
+    if (msg.id) return pending.get(msg.id)?.(msg);
+    events.push(msg);
+    if (msg.method === 'Page.javascriptDialogOpening' && chrome.acceptDialogs) send('Page.handleJavaScriptDialog', { accept: true });
   };
   const send = (method, params = {}) => new Promise((resolve) => {
     id += 1;
@@ -53,5 +57,5 @@ export async function startChrome({ port = 9333 } = {}) {
     child.kill();
     setTimeout(() => fs.rmSync(profile, { recursive: true, force: true, maxRetries: 5 }), 800);
   };
-  return { send, evaluate, events, close };
+  return Object.assign(chrome, { send, evaluate, close });
 }

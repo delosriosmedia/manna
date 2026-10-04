@@ -1,0 +1,22 @@
+/* Módulo Ajustes: secciones separadas por líneas, título a la izquierda y controles a la derecha. */
+.settings { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 20px 32px; }
+.set { display: grid; grid-template-columns: 220px minmax(0, 420px); gap: 24px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+.set:last-child { border-bottom: 0; }
+.set-title p { margin-top: 4px; font-size: 12px; }
+.set-body > p { margin-bottom: 10px; }
+.swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.swatches button { aspect-ratio: 1; border: 1px solid var(--line-2); border-radius: var(--r-sm); transition: border-color 0.15s var(--ease); }
+.swatches button:hover { border-color: var(--ink); }
+
+.goodbye { margin: auto; padding: 24px; text-align: center; min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: 8px; }
+.about { align-items: flex-start; text-align: left; }
+.about img { width: 84px; margin-left: -8px; }
+.goodbye h1 { font-size: 22px; }
+
+@media (max-width: 1179px) {
+  .set { grid-template-columns: 180px minmax(0, 1fr); gap: 16px; }
+}
+@media (max-width: 859px) {
+  .settings { padding: 0 12px 24px; }
+  .set { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 16px 0; }
+}

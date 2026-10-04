@@ -2,32 +2,37 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="/icono.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0d12">
+  <link rel="icon" type="image/svg+xml" href="/logo.svg">
+  <link rel="alternate icon" type="image/png" href="/icono.png">
+  <link rel="apple-touch-icon" href="/icono-180.png">
+  <meta name="apple-mobile-web-app-title" content="Manna">
   <title>Manna</title>
+  <script>if (matchMedia('(pointer: coarse)').matches || /[?&]tactil/.test(location.search)) document.documentElement.classList.add('touch');</script>
   <link rel="stylesheet" href="/core/app.css">
   <style>
-    main { max-width: 520px; margin: 0 auto; padding: 40px 16px; }
-    header { text-align: center; margin-bottom: 28px; }
-    header .brand { justify-content: center; font-size: 26px; }
-    header .brand-mark { width: 44px; height: 44px; font-size: 22px; border-radius: 12px; }
-    .role {
-      display: block; width: 100%; text-align: left; padding: 16px; margin-bottom: 12px;
-      background: var(--panel); border: 1px solid var(--border); border-radius: 12px; cursor: pointer;
-    }
-    .role:hover, .role:focus-visible { border-color: var(--accent); outline: none; }
-    .role.current { border-color: var(--live); }
-    .role h2 { font-size: 17px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    .role p { margin: 4px 0 0; color: var(--muted); }
-    .tag { font-size: 11px; font-weight: 600; color: var(--muted); border: 1px solid var(--border); border-radius: 99px; padding: 2px 8px; }
-    .role.current .tag { color: var(--live); border-color: var(--live); }
+    main { max-width: 480px; margin: 0 auto; padding: 32px 16px; }
+    header { margin-bottom: 28px; }
+    header .choose { margin-top: 22px; color: var(--ink-3); }
+    .role { display: block; width: 100%; text-align: left; padding: 14px 16px; margin-bottom: 8px; background: var(--s1); border: 1px solid var(--line); border-radius: var(--r-lg); transition: border-color 0.15s var(--ease), background 0.15s var(--ease); }
+    .role:hover { border-color: var(--line-2); background: var(--s2); }
+    .role.current { border-color: var(--accent); }
+    .role-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .role-head strong { font-size: 15px; font-weight: 600; }
+    .role p { margin-top: 4px; color: var(--ink-3); }
+    .tag { font-size: 11px; font-weight: 500; color: var(--ink-3); border: 1px solid var(--line-2); border-radius: 99px; padding: 2px 8px; white-space: nowrap; }
+    .role.current .tag { color: var(--accent); border-color: var(--accent); }
   </style>
 </head>
 <body>
   <main>
-    <header>
-      <div class="brand"><span class="brand-mark">M</span> Manna</div>
-      <p class="muted">Church projection app · Elige qué hará este dispositivo</p>
+    <header class="lockup">
+      <img src="/marca.svg" alt="">
+      <h1 class="wordmark">MANNA</h1>
+      <p class="tagline">Church projection app</p>
+      <p class="version" id="version"></p>
+      <p class="choose">Elige qué hará este dispositivo</p>
     </header>
     <div id="roles"></div>
   </main>

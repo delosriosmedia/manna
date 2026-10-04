@@ -5,11 +5,12 @@ import { preferStableAddress } from '../core/upgrade.js';
 // Pantalla de inicio: cada dispositivo elige su función. Las de control piden el PIN una vez.
 const info = await session.get();
 preferStableAddress(info);
+$('#version').textContent = info.version ? `Versión ${info.version}` : '';
 const back = new URLSearchParams(location.search).get('volver');
 
 function askPin(role) {
   const input = h('input', { class: 'input', type: 'password', inputMode: 'numeric', autocomplete: 'off', placeholder: 'PIN', maxLength: 8 });
-  const error = h('p', { class: 'muted', style: 'color: var(--danger); min-height: 1.4em; margin: 8px 0;' });
+  const error = h('p', { style: 'color: var(--live-ink); min-height: 1.4em; margin: 8px 0;' });
   const form = h('form', {
     onsubmit: async (e) => {
       e.preventDefault();
@@ -22,7 +23,7 @@ function askPin(role) {
       }
     },
   },
-  h('p', { class: 'muted', style: 'margin-top: 0;' }, 'Escribe el PIN que aparece en el equipo principal (botón "Dispositivos").'),
+  h('p', { class: 'muted' }, 'Escribe el PIN que aparece en el equipo principal, en "Dispositivos".'),
   input, error,
   h('button', { class: 'btn primary big', style: 'width: 100%;' }, 'Entrar'));
   dialog(role.name, form);
@@ -49,8 +50,8 @@ async function choose(role) {
 $('#roles').append(...info.roles.map((role) => {
   const current = info.role === role.id;
   return h('button', { class: `role${current ? ' current' : ''}`, onclick: () => choose(role) },
-    h('h2', {}, role.name,
-      h('span', { class: 'tag' }, current ? 'Función actual' : role.requiresPin && !info.isLocal ? 'Requiere PIN' : 'Libre')),
+    h('span', { class: 'role-head' }, h('strong', {}, role.name),
+      h('span', { class: 'tag' }, current ? 'Función actual' : role.requiresPin && !info.isLocal ? 'Pide PIN' : 'Sin PIN')),
     h('p', {}, role.description));
 }));
 

@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { HttpError } from '../../core/router.js';
 import { lanInterfaces, origin } from './network.js';
 import { createResponder } from './mdns.js';
@@ -10,7 +12,9 @@ export default function setup(app) {
 
   // addresses: direcciones numéricas, la primera es la recomendada (la que lleva el QR).
   // nameUrl: dirección con nombre ("http://manna.local"), o null si no se pudo anunciar.
-  store.register('system', { name: 'Manna', addresses: [], port: null, hostname: null, nameUrl: null });
+  // La versión se lee de package.json: es el único sitio donde se cambia.
+  const { version } = JSON.parse(fs.readFileSync(path.join(app.rootDir, 'package.json'), 'utf8'));
+  store.register('system', { name: 'Manna', version, addresses: [], port: null, hostname: null, nameUrl: null });
 
   const base = (process.env.MANNA_NAME || 'manna').toLowerCase().replace(/[^a-z0-9-]/g, '') || 'manna';
   const responder = createResponder({ base });
@@ -71,10 +75,17 @@ export default function setup(app) {
     isLocal: ctx.isLocal,
     roles: publicRoles(),
     serverId: settings.data.id,
+    version,
     nameUrl: store.get('system').nameUrl,
   }));
 
   app.route('POST', '/api/session', async (ctx) => sessions.open(ctx, await ctx.json()));
+
+  // "Guion" pasó a llamarse "Orden del culto": los marcadores antiguos siguen llegando.
+  app.route('GET', '/guion', (ctx) => {
+    ctx.res.writeHead(302, { Location: '/orden' });
+    ctx.res.end();
+  });
 
   // Lo consulta una página abierta por la dirección numérica para saber si este dispositivo
   // puede usar la dirección con nombre (ver web/core/upgrade.js). Por eso admite otros orígenes.

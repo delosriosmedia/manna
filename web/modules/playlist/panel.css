@@ -1,8 +1,0 @@
-/* Lista del guion de culto (control completo y página de guion). */
-.pl-item { display: flex; align-items: stretch; margin-bottom: 6px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel-2); overflow: hidden; }
-.pl-item.live { border-color: var(--live); box-shadow: inset 3px 0 0 var(--live); }
-.pl-main { flex: 1; min-width: 0; text-align: left; padding: 10px 12px; background: none; border: 0; cursor: pointer; }
-.pl-main strong { display: block; }
-.pl-preview { display: block; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pl-tools { display: flex; align-items: center; padding-right: 4px; }
-

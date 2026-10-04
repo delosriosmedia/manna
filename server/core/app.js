@@ -36,6 +36,7 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
   const router = createRouter({ webDir: path.join(rootDir, 'web'), mediaDir: path.join(dataDir, 'media'), sessions });
   const realtime = createRealtime({ store, router });
   const actions = new Map();
+  const kinds = new Map();
   const closers = [];
 
   const app = {
@@ -54,6 +55,13 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
       return def.handler(payload);
     },
     onClose(fn) { closers.push(fn); },
+    // Tipos de contenido proyectable ('verses', y en el futuro 'song', 'image', 'video', 'slides').
+    // Cada módulo registra el suyo: { label, describe(data), resolve(data, step), neighbor?(data, step, delta) }.
+    //   describe  -> { title, subtitle, steps, data } para la lista del orden del culto, o null si no existe
+    //   resolve   -> lo que se proyecta. step null = el elemento entero; 0..n-1 = uno de sus pasos
+    //   neighbor  -> qué sigue al avanzar fuera del orden del culto (p. ej. el versículo siguiente)
+    kinds,
+    kind(name, def) { kinds.set(name, def); },
     shutdown: null, // lo asigna server/app.js: apagado ordenado de todo el programa
     listen,
     close,

@@ -15,7 +15,7 @@ Si fallan, arréglalas antes de seguir.
 
 ## 2. Servidor de prueba
 
-Puerto y datos aparte, para no tocar el PIN, el guion ni los ajustes reales. Ejecútalo en segundo plano:
+Puerto y datos aparte, para no tocar el PIN, el orden del culto ni los ajustes reales. Ejecútalo en segundo plano:
 
 ```bash
 MANNA_NAME=manna-prueba MANNA_NO_OPEN=1 MANNA_DATA="$TMPDIR/manna-prueba" PORT=8123 node server/index.js
@@ -27,12 +27,24 @@ El PIN de prueba aparece en la salida del servidor.
 
 ## 3. Qué verificar
 
-Abre `http://localhost:8123/control` y revisa, según lo que haya cambiado:
+Primero lo automático, que cubre el recorrido básico:
+
+```bash
+node scripts/probar-chrome.mjs rapido
+```
+
+```bash
+node scripts/auditar-responsive.mjs
+```
+
+El primero usa la interfaz como un usuario (30 s). El segundo la abre en nueve tamaños y comprueba que nada se desborda, que "Al aire" y la acción principal están a la vista y que los botones tienen tamaño para el dedo; con `capturas` guarda además una imagen de cada pantalla. Ninguno debe correr a la vez que otro servidor en los puertos 8123 o 8124.
+
+Después, a mano, lo que el cambio tenga de nuevo. Abre `http://localhost:8123/control` y revisa:
 
 - **Consola** sin errores.
-- **Flujo básico**: buscar `jn 3 16-17`, Enter para ir, Enter para proyectar. Cambiar de versión mantiene el pasaje.
+- **Lo nuevo**: cada camino del cambio, incluidos los casos de error (datos vacíos, sin conexión, sin permiso).
 - **Tiempo real**: con `/proyeccion` abierto en otra pestaña, el cambio aparece al instante.
-- **Celular**: viewport de 375 px en `/control`, `/guion` y `/`. Sin desplazamiento horizontal. Al terminar, vuelve al tamaño de escritorio.
+- **Celular y tableta**: `http://localhost:8123/vista-previa` muestra la app real dentro del marco de un celular (vertical y horizontal) y de una tableta.
 - **Permisos** (desde la IP de red, no desde localhost, para que pida PIN):
 
   ```bash
@@ -41,8 +53,6 @@ Abre `http://localhost:8123/control` y revisa, según lo que haya cambiado:
   ```
 
   Sin sesión debe responder error de permiso. Con sesión de un rol sin ese permiso, también.
-
-- **Lo nuevo**: cada camino del cambio, incluidos los casos de error (datos vacíos, sin conexión, sin permiso).
 
 La dirección de red y el estado completo están en `http://localhost:8123/api/state`.
 

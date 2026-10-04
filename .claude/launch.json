@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "manna-demo",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/demo.mjs"],
+      "port": 8123
+    }
+  ]
+}

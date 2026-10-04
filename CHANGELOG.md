@@ -4,6 +4,23 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.0.0 — 2026-10-04
+
+Primera versión estable.
+
+- **Logo de Manna** en toda la app: en la barra de módulos, la pantalla de inicio, "Acerca de" en Ajustes, la pestaña del navegador, el icono del Escritorio (Windows y Mac) y al añadir Manna a la pantalla de inicio del celular.
+- **La versión se ve junto al logo.**
+- En el orden del culto, **un segundo clic sobre un elemento lo recoge**. Recogido se queda así hasta que elijas otro; antes solo se cerraba al seleccionar un elemento distinto.
+- **Interfaz rediseñada por completo.** Tres zonas fijas: los módulos a la izquierda, el módulo activo al centro y el panel "Al aire" a la derecha, con el monitor de lo proyectado y los mandos siempre a la vista. Aspecto nuevo, con tipografía e iconos propios.
+- **Módulo Biblia** con todo el espacio para elegir el pasaje: buscador, pasajes recientes, los 66 libros en una rejilla, capítulos y versículos. La vista previa de lo seleccionado aparece en el panel.
+- **Orden del culto** (antes "Guion de culto") con su propia pantalla: secciones, reordenar arrastrando, añadir una cita escribiéndola, y los pasos de cada elemento en miniaturas. Los títulos largos se leen enteros.
+- **"Siguiente" recorre el orden**: avanza por los versículos de un pasaje y luego pasa al elemento que sigue.
+- **Versión para celular y tableta**: un módulo a la vez con pestañas abajo, "Al aire" como barra que se despliega, y la Biblia por pasos (libro, capítulo, versículos).
+- La función "Control del guion" pasa a llamarse **"Control del orden"**. El guion que ya tenías se conserva.
+- Los estilos de la proyección, el proyector y **Apagar Manna** están ahora en **Ajustes**.
+- Himnario, Imágenes, Videos y Diapositivas ya aparecen en la barra, atenuados: son los próximos módulos.
+- Corregido: tras cambiar varias veces de pantalla o de función en la misma pestaña, la app podía dejar de cargar.
+
 ## 0.3.0 — 2026-10-03
 
 - **Manna se abre con un icono.** Un instalador de un solo paso (`Instalar Manna en Windows.bat` / `Instalar Manna en Mac.command`) crea el icono "Manna" en el Escritorio. Al pulsarlo, Manna arranca sin ventana negra y abre el control en el navegador. Sustituye a los archivos "Iniciar Manna".

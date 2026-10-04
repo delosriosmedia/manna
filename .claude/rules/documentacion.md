@@ -8,7 +8,10 @@
 | --- | --- |
 | Cualquier cosa | `CHANGELOG.md` (sección "Sin publicar") y `docs/ESTADO.md` (fecha y lo que aplique) |
 | Lo que ve o hace el usuario | `README.md` |
-| Un módulo nuevo, un rol o un permiso | `README.md` (estructura), `.claude/rules/arquitectura.md`, `docs/ESTADO.md` |
+| Un módulo nuevo, un tipo de contenido, un rol o un permiso | `README.md` (estructura), `.claude/rules/arquitectura.md`, `docs/ESTADO.md` |
+| Colores, tipografía, estructura de pantalla o comportamiento en celular y tableta | `DESIGN.md` |
+| El logo | El vector `instalacion/icono/manna.svg` (y `web/marca.svg`), luego `node scripts/generar-iconos.mjs`; `DESIGN.md` si cambian las reglas de uso |
+| El número de versión | Solo `package.json`; la interfaz lo lee de ahí. `CHANGELOG.md` y `docs/ESTADO.md` al publicar |
 | Una convención o forma de programar | La regla correspondiente en `.claude/rules/` |
 | Comandos, stack o límites del proyecto | `CLAUDE.md` |
 | Requisitos del equipo principal o forma de abrir Manna | `README.md`, `instalacion/requisitos.html`, `server/preflight.js`, los instaladores de la raíz e `instalacion/abrir-windows.bat` |

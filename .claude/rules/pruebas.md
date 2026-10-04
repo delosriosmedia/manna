@@ -16,11 +16,15 @@ Lo que tiene interfaz se prueba en el navegador antes de darlo por hecho. Proced
 - El cambio se refleja en otro dispositivo (abrir `/proyeccion` en otra pestaña).
 - Permisos: un rol sin permiso recibe error y no ve el control.
 
-Usar siempre un servidor de prueba con `MANNA_DATA` temporal, `PORT=8123` y `MANNA_NAME=manna-prueba`, para no tocar el PIN, el guion ni los ajustes reales, ni chocar con un Manna en uso.
+Usar siempre un servidor de prueba con `MANNA_DATA` temporal, `PORT=8123` y `MANNA_NAME=manna-prueba`, para no tocar el PIN, el orden del culto ni los ajustes reales, ni chocar con un Manna en uso.
 
 ## En un Chrome real
 
-`node scripts/probar-chrome.mjs` comprueba lo que el navegador integrado no puede: el paso a la dirección con nombre, el aviso al cerrar la pestaña y la reconexión tras un cambio de IP. Ejecutarlo al tocar la conexión, las direcciones o la navegación entre páginas.
+- `node scripts/probar-chrome.mjs rapido` recorre la interfaz como un usuario: Biblia, orden del culto, ajustes y permisos (30 s). Ejecutarlo tras cualquier cambio en `web/`.
+- `node scripts/probar-chrome.mjs` añade lo que un navegador integrado no puede comprobar: el paso a la dirección con nombre, el aviso al cerrar y la reconexión tras un cambio de IP (3 min). Ejecutarlo al tocar la conexión, las direcciones o la navegación entre páginas.
+- `node scripts/auditar-responsive.mjs` abre la app en nueve tamaños (celular, tableta, escritorio) y verifica las garantías de `DESIGN.md`. Ejecutarlo al tocar cualquier disposición.
+
+Una prueba nueva de interfaz se añade a `scripts/probar-chrome.mjs`; un tamaño o una pantalla nuevos, a `scripts/auditar-responsive.mjs`.
 
 ## Honestidad al informar
 

@@ -4,7 +4,7 @@ Biblias/*
 !Biblias/Reina Valera 1909.xmm
 ejemplo_biblia.xmm
 
-# Datos locales del servidor (ajustes, PIN, guion, fondos)
+# Datos locales del servidor (ajustes, PIN, orden del culto, fondos)
 data/
 
 node_modules/

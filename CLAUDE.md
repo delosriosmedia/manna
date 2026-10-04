@@ -8,6 +8,7 @@ Repositorio: https://github.com/delosriosmedia/manna
 
 1. Lee `docs/ESTADO.md`: qué funciona, qué falta probar y qué sigue.
 2. Las reglas detalladas están en `.claude/rules/` (arquitectura, servidor, web, biblias, pruebas, documentación).
+3. Antes de tocar cualquier pantalla, lee `DESIGN.md`: el sistema de diseño de la interfaz.
 
 ## Comandos
 
@@ -16,12 +17,14 @@ Repositorio: https://github.com/delosriosmedia/manna
 - Pruebas: `npm test`
 - Servidor de prueba sin abrir navegador ni tocar los datos reales:
   `MANNA_NAME=manna-prueba MANNA_NO_OPEN=1 MANNA_DATA="$TMPDIR/manna-prueba" PORT=8123 node server/index.js`
-- Pruebas en un Chrome real (paso a `manna.local`, aviso al cerrar, cambio de IP): `node scripts/probar-chrome.mjs`
+- Pruebas de extremo a extremo en un Chrome real: `node scripts/probar-chrome.mjs` (completas, 3 min) o `node scripts/probar-chrome.mjs rapido` (solo la interfaz, 30 s)
+- Auditoría de adaptación a pantallas (celular, tableta, escritorio): `node scripts/auditar-responsive.mjs`
+- Demostración con un orden del culto de ejemplo y datos temporales: `node scripts/demo.mjs` (puerto 8123). Con ella, `/vista-previa` muestra la app en el marco de un celular o una tableta
 
 ## Stack
 
 - Servidor: Node.js 18+, módulos ES, **sin dependencias** (no hay `npm install`).
-- Web: HTML, CSS y JavaScript puro con módulos ES. **Sin framework ni paso de compilación.**
+- Web: HTML, CSS y JavaScript puro con módulos ES. **Sin framework ni paso de compilación.** Tipografía (Geist) e iconos (Phosphor) incluidos en `web/vendor/`.
 - Tiempo real: Server-Sent Events (`GET /api/events`). Órdenes: `POST /api/action`.
 - Red: puerto 80 (8000 si está ocupado) y nombre `manna.local` anunciado por mDNS, hecho a mano en `server/modules/system/mdns.js`.
 - Datos locales en `data/` (JSON y medios). Biblias en `Biblias/`.
@@ -37,6 +40,8 @@ Repositorio: https://github.com/delosriosmedia/manna
 - La ventana de proyección del equipo principal solo se abre en una **segunda pantalla**; si no hay, se avisa y no se abre.
 - Todo rol que no sea "proyección" exige PIN desde dispositivos remotos.
 - El proyecto va a crecer con muchos módulos: todo lo nuevo entra como módulo, sin acoplarse a los existentes.
+- Todo lo que un módulo produce se puede añadir al **Orden del culto** (antes "guion"), que es donde confluyen todos.
+- Los celulares se usan en vertical; las tabletas, también en horizontal. Toda pantalla debe funcionar así.
 
 ## Forma de trabajar
 

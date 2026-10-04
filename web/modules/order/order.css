@@ -1,0 +1,57 @@
+/* Módulo Orden del culto. La lista es la columna ancha: los títulos largos
+   (videos, documentos) deben leerse enteros o casi. */
+.order-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 6fr) minmax(300px, 5fr); }
+.olist { min-height: 0; overflow-y: auto; padding: 8px 12px 24px; }
+.oside { min-height: 0; overflow-y: auto; border-left: 1px solid var(--line); }
+
+.osection { display: flex; align-items: center; gap: 10px; padding: 14px 6px 6px 10px; min-height: 40px; color: var(--ink-3); font-size: 12px; font-weight: 500; }
+.osection > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.osection::after { content: ''; flex: 1; height: 1px; background: var(--line); order: 1; }
+.osection .icon-btn { order: 2; }
+
+.orow { display: flex; align-items: center; gap: 10px; padding: 8px 6px 8px 8px; border: 1px solid transparent; border-radius: var(--r); cursor: pointer; transition: background 0.12s; }
+.orow:hover { background: var(--s1); }
+.orow.selected { background: var(--s2); border-color: var(--line-2); }
+.orow.selected .item-text strong { -webkit-line-clamp: unset; }
+.orow.live { background: var(--live-soft); border-color: rgba(217, 58, 64, 0.5); }
+.orow.past:not(.selected) { opacity: 0.55; }
+.orow .grip { color: var(--ink-4); cursor: grab; display: grid; }
+.orow .num { width: 18px; text-align: right; font: 500 12px var(--mono); color: var(--ink-3); flex-shrink: 0; }
+.orow.dragging, .osection.dragging { opacity: 0.4; }
+.drop-before { box-shadow: 0 -2px 0 var(--accent); }
+.drop-after { box-shadow: 0 2px 0 var(--accent); }
+
+.odetail { padding: 16px 20px; }
+.odetail.inline { margin: 6px 0 12px; padding: 12px; background: var(--s1); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.odetail-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+.odetail-head h2 { overflow-wrap: anywhere; }
+.odetail-head .item-text small { white-space: normal; }
+.odetail.inline .odetail-head { display: none; }
+.odetail-tools { display: none; gap: 6px; margin-top: 12px; }
+.odetail-tools .btn { flex: 1; }
+
+.slides { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.slide { display: block; text-align: left; }
+.slide .monitor { border-radius: var(--r); transition: border-color 0.15s var(--ease); }
+.slide:hover .monitor { border-color: var(--ink-3); }
+.slide .monitor.on-air, .slide:hover .monitor.on-air { border-color: var(--live); }
+.slide-cap { display: flex; justify-content: space-between; gap: 8px; margin: 6px 2px 0; color: var(--ink-3); font-size: 12px; }
+.slide-cap b { color: var(--live-ink); font-weight: 600; }
+.slide.skeleton .monitor { background: var(--s2); border-color: var(--line); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.5; } }
+
+/* Tableta y celular: una sola columna; los pasos se abren bajo el elemento elegido. */
+@media (max-width: 1179px) {
+  .order-grid { display: block; overflow-y: auto; }
+  .olist { overflow: visible; padding: 8px 12px 24px; }
+}
+@media (max-width: 859px) {
+  .olist { padding: 4px 8px 20px; }
+  .orow { padding: 10px 4px 10px 6px; gap: 8px; }
+  .orow .grip, .orow > .icon-btn[aria-label='Opciones'] { display: none; }
+  .odetail.inline .odetail-tools { display: flex; }
+  /* En celular el ancho es escaso: el título puede ocupar cinco líneas y la línea secundaria, dos. */
+  .orow .item-text strong { -webkit-line-clamp: 5; }
+  .orow .item-text small { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .slides { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
+}

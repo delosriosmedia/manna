@@ -6,7 +6,7 @@ El **servidor es la única fuente de verdad**. Los dispositivos son vistas: reci
 
 ## Piezas
 
-- **Estado** (`server/core/store.js`): dividido por espacios, uno por módulo (`projection`, `playlist`, `bible`, `system`, `conexiones`). `store.set(ns, patch)` lo cambia y lo envía a todos.
+- **Estado** (`server/core/store.js`): dividido por espacios, uno por módulo (`projection`, `order`, `bible`, `system`, `conexiones`). `store.set(ns, patch)` lo cambia y lo envía a todos.
 - **Tiempo real** (`server/core/realtime.js`): SSE en `GET /api/events?rol=<rol>`. Eventos `state` (todo, al conectar), `patch` (un espacio, en cada cambio) y `ping` (latido cada 10 s). El cliente (`web/core/api.js`) rehace la conexión si pasan 25 s sin recibir nada y siempre recibe el estado completo al reconectar: ningún módulo necesita lógica propia de reconexión.
 - **Acciones** (`POST /api/action` con `{ type, payload }`): toda orden que cambia algo. Se registran con `app.action('modulo.verbo', { permission }, handler)`.
 - **Rutas** (`app.route`): solo para lecturas (`GET`) y subida de archivos.
@@ -19,15 +19,29 @@ El **servidor es la única fuente de verdad**. Los dispositivos son vistas: reci
 Un módulo es una carpeta en `server/modules/<id>/` cuyo `index.js` exporta `setup(app)`, más su interfaz en `web/modules/<id>/`. Se registra en la lista `MODULES` de `server/app.js`.
 
 - Un módulo **no importa archivos de otro módulo**. Si necesita algo de otro, usa `app.services.<nombre>` (lo que el otro publica) o `app.run('otro.accion', payload)`.
-- Nombres de acción: `modulo.verbo` (`projection.show`, `playlist.add`).
-- Nombres de permiso: `modulo.capacidad` (`projection.control`, `playlist.edit`).
-- Las páginas de `web/roles/` componen módulos; la lógica vive en `web/modules/`.
+- Nombres de acción: `modulo.verbo` (`projection.show`, `order.add`).
+- Nombres de permiso: `modulo.capacidad` (`projection.control`, `order.edit`).
+- En la web, cada módulo es `web/modules/<id>/workspace.js` y se lista en `web/modules/registry.js`. La estructura común (barra de módulos, espacio de trabajo, panel "Al aire") es `web/core/shell.js`; las páginas de `web/roles/` solo eligen qué módulos recibe cada función.
 
 Para crear uno, usa la skill `/nuevo-modulo`.
 
-## Contenido proyectable
+## Contenido proyectable y orden del culto
 
-`projection.item` describe lo que está en pantalla y lleva un campo `kind` (hoy solo `'verses'`). Un módulo nuevo que proyecte otra cosa (canciones, anuncios, imágenes) añade su propio `kind` y su forma de dibujarlo en `web/modules/projection/stage.js`, sin cambiar los existentes.
+Todo lo que se proyecta es de un **tipo de contenido** (`kind`). Hoy existe `verses`; los módulos futuros añadirán `song`, `image`, `video`, `slides`. Un módulo registra el suyo con `app.kind(nombre, { label, describe, resolve, neighbor })`:
+
+- `describe(data)` → `{ title, subtitle, steps, data }`: cómo se ve en el orden del culto y cuántos **pasos** tiene (versículos, estrofas, diapositivas). `null` si ya no existe.
+- `resolve(data, step)` → lo que se proyecta. `step` `null` es el elemento entero; `0..n-1`, uno de sus pasos.
+- `neighbor(data, step, delta)` (opcional) → qué sigue al avanzar fuera del orden del culto.
+
+`data` es lo mínimo para localizar el contenido (para `verses`: `{ versionId, ref }`), nunca el contenido mismo.
+
+**Estado de proyección**: `projection.item = { kind, ...contenido, source: { kind, data, step, orderId } }`. `source` dice de dónde salió y es lo único que se guarda en disco.
+
+**Orden del culto** (`server/modules/order/`): `order.items` es una lista de `{ id, kind, title, subtitle, steps, data }` y de secciones `{ id, kind: 'section', title }`. Es el punto donde confluyen todos los módulos: cualquiera añade elementos con `order.add { kind, data }`.
+
+**Anterior / siguiente** (`projection.step`): si lo proyectado viene del orden (`source.orderId`), recorre los pasos del elemento y luego pasa al elemento vecino, saltando secciones (`order/logic.js`). Si no, decide el `neighbor` del tipo.
+
+**En la web**, un tipo nuevo necesita: su icono y nombre en `KINDS` (`web/core/icons.js`), su color en `.kind.k-<tipo>` (`web/core/app.css`) y cómo se dibuja en `web/modules/projection/stage.js`.
 
 ## Arranque y apagado
 

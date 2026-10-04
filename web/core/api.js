@@ -132,6 +132,10 @@ export function connect(role) {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wake(); });
   window.addEventListener('online', wake);
   window.addEventListener('pageshow', (e) => { if (e.persisted && !stopped) open(); });
+  // Al salir de la página se suelta la conexión. Si no, el navegador puede dejar la página
+  // "congelada" con la conexión abierta, y tras unas cuantas navegaciones agota las seis que
+  // permite por servidor: la app dejaría de cargar.
+  window.addEventListener('pagehide', () => { clearTimeout(retry); source?.close(); });
 
   open();
 }

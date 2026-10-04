@@ -1,34 +1,40 @@
 # Estado del proyecto
 
-Última actualización: 2026-10-03 · Versión: 0.3.0
+Última actualización: 2026-10-04 · Versión: 1.0.0
 
 Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver `.claude/rules/documentacion.md`). El historial está en `CHANGELOG.md`.
 
 ## Qué funciona
 
 - Servidor en red local con estado central y tiempo real.
-- Roles por dispositivo: control completo, control del guion, pantalla de proyección. PIN para los de control (el equipo principal no lo necesita).
-- Módulos: `system`, `bible`, `projection`, `playlist`.
+- **Interfaz en tres zonas** (ver `DESIGN.md`): barra de módulos, espacio de trabajo y panel "Al aire" con monitor y mandos. Adaptada a celular (vertical y horizontal), tableta y escritorio.
+- Módulos: `system`, `bible`, `projection`, `order`. En la interfaz: Orden, Biblia y Ajustes; Himnario, Imágenes, Videos y Diapositivas aparecen atenuados como previstos.
+- Roles por dispositivo: control completo, control del orden (solo operar), pantalla de proyección. PIN para los de control (el equipo principal no lo necesita).
+- **Logo e identidad**: el logo del dueño, en vector, integrado en la interfaz, los iconos del sistema y la pestaña del navegador. La versión se muestra junto al logo y sale de `package.json`.
+- **Biblia**: buscador por cita o por palabras, pasajes recientes, rejilla de libros, capítulos, versículos con selección de varios, vista previa en el panel.
+- **Orden del culto** (antes "guion"): elementos con tipo y pasos, secciones, reordenar arrastrando o por menú, cita rápida, miniaturas de los pasos que se despliegan y se recogen con un clic, "todo junto" para pasajes cortos. El guion de versiones anteriores se convierte solo.
+- **Tipos de contenido** (`app.kind`): hoy `verses`. "Siguiente" recorre los pasos de un elemento y luego el orden.
 - Biblias desde `Biblias/` en formatos `.xmm` y `.xml`, con recarga automática al copiar archivos.
-- Búsqueda por cita (con abreviaturas y rangos) y por palabras sin tildes.
-- Proyección de uno o varios versículos, con ajuste automático del tamaño.
-- Estilos de proyección e imagen de fondo propia.
-- Guion de culto compartido entre dispositivos.
+- Proyección con ajuste automático del tamaño, estilos e imagen de fondo propia (en Ajustes).
 - Reconexión automática de los dispositivos, con detección de conexiones congeladas y aviso con instrucciones si no vuelve.
 - Recuperación de lo que estaba en pantalla si el servidor se reinicia en menos de 15 minutos.
-- Confirmación del navegador al cerrar la pestaña de control o de guion.
+- Confirmación del navegador al cerrar la pestaña de control.
 - Dirección con nombre `manna.local` (mDNS propio, sin dependencias) y puerto 80, con el 8000 de reserva. Si hay otro Manna en la red, toma `manna-2.local`.
 - Paso automático de la dirección numérica al nombre en los dispositivos que lo admiten, y reconexión sola tras un cambio de IP del equipo principal.
-- Ventana "Dispositivos" con un solo código QR (dirección numérica recomendada), la dirección `manna.local` para escribir a mano y direcciones alternativas plegadas.
+- Ventana "Dispositivos" con un solo código QR, la dirección `manna.local` y direcciones alternativas plegadas.
 - Instaladores del icono "Manna" para Windows y Mac, con comprobación de requisitos (`instalacion/requisitos.html`).
-- Arranque en segundo plano desde el icono, sin ventana: registro en `data/manna.log`, página de error si no puede abrir, y una sola copia aunque se pulse el icono varias veces.
-- Botón "Apagar" en el control, solo en el equipo principal.
+- Arranque en segundo plano desde el icono, una sola copia, registro en `data/manna.log` y página de error si no puede abrir.
+- Apagado desde Ajustes, solo en el equipo principal.
 
 ## Probado y sin probar
 
 | Área | Estado |
 | --- | --- |
-| Control, proyección, guion (escritorio y tamaño celular) | Probado en navegador en Mac |
+| Interfaz: Biblia, orden del culto (incluido desplegar y recoger), ajustes, dispositivos, versión junto al logo y permisos del rol "Control del orden" | Probado en Chrome real con `scripts/probar-chrome.mjs` (28 comprobaciones) |
+| Logo: fidelidad del vector frente al arte original | Probado: las formas coinciden en un 98 %. El vector no reproduce las estelas tenues bajo las barras |
+| Iconos generados (`.ico`, `.icns`, PNG) | Revisados a la vista en 32, 180 y 400 px. **Sin ver** en el Escritorio de Windows ni en la pantalla de inicio de un celular |
+| Adaptación a pantallas: 9 tamaños (celular 360/390/430 vertical, celular horizontal, tableta vertical y horizontal, tableta grande, portátil, escritorio) | Probado con `scripts/auditar-responsive.mjs`: sin desborde, navegación y "Al aire" a la vista, acción principal sin desplazarse, botones de 40 px o más en táctil, títulos largos legibles. **Con emulación de Chrome, no en dispositivos reales** |
+| Conversión del guion antiguo al orden del culto | Probado con un guion de ejemplo |
 | PIN, permisos por rol, bloqueo por intentos | Probado por API desde la IP de red |
 | Lectura y limpieza de las 14 biblias locales | Probado |
 | Ventana de kiosco de Chrome: abrir, conectar, cerrar | Probado sobre la pantalla principal |
@@ -47,7 +53,7 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 | Elección de la dirección recomendada con varias redes | Probado con pruebas automáticas y con direcciones simuladas; **sin probar en un equipo con dos redes reales** |
 | Apertura automática en una **segunda pantalla real** | **Sin probar** (el equipo de desarrollo no tiene proyector) |
 | Icono en **Mac**: instalador, app en segundo plano, segunda pulsación, registro | Probado en una copia temporal (carpeta con espacios), creando la app fuera de Aplicaciones. **Sin probar** con el proyecto dentro de Documentos, donde macOS pedirá permiso de acceso |
-| Botón "Apagar" | Probado: apaga, libera el nombre de red y muestra la pantalla final; un dispositivo remoto con control completo no puede apagar |
+| Apagar Manna (Ajustes) | Probado en Chrome real: confirma, apaga el servidor y muestra la pantalla final; un dispositivo remoto con control completo no puede apagar |
 | Fallo de arranque en segundo plano | Probado: escribe `data/error.html` y el registro |
 | Icono en **Windows**: `Instalar Manna en Windows.bat` e `instalacion/abrir-windows.bat` | **Sin probar.** Es la primera prueba pendiente en el equipo de la iglesia |
 | **Windows**: detección de pantallas y ventana de proyección | **Sin probar** |
@@ -55,6 +61,13 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 ## Problemas conocidos
 
+- **El logo es cian y el acento de la interfaz es ámbar.** Se mantuvo el ámbar porque es lo que se aprobó en la maqueta; el cian aparece solo en el logo. Unificarlos es cambiar tres valores en `web/core/app.css` (pendiente de que el dueño lo decida).
+- El nombre "MANNA" del logotipo se compone con la tipografía de la app (Geist, peso 700), no con la del arte original, que no se recibió como archivo.
+- Las estelas tenues que el arte original tiene bajo las barras no están en el vector.
+- Los tipos de elemento futuros (himno, imagen, video, diapositivas) tienen icono, color y sitio en la interfaz, pero no existen: no se pueden añadir ni proyectar.
+- En el orden del culto cada versículo es un paso. Un pasaje se puede mostrar entero ("Todo junto") solo si tiene entre 2 y 6 versículos, y hay que elegirlo en sus miniaturas: no se recuerda por elemento.
+- Reordenar arrastrando funciona con ratón. En pantallas táctiles se reordena con los botones Subir / Bajar.
+- La vista previa `/vista-previa` muestra la app en marcos de celular y tableta, pero el navegador de escritorio no reproduce el teclado en pantalla ni las barras del navegador del celular.
 - **Cambio de IP del equipo principal**: los dispositivos que no entienden nombres `.local` (Android anterior a la versión 12) no encuentran solos la dirección nueva; deben volver a escanear el QR y escribir el PIN. Los demás reconectan solos en un minuto aproximadamente; no puede ser más rápido porque el navegador recuerda la dirección anterior durante ese tiempo.
 - **El nombre dejó de responder una vez** durante las pruebas, a los pocos minutos de arrancar, sin que el servidor lo notara. No se pudo reproducir ni hallar la causa. Desde entonces el servidor comprueba el nombre cada 10 s y lo rehace si falla (probado dejándolo mudo a propósito). Si reaparece en uso real, los dispositivos siguen pudiendo entrar por la dirección numérica.
 - No se ha comprobado si al escribir `manna.local` sin `http://` algún navegador abre una búsqueda en vez de la página. El remedio es escribir `manna.local/`.
@@ -67,13 +80,20 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 - Biblia de Jerusalén: la limpieza de títulos es por reglas y deja restos, como las letras hebreas del Salmo 119 ("Alef.").
 - Traducción en Lenguaje Actual (`SpanishTLABible.xml`): unos 26.500 versículos frente a unos 31.100 de las demás. No se revisó si une versículos o está incompleta.
 - Versiones repetidas en dos formatos (Dios Habla Hoy, Palabra de Dios para Todos) aparecen con "(2)".
-- Un navegador tiene una sola sesión: abrir control y guion en dos pestañas del mismo navegador hace que la más antigua vuelva a la pantalla de inicio al dar una orden.
+- Un navegador tiene una sola sesión: abrir "control completo" y "control del orden" en dos pestañas del mismo navegador hace que la más antigua vuelva a la pantalla de inicio al dar una orden.
 
 ## Decisiones tomadas
 
 - **2026-10-03 · Equipo principal: Windows.** El desarrollo sigue en Mac; lo que afecte al arranque o al sistema debe funcionar en Windows.
 - **2026-10-03 · Sin compilaciones por ahora.** Node.js y Chrome se aceptan como requisitos del equipo principal. Manna se abre con un icono creado por un instalador sencillo.
 - **2026-10-03 · Dirección `manna.local` y puerto 80.** El QR sigue llevando la dirección numérica.
+- **2026-10-04 · Rediseño de la interfaz aprobado** sobre una maqueta: tres zonas, módulo Biblia y módulo Orden del culto separados, y sitio previsto para himnario, imágenes, videos y presentaciones. El sistema quedó escrito en `DESIGN.md`.
+- **2026-10-04 · "Guion de culto" pasa a llamarse "Orden del culto"** y es donde confluyen todos los módulos, con los elementos diferenciados por tipo.
+- **2026-10-04 · "Al aire" en rojo.** El ámbar queda para la selección y la acción principal.
+- **2026-10-04 · Tipografía Geist e iconos Phosphor incluidos en el repositorio** (licencias libres, sin internet en uso).
+- **2026-10-04 · Los celulares se usan en vertical; las tabletas, también en horizontal.**
+- **2026-10-04 · Versión 1.0.0**, con el logo del dueño integrado y la versión visible junto a él.
+- **2026-10-04 · Módulos futuros visibles pero atenuados.** El dueño no eligió entre mostrarlos u ocultarlos; se dejaron como en la maqueta aprobada. Para ocultarlos basta quitar las entradas `soon` de `web/modules/registry.js`.
 
 ## Decisiones pendientes del dueño
 
@@ -90,10 +110,13 @@ Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron*
 
 ### 2. Otras
 
+- Acento de la interfaz: mantener el ámbar o pasarlo al cian del logo.
 - Licencia del repositorio (hoy no tiene ninguna).
 
 ## Próximos pasos
 
+- Que el dueño revise la versión para celular y tableta (se hizo sin maqueta previa) y diga qué ajustar.
+- Primeros módulos nuevos sobre la estructura: himnario, imágenes, videos, presentaciones (por definir el orden).
 - **Probar en el equipo Windows de la iglesia**, en este orden: `Instalar Manna en Windows.bat`, abrir con el icono, aviso del Firewall, proyección en la segunda pantalla, botón "Apagar", y `manna.local` desde un celular.
 - Probar `manna.local` desde celulares reales (iPhone, Android 12 o posterior, Android antiguo) y con un router real.
 - Gran actualización con nuevos módulos y funcionalidades: **por definir con el dueño**.

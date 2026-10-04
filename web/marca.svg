@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="455 480 1090 1040">
+  <!-- La marca de Manna sola, con su resplandor, para usar sobre fondo oscuro.
+       Mismas medidas que instalacion/icono/manna.svg. -->
+  <defs>
+    <linearGradient id="luz" gradientUnits="userSpaceOnUse" x1="0" y1="600" x2="0" y2="1400">
+      <stop offset="0" stop-color="#00ffff"/>
+      <stop offset="0.5" stop-color="#b0faff"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+    <filter id="resplandor" filterUnits="userSpaceOnUse" x="455" y="480" width="1090" height="1040">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="70" result="lejos"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="cerca"/>
+      <feComponentTransfer in="lejos" result="lejosSuave"><feFuncA type="linear" slope="0.6"/></feComponentTransfer>
+      <feMerge><feMergeNode in="lejosSuave"/><feMergeNode in="cerca"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g fill="url(#luz)" filter="url(#resplandor)">
+    <rect x="575" y="600" width="47" height="800"/>
+    <rect x="677" y="600" width="47" height="800"/>
+    <rect x="1276" y="600" width="47" height="800"/>
+    <rect x="1378" y="600" width="47" height="800"/>
+    <path d="M780 600 1000 971 1220 600V1400H1172V775L1000 1065 828 775V1400H780Z"/>
+    <path d="M858 902 1000 1137 1142 902V993L1000 1229 858 993Z"/>
+  </g>
+</svg>

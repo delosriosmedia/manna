@@ -42,19 +42,16 @@ export default function setup(app) {
   const mediaDir = path.join(app.dataDir, 'media');
   fs.mkdirSync(mediaDir, { recursive: true });
 
-  const restore = liveToRestore(saved.data.live);
-  const restored = restore && services.bible.passage(restore.versionId, restore.ref);
-
   store.register('projection', {
-    mode: restored ? restore.mode : 'clear', // 'live' = contenido visible, 'clear' = solo fondo, 'black' = negro
-    item: restored ? { kind: 'verses', ...restored } : null,
+    mode: 'clear', // 'live' = contenido visible, 'clear' = solo fondo, 'black' = negro
+    item: null,    // { kind, ...contenido, source: { kind, data, step, orderId } }
     styles: { ...DEFAULT_STYLES, ...saved.data.styles },
     display: { supported: true, hasSecond: false, on: saved.data.displayOn, open: false },
   });
   const get = () => store.get('projection');
 
   // ---- Contenido ----
-  // Cambia lo que está en pantalla y lo anota en disco (solo la cita, no el texto)
+  // Cambia lo que está en pantalla y lo anota en disco (solo de dónde sale, no el texto)
   // para recuperarlo si el servidor se reinicia. Ver live.js.
   function setLive(patch) {
     store.set('projection', patch);
@@ -63,7 +60,7 @@ export default function setup(app) {
 
   function touchLive() {
     const { mode, item } = get();
-    saved.data.live = item ? { mode, item: { versionId: item.versionId, ref: item.ref }, at: Date.now() } : null;
+    saved.data.live = item ? { mode, source: item.source, at: Date.now() } : null;
     saved.save();
   }
 
@@ -75,20 +72,41 @@ export default function setup(app) {
     if (get().item) touchLive();
   });
 
-  function show({ versionId, ref }) {
-    const item = services.bible.passage(versionId, ref);
-    if (!item) throw new HttpError(404, 'Ese pasaje no existe en la versión elegida.');
-    setLive({ item: { kind: 'verses', ...item }, mode: 'live' });
+  // Proyecta un contenido. source: { kind, data, step, orderId }.
+  //   step     null = el elemento entero; 0..n-1 = uno de sus pasos
+  //   orderId  si viene del orden del culto, para que "siguiente" recorra el orden
+  function present({ kind, data, step = null, orderId = null }, mode = 'live') {
+    const content = app.kinds.get(kind)?.resolve(data, step);
+    if (!content) throw new HttpError(404, 'Ese contenido ya no está disponible.');
+    const item = { kind, ...content, source: { kind, data, step, orderId } };
+    setLive({ item, mode });
     return item;
   }
+  services.projection = { present };
 
-  app.action('projection.show', { permission: 'projection.control' }, show);
+  // Se restaura cuando todos los módulos han registrado sus tipos de contenido.
+  store.on('listening', () => {
+    const restore = liveToRestore(saved.data.live);
+    if (!restore) return;
+    try { present(restore.source, restore.mode); } catch { /* ese contenido ya no existe */ }
+  });
 
+  app.action('projection.show', { permission: 'projection.control' }, ({ kind, data, step }) =>
+    present({ kind, data, step: Number.isInteger(step) ? step : null }));
+
+  // Anterior / siguiente. Si lo proyectado viene del orden del culto, recorre sus pasos y
+  // luego pasa al elemento vecino; si no, lo decide el tipo de contenido.
   app.action('projection.step', { permission: 'projection.control' }, ({ delta }) => {
     const { item } = get();
     if (!item) return null;
-    const ref = services.bible.step(item.versionId, item.ref, delta < 0 ? -1 : 1);
-    return ref ? show({ versionId: item.versionId, ref }) : null;
+    const d = delta < 0 ? -1 : 1;
+    const { kind, data, step, orderId } = item.source;
+    if (orderId && services.order?.has(orderId)) {
+      const next = services.order.neighbor(orderId, step, d);
+      return next ? present(next) : null;
+    }
+    const next = app.kinds.get(kind)?.neighbor?.(data, step, d);
+    return next ? present({ kind, ...next }) : null;
   });
 
   app.action('projection.mode', { permission: 'projection.control' }, ({ mode }) => {

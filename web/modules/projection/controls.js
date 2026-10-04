@@ -10,28 +10,29 @@ const BACKGROUNDS = [
   ['Carbón', { backgroundType: 'solid', bgColor: '#18181b' }],
 ];
 
-export const setMode = guard((mode) => action('projection.mode', { mode }));
+const setMode = guard((mode) => action('projection.mode', { mode }));
 
-// Botones Negro / Fondo: al pulsarlos de nuevo vuelven a mostrar el contenido.
-export function createModeButtons() {
-  const black = h('button', { class: 'btn', title: 'Pantalla en negro (tecla B)', onclick: () => toggleMode('black') }, 'Negro');
-  const clear = h('button', { class: 'btn', title: 'Solo el fondo, sin texto (tecla C)', onclick: () => toggleMode('clear') }, 'Fondo');
-  subscribe('projection', ({ mode, item }) => {
-    black.classList.toggle('active', mode === 'black');
-    clear.classList.toggle('active', mode === 'clear' && Boolean(item));
-  });
-  return [black, clear];
-}
-
+// Negro / Solo fondo: al pulsarlos de nuevo vuelven a mostrar el contenido.
 export function toggleMode(mode) {
   setMode(state.projection?.mode === mode ? 'live' : mode);
 }
 
-// Texto corto de lo que hay ahora mismo en pantalla.
+// Qué hay ahora mismo en pantalla, en palabras.
+//   state  'live' | 'clear' | 'black' | 'empty'
+//   label  estado ("Al aire", "Solo fondo"…)   text  el contenido, si lo hay
 export function describeLive({ mode, item }) {
-  if (mode === 'black') return { text: 'Pantalla en negro', live: false };
-  if (!item || mode === 'clear') return { text: item ? `Solo fondo · ${item.reference}` : 'Solo fondo', live: false };
-  return { text: `${item.reference}${item.version ? ` (${item.version})` : ''}`, live: true };
+  const text = item ? `${item.reference}${item.version ? ` (${item.version})` : ''}` : '';
+  if (mode === 'black') return { state: 'black', label: 'Pantalla en negro', text };
+  if (!item) return { state: 'empty', label: 'Nada en pantalla', text: '' };
+  if (mode === 'clear') return { state: 'clear', label: 'Solo fondo', text };
+  return { state: 'live', label: 'Al aire', text };
+}
+
+// Texto del estado del proyector del equipo principal.
+export function describeDisplay(display) {
+  if (!display.hasSecond) return { text: 'Sin segunda pantalla', warn: true };
+  if (display.on && display.open) return { text: 'Proyector encendido', warn: false };
+  return { text: 'Proyector apagado', warn: false };
 }
 
 // Encendido/apagado de la ventana en la segunda pantalla del equipo principal.
@@ -45,21 +46,13 @@ export function createDisplayToggle() {
     await action('projection.display', { on: !display.on });
   }) });
   subscribe('projection', ({ display }) => {
-    button.className = 'btn';
-    if (!display.hasSecond) {
-      button.textContent = '⚠ Sin segunda pantalla';
-      button.classList.add('danger');
-      button.title = 'El equipo principal no tiene un proyector o segunda pantalla conectada.';
-    } else {
-      button.textContent = display.on ? 'Proyector: encendido' : 'Proyector: apagado';
-      button.classList.toggle('live', display.on && display.open);
-      button.title = display.on ? 'Clic para cerrar la ventana de proyección' : 'Clic para abrir la ventana en la segunda pantalla';
-    }
+    button.textContent = !display.hasSecond ? 'Sin segunda pantalla' : display.on ? 'Apagar proyector' : 'Encender proyector';
+    button.disabled = !display.hasSecond;
   });
   return button;
 }
 
-// Panel de estilos de la proyección.
+// Controles de apariencia de la proyección.
 export function createStylePanel(container) {
   const send = guard((patch) => action('projection.styles', patch));
   const controls = {};
@@ -74,7 +67,7 @@ export function createStylePanel(container) {
     return [input, value];
   };
   const select = (key, options) => {
-    const input = h('select', { class: 'input', onchange: () => send({ [key]: input.value }) },
+    const input = h('select', { class: 'select', style: 'width: 100%;', onchange: () => send({ [key]: input.value }) },
       ...options.map(([v, label]) => h('option', { value: v }, label)));
     controls[key] = (v) => { input.value = v; };
     return input;
@@ -87,9 +80,9 @@ export function createStylePanel(container) {
   const field = (label, input, value) => h('div', { class: 'field' }, h('div', { class: 'label' }, h('span', {}, label), value), input);
 
   const [size, sizeValue] = range('fontSize', 28, 84, 2, (v) => v, (v) => v, '');
-  const [overlay, overlayValue] = range('overlayOpacity', 0, 90, 5, (v) => Math.round(v * 100), (v) => v / 100, '%');
+  const [overlay, overlayValue] = range('overlayOpacity', 0, 90, 5, (v) => Math.round(v * 100), (v) => v / 100, ' %');
 
-  const upload = h('input', { class: 'input', type: 'file', accept: 'image/jpeg,image/png,image/webp,image/gif', style: 'padding: 6px;',
+  const upload = h('input', { class: 'input', type: 'file', accept: 'image/jpeg,image/png,image/webp,image/gif',
     onchange: guard(async () => {
       const file = upload.files[0];
       upload.value = '';
@@ -99,13 +92,13 @@ export function createStylePanel(container) {
     }) });
 
   container.replaceChildren(
-    field('Tamaño de texto', size, sizeValue),
-    field('Tipografía', select('fontFamily', [['sans', 'Moderna (sans-serif)'], ['serif', 'Elegante (serif)'], ['trebuchet', 'Dinámica (Trebuchet)'], ['impact', 'Impactante (gruesa)']])),
+    field('Tamaño del texto', size, sizeValue),
+    field('Tipografía', select('fontFamily', [['sans', 'Moderna (sin remates)'], ['serif', 'Clásica (con remates)'], ['trebuchet', 'Trebuchet'], ['impact', 'Gruesa']])),
     h('div', { class: 'grid-2' }, field('Color del texto', color('textColor')), field('Color de la cita', color('refColor'))),
     h('div', { class: 'grid-2' },
       field('Posición de la cita', select('refPosition', [['bottom-center', 'Abajo, centro'], ['bottom-right', 'Abajo, derecha'], ['top-center', 'Arriba, centro']])),
-      field('Sombra', select('textShadow', [['strong', 'Fuerte'], ['soft', 'Suave'], ['outline', 'Contorno'], ['none', 'Sin sombra']]))),
-    field('Fondos', h('div', { class: 'swatches' }, ...BACKGROUNDS.map(([name, patch]) =>
+      field('Sombra del texto', select('textShadow', [['strong', 'Fuerte'], ['soft', 'Suave'], ['outline', 'Contorno'], ['none', 'Sin sombra']]))),
+    field('Fondo', h('div', { class: 'swatches' }, ...BACKGROUNDS.map(([name, patch]) =>
       h('button', { title: name, 'aria-label': `Fondo ${name}`, style: `background: ${patch.bgGradient || patch.bgColor};`, onclick: () => send(patch) })))),
     field('Imagen de fondo propia', upload),
     field('Oscurecer el fondo', overlay, overlayValue),
