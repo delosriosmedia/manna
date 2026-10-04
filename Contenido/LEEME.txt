@@ -1,0 +1,15 @@
+CONTENIDO DE TU IGLESIA
+
+Esta carpeta es tuya. Aquí va todo lo que Manna proyecta y que no viene con el programa.
+Manna lee lo que encuentra y lo muestra solo: no hace falta importar nada ni reiniciar.
+
+  Biblias/            Las versiones de la Biblia, en formato .xmm o .xml
+  Himnario/videos/    Los himnos en video, uno por archivo: "001 Cantad alegres al Señor.mp4"
+  Himnario/letras/    Las letras de los himnos, en archivos de texto .md
+
+Cada carpeta tiene su propio LEEME.txt con el formato exacto.
+
+Al actualizar Manna, conserva esta carpeta y la carpeta "data": todo lo demás se reemplaza.
+
+Lo que pongas aquí se queda en tu equipo. No se publica en GitHub: la mayoría de las biblias,
+los himnos y sus letras tienen derechos de autor, y cada iglesia usa los que tiene derecho a usar.

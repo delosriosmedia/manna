@@ -1,0 +1,15 @@
+HIMNOS EN VIDEO
+
+Un archivo por himno, con el número delante y el título después:
+
+  001 Cantad alegres al Señor.mp4
+  002 Da gloria al Señor.mp4
+  ...
+  613 Hoy nos toca trabajar.mp4
+
+- El número es el del himnario. Manna toma de aquí el número y el título.
+- Formato: .mp4 o .m4v (video H.264). Es el que reproduce cualquier navegador sin convertir.
+- Si el video trae dos pistas de sonido, la primera es la cantada y la segunda la instrumental:
+  Manna ofrece "Cantado" o "Pista".
+
+Los videos del himnario tienen derechos de autor. Esta carpeta no se publica en GitHub.

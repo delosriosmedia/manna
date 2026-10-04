@@ -1,44 +1,32 @@
 import { HttpError } from '../../core/router.js';
 import { watchFolder } from '../../core/folders.js';
 import { BibleLibrary } from './library.js';
+import { registerCompare } from './compare.js';
 
-// Módulo Biblia: versiones disponibles, lectura por capítulo y búsqueda.
+// Módulo Biblia: versiones disponibles, lectura por capítulo y búsqueda. Aporta dos tipos de
+// contenido: el pasaje en una versión ('verses') y en dos a la vez ('compare', en compare.js).
 export default function setup(app) {
   const library = new BibleLibrary(app.biblesDir);
   app.services.bible = library;
 
-  // indexed: en cuántas versiones ya se puede buscar. El índice de cada una se prepara en
-  // segundo plano, de una en una, para que el arranque y la proyección no esperen por él.
-  app.store.register('bible', { versions: library.scan(), indexed: 0 });
-  let indexing = false;
+  app.store.register('bible', { versions: library.scan() });
   let closed = false;
-  const pause = (ms) => new Promise((resolve) => { setTimeout(resolve, ms).unref(); });
 
-  async function indexAll() {
-    if (indexing) return;
-    indexing = true;
-    try {
-      for (let pending = library.pendingIndex(); pending.length && !closed; pending = library.pendingIndex()) {
-        library.index(pending[0]);
-        app.store.set('bible', { indexed: library.list().length - library.pendingIndex().length });
-        // Un respiro entre versiones: cada índice ocupa al servidor una fracción de segundo.
-        await pause(60);
-      }
-    } finally {
-      indexing = false;
-    }
-  }
+  // El índice de búsqueda se prepara en segundo plano, para que la primera búsqueda no espere.
+  const prepareSearch = () => setTimeout(() => {
+    const id = library.searchVersion();
+    if (id && !closed) library.index(id);
+  }, 800).unref();
 
   const rescan = () => {
-    const versions = library.scan();
-    app.store.set('bible', { versions, indexed: versions.length - library.pendingIndex().length });
-    indexAll();
+    app.store.set('bible', { versions: library.scan() });
+    prepareSearch();
   };
 
   // Si se copia o borra una biblia en la carpeta, la lista se actualiza sola.
   app.onClose(watchFolder(app.biblesDir, rescan));
   app.onClose(() => { closed = true; });
-  app.store.on('listening', () => setTimeout(indexAll, 800).unref());
+  app.store.on('listening', prepareSearch);
 
   const found = (value) => {
     if (!value) throw new HttpError(404, 'No se encontró esa versión o pasaje.');
@@ -80,4 +68,6 @@ export default function setup(app) {
       return ref ? { data: { versionId: p.versionId, ref }, step: null } : null;
     },
   });
+
+  registerCompare(app, library);
 }

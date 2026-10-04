@@ -57,6 +57,7 @@ function mount(el, ctx) {
   function openAddMenu(anchor) {
     menu(anchor, [
       { label: 'Pasaje bíblico', icon: 'book-open-text', onclick: () => ctx.go('biblia') },
+      { label: 'Comparación de versiones', icon: 'columns', onclick: () => ctx.go('comparador') },
       { label: 'Sección', icon: 'rows', onclick: () => askTitle({ title: 'Nueva sección', onSave: (title) => run('order.addSection', { title }) }) },
       '-',
       { label: 'Himno', icon: 'music-notes', note: 'Próximamente', disabled: true },
@@ -234,8 +235,8 @@ function mount(el, ctx) {
     const caption = (s, i) => (loaded.steps.length === 1 ? kindOf(item.kind)?.label : s.reference || titleOf(s)) || `Paso ${i + 1}`;
     const slides = loaded.steps.slice(0, MAX_SLIDES).map((s, i) =>
       slide(caption(s, i), s, onAir && live.step === i, () => show(item.id, i)));
-    // Pasajes cortos: también se pueden mostrar enteros en una sola pantalla.
-    if (loaded.whole && item.kind === 'verses' && item.steps <= 6) {
+    // Elementos cortos (un pasaje de pocos versículos): también se pueden mostrar enteros.
+    if (loaded.whole && item.steps <= (kindOf(item.kind)?.wholeUpTo || 0)) {
       slides.unshift(slide('Todo junto', loaded.whole, onAir && live.step == null, () => show(item.id, null)));
     }
     detail.replaceChildren(...[head, onAir && liveControls, h('div', { class: 'slides' }, ...slides),

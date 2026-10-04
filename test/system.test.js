@@ -24,14 +24,21 @@ test('rankAddresses no elige una VPN ni una red virtual aunque sea la ruta de sa
   assert.equal(rankAddresses(interfaces, null)[0], '192.168.1.5');
 });
 
-test('rankAddresses deja al final las direcciones sin DHCP y omite IPv6 e internas', () => {
+test('rankAddresses omite IPv6, internas y las direcciones sin DHCP cuando hay otra', () => {
   const interfaces = {
     en0: [v4('169.254.10.20'), { family: 'IPv6', address: 'fe80::1', internal: false }],
     en1: [v4('192.168.0.9')],
     lo0: [v4('127.0.0.1', true)],
   };
-  assert.deepEqual(rankAddresses(interfaces), ['192.168.0.9', '169.254.10.20']);
+  assert.deepEqual(rankAddresses(interfaces), ['192.168.0.9']);
   assert.deepEqual(rankAddresses({ lo0: [v4('127.0.0.1', true)] }), []);
+});
+
+test('una dirección que el equipo se puso a sí mismo (169.254…) no se ofrece si hay otra', () => {
+  const interfaces = { en0: [v4('192.168.1.14')], en9: [v4('169.254.61.111')] };
+  assert.deepEqual(rankAddresses(interfaces, '192.168.1.14'), ['192.168.1.14']);
+  // Si es lo único que hay (dos equipos unidos por un cable), se ofrece.
+  assert.deepEqual(rankAddresses({ en9: [v4('169.254.61.111')] }), ['169.254.61.111']);
 });
 
 test('liveToRestore recupera lo proyectado solo si el reinicio es reciente', () => {

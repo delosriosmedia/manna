@@ -15,6 +15,8 @@ const MODULES = [system, bible, projection, order];
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = process.env.MANNA_DATA || path.join(ROOT, 'data');
+// Lo que pone cada iglesia (biblias, himnos, letras) vive en una sola carpeta: ver Contenido/LEEME.txt.
+const CONTENT = path.join(ROOT, 'Contenido');
 
 // Así arranca el icono "Manna": sin ventana, con los mensajes guardados en data/manna.log.
 const BACKGROUND = process.argv.includes('--segundo-plano');
@@ -48,7 +50,7 @@ async function run() {
   const app = createApp({
     rootDir: ROOT,
     dataDir: DATA,
-    biblesDir: process.env.MANNA_BIBLIAS || path.join(ROOT, 'Biblias'),
+    biblesDir: process.env.MANNA_BIBLIAS || path.join(CONTENT, 'Biblias'),
   });
 
   const running = await findRunning(app);

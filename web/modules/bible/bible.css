@@ -11,10 +11,7 @@
 .search-item { display: block; width: 100%; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); }
 .search-item:hover, .search-item.active { background: var(--s3); }
 .search-item.active { box-shadow: inset 2px 0 0 var(--accent); }
-.search-item strong { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--accent); font-size: 12px; margin-bottom: 2px; }
-/* La versión de la que sale el texto, cuando no es la elegida, y en cuántas más coincide. */
-.search-item strong em { font-style: normal; font-weight: 500; color: var(--ink-2); border: 1px solid var(--line-2); border-radius: 99px; padding: 0 7px; }
-.search-item strong small { font-weight: 500; color: var(--ink-3); font-size: 11px; }
+.search-item strong { display: block; font-weight: 600; color: var(--accent); font-size: 12px; margin-bottom: 2px; }
 .search-item > span { color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .search-item mark { background: var(--accent-soft); color: var(--ink); border-radius: 3px; padding: 0 1px; font-weight: 600; }
 .search-item.go { display: flex; align-items: center; gap: 8px; color: var(--ink); }
@@ -47,6 +44,16 @@ html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
 .vn { min-width: 22px; text-align: right; font: 500 12px var(--mono); color: var(--ink-3); padding-top: 4px; }
 .verse.sel .vn { color: var(--accent); }
 
+/* Comparador: las dos versiones en la cabecera, y el texto de ambas junto a cada versículo. */
+.cmp-pick { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cmp-pick .select { max-width: 180px; min-width: 0; }
+/* La cabecera lleva más cosas que la de Biblia: si no caben, el buscador baja a su propia fila. */
+.ws[data-module='comparador'] .ws-head .search { min-width: 170px; }
+.verse.two, .verse-heads { display: grid; grid-template-columns: 22px minmax(0, 1fr) minmax(0, 1fr); gap: 4px 16px; }
+.verse-heads { padding: 0 12px 6px; color: var(--ink-3); font-size: 12px; }
+.verse-heads b { font-weight: 600; }
+.verse .absent { color: var(--ink-4); font-style: italic; }
+
 .abar { display: flex; align-items: center; gap: 8px; padding: 10px 20px; border-top: 1px solid var(--line); background: var(--s1); flex-shrink: 0; }
 .sel-ref { font-weight: 600; font-size: 14px; white-space: nowrap; }
 .abar .hint { flex: 1; min-width: 0; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 4px; }
@@ -63,6 +70,7 @@ html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
   .abar { padding: 10px 16px; }
   .abar .hint { visibility: hidden; }
   .search-pop { left: 16px; right: 16px; }
+  .ws[data-module='comparador'] .ws-head { flex-wrap: wrap; }
 }
 
 /* Celular: una columna a la vez. Libro -> capítulo -> versículos, con la ruta arriba para volver. */
@@ -83,6 +91,12 @@ html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
   .sel-ref { flex: 1; text-align: center; }
   .abar .btn { flex: 1 1 40%; }
   .search-pop { top: 108px; left: 8px; right: 8px; max-height: 75%; }
+  /* Comparador en celular: las versiones ocupan su propia fila y los dos textos van uno bajo otro. */
+  .cmp-pick { flex: 1 1 100%; order: 2; }
+  .cmp-pick .select { flex: 1; max-width: none; }
+  .verse-heads { display: none; }
+  .verse.two { grid-template-columns: 22px minmax(0, 1fr); gap: 4px 10px; }
+  .verse.two > span:nth-child(3) { grid-column: 2; color: var(--ink-3); }
 }
 
 /* Celular en horizontal: la barra de acción en una sola fila. */
@@ -90,5 +104,10 @@ html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
   .chips { display: none; }
   .abar { flex-wrap: nowrap; padding: 6px 12px; }
   .sel-ref { flex: 0 1 auto; }
+  /* El comparador cabe en una fila si los selectores se estrechan. */
+  .ws[data-module='comparador'] .ws-head { flex-wrap: nowrap; }
+  .cmp-pick { flex: 0 1 auto; order: 0; }
+  .cmp-pick .select { flex: 0 1 108px; max-width: 108px; }
+  .ws[data-module='comparador'] .ws-head .search { min-width: 150px; }
   .abar .btn { flex: 1 1 0; }
 }

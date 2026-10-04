@@ -7,8 +7,9 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 ## Qué hace
 
 - **Tres zonas, siempre iguales**: los módulos a la izquierda, el módulo activo al centro y el panel **Al aire** a la derecha, con el monitor de lo proyectado y los mandos (anterior, siguiente, negro, solo fondo).
-- **Biblia**: los 66 libros a la vista en una rejilla; capítulos y versículos; pasajes recientes. Lee los archivos `.xmm` (OpenLP) y `.xml` de la carpeta `Biblias/`; basta copiar un archivo y aparece solo.
-- **Búsqueda**: por cita (`Juan 3:16-18`, `1 co 13 4`, `sal 23`) o por texto, mientras escribes y en todas las versiones a la vez. Los resultados salen por niveles (frase exacta, todas las palabras, parecidas), con lo encontrado resaltado y la versión de la que sale cada texto.
+- **Biblia**: los 66 libros a la vista en una rejilla; capítulos y versículos; pasajes recientes. Lee los archivos `.xmm` (OpenLP) y `.xml` de la carpeta `Contenido/Biblias/`; basta copiar un archivo y aparece solo.
+- **Búsqueda**: por cita (`Juan 3:16-18`, `1 co 13 4`, `sal 23`) o por texto, mientras escribes. El texto se busca en la Reina-Valera 1960 (o en la versión elegida, si no está instalada) y el resultado se abre en la versión que tengas elegida. Los resultados salen por niveles (frase exacta, todas las palabras, parecidas), con lo encontrado resaltado.
+- **Comparador**: el mismo pasaje en dos versiones, lado a lado o una sobre otra, cada una con su sigla. Se elige igual que en Biblia, se proyecta, se añade al orden como elemento propio, y la disposición se puede cambiar mientras está al aire.
 - **Orden del culto**: la lista ordenada de todo lo que se va a proyectar, con secciones (Apertura, Mensaje…). Cada elemento muestra su tipo y sus pasos; "Siguiente" recorre los pasos y luego pasa al elemento que sigue. A cualquier elemento se le puede poner un nombre propio ("Lectura bíblica"). Se comparte entre todos los dispositivos.
 - **Mandos en vivo**: lo que está al aire trae sus propios mandos en el panel y en el orden del culto. Hoy los estrena la **imagen de prueba** (Ajustes → Proyector de este equipo), que sirve para encuadrar el proyector o un televisor y comprobar, con su cronómetro, que todas las pantallas van a la par.
 - **Revisión del equipo**: al abrirse, Manna comprueba que el equipo principal tiene los programas que necesita. Si falta alguno, dice qué módulos se ven afectados y lo instala con un botón. Nunca impide abrir la app.
@@ -38,7 +39,7 @@ ffmpeg, yt-dlp y PowerPoint los usarán los módulos de himnario, medios y diapo
 
 ## Instalación (una sola vez por equipo)
 
-1. Copia la carpeta de Manna al equipo principal y pon tus biblias en la carpeta `Biblias/`.
+1. Copia la carpeta de Manna al equipo principal y pon tu contenido en la carpeta `Contenido/` (ver abajo, "La carpeta de tu iglesia").
 2. Abre con doble clic el archivo que corresponda:
    - **Windows**: `Instalar Manna en Windows.bat`
    - **Mac**: `Instalar Manna en Mac.command`
@@ -50,6 +51,18 @@ Avisos que pueden salir la primera vez:
 - **Mac**: si macOS bloquea el instalador, ve a Ajustes del Sistema → Privacidad y seguridad → *Abrir igualmente*. Si pide permiso para leer la carpeta de Manna o para la red local, elige *Permitir*.
 
 Si mueves la carpeta de Manna a otro sitio, vuelve a ejecutar el instalador. Para desinstalar, borra el icono (en Mac, también la app Manna de Aplicaciones) y la carpeta.
+
+## La carpeta de tu iglesia
+
+Todo lo que pone cada iglesia va en una sola carpeta, `Contenido/`. Manna lee lo que encuentra y lo muestra solo, sin importar nada ni reiniciar. Cada subcarpeta trae un `LEEME.txt` con el formato exacto.
+
+| Carpeta | Qué va |
+| --- | --- |
+| `Contenido/Biblias/` | Las versiones de la Biblia, en `.xmm` o `.xml` |
+| `Contenido/Himnario/videos/` | Los himnos en video, uno por archivo: `001 Cantad alegres al Señor.mp4` |
+| `Contenido/Himnario/letras/` | Las letras de los himnos, en archivos de texto `.md` |
+
+Al actualizar Manna, conserva `Contenido/` y `data/`; lo demás se reemplaza. Nada de `Contenido/` se publica en GitHub, salvo las instrucciones y la Reina-Valera 1909. (El himnario se está construyendo: ver `docs/PLAN.md`.)
 
 ## Uso diario
 
@@ -77,6 +90,7 @@ Reconecta solo; no hay que recargar la página. Si el aviso rojo no desaparece:
 - Si el navegador abre una búsqueda en vez de la página, escribe `manna.local/` con la barra final.
 - Si no abre en ningún dispositivo: en Windows, permite Node.js en el Firewall para redes privadas; en Mac, revisa Ajustes del Sistema → Privacidad y seguridad → Red local.
 - Si otro programa ya usa el puerto 80, Manna usa el 8000 y la dirección pasa a ser `manna.local:8000`. La dirección exacta siempre está en **Dispositivos**.
+- **En un televisor**: su navegador suele convertir la dirección en una página segura (`https`) que Manna no ofrece, y dice "No se encontró el servidor". Escribe la dirección completa con el segundo puerto, por ejemplo `http://192.168.1.14:8000` (está en **Dispositivos → ¿Es un televisor?**). Si aun así no abre, usa el televisor como segunda pantalla del equipo principal (duplicar pantalla en Windows con Win + K, o AirPlay en Mac): Manna abre ahí la proyección sola.
 - Con dos Manna en la misma red, el segundo se llama `manna-2.local`.
 
 ## Atajos de teclado
@@ -110,7 +124,7 @@ server/
                         y búsqueda de texto por niveles (la usan la Biblia y, después, el himnario)
   modules/
     system/             sesiones, PIN, direcciones de red
-    bible/              lectura de .xmm/.xml, libros, citas, índice y búsqueda en todas las versiones
+    bible/              lectura de .xmm/.xml, libros, citas, búsqueda y comparación de dos versiones
     projection/         contenido en vivo, mandos en vivo, volumen, estilos, segunda pantalla,
                         imagen de prueba
     order/              orden del culto: elementos, secciones y pasos
@@ -122,7 +136,8 @@ web/
   roles/                una página por función: control, orden, proyeccion, y la revisión del equipo
   vendor/               tipografía Geist, iconos Phosphor y generador de QR, con sus licencias
 DESIGN.md               sistema de diseño de la interfaz
-Biblias/                tus biblias (no se suben a GitHub, salvo la RV1909)
+Contenido/              lo de tu iglesia: biblias, himnos en video y letras (no se sube a GitHub,
+                        salvo las instrucciones y la RV1909)
 data/                   ajustes, PIN, orden del culto, fondos, programas instalados por Manna
                         y archivos temporales de este equipo (no se sube)
 test/                   pruebas (npm test)
@@ -160,7 +175,7 @@ Empieza por `CLAUDE.md` y `docs/ESTADO.md`. Las reglas del proyecto están en `.
 
 ## Biblias y derechos de autor
 
-Se incluye la Reina-Valera 1909, de dominio público ([eBible.org](https://ebible.org/spaRV1909/)). Las demás versiones tienen derechos de autor y no forman parte de este repositorio: cada iglesia copia en `Biblias/` las que tenga derecho a usar.
+Se incluye la Reina-Valera 1909, de dominio público ([eBible.org](https://ebible.org/spaRV1909/)). Las demás versiones tienen derechos de autor y no forman parte de este repositorio: cada iglesia copia en `Contenido/Biblias/` las que tenga derecho a usar. Lo mismo vale para los himnos en video y sus letras.
 
 ## Créditos
 

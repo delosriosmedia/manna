@@ -28,14 +28,15 @@ Repositorio: https://github.com/delosriosmedia/manna
 - Web: HTML, CSS y JavaScript puro con módulos ES. **Sin framework ni paso de compilación.** Tipografía (Geist) e iconos (Phosphor) incluidos en `web/vendor/`.
 - Tiempo real: Server-Sent Events (`GET /api/events`). Órdenes: `POST /api/action`.
 - Red: puerto 80 (8000 si está ocupado) y nombre `manna.local` anunciado por mDNS, hecho a mano en `server/modules/system/mdns.js`.
-- Datos locales en `data/` (JSON, medios subidos, programas instalados por Manna y temporales). Biblias en `Biblias/`; himnos en `Himnario/`.
+- Datos locales en `data/` (JSON, medios subidos, programas instalados por Manna y temporales). Lo que pone cada iglesia, en `Contenido/`: `Biblias/`, `Himnario/videos/` y `Himnario/letras/` (ver `Contenido/LEEME.txt`).
 
 ## Límites fijados por el dueño del proyecto
 
 - Siempre será una **web app en red local**. Nada de apps nativas ni servicios en la nube.
 - No añadir dependencias externas, frameworks ni compilación sin aprobación explícita. Aprobados el 2026-10-04: **ffmpeg y yt-dlp** como programas del equipo principal, **PowerPoint** para las presentaciones si está instalado, y **pdf.js** dentro de `web/vendor/`. Nada más.
 - La revisión inicial del equipo comprueba que está todo lo necesario y avisa de qué módulos funcionarán y cuáles no, pero **nunca bloquea**: Manna se abre igual, y cada módulo avisa al abrirlo de lo que le falta y ofrece instalarlo. Abrir Manna debe seguir siendo fácil para alguien sin conocimientos técnicos.
-- Las biblias con derechos de autor **nunca** se suben al repositorio (solo la Reina-Valera 1909). Tampoco los himnos en video (`Himnario/`), los medios de cada iglesia (`Medios/`) ni las letras de los himnos: las letras se usan (las iglesias tienen la licencia), pero viajan con la carpeta `Himnario/`.
+- Las biblias con derechos de autor **nunca** se suben al repositorio (solo la Reina-Valera 1909). Tampoco los himnos en video, los medios de cada iglesia ni las letras de los himnos. Todo eso vive en `Contenido/`, que no se publica: las letras se usan (las iglesias tienen la licencia y el dueño las entregó), pero solo en local. Las pruebas y la documentación no llevan letras reales: se usan textos inventados.
+- La búsqueda de texto en la Biblia se hace **solo en la Reina-Valera 1960**, no en todas las versiones.
 - El volumen que maneja Manna es el suyo (un volumen general para todo lo que suene). No se toca el del equipo.
 - Sin modelos de lenguaje: la búsqueda se resuelve con índices propios.
 - Interfaz, mensajes, comentarios y documentación en **español**.

@@ -31,8 +31,7 @@ Si fallan, detente e informa. No se publica con pruebas rotas.
 
 Confirma que entre los archivos a publicar no hay:
 
-- Biblias distintas de `Biblias/Reina Valera 1909.xmm`.
-- Nada de `Himnario/` ni de `Medios/` (salvo sus `LEEME.txt`), ni letras de himnos.
+- De `Contenido/`, solo los `LEEME.txt` y `Contenido/Biblias/Reina Valera 1909.xmm`. Ninguna otra biblia, ningún video ni ninguna letra de himno (tampoco dentro de pruebas o documentos).
 - Nada de `data/` (incluye `manna.log`, `error.html` y los programas de `data/herramientas/`), ni archivos `.local`.
 - PIN, contraseñas o claves.
 

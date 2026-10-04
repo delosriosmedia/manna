@@ -15,7 +15,8 @@ El **servidor es la única fuente de verdad**. Los dispositivos son vistas: reci
 - **Almacenamiento** (`app.storage('nombre', porDefecto)`): un JSON por módulo en `data/`.
 - **Tareas** (`app.jobs`, `server/core/jobs.js`): lo que tarda (convertir, descargar) corre en segundo plano y publica su avance y el tiempo que falta en el espacio `jobs`. Nunca se hace esperar a una acción por un trabajo largo.
 - **Programas externos** (`app.tools`, `server/core/tools.js`): única puerta a ffmpeg, yt-dlp, PowerPoint y el navegador: `tools.has(id)`, `tools.path(id)`, `tools.spawn(id, args)`. Publica el espacio `tools`. **Ninguno bloquea**: si falta, lo que falla es la función que lo usa, con un mensaje que dice cómo instalarlo. Qué necesita cada módulo lo declara él mismo en la web (`needs`, ver `web/core/needs.js`); con eso la revisión del equipo y el propio módulo avisan.
-- **Búsqueda de texto** (`server/core/search.js`): índice de palabras y búsqueda por niveles (frase exacta, todas las palabras, parecidas) con marcas de lo encontrado. La usa la Biblia (un índice por versión, `bible.indexed` dice cuántas están listas) y la usará el himnario.
+- **Búsqueda de texto** (`server/core/search.js`): índice de palabras y búsqueda por niveles (frase exacta, todas las palabras, parecidas) con marcas de lo encontrado. La usa la Biblia, con un solo índice (el de la Reina-Valera 1960), y la usará el himnario.
+- **Contenido de la iglesia**: todo en `Contenido/` (`Biblias/`, `Himnario/videos/`, `Himnario/letras/`). El servidor lo recibe por carpeta (`app.biblesDir`…) desde `server/app.js`.
 - **Reloj de reproducción** (`server/core/playback.js`): el servidor guarda `{ playing, position, at, duration }`; cada pantalla calcula la posición con la hora del servidor (`serverNow()` en `web/core/api.js`).
 
 ## Módulos
@@ -25,13 +26,14 @@ Un módulo es una carpeta en `server/modules/<id>/` cuyo `index.js` exporta `set
 - Un módulo **no importa archivos de otro módulo**. Si necesita algo de otro, usa `app.services.<nombre>` (lo que el otro publica) o `app.run('otro.accion', payload)`.
 - Nombres de acción: `modulo.verbo` (`projection.show`, `order.add`).
 - Nombres de permiso: `modulo.capacidad` (`projection.control`, `order.edit`).
-- En la web, cada módulo es `web/modules/<id>/workspace.js` y se lista en `web/modules/registry.js`. La estructura común (barra de módulos, espacio de trabajo, panel "Al aire") es `web/core/shell.js`; las páginas de `web/roles/` solo eligen qué módulos recibe cada función.
+- Un módulo puede aportar más de una pantalla y más de un tipo de contenido. El de Biblia tiene dos pantallas (Biblia y Comparador) y dos tipos (`verses` y `compare`); lo que comparten vive en su carpeta (`web/modules/bible/passages.js`).
+- En la web, cada pantalla de un módulo es un archivo de `web/modules/<id>/` (lo habitual, `workspace.js`) y se lista en `web/modules/registry.js`. La estructura común (barra de módulos, espacio de trabajo, panel "Al aire") es `web/core/shell.js`; las páginas de `web/roles/` solo eligen qué módulos recibe cada función.
 
 Para crear uno, usa la skill `/nuevo-modulo`.
 
 ## Contenido proyectable y orden del culto
 
-Todo lo que se proyecta es de un **tipo de contenido** (`kind`). Hoy existen `verses` (Biblia) y `testcard` (imagen de prueba, en `projection`: el ejemplo más pequeño de un tipo con mandos). Los que faltan están en `docs/PLAN.md`, sección 3.2. Un módulo registra el suyo con `app.kind(nombre, { label, describe, resolve, neighbor, live, control })`:
+Todo lo que se proyecta es de un **tipo de contenido** (`kind`). Hoy existen `verses` y `compare` (Biblia: un pasaje en una versión o en dos a la vez) y `testcard` (imagen de prueba, en `projection`: el ejemplo más pequeño de un tipo con mandos). Los que faltan están en `docs/PLAN.md`, sección 3.2. Un módulo registra el suyo con `app.kind(nombre, { label, describe, resolve, neighbor, live, control })`:
 
 - `describe(data)` → `{ title, subtitle, steps, data }`: cómo se ve en el orden del culto y cuántos **pasos** tiene (versículos, estrofas, diapositivas). `null` si ya no existe.
 - `resolve(data, step)` → lo que se proyecta. `step` `null` es el elemento entero; `0..n-1`, uno de sus pasos.
@@ -65,7 +67,7 @@ Todo lo que se proyecta es de un **tipo de contenido** (`kind`). Hoy existen `ve
 
 ## Cómo llegan los dispositivos al servidor
 
-- `system.addresses`: direcciones numéricas, ordenadas; la primera es la recomendada y la que lleva el código QR. `system.nameUrl`: dirección con nombre (`http://manna.local`), o `null` si no se pudo anunciar.
+- `system.addresses`: direcciones numéricas, ordenadas; la primera es la recomendada y la que lleva el código QR. No se ofrecen las que el equipo se pone a sí mismo sin red (`169.254…`) si hay otra. `system.altPort`: con Manna en el puerto 80, atiende también en el 8000, para navegadores (televisores) que no abren una dirección sin puerto. `system.nameUrl`: dirección con nombre (`http://manna.local`), o `null` si no se pudo anunciar.
 - El nombre lo anuncia `server/modules/system/mdns.js`. Se comprueba a sí mismo cada 10 s y se rehace solo si deja de funcionar o cambia la IP.
 - Una página abierta por la dirección numérica pasa sola a la del nombre si el dispositivo la entiende (`web/core/upgrade.js`, que consulta `GET /api/ping`). Solo lo hacen la pantalla de inicio y la de proyección, antes de que exista sesión: la sesión es una cookie atada a la dirección, y cambiar de dirección con sesión abierta obligaría a repetir el PIN.
 - Las páginas no deben construir direcciones con la IP ni asumir un puerto: rutas relativas para lo propio, `state.system` para mostrar direcciones.

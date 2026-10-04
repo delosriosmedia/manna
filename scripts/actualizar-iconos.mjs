@@ -18,7 +18,7 @@ const ICONS = [
   'pause', 'arrow-counter-clockwise', 'arrow-clockwise', 'download-simple', 'copy', 'arrow-square-out',
   // estado
   'monitor', 'power', 'warning', 'clock-counter-clockwise', 'rows', 'qr-code', 'wifi-slash', 'eye-slash', 'selection-background',
-  'check-circle', 'warning-circle', 'frame-corners',
+  'check-circle', 'warning-circle', 'frame-corners', 'columns',
 ];
 
 const base = `https://unpkg.com/@phosphor-icons/core@${VERSION}`;

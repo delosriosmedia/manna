@@ -1,0 +1,29 @@
+LETRAS DE LOS HIMNOS
+
+Archivos de texto con extensión .md. Pueden traer un himno o muchos; el nombre del archivo da igual
+(por ejemplo "himnos_001_050.md"). Manna los lee todos y busca en ellos por número, título y letra.
+
+Formato de cada himno:
+
+  ## 12. Título del himno
+
+  ### Estrofa 1
+  Primera línea
+  Segunda línea
+
+  ### Coro
+  Primera línea del coro
+  Segunda línea del coro
+
+  ### Estrofa 2
+  ...
+
+  ---
+
+- La línea "## número. título" empieza un himno. El número es el del himnario (vale "01" o "1").
+- "### Estrofa 1", "### Coro", "### Estrofa Única"… empiezan cada parte.
+- "---" separa un himno del siguiente (opcional).
+- Una línea que empieza con un solo "#" es un título del archivo y se ignora.
+
+Las letras tienen derechos de autor: usa las que tu iglesia tenga licencia para usar.
+Esta carpeta no se publica en GitHub.

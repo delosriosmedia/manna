@@ -19,6 +19,11 @@ export function portCandidates(fixed) {
   return fixed ? rest : [80, ...rest];
 }
 
+// Hay navegadores, sobre todo en televisores, que no abren una dirección sin puerto: la convierten
+// en una búsqueda o en una página segura (https) que Manna no ofrece. Por eso, cuando Manna atiende
+// en el puerto 80, atiende también en este, que se puede escribir a mano: "192.168.1.14:8000".
+const ALT_PORT = 8000;
+
 // El "app" es lo que recibe cada módulo: estado compartido, rutas, acciones y almacenamiento.
 export function createApp({ rootDir, dataDir, biblesDir }) {
   fs.mkdirSync(dataDir, { recursive: true });
@@ -55,6 +60,7 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
     store, storage, settings, sessions, realtime, jobs,
     services: {},
     port: null,
+    altPort: null, // segundo puerto en el que también atiende, o null (ver ALT_PORT)
     route: router.route,
     // mount('/himnario/', carpeta): sirve una carpeta de contenido (con saltos, para video y audio).
     mount: router.mount,
@@ -100,6 +106,22 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
   router.route('GET', '/api/state', () => store.snapshot());
 
   let server;
+  let altServer = null;
+  const host = () => process.env.MANNA_HOST || '0.0.0.0';
+
+  // Si no se puede (otro programa usa ese puerto), Manna sigue con el principal.
+  function listenAlso(port) {
+    return new Promise((resolve) => {
+      const extra = http.createServer(router.handle);
+      extra.once('error', () => resolve());
+      extra.listen(port, host(), () => {
+        altServer = extra;
+        app.altPort = port;
+        resolve();
+      });
+    });
+  }
+
   function listen() {
     const ports = portCandidates(Number(process.env.PORT) || settings.data.port);
     return new Promise((resolve, reject) => {
@@ -110,11 +132,12 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
           if (['EADDRINUSE', 'EACCES'].includes(err.code) && i + 1 < ports.length) attempt(i + 1);
           else reject(err);
         });
-        server.listen(ports[i], process.env.MANNA_HOST || '0.0.0.0', () => {
+        server.listen(ports[i], host(), async () => {
           // Hasta aquí no se toca la carpeta temporal: podría ser de otro Manna ya abierto con estos datos.
           emptyTmp();
           fs.mkdirSync(tmpDir, { recursive: true });
           app.port = ports[i];
+          if (app.port === 80) await listenAlso(ALT_PORT);
           store.emit('listening', app.port);
           resolve(app.port);
         });
@@ -129,6 +152,7 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
     storage.flushAll();
     realtime.close();
     server?.close();
+    altServer?.close();
     if (app.port) emptyTmp();
   }
 

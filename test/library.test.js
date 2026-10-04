@@ -47,71 +47,55 @@ test('search busca texto sin depender de tildes y marca lo encontrado', () => {
   assert.equal(res.total, 1);
   assert.deepEqual(res.levels.map((l) => [l.id, l.label, l.total]), [['exact', 'Frase exacta', 1]]);
   const [hit] = res.levels[0].results;
-  assert.deepEqual([hit.reference, hit.book, hit.chapter, hit.verse, hit.versionId], ['Génesis 1:1', 1, 1, 1, 'prueba']);
+  assert.deepEqual([hit.reference, hit.book, hit.chapter, hit.verse, res.version.id], ['Génesis 1:1', 1, 1, 1, 'prueba']);
   assert.deepEqual(hit.marks.map(([a, b]) => hit.text.slice(a, b)), ['creó Dios']);
   assert.equal(library.search('prueba', 'zzz').total, 0);
 });
 
-// ---- Varias versiones ----
+// ---- En qué versión se busca ----
+// Los textos de estas versiones de prueba son inventados.
 
 const many = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-test-versiones-'));
 const bible = (verses) => `<bible><b n="Juan"><c n="3">${verses.map(([n, text]) => `<v n="${n}">${text}</v>`).join('')}</c></b></bible>`;
-fs.writeFileSync(path.join(many, 'Antigua.xmm'), bible([
-  [16, 'Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito.'],
-  [17, 'Porque no envió Dios a su Hijo al mundo para condenar al mundo.'],
-  [35, 'El Padre ama al Hijo, y todas las cosas dio en su mano.'],
-]));
 fs.writeFileSync(path.join(many, 'Moderna.xmm'), bible([
-  [16, 'Porque tanto amó Dios al mundo, que dio a su Hijo unigénito.'],
-  [17, 'Dios no envió a su Hijo al mundo para condenar al mundo.'],
-  [35, 'El Padre ama al Hijo, y ha entregado todo en sus manos.'],
+  [16, 'Dios quiere tanto a la gente que entregó a su Hijo.'],
+  [17, 'El Hijo no vino a condenar, sino a dar vida.'],
 ]));
 const versions = new BibleLibrary(many);
 versions.scan();
 test.after(() => fs.rmSync(many, { recursive: true, force: true }));
 
-test('sin índice todavía, se busca solo en la versión elegida', () => {
-  assert.deepEqual(versions.pendingIndex(), ['antigua', 'moderna']);
-  const res = versions.search('antigua', 'tanto amó Dios');
-  assert.deepEqual([res.searched, res.versions], [1, 2]);
-  // La frase es de la otra versión, y a esta le falta una de sus palabras: no hay nada.
-  assert.deepEqual([res.levels, res.total], [[], 0]);
-  assert.deepEqual(versions.pendingIndex(), ['moderna']);
+test('sin la Reina-Valera 1960, el texto se busca en la versión elegida', () => {
+  assert.equal(versions.searchVersion(), null);
+  assert.equal(versions.searchVersion('moderna'), 'moderna');
+  const res = versions.search('moderna', 'quiere tanto');
+  assert.deepEqual([res.version.id, res.total, res.levels[0].results[0].reference], ['moderna', 1, 'Juan 3:16']);
 });
 
-test('con índice, la frase exacta se encuentra en cualquier versión y dice en cuál', () => {
-  assert.equal(versions.index('moderna'), true);
-  assert.equal(versions.index('no-existe'), false);
-  assert.deepEqual(versions.pendingIndex(), []);
-  const res = versions.search('antigua', 'tanto amó Dios');
-  assert.equal(res.searched, 2);
+test('con la Reina-Valera 1960 instalada, se busca en ella aunque esté elegida otra', () => {
+  fs.writeFileSync(path.join(many, 'Reina Valera 1960.xmm'), bible([
+    [16, 'El amor de Dios alcanza a todo el mundo.'],
+    [17, 'Dios envió a su Hijo para dar vida.'],
+    [18, 'El que cree no es condenado.'],
+  ]));
+  versions.scan();
+  assert.equal(versions.searchVersion(), 'reina-valera-1960');
+  assert.equal(versions.searchVersion('moderna'), 'reina-valera-1960');
+
+  const res = versions.search('moderna', 'amor de dios');
+  assert.deepEqual(res.version, { id: 'reina-valera-1960', name: 'Reina-Valera 1960', abbr: 'RVR1960' });
   const [hit] = res.levels[0].results;
-  assert.deepEqual([res.levels[0].id, hit.reference, hit.versionId, hit.version], ['exact', 'Juan 3:16', 'moderna', 'Moderna']);
-  assert.deepEqual(hit.marks.map(([a, b]) => hit.text.slice(a, b)), ['tanto amó Dios']);
+  assert.deepEqual([hit.reference, hit.book, hit.chapter, hit.verse], ['Juan 3:16', 43, 3, 16]);
+  assert.deepEqual(hit.marks.map(([a, b]) => hit.text.slice(a, b)), ['amor de Dios']);
+  // Una frase que solo está en la versión elegida no se encuentra: no se busca en ella.
+  assert.equal(versions.search('moderna', 'quiere tanto').total, 0);
+  // Las citas siguen resolviéndose en la versión elegida.
+  assert.equal(versions.search('moderna', 'jn 3 17').reference, 'Juan 3:17');
 });
 
-test('un versículo sale una sola vez: primero en la versión elegida, y avisa de las demás', () => {
-  const res = versions.search('moderna', 'hijo al mundo');
-  const exact = res.levels.find((l) => l.id === 'exact');
-  // Juan 3:17 lo dice igual en las dos: sale con el texto de la elegida y anota la otra.
-  assert.deepEqual(exact.results.map((r) => [r.reference, r.versionId, r.others]), [['Juan 3:17', 'moderna', ['Antigua']]]);
-  // Juan 3:16 solo coincide por palabras, y en las dos versiones: tampoco se repite.
-  const words = res.levels.find((l) => l.id === 'words');
-  assert.deepEqual(words.results.map((r) => [r.reference, r.versionId, r.others]), [['Juan 3:16', 'moderna', ['Antigua']]]);
-  assert.equal(res.total, 2);
-});
-
-test('lo que ya salió en un nivel no vuelve a salir en el siguiente, aunque sea en otra versión', () => {
-  // "dio" es palabra completa en la versión moderna de 3:16 y en la antigua de 3:35.
-  const res = versions.search('antigua', 'dio');
-  const exact = res.levels.find((l) => l.id === 'exact');
-  // Primero lo de la versión elegida; dentro de ella, la palabra completa antes que "Dios".
-  assert.deepEqual(exact.results.map((r) => `${r.verse} ${r.versionId}`), ['35 antigua', '16 antigua', '17 antigua']);
-  assert.equal(res.levels.some((l) => l.id !== 'exact' && l.results.some((r) => r.verse === 16)), false);
-});
-
-test('limit recorta los resultados de cada nivel pero no el total', () => {
-  const res = versions.search('antigua', 'dio', { limit: 1 });
-  const exact = res.levels.find((l) => l.id === 'exact');
-  assert.deepEqual([exact.results.length, exact.total], [1, 3]);
+test('los resultados van por niveles y limit recorta cada uno sin cambiar el total', () => {
+  const res = versions.search('moderna', 'dios hijo');
+  assert.deepEqual(res.levels.map((l) => [l.id, l.results.map((r) => r.verse)]), [['words', [17]]]);
+  const cut = versions.search('moderna', 'el', { limit: 1 });
+  assert.deepEqual([cut.levels[0].results.length, cut.levels[0].total], [1, 2]);
 });

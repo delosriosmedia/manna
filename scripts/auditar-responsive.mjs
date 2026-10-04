@@ -47,6 +47,7 @@ const SCREENS = [
   { name: 'Biblia: búsqueda', url: '/control#biblia', inside: '.search-pop', settle: 1200,
     prepare: `(() => { const i = document.querySelector('.ws[data-module=biblia] .search input'); i.focus(); i.value = 'amor'; i.dispatchEvent(new Event('input')); })()` },
   { name: 'Biblia: libros', url: '/control#biblia', narrowOnly: true, prepare: `document.querySelector('.crumbs button').click()`, primary: '.abar .btn.primary', content: '.col-books' },
+  { name: 'Comparador', url: '/control#comparador', primary: '.abar .btn.primary', content: '.col-verses' },
   { name: 'Orden del culto', url: '/control#orden', content: '.olist', longTitles: true },
   // El equipo de la auditoría "no tiene" navegador para la proyección: Ajustes lleva su aviso.
   { name: 'Ajustes, con aviso', url: '/control#ajustes', content: '.settings', inside: '.ws-notice' },
@@ -101,7 +102,7 @@ const MEASURE = (screen, touch) => `(() => {
 // Espera a que la pantalla haya terminado de dibujarse (hasta 8 s), en vez de una pausa fija.
 async function ready(screen) {
   const done = screen.plain ? `document.querySelector(${JSON.stringify(screen.plain)})`
-    : `document.querySelector('.ws:not([hidden])') && (!document.querySelector('.ws[data-module=biblia]:not([hidden])') || document.querySelector('.verse')) && document.querySelector('.dock-ref')?.textContent`;
+    : `document.querySelector('.ws:not([hidden])') && (!document.querySelector('.ws:not([hidden]) .picker') || document.querySelector('.ws:not([hidden]) .verse')) && document.querySelector('.dock-ref')?.textContent`;
   for (let i = 0; i < 40; i += 1) {
     await sleep(200);
     if (await chrome.evaluate(`Boolean(${done})`)) break;

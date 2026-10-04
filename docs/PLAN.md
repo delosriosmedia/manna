@@ -1,6 +1,6 @@
 # Plan de trabajo: versión 2
 
-Estado: **aprobado por el dueño el 2026-10-04. En curso: fases 0 y 1 terminadas, sigue la fase 2.**
+Estado: **aprobado por el dueño el 2026-10-04. En curso: fases 0, 1 y 2 terminadas, sigue la fase 3.**
 Parte de la versión 1.0.0 y termina en la 2.0.0.
 
 Este documento es el plan y, al terminar, la base de la auditoría (sección 8). Se actualiza al cerrar cada fase: la sección 9 lleva el avance, la 10 cada cambio que se le hizo al plan y por qué, y la 11 los cambios que se le sugieren al dueño y aún no ha decidido.
@@ -9,8 +9,8 @@ Este documento es el plan y, al terminar, la base de la auditoría (sección 8).
 
 | # | Petición | Dónde queda |
 | --- | --- | --- |
-| A | Módulo comparador de versiones | Fase 2 |
-| B | Búsqueda mejor: exactas primero, parecidas después, resaltado, versión de cada resultado; rápida, con las biblias indexadas | Fase 1 |
+| A | Módulo comparador de versiones | Fase 2 (hecho) |
+| B | Búsqueda mejor: exactas primero, parecidas después, resaltado; rápida. **Solo en la Reina-Valera 1960** (decisión 12) | Fase 1 (hecho), ajustada en la 2 |
 | C | Pantalla de proyección en televisores (Samsung, LG, Android TV), a pantalla completa | Fase 3 |
 | D | Imágenes: subir, nombrar, ajustar a pantalla, zoom y desplazamiento en vivo | Fase 4 |
 | E | Himnario: 613 videos, dos vistas, buscador con letra, volumen, barra de avance, **cantado o pista** | Fase 5 |
@@ -40,7 +40,8 @@ Datos medidos en el proyecto, no supuestos.
 - **Televisor del dueño: Samsung 55QN85F (Neo QLED, 2025).** Su navegador es reciente, así que debería poder abrir la pantalla de proyección normal. En la prueba no abrió ni `manna.local` ni las dos direcciones numéricas, mientras un iPhone entraba al instante. Comprobado el 2026-10-04 desde el Mac de desarrollo:
   - El televisor está en `192.168.1.3` y el Mac en `192.168.1.14`: **misma red**. El televisor responde desde el Mac, el cortafuegos del Mac está apagado y Manna escucha en el puerto 80. **No es un problema de red.**
   - La "segunda dirección" que mostraba Manna era `169.254.x.x`: la de un adaptador sin red. No sirve para nada y no debería ofrecerse.
-  - Lo que queda por descartar es el navegador del televisor: que convierta lo escrito en una búsqueda o que intente abrirlo como página segura (`https`), que Manna no ofrece. Se resuelve en la fase 3.
+  - **Confirmado con una foto del dueño**: al escribir `http://192.168.1.14`, el navegador del televisor lo convierte en `https://192.168.1.14/` y dice "No se encontró el servidor". Pide una página segura que Manna no ofrece.
+  - Falta saber si hace lo mismo con una dirección que lleva puerto (`http://192.168.1.14:8000`). Desde la versión 1.3 Manna atiende también en el 8000 para poder probarlo.
 - **Video en el navegador.** Chrome reproduce MP4, M4V y MOV con H.264, y WebM. No reproduce AVI, MPEG ni WMV.
 - **Herramientas.** En el Mac de desarrollo están ffmpeg 8.1, yt-dlp y PowerPoint. En el equipo Windows de la iglesia lo comprobará la revisión del equipo.
 - **Las categorías del himnario** en nuevohimnario.com se cargan con un programa de la página; su estructura se revisará en la fase 5.
@@ -57,7 +58,7 @@ Datos medidos en el proyecto, no supuestos.
 | --- | --- | --- | --- | --- |
 | `verses` | Biblia | Un versículo por paso | — | Hecho (1.0) |
 | `testcard` | Proyección | Uno | Imagen (encuadre, colores, blanco) y cronómetro | Hecho (1.1) |
-| `compare` | Comparador | Un versículo por paso | Disposición vertical u horizontal | Fase 2 |
+| `compare` | Biblia (pantalla Comparador) | Un versículo por paso | Disposición: lado a lado o una sobre otra | Hecho (1.3) |
 | `image` | Medios | Uno | Ajuste, zoom, desplazamiento | Fase 4 |
 | `song` | Himnario | Uno (el video) | Pausa, reinicio, avance; cantado o pista | Fase 5 |
 | `video`, `audio`, `youtube` | Medios | Uno | Pausa, reinicio, avance; subtítulos | Fases 6 y 7 |
@@ -76,12 +77,12 @@ Lo que varias fases necesitan, construido una sola vez. Dónde quedó cada pieza
 | 3 | Reloj de reproducción compartido | Hecho | `server/core/playback.js`, `web/core/playback.js`; la hora del servidor viaja en el latido |
 | 4 | Una sola salida de sonido | Base hecha | La pantalla de proyección del equipo principal es la que suena (`sound` en `createStage`). El volumen general está en `live.volume` (acción `projection.volume`). El mando se construye en la fase 5 |
 | 5 | Archivos grandes | Hecho | Trozos (Range) y subida directa a disco en `server/core/router.js`; `upload()` con avance en `web/core/api.js` |
-| 6 | Carpetas de contenido | Base hecha | `server/core/folders.js` (vigilar y listar), `app.mount()` para servirlas, `data/tmp/` que se vacía al abrir y al cerrar. `Himnario/` y `Medios/` se conectan con su módulo (fases 5 y 6) |
+| 6 | Carpetas de contenido | Base hecha | Todo lo de la iglesia en `Contenido/` (decisión 13). `server/core/folders.js` (vigilar y listar), `app.mount()` para servirlas, `data/tmp/` que se vacía al abrir y al cerrar. El himnario y los medios se conectan con su módulo (fases 5 y 6) |
 | 7 | Programas externos | Hecho | `server/core/tools.js` e `install.js`; página `/requisitos`; sección en Ajustes; aviso por módulo (`needs`, `web/core/needs.js`) |
 | 8 | "Más" en la barra de pestañas del celular | **Pasa a la fase 4** | Ver sección 10 |
 | 9 | Nombre editable en cualquier elemento del orden | Hecho | `order.rename`, `renameItem` en `server/modules/order/logic.js` |
 | 10 | Búsqueda compartida | Hecho (fase 1) | `server/core/search.js` |
-| 11 | Selector de pasajes reutilizable | **Pasa a la fase 2** | Ver sección 10 |
+| 11 | Selector de pasajes reutilizable | Hecho (fase 2) | `web/modules/bible/passages.js`, que usan Biblia y Comparador |
 | 12 | Tareas en segundo plano con avance y tiempo restante (añadido) | Hecho | `server/core/jobs.js`, espacio `jobs`; `web/core/jobs.js`; se ven en el panel "Al aire" |
 
 ### 3.4 Programas del equipo principal
@@ -128,7 +129,7 @@ Construido: la tabla de 3.3, la revisión del equipo de 3.4 y la **imagen de pru
 
 ### Fase 1 · Búsqueda mejorada — hecha (1.2.0)
 
-Construido como estaba previsto, salvo lo anotado en la sección 10. Resultados en la sección 9.
+Construido como estaba previsto, salvo lo anotado en la sección 10. Resultados en la sección 9. **Después, por la decisión 12, la búsqueda dejó de hacerse en todas las versiones**: lo que sigue sobre "las demás versiones" ya no aplica; se busca solo en la Reina-Valera 1960.
 
 Resultados en tres niveles, en este orden:
 
@@ -146,7 +147,9 @@ En todos se **resalta** lo encontrado. Sin modelo de lenguaje (decisión 4). Par
 
 **Criterio de cierre, cumplido**: una búsqueda en todas las versiones responde en menos de 100 ms en el equipo de desarrollo (1 a 8 ms lo habitual, 80 ms el peor caso), con pruebas del orden de los resultados y del resaltado.
 
-### Fase 2 · Comparador de versiones
+### Fase 2 · Comparador de versiones — hecha (1.3.0)
+
+Construido como estaba previsto, salvo lo anotado en la sección 10. Resultados en la sección 9.
 
 - Módulo propio. El selector de pasajes de Biblia (libros, capítulos, versículos) se separa a una pieza reutilizable y los dos módulos la usan.
 - Dos selectores de versión y un botón de disposición: lado a lado o una sobre otra. La disposición también se cambia al aire (mando en vivo).
@@ -156,11 +159,13 @@ En todos se **resalta** lo encontrado. Sin modelo de lenguaje (decisión 4). Par
 
 ### Fase 3 · Pantalla para televisores
 
-1. **Diagnóstico con el Samsung 55QN85F.** La red está descartada (sección 2). Pruebas, en este orden, con Manna abierto en el Mac: escribir la dirección **con `http://` delante** (`http://192.168.1.14`); si no, con puerto (`192.168.1.14:8000`, cuando Manna escuche también ahí). Si con alguna abre, la causa era cómo interpreta el televisor lo escrito.
-2. **Ayuda dentro de Manna**: "Dispositivos" mostrará la dirección completa para escribir en un televisor, con `http://`; dejará de ofrecer direcciones de adaptadores sin red (`169.254…`); y Manna escuchará en el 80 **y** en el 8000 a la vez. La imagen de prueba (fase 0) confirma el encuadre y la sincronía.
+1. **Diagnóstico con el Samsung 55QN85F.** La red está descartada y la causa confirmada: el televisor convierte la dirección en `https` (sección 2). Prueba pendiente del dueño, con Manna reiniciado: `http://192.168.1.14:8000`.
+   - **Si abre**: la fase queda en el botón de pantalla completa y la documentación.
+   - **Si también la convierte**: Manna tiene que ofrecer páginas seguras. Se le añade un servidor `https` con un certificado hecho por el propio Manna (sin dependencias). El televisor avisará una vez de que no conoce el certificado y habrá que aceptar. Es el trabajo grande de esta fase, y no se puede probar sin el televisor.
+2. **Ayuda dentro de Manna** (hecho en la 1.3): "Dispositivos" explica qué escribir en un televisor, ya no ofrece direcciones de adaptadores sin red (`169.254…`), y Manna atiende en el 80 **y** en el 8000. La imagen de prueba (fase 0) confirma el encuadre y la sincronía.
 3. **Pantalla completa con el mando**: botón grande que se activa con OK. `manna.local` no funciona en la mayoría de televisores: se usa la dirección numérica, y conviene fijarla en el router.
 4. **Página sencilla para televisores antiguos** (`/tv`, escrita para navegadores viejos): **solo si** las pruebas muestran que la página normal no abre en algún televisor. El del dueño es de 2025 y no debería necesitarla.
-5. **Alternativas sin navegador**, documentadas porque a menudo son mejores: el 55QN85F admite **proyección inalámbrica desde Windows** (Win + K: el televisor pasa a ser la segunda pantalla y Manna abre ahí la proyección sola) y **AirPlay** desde Mac o iPhone; también Chromecast o cable HDMI.
+5. **Alternativas sin navegador**, que ya funcionan hoy sin tocar nada: el 55QN85F admite **proyección inalámbrica desde Windows** (Win + K, "Extender": el televisor pasa a ser la segunda pantalla y Manna abre ahí la proyección sola) y **AirPlay** desde Mac (Duplicar pantalla → "Usar como pantalla aparte"); también cable HDMI. Para un televisor fijo en la iglesia suele ser lo más estable.
 
 **Límite**: no hay televisor en el equipo de desarrollo. Esta fase se cierra con las pruebas del dueño.
 
@@ -178,13 +183,15 @@ Reproducción (para todo lo que suena): reloj compartido (hecho), pausa, reinici
 
 Himnario:
 
-- Lee `Himnario/` (`.mp4`, `.m4v`). Avisa si faltan números.
+- Lee `Contenido/Himnario/videos/` (`.mp4`, `.m4v`). Avisa si faltan números.
 - **Vista en cuadrícula** (nota musical, número, título) y **vista por categorías** (grupos con el nombre grande).
 - **Buscador** por número, título y letra, con el índice y el resaltado de la fase 1.
 - **Cantado o pista**: se elige antes de proyectar o de añadir al orden, y queda en el elemento. La pista se prepara con ffmpeg en 0,1 s, sin recodificar, en `data/tmp/`.
 - En el orden: barra de avance, pausa y reinicio en la propia fila.
 
-**Letras.** Van en `Himnario/letras/`, junto a los videos, y viajan con esa carpeta entre las iglesias que tienen la licencia; no se publican en el repositorio. Manna las importa de archivos de texto (uno por himno) o de una exportación de OpenLP. El buscador las indexa con la misma pieza que la Biblia; sin ellas busca por número y título. Ver decisión 5.
+**Letras.** Ya están en el equipo: el dueño las entregó en 13 archivos `.md` (613 himnos), en `Contenido/Himnario/letras/`. El formato está en su `LEEME.txt`: `## número. título`, `### Estrofa 1`, `### Coro`. Manna las lee de ahí, las indexa con la misma pieza que la Biblia y busca por número, título y letra. No se publican. 15 himnos tienen alguna parte de una sola línea (lista en `docs/ESTADO.md`): se mostrarán tal como están.
+
+**Categorías.** Los mismos grupos y nombres que usa nuevohimnario.com/Himnario (decisión 14): solo el nombre de cada categoría y qué números de himno le corresponden.
 
 ### Fase 6 · Medios: videos y audios locales
 
@@ -233,20 +240,22 @@ Tomadas el 2026-10-04.
 | 2 | ¿ffmpeg y yt-dlp en el equipo principal, y pdf.js dentro del proyecto? | **Sí**, con una condición: que siga siendo fácil descargar y abrir la app, y que la revisión inicial garantice que el equipo tiene todo |
 | 3 | PowerPoint | **PowerPoint por defecto**, en segundo plano si es posible |
 | 4 | Búsqueda por significado | **Sin modelo de lenguaje.** Garantizar el índice y la velocidad en Biblia e himnario |
-| 5 | Letras de los himnos | **Incluirlas**: las iglesias que usarán Manna tienen la licencia de la música oficial de la Iglesia Adventista. Cómo: ver nota |
+| 5 | Letras de los himnos | **Incluirlas, en local**: el dueño tiene la licencia y las entregó en archivos `.md`. Ver nota |
 | 6 | Volumen | **Solo el de Manna**, como volumen general de todo lo que suene. No se toca el del equipo |
 | 7 | Televisor | Samsung 55QN85F, en `192.168.1.3`. No abrió con el nombre ni con las dos direcciones; un iPhone sí |
 | 8 | Segunda pista de audio de los himnos | **Es la instrumental**: ofrecer "Cantado / Pista" |
 | 9 | ¿Publicar al cerrar cada fase? | **Sí** |
 | 10 | ¿Qué bloquea el arranque si falta un programa? | **Nada.** Se deja avanzar con un aviso de qué módulos funcionarán y cuáles no; y dentro de la app, el módulo al que le falte algo también avisa y ofrece instalarlo o ver cómo |
 | 11 | Informe al cerrar cada fase | Mostrar de nuevo el plan con las fases superadas y las observaciones, y un apartado con los cambios que se le sugieren |
+| 12 | ¿En qué versiones se busca el texto? | **Solo en la Reina-Valera 1960.** Quitar la búsqueda en todas las versiones |
+| 13 | ¿Dónde pone cada iglesia sus archivos? | **En una sola carpeta** (`Contenido/`): versiones de la Biblia, himnario en video e himnario en texto |
+| 14 | Categorías del himnario | Las de nuevohimnario.com/Himnario: la misma agrupación y los mismos nombres, sin reproducir nada más |
 
 **Decisión 5 · Letras.** El dueño pidió incluirlas: las iglesias donde se usará Manna tienen la licencia de las letras y de toda la música oficial de la Iglesia Adventista del Séptimo Día. Cómo se resuelve:
 
-- Las letras **se usan**: Manna las lee de `Himnario/letras/`, las indexa y las ofrece en el buscador del himnario (fase 5).
-- **Viajan con la carpeta `Himnario/`**, igual que los videos, entre las iglesias que tienen la licencia. No van en el repositorio de GitHub, que es público y las entregaría a cualquiera, tenga licencia o no.
-- **El asistente no las copia de un sitio web**: no reproduce letras de canciones. Manna las importará de archivos que aporte el dueño: texto (un archivo por himno) o una exportación de OpenLP, programa del que ya vienen las biblias.
-- **Falta**: que el dueño diga en qué formato las tiene o puede conseguirlas (sección 11).
+- Las letras **se usan**: Manna las lee de `Contenido/Himnario/letras/`, las indexa y las ofrece en el buscador del himnario (fase 5).
+- **Se quedan en el equipo**, igual que los videos y las biblias: cada iglesia con licencia copia esa carpeta. No van en el repositorio de GitHub, que es público y las entregaría a cualquiera, tenga licencia o no.
+- **El asistente no las copió de un sitio web**: el dueño, que tiene la licencia, las entregó en archivos `.md` el 2026-10-04. Tampoco se escriben letras reales en el código, las pruebas ni la documentación: ahí se usan textos inventados.
 
 ## 7. Riesgos
 
@@ -318,10 +327,10 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | --- | --- | --- | --- |
 | 0 Cimientos | **Hecha** · 2026-10-04 | 1.1.0 | Ver abajo |
 | 1 Búsqueda | **Hecha** · 2026-10-04 | 1.2.0 | Ver abajo. Incluye el cambio de la revisión del equipo: ya nada bloquea |
-| 2 Comparador | Siguiente | 1.3 | |
-| 3 Televisores | Pendiente | 1.4 | La red está descartada. Falta una prueba del dueño: escribir `http://192.168.1.14` en el televisor |
+| 2 Comparador | **Hecha** · 2026-10-04 | 1.3.0 | Ver abajo. Incluye la carpeta `Contenido/`, la búsqueda solo en RVR1960 y el segundo puerto |
+| 3 Televisores | Siguiente | 1.4 | Causa confirmada (el televisor exige `https`). Falta una prueba del dueño: `http://192.168.1.14:8000` |
 | 4 Imágenes | Pendiente | 1.5 | |
-| 5 Himnario | Pendiente | 1.6 | Necesita que el dueño diga en qué formato tiene las letras |
+| 5 Himnario | Pendiente | 1.6 | Videos y letras ya están en `Contenido/Himnario/` |
 | 6 Videos y audios | Pendiente | 1.7 | |
 | 7 YouTube | Pendiente | 1.8 | |
 | 8 Diapositivas | Pendiente | 1.9 | PowerPoint oculto: solo se puede probar en Windows |
@@ -345,6 +354,17 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 - **Pantallas**: 9 tamaños, con dos pantallas más (resultados de búsqueda, aviso de módulo). Sin problemas.
 - **Sin probar**: la búsqueda en el equipo Windows de la iglesia (velocidad y memoria reales) y en un celular real.
 - **Límites conocidos**: sin tildes, "oró" y "oro" son la misma palabra, igual que "creó" y "creo"; las "parecidas" no entienden el significado, solo la forma de las palabras y la lista de sinónimos.
+
+### Fase 2 · resultados
+
+- **Comparador**: pantalla propia con dos selectores de versión y la disposición; junto a cada versículo se leen las dos versiones; vista previa, proyección, orden del culto (tipo `compare`) y disposición cambiable al aire.
+- **Pieza común**: elegir un pasaje (buscador, recientes, libros, capítulos, versículos, selección) es ahora `web/modules/bible/passages.js`; Biblia y Comparador solo deciden qué se hace con el pasaje.
+- **Fuera de la fase, pedido por el dueño**: carpeta `Contenido/` con las letras entregadas (613 himnos), búsqueda solo en la Reina-Valera 1960, y segundo puerto para el televisor.
+- **Pruebas automáticas**: de 66 a 71. Nuevas: el tipo `compare` y en qué versión se busca.
+- **Chrome real**: de 71 a 78 comprobaciones, con el recorrido del comparador.
+- **Pantallas**: 9 tamaños, con la pantalla del comparador. La auditoría encontró y se corrigió que en tableta la cabecera del comparador no dejaba sitio al buscador.
+- **Sin probar**: el segundo puerto desde el televisor; el comparador en un celular real.
+- **Límites conocidos**: se comparan los versículos por su número; si dos versiones numeran distinto un pasaje, cada lado muestra lo que tiene con ese número.
 
 ## 10. Cambios al plan
 
@@ -374,14 +394,21 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-04 | Fase 5: las letras se incluyen, importadas de archivos del dueño (texto u OpenLP), y viajan con la carpeta `Himnario/` | Decisión 5: las iglesias tienen la licencia. No van al repositorio público ni se copian de un sitio web |
 | 2026-10-04 | El informe de cada fase muestra de nuevo el plan y un apartado de cambios sugeridos (sección 11) | Decisión 11 del dueño |
 
+| 2026-10-04 | **La búsqueda se hace solo en la Reina-Valera 1960.** Se quitó buscar en todas las versiones, agrupar por versículo, decir de qué versión es cada texto y cambiar de versión al elegir un resultado | Decisión 12 del dueño. De paso, un solo índice en vez de catorce: unos 12 MB en vez de 160 |
+| 2026-10-04 | Todo lo de la iglesia va en `Contenido/` (`Biblias/`, `Himnario/videos/`, `Himnario/letras/`). `Biblias/` y `Himnario/` dejan de estar en la raíz | Decisión 13 del dueño |
+| 2026-10-04 | Letras: entregadas por el dueño en `.md`; ya no hace falta un importador de OpenLP | Decisión 5, resuelta |
+| 2026-10-04 | Se adelantó de la fase 3: atender también en el puerto 8000, explicar en "Dispositivos" qué escribir en un televisor y no ofrecer direcciones `169.254…` (era la sugerencia S1) | La foto del dueño confirmó que el televisor exige `https`; esto es lo mínimo para hacer la prueba siguiente |
+| 2026-10-04 | Fase 2: el comparador no es un módulo aparte en el código, sino una segunda pantalla y un segundo tipo del módulo Biblia | Comparte con Biblia casi todo (lectura, selector de pasajes). Así ningún módulo importa archivos de otro |
+| 2026-10-04 | Fase 3: si el televisor también convierte la dirección con puerto, Manna tendrá que ofrecer `https` con certificado propio | Consecuencia de la foto. Sube el tamaño de la fase de M a L |
+
 ## 11. Cambios sugeridos al plan
 
 Propuestas del asistente que el dueño aún no ha decidido. Al decidirse, pasan a la sección 10 (si se aceptan) o se borran.
 
 | # | Sugerencia | Por qué | Qué cambiaría |
 | --- | --- | --- | --- |
-| S1 | Adelantar a la fase 2 tres arreglos pequeños de la fase 3: escuchar también en el puerto 8000, mostrar la dirección con `http://` y no ofrecer direcciones `169.254…` | El televisor ya está diagnosticado hasta donde se puede sin él. Con esos arreglos el dueño puede probarlo mientras se construye el comparador, en vez de esperar a la fase 3 | Medio día más en la fase 2; la fase 3 queda en pantalla completa con el mando y la página para televisores antiguos si hiciera falta |
-| S2 | Letras: que el dueño exporte el himnario desde OpenLP (o entregue los textos) antes de la fase 5 | Sin el archivo no se puede construir ni probar el importador. Si las iglesias ya tienen el himnario en OpenLP, es un clic | Nada en el plan; desbloquea la fase 5 |
-| S3 | Elegir en Ajustes en qué versiones se busca | Solo si el equipo Windows de la iglesia va justo de memoria con todas las biblias | Una opción en Ajustes; un día. No hacerlo hasta medir en ese equipo |
-| S4 | Filtrar la búsqueda por testamento o por libro | Con 14 versiones una palabra común da miles de resultados; un filtro los acota | Un desplegable junto al buscador; medio día, en la fase 2 o cuando se pida |
+| S4 | Filtrar la búsqueda por testamento o por libro | Una palabra común da cientos de resultados; un filtro los acota | Un desplegable junto al buscador; medio día, cuando se pida |
+| S5 | Fase 3: decidir el camino para el televisor según la prueba del puerto 8000. Si no abre, elegir entre (a) que Manna ofrezca `https` con certificado propio, o (b) dar por bueno usar el televisor como segunda pantalla (Win + K, AirPlay) y no construir nada más | (a) son uno o dos días de trabajo que no se pueden probar sin el televisor, y el televisor mostrará un aviso que hay que aceptar. (b) ya funciona hoy | Con (b), la fase 3 se reduce al botón de pantalla completa y a documentar |
+| S6 | Hacer el Himnario (fase 5) antes que las imágenes (fase 4) | Los videos y las letras ya están en el equipo y es lo que el dueño quiere ver funcionando. Las imágenes no dependen del himnario ni al revés | Se intercambian las fases 4 y 5. "Más" en las pestañas del celular pasa a la fase del himnario |
+| S7 | Que el dueño revise los 15 himnos cuya letra parece incompleta (lista en `docs/ESTADO.md`) | Al copiar las letras se perdieron líneas en algunas partes | Nada en el plan; se corrigen los archivos `.md` y Manna los vuelve a leer solo |
 

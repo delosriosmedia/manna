@@ -17,7 +17,8 @@
 | Requisitos del equipo principal o forma de abrir Manna | `README.md`, el catálogo de `server/core/tools.js`, `web/requisitos.html` (revisión del equipo), `instalacion/requisitos.html` (solo si falta Node.js), los instaladores de la raíz e `instalacion/abrir-windows.bat` |
 | Lo que un módulo necesita del equipo principal | Su `needs` (en su `workspace.js`, o en `web/modules/registry.js` si aún es "próximamente") y la tabla de requisitos de `README.md` |
 | Una fase de `docs/PLAN.md` se cierra, o el plan cambia | `docs/PLAN.md`: seguimiento (9), cambios hechos (10) y cambios sugeridos (11) |
-| Formatos o limpieza de biblias | `.claude/rules/biblias.md` y `Biblias/LEEME.txt` |
+| Formatos o limpieza de biblias | `.claude/rules/biblias.md` y `Contenido/Biblias/LEEME.txt` |
+| Qué pone cada iglesia y en qué formato | `Contenido/LEEME.txt`, el `LEEME.txt` de la subcarpeta y `README.md` ("La carpeta de tu iglesia") |
 | Un procedimiento repetible | La skill en `.claude/skills/` |
 | Algo queda sin probar o con un problema conocido | `docs/ESTADO.md` |
 | El dueño toma una decisión o fija un límite | `CLAUDE.md` (límites) o `docs/ESTADO.md` (decisiones) |

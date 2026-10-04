@@ -4,7 +4,7 @@
 //   0. La revisión del equipo: avisa de los programas que faltan y de qué módulos afecta, instala
 //      uno mostrando el avance y no bloquea la app; dentro, el módulo afectado también avisa.
 //      La descarga sale de un servidor de mentira en este mismo equipo.
-//   1. La interfaz: Biblia (búsqueda por niveles en varias versiones), orden del culto (con
+//   1. La interfaz: Biblia (búsqueda por niveles), comparador de versiones, orden del culto (con
 //      nombres propios), mandos en vivo que van a la par en dos pantallas, ajustes y la función
 //      "Control del orden".
 //   2. Al entrar por la dirección numérica, la página pasa sola a la dirección con nombre.
@@ -37,7 +37,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-chrome-'));
 // Biblias de la prueba: siempre las mismas, haya las que haya en la carpeta Biblias/ de este equipo.
 const bibles = path.join(tmp, 'biblias');
 fs.mkdirSync(bibles);
-fs.copyFileSync(path.join(ROOT, 'Biblias', 'Reina Valera 1909.xmm'), path.join(bibles, 'Reina Valera 1909.xmm'));
+fs.copyFileSync(path.join(ROOT, 'Contenido', 'Biblias', 'Reina Valera 1909.xmm'), path.join(bibles, 'Reina Valera 1909.xmm'));
 fs.writeFileSync(path.join(bibles, 'Versión de prueba.xmm'), `<bible>
   <b n="Salmos"><c n="23"><v n="1">El Señor es mi pastor; nada me falta.</v></c></b>
   <b n="Juan"><c n="3"><v n="16">Porque tanto amó Dios al mundo, que dio a su Hijo único.</v></c></b>
@@ -196,30 +196,26 @@ try {
   const pop = `document.querySelector('.search-pop')`;
   // Escribir sin pulsar Enter: la búsqueda sale sola tras una pausa.
   const write = async (value) => { await run(`const i = ${box}; i.focus(); i.value = ${JSON.stringify(value)}; i.dispatchEvent(new Event('input'));`); await sleep(800); };
-  const rows = () => run(`return JSON.stringify([...${pop}.querySelectorAll('.search-item')].map(r => ({ ref: r.querySelector('strong')?.firstChild.textContent, version: r.querySelector('em')?.textContent || '', marks: [...r.querySelectorAll('mark')].map(m => m.textContent), level: r.dataset.level, active: r.classList.contains('active') })))`).then(JSON.parse);
+  const rows = () => run(`return JSON.stringify([...${pop}.querySelectorAll('.search-item')].map(r => ({ ref: r.querySelector('strong')?.textContent, marks: [...r.querySelectorAll('mark')].map(m => m.textContent), level: r.dataset.level, active: r.classList.contains('active') })))`).then(JSON.parse);
   const levels = () => run(`return JSON.stringify([...${pop}.querySelectorAll('.search-level span')].map(s => s.textContent))`).then(JSON.parse);
-  for (let i = 0; i < 20 && (await run(`const b = (await (await fetch('/api/state')).json()).bible; return b.indexed < b.versions.length`)); i += 1) await sleep(300);
   await write('de tal manera amo');
   let found = await rows();
   check('busca mientras se escribe, sin tildes, y resalta la frase', await run(`return !${pop}.hidden`) && found[0]?.ref === 'Juan 3:16' && found[0].marks.join() === 'de tal manera amó' && (await levels())[0] === 'Frase exacta');
   await write('amor');
   check('ordena por niveles: frase exacta y después parecidas', JSON.stringify(await levels()) === JSON.stringify(['Frase exacta', 'Parecidas']) && (await rows()).some((r) => r.level === 'similar' && r.marks.some((m) => /^(amó|caridad)$/i.test(m))));
-  check('muestra el total y ofrece ver más', await run(`return /^\\d+ resultados en 2 versiones/.test(${pop}.querySelector('.search-count').textContent) && ${pop}.querySelectorAll('.search-item').length === 80`));
+  check('dice cuántos hay y en qué versión se buscó, y ofrece ver más', await run(`return /^\\d+ resultados en Reina-Valera 1909/.test(${pop}.querySelector('.search-count').textContent) && ${pop}.querySelectorAll('.search-item').length === 80`));
   await click(`${pop}.querySelector('.search-more')`);
   await sleep(700);
   check('"ver más" amplía la lista', (await rows()).length > 80);
-  await write('tanto amo dios');
+  await write('el buen pastor');
   found = await rows();
-  check('encuentra la frase en otra versión y dice en cuál', found.filter((r) => r.level === 'exact').length === 1 && found[0].ref === 'Juan 3:16' && found[0].version === 'Versión de prueba' && found[0].marks.join() === 'tanto amó Dios');
   await press('ArrowDown');
-  check('las flechas recorren los resultados', (await rows())[0].active);
+  check('las flechas recorren los resultados', found.length > 0 && (await rows())[0].active);
   await press('Enter');
   await sleep(700);
-  check('Enter va al versículo, en la versión donde coincidió', await run(`return ${pop}.hidden && document.querySelector('.ws[data-module=biblia] select').value === 'version-de-prueba'`) && (await text('.sel-ref')) === 'Juan 3:16');
+  check('Enter va al versículo señalado, en la versión elegida', await run(`return ${pop}.hidden && document.querySelector('.ws[data-module=biblia] select').value === ${JSON.stringify(VERSION)}`) && (await text('.sel-ref')) === found[0].ref, found[0]?.ref);
   await press('Enter');
-  check('y un segundo Enter lo proyecta', await run(`const s = await (await fetch('/api/state')).json(); return s.projection.item.reference === 'Juan 3:16' && s.projection.item.verses[0].text.startsWith('Porque tanto amó')`));
-  await run(`const s = document.querySelector('.ws[data-module=biblia] select'); s.value = ${JSON.stringify(VERSION)}; s.dispatchEvent(new Event('change'));`);
-  await sleep(700);
+  check('y un segundo Enter lo proyecta', (await live()).ref === found[0].ref);
   await write('jn 3 18');
   check('una cita ofrece ir al pasaje', (await run(`return ${pop}.querySelector('.search-item.go')?.textContent`))?.includes('Ir a Juan 3:18'));
   await write('zzzz');
@@ -284,6 +280,36 @@ try {
   check('← pasa al elemento anterior del orden', (await live()).ref === 'Juan 3:19');
   check('la fila al aire queda marcada y seleccionada', await run(`const r = document.querySelector('.orow.live'); return Boolean(r && r.textContent.includes('Juan 3:19') && r.classList.contains('selected'))`));
 
+  console.log('\n1. Interfaz · Comparador de versiones');
+  const cmp = `document.querySelector('.ws[data-module=comparador]')`;
+  const shown = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ item: s.projection.item, live: s.live.state, order: s.order.items })`).then(JSON.parse);
+  await click(`document.querySelector('.rail-item[data-id=comparador]')`);
+  await sleep(1500);
+  check('propone dos versiones distintas', await run(`const [a, b] = ${cmp}.querySelectorAll('.cmp-pick select'); return a.value === ${JSON.stringify(VERSION)} && b.value === 'version-de-prueba'`));
+  await run(`const i = ${cmp}.querySelector('.search input'); i.value = 'jn 3 16'; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));`);
+  await sleep(1200);
+  check('junto a cada versículo se lee el de la otra versión, y avisa si falta', await run(`const row = (n) => ${cmp}.querySelector('.verse[data-n="' + n + '"]'); return row(16).children.length === 3 && row(16).children[2].textContent.startsWith('Porque tanto amó') && Boolean(row(17).querySelector('.absent'))`));
+  check('la vista previa muestra las dos versiones', await run(`const m = document.querySelectorAll('.dock .monitor')[1]; return m.querySelectorAll('.cmp-side').length === 2 && [...m.querySelectorAll('.cmp-label')].map(l => l.textContent).join() === 'RV1909,Versión de prueba'`));
+  await click(`${cmp}.querySelector('.seg [data-layout=rows]')`);
+  await sleep(300);
+  check('la disposición se elige antes de proyectar', await run(`return document.querySelectorAll('.dock .monitor')[1].querySelector('.cmp').dataset.layout === 'rows'`));
+  await click(`${cmp}.querySelector('.abar .btn.primary')`);
+  await sleep(700);
+  let on = await shown();
+  check('proyecta el pasaje en las dos versiones', on.item.kind === 'compare' && on.item.reference === 'Juan 3:16' && on.item.sides[1].verses[0].text.startsWith('Porque tanto amó') && on.live.layout === 'rows' && (await text('.dock-ref')) === 'Juan 3:16 (RV1909 · Versión de prueba)');
+  await click(`[...document.querySelectorAll('.dock .live-controls button')].find(b => b.textContent.includes('Lado a lado'))`);
+  await sleep(500);
+  on = await shown();
+  check('la disposición también se cambia al aire', on.live.layout === 'columns' && await run(`return document.querySelector('.dock .monitor .cmp').dataset.layout === 'columns'`));
+  await press('ArrowRight');
+  on = await shown();
+  check('"siguiente" sigue leyendo en las dos, y dice cuándo una no tiene el versículo', on.item.reference === 'Juan 3:17' && on.item.sides[1].verses.length === 0 && await run(`return document.querySelector('.dock .monitor .cmp-absent').textContent === 'Este pasaje no está en Versión de prueba'`));
+  await click(`[...${cmp}.querySelectorAll('.abar .btn')].find(b => b.textContent.includes('Añadir'))`);
+  await sleep(600);
+  on = await shown();
+  const added = on.order.find((i) => i.kind === 'compare');
+  check('se añade al orden como elemento propio, con sus dos versiones', Boolean(added) && added.subtitle === 'RV1909 · Versión de prueba' && added.data.layout === 'rows');
+
   console.log('\n1. Interfaz · Ajustes, dispositivos y permisos');
   await click(`document.querySelector('.rail-item[data-id=ajustes]')`);
   await sleep(500);
@@ -316,8 +342,8 @@ try {
   await sleep(700);
   check('en pausa el reloj se detiene', (await live()).clock.playing === false && (await text('.dock .tc-time')) === paused);
   await run(`document.querySelector('#otra').remove()`);
-  const added = await run(`const r = await fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'order.add',payload:{kind:'testcard',data:{}}})}); return (await r.json()).result.id`);
-  await run(`await ${post('order.show', { id: 'ID' })}`.replace('"ID"', JSON.stringify(added)));
+  const card = await run(`const r = await fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'order.add',payload:{kind:'testcard',data:{}}})}); return (await r.json()).result.id`);
+  await run(`await ${post('order.show', { id: 'ID' })}`.replace('"ID"', JSON.stringify(card)));
   await click(`document.querySelector('.rail-item[data-id=orden]')`);
   await sleep(900);
   check('los mandos aparecen también en el detalle del elemento al aire', await run(`const c = document.querySelector('.odetail .live-controls'); return Boolean(c) && !c.hidden && c.querySelectorAll('button').length === 5 && document.querySelector('.orow.live').textContent.includes('Imagen de prueba')`));

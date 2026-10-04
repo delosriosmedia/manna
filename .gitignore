@@ -1,7 +1,18 @@
-# Biblias: tienen derechos de autor, no se publican
-Biblias/*
-!Biblias/LEEME.txt
-!Biblias/Reina Valera 1909.xmm
+# Contenido de cada iglesia (biblias, himnos en video, letras, medios): es suyo o tiene derechos
+# de autor. No se publica nada de la carpeta, salvo las instrucciones y la Reina-Valera 1909.
+Contenido/Biblias/*
+!Contenido/Biblias/LEEME.txt
+!Contenido/Biblias/Reina Valera 1909.xmm
+Contenido/Himnario/videos/*
+!Contenido/Himnario/videos/LEEME.txt
+Contenido/Himnario/letras/*
+!Contenido/Himnario/letras/LEEME.txt
+Contenido/Medios/*
+!Contenido/Medios/LEEME.txt
+# Por si quedan las carpetas de versiones anteriores
+Biblias/
+Himnario/
+Medios/
 ejemplo_biblia.xmm
 
 # Datos locales del servidor (ajustes, PIN, orden del culto, fondos)
@@ -14,9 +25,3 @@ node_modules/
 # Archivos personales de desarrollo
 CLAUDE.local.md
 .claude/settings.local.json
-
-# Himnos y medios de cada iglesia: videos, audios e imágenes propios o con derechos, no se publican
-Himnario/*
-!Himnario/LEEME.txt
-Medios/*
-!Medios/LEEME.txt

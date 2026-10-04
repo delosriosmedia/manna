@@ -1,3 +1,5 @@
+BIBLIAS
+
 Copia en esta carpeta tus biblias en formato .xmm (OpenLP) o .xml.
 Manna las detecta solas: no hace falta reiniciar ni importarlas.
 
@@ -8,6 +10,9 @@ Formatos aceptados:
            <chapter number="1"><verse number="1">texto</verse></chapter></book></testament></bible>
 
 Incluida: Reina-Valera 1909 (dominio público, fuente: https://ebible.org/spaRV1909/).
+
+La búsqueda por texto se hace en la Reina-Valera 1960. Si no está instalada, se busca en la
+versión que esté elegida en ese momento.
 
 Las demás versiones (NVI, RVR1960, NTV, DHH, etc.) tienen derechos de autor:
 puedes usarlas en tu equipo, pero no se publican en el repositorio de GitHub.

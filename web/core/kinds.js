@@ -4,6 +4,7 @@
 //   registerKind('image', {
 //     icon, label,            icono y nombre en el orden del culto
 //     unit,                   ['diapositiva', 'diapositivas'], o null si no tiene pasos que contar
+//     wholeUpTo,              hasta cuántos pasos se ofrece además proyectarlo entero ("Todo junto")
 //     title(item),            texto de una línea para el panel "Al aire"
 //     key(item),              identidad de lo dibujado: si no cambia, es lo mismo en pantalla
 //     background,             false si ocupa toda la pantalla (imagen, video); por defecto se dibuja

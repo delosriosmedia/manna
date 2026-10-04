@@ -4,6 +4,18 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.3.0 — 2026-10-04
+
+- **Comparador de versiones**, un módulo nuevo: el mismo pasaje en dos versiones, lado a lado o una sobre otra, cada una con su sigla y separadas por una línea. Se elige igual que en Biblia, viendo los dos textos junto a cada versículo.
+- La comparación se proyecta, se añade al **orden del culto** como elemento propio ("Comparador", con sus dos versiones) y avanza versículo a versículo con "Siguiente".
+- La **disposición** se elige antes de proyectar y también se cambia mientras está al aire, desde el panel.
+- Si a una de las versiones le falta un versículo, la pantalla lo dice en vez de dejar el hueco.
+- **La búsqueda de texto se hace ahora solo en la Reina-Valera 1960.** El resultado se abre en la versión que tengas elegida. (Si no tienes la 1960, busca en la versión elegida.)
+- **Una sola carpeta para lo tuyo: `Contenido/`.** Ahí van las biblias (`Contenido/Biblias/`), los himnos en video (`Contenido/Himnario/videos/`) y sus letras (`Contenido/Himnario/letras/`). Cada carpeta explica su formato en un `LEEME.txt`. **Si ya tenías biblias en la carpeta `Biblias/`, muévelas a `Contenido/Biblias/`.**
+- **Televisores**: Manna atiende también en el puerto 8000, para los navegadores de televisor que no abren una dirección sin puerto. "Dispositivos" lo explica en "¿Es un televisor?".
+- "Dispositivos" ya no ofrece direcciones de adaptadores sin red, que no servían.
+- Corregido: en tabletas, los resultados de la búsqueda ya no tapan la cabecera cuando esta ocupa dos filas.
+
 ## 1.2.0 — 2026-10-04
 
 - **Búsqueda nueva en la Biblia.** Busca mientras escribes, en todas las versiones instaladas a la vez, y ordena lo que encuentra:

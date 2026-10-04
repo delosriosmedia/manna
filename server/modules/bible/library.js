@@ -8,6 +8,7 @@ import { parseReference, formatReference } from './reference.js';
 const EXTENSIONS = new Set(['.xmm', '.xml']);
 
 const LEVELS = [['exact', 'Frase exacta'], ['words', 'Todas las palabras'], ['similar', 'Parecidas']];
+const SEARCH_VERSION = 'RVR1960'; // sigla de la versión en la que se busca texto
 
 // Biblioteca de biblias: lee la carpeta Biblias/, procesa cada versión la primera vez
 // que se usa y la deja en memoria.
@@ -127,10 +128,19 @@ export class BibleLibrary {
   }
 
   // ---- Búsqueda ----
-  // Cada versión tiene su índice de palabras (ver core/search.js). Se hace una vez, en segundo
-  // plano al arrancar (index.js) o la primera vez que se busca en ella.
+  // El texto se busca en una sola versión: la Reina-Valera 1960, que es la que la congregación
+  // sabe de memoria (decisión del dueño). Si no está instalada, en la versión elegida.
+  // Un resultado es un versículo por su posición, así que después se proyecta en la versión
+  // que el usuario tenga elegida.
 
-  // Prepara el índice de una versión. Devuelve false si la versión no existe.
+  searchVersion(fallbackId = null) {
+    const preferred = [...this.#versions.values()].find((v) => v.abbr === SEARCH_VERSION);
+    return (preferred || this.#versions.get(fallbackId))?.id || null;
+  }
+
+  // Prepara el índice de palabras de una versión (ver core/search.js). Se hace una sola vez:
+  // al arrancar, en segundo plano (index.js), o la primera vez que se busca en ella.
+  // Devuelve false si la versión no existe.
   index(id) {
     const bible = this.#load(id);
     if (!bible) return false;
@@ -145,23 +155,16 @@ export class BibleLibrary {
         }
       }
     }
-    // keys: libro, capítulo y versículo de cada texto en un solo número, igual en todas las versiones.
+    // keys: libro, capítulo y versículo de cada texto, en un solo número.
     bible.search = { texts, keys: Uint32Array.from(keys), index: createTextIndex(texts) };
     return true;
   }
 
-  // Versiones que aún no tienen índice.
-  pendingIndex() {
-    return [...this.#versions.keys()].filter((id) => !this.#parsed.get(id)?.search);
-  }
-
-  // Búsqueda: primero intenta leerla como cita; si no, busca el texto en todas las versiones que
-  // ya tienen índice. Los resultados van por niveles (frase exacta, todas las palabras, parecidas).
-  // Un mismo versículo sale una sola vez: con el texto de la versión elegida si coincide en ella,
-  // y si no, con el de la primera versión donde coincide, indicando cuál es.
+  // Búsqueda: primero intenta leerla como cita; si no, busca el texto. Los resultados van por
+  // niveles (frase exacta, todas las palabras, parecidas), con lo encontrado marcado.
+  // id: la versión elegida; limit: cuántos resultados por nivel.
   search(id, query, { limit = 40 } = {}) {
-    const bible = this.#load(id);
-    if (!bible) return null;
+    if (!this.#load(id)) return null;
     const ref = parseReference(query);
     const chapter = ref && this.chapter(id, ref.book, ref.chapter);
     if (chapter) {
@@ -170,54 +173,38 @@ export class BibleLibrary {
     }
 
     const started = performance.now();
+    const searchId = this.searchVersion(id);
+    this.index(searchId);
+    const bible = this.#parsed.get(searchId);
+    const meta = this.#versions.get(searchId);
     const prepared = prepareQuery(query);
-    this.index(id);
-    // La versión elegida primero; después las demás, por nombre.
-    const order = [id, ...this.list().map((v) => v.id).filter((other) => other !== id)]
-      .map((vid) => ({ meta: this.#versions.get(vid), search: this.#parsed.get(vid)?.search, bible: this.#parsed.get(vid) }))
-      .filter((v) => v.search);
-    const found = order.map((v) => v.search.index.find(prepared));
-    const seen = new Set();
+    const found = bible.search.index.find(prepared);
 
-    const levels = LEVELS.map(([level, label]) => {
-      const groups = new Map(); // versículo -> [{ versión, posición }], la versión elegida primero
-      order.forEach((version, vi) => {
-        for (const doc of found[vi][level]) {
-          const key = version.search.keys[doc];
-          if (seen.has(key)) continue;
-          const hits = groups.get(key);
-          if (hits) hits.push({ version, doc }); else groups.set(key, [{ version, doc }]);
-        }
-      });
-      const results = [];
-      for (const [key, hits] of groups) {
-        seen.add(key);
-        if (results.length >= limit) continue;
-        const [{ version, doc }] = hits;
+    const levels = LEVELS.map(([level, label]) => ({
+      id: level,
+      label,
+      total: found[level].length,
+      results: Array.from(found[level].slice(0, limit), (doc) => {
+        const key = bible.search.keys[doc];
         const book = Math.floor(key / 1_000_000);
-        const text = version.search.texts[doc];
-        results.push({
+        const text = bible.search.texts[doc];
+        return {
           book,
           chapter: Math.floor(key / 1000) % 1000,
           verse: key % 1000,
-          reference: `${version.bible.byNumber.get(book).name} ${Math.floor(key / 1000) % 1000}:${key % 1000}`,
-          versionId: version.meta.id,
-          version: version.meta.abbr || version.meta.name,
+          reference: `${bible.byNumber.get(book).name} ${Math.floor(key / 1000) % 1000}:${key % 1000}`,
           text,
           marks: findMarks(text, prepared, level),
-          others: hits.slice(1).map((hit) => hit.version.meta.abbr || hit.version.meta.name),
-        });
-      }
-      return { id: level, label, total: groups.size, results };
-    }).filter((level) => level.total);
+        };
+      }),
+    })).filter((level) => level.total);
 
     return {
       type: 'text',
       levels,
       total: levels.reduce((sum, level) => sum + level.total, 0),
-      // En cuántas versiones se buscó, de cuántas hay: las demás aún se están preparando.
-      searched: order.length,
-      versions: this.#versions.size,
+      // En qué versión se buscó (puede no ser la elegida).
+      version: { id: meta.id, name: meta.name, abbr: meta.abbr },
       ms: Math.round((performance.now() - started) * 10) / 10,
     };
   }

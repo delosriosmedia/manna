@@ -20,7 +20,7 @@ const typed = (url) => url.replace(/^http:\/\//, '');
 // - Para escribir a mano se ofrece la dirección con nombre ("manna.local"), más corta y estable.
 // - Si el equipo tiene más de una red, las demás direcciones quedan como alternativa, plegadas.
 export async function openDevicesDialog(isLocal) {
-  const { addresses, nameUrl } = state.system;
+  const { addresses, nameUrl, altPort } = state.system;
   const body = [];
 
   if (!addresses.length) {
@@ -42,6 +42,16 @@ export async function openDevicesDialog(isLocal) {
         h('li', {}, 'Escanea el código con la cámara, o escribe esta dirección en el navegador:')),
       h('div', { class: 'device' }, code, address, fallback),
     );
+
+    // Muchos televisores no abren una dirección sin puerto (la buscan en internet o la piden
+    // como página segura): para ellos, la dirección completa con el segundo puerto.
+    if (altPort) {
+      body.push(h('details', { class: 'alt-addresses' },
+        h('summary', {}, '¿Es un televisor?'),
+        h('p', { class: 'muted' }, 'En el navegador del televisor escribe la dirección completa, con todo:'),
+        h('p', {}, h('code', { style: 'user-select: all;' }, `${addresses[0]}:${altPort}`)),
+        h('p', { class: 'muted' }, 'Si aun así no abre, usa el televisor como segunda pantalla del equipo principal (duplicar pantalla o AirPlay): Manna abre ahí la proyección sola.')));
+    }
 
     if (addresses.length > 1) {
       body.push(h('details', { class: 'alt-addresses' },

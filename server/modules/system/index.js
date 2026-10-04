@@ -14,7 +14,8 @@ export default function setup(app) {
   // nameUrl: dirección con nombre ("http://manna.local"), o null si no se pudo anunciar.
   // La versión se lee de package.json: es el único sitio donde se cambia.
   const { version } = JSON.parse(fs.readFileSync(path.join(app.rootDir, 'package.json'), 'utf8'));
-  store.register('system', { name: 'Manna', version, addresses: [], port: null, hostname: null, nameUrl: null });
+  // altPort: segundo puerto en el que Manna también atiende (para televisores), o null.
+  store.register('system', { name: 'Manna', version, addresses: [], port: null, altPort: null, hostname: null, nameUrl: null });
 
   const base = (process.env.MANNA_NAME || 'manna').toLowerCase().replace(/[^a-z0-9-]/g, '') || 'manna';
   const responder = createResponder({ base });
@@ -47,6 +48,7 @@ export default function setup(app) {
       const next = {
         addresses: interfaces.map((i) => origin(i.address, app.port)),
         port: app.port,
+        altPort: app.altPort,
         hostname,
         nameUrl: hostname ? origin(hostname, app.port) : null,
       };

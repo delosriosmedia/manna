@@ -17,6 +17,10 @@ function score(name, address, routeAddress) {
   return points;
 }
 
+// Dirección que el equipo se pone a sí mismo cuando un adaptador no recibe una de la red (169.254…).
+// Nadie puede entrar por ella: solo sirve si es lo único que hay (dos equipos unidos por un cable).
+const isSelfAssigned = (address) => address.startsWith('169.254.');
+
 // Interfaces IPv4 del equipo, de más a menos probable para conectar otros dispositivos.
 // interfaces: lo que devuelve os.networkInterfaces(). routeAddress: ver detectRouteAddress().
 export function rankInterfaces(interfaces, routeAddress = null) {
@@ -27,7 +31,8 @@ export function rankInterfaces(interfaces, routeAddress = null) {
       found.push({ name, address: net.address, netmask: net.netmask, virtual: VIRTUAL.test(name), points: score(name, net.address, routeAddress) });
     }
   }
-  return found.sort((x, y) => y.points - x.points);
+  const real = found.filter((i) => !isSelfAssigned(i.address));
+  return (real.length ? real : found).sort((x, y) => y.points - x.points);
 }
 
 export const rankAddresses = (interfaces, routeAddress = null) =>

@@ -1,5 +1,6 @@
 import order from './order/workspace.js';
 import bible from './bible/workspace.js';
+import compare from './bible/compare.js';
 import settings from './settings/workspace.js';
 
 // Módulos de la interfaz, en el orden en que aparecen en la barra.
@@ -10,6 +11,7 @@ import settings from './settings/workspace.js';
 export const MODULES = [
   order,
   bible,
+  compare,
   { id: 'himnario', name: 'Himnario', icon: 'music-notes', soon: true,
     needs: [{ tools: ['ffmpeg'], feature: 'elegir la pista instrumental de un himno' }] },
   { id: 'medios', name: 'Medios', icon: 'image', soon: true,
