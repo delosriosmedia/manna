@@ -59,8 +59,8 @@ async function run() {
   }
 
   for (const setup of MODULES) await setup(app);
-  // Revisión del equipo: si falta algún programa, Manna se abre en la página que lo explica
-  // y ayuda a instalarlo (web/requisitos.html) en vez de en el control.
+  // Revisión del equipo: si falta algún programa, Manna se abre en la página que dice qué no
+  // funcionará y ayuda a instalarlo (web/requisitos.html). No bloquea: desde ahí se continúa.
   const { list } = await app.tools.scan();
   const port = await app.listen();
   await app.services.network.refresh();

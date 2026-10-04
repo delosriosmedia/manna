@@ -195,48 +195,33 @@ test('sin sesión no se gobierna nada', async () => {
 
 // ---- Revisión del equipo ----
 
-test('con todo instalado, las páginas se abren normalmente', async () => {
+test('la revisión del equipo lista los programas y dice con qué página abrir', async () => {
   const { tools } = await main.state();
   assert.equal(tools.checked, true);
   assert.deepEqual(tools.list.map((t) => t.id), ['navegador', 'ffmpeg', 'yt-dlp', 'powerpoint']);
-  if (!tools.blocked) assert.equal((await main.request('/control')).status, 200);
+  assert.equal(tools.pending, tools.list.filter((t) => t.level === 'feature' && !t.found).length);
+  assert.equal(main.app.tools.entry(), tools.pending ? '/requisitos' : '/control');
 });
 
-test('si falta un programa imprescindible, toda página lleva a la revisión del equipo', async () => {
-  const blocked = await start('sin-navegador', { MANNA_FALTA: 'navegador,ffmpeg' });
+test('aunque falten programas, ni siquiera el navegador, ninguna página se bloquea', async () => {
+  const bare = await start('sin-programas', { MANNA_FALTA: 'navegador,ffmpeg,yt-dlp' });
   try {
-    const { tools } = await blocked.state();
-    assert.deepEqual([tools.blocked, tools.pending >= 1], [true, true]);
-    assert.equal(tools.list.find((t) => t.id === 'navegador').found, false);
-    assert.equal(blocked.app.tools.entry(), '/requisitos');
-    assert.equal(blocked.app.tools.path('ffmpeg'), null);
-    assert.throws(() => blocked.app.tools.spawn('ffmpeg', ['-version']), /Falta ffmpeg/);
-    for (const page of ['/', '/control', '/orden', '/proyeccion', '/control.html']) {
-      const res = await blocked.request(page);
-      assert.deepEqual([res.status, res.headers.get('location')], [302, '/requisitos'], page);
+    const { tools } = await bare.state();
+    assert.equal(tools.pending, 3);
+    assert.deepEqual(tools.list.filter((t) => !t.found && t.level === 'feature').map((t) => t.id), ['navegador', 'ffmpeg', 'yt-dlp']);
+    // Manna se abre en la revisión, que avisa; pero el control y lo demás siguen ahí.
+    assert.equal(bare.app.tools.entry(), '/requisitos');
+    for (const page of ['/', '/control', '/orden', '/proyeccion', '/requisitos']) {
+      const res = await bare.request(page);
+      assert.equal(res.status, 200, page);
+      await res.arrayBuffer();
     }
-    const review = await blocked.request('/requisitos');
-    assert.equal(review.status, 200);
-    assert.match(await review.text(), /Revisión del equipo/);
-    // Lo que no es una página (estilos, estado) sigue llegando: la revisión los necesita.
-    assert.equal((await blocked.request('/core/app.css')).status, 200);
-    assert.equal((await blocked.request('/api/state')).status, 200);
+    // Lo que sí falla, con un mensaje que dice qué hacer, es usar el programa que falta.
+    assert.equal(bare.app.tools.path('ffmpeg'), null);
+    assert.throws(() => bare.app.tools.spawn('ffmpeg', ['-version']), /Falta ffmpeg.*Ajustes/);
+    // Instalar exige sesión de control en el equipo principal; aquí no hay sesión.
+    assert.equal((await bare.send('tools.install', { id: 'yt-dlp' })).status, 401);
   } finally {
-    await blocked.stop();
-  }
-});
-
-test('si solo falta algo de una función, Manna se abre en la revisión pero deja continuar', async () => {
-  const partial = await start('sin-ytdlp', { MANNA_FALTA: 'yt-dlp' });
-  try {
-    const { tools } = await partial.state();
-    if (tools.blocked) return; // este equipo no tiene navegador: lo cubre la prueba anterior
-    assert.equal(tools.pending, 1);
-    assert.equal(partial.app.tools.entry(), '/requisitos');
-    assert.equal((await partial.request('/control')).status, 200);
-    // Instalar solo se permite... desde el equipo principal y con control; aquí no hay sesión.
-    assert.equal((await partial.send('tools.install', { id: 'yt-dlp' })).status, 401);
-  } finally {
-    await partial.stop();
+    await bare.stop();
   }
 });

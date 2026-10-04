@@ -1,9 +1,9 @@
 # Plan de trabajo: versión 2
 
-Estado: **aprobado por el dueño el 2026-10-04. En curso: fase 0 terminada, sigue la fase 1.**
+Estado: **aprobado por el dueño el 2026-10-04. En curso: fases 0 y 1 terminadas, sigue la fase 2.**
 Parte de la versión 1.0.0 y termina en la 2.0.0.
 
-Este documento es el plan y, al terminar, la base de la auditoría (sección 8). Se actualiza al cerrar cada fase: la sección 9 lleva el avance y la 10, cada cambio que se le hace al plan y por qué.
+Este documento es el plan y, al terminar, la base de la auditoría (sección 8). Se actualiza al cerrar cada fase: la sección 9 lleva el avance, la 10 cada cambio que se le hizo al plan y por qué, y la 11 los cambios que se le sugieren al dueño y aún no ha decidido.
 
 ## 1. Qué se pide
 
@@ -18,7 +18,7 @@ Este documento es el plan y, al terminar, la base de la auditoría (sección 8).
 | G | YouTube: descargar al añadir el enlace, proyectar sin anuncios, **con subtítulos opcionales** | Fase 7 |
 | H | Diapositivas: PDF y PowerPoint, con vista de la siguiente, cuántas faltan y zoom | Fase 8 |
 | I | Imágenes y medios en un solo módulo | Decidido: sí (3.1) |
-| J | Que la **revisión inicial del equipo** garantice que está todo lo necesario antes de abrir la app | Fase 0 (hecho) |
+| J | Que la **revisión inicial del equipo** compruebe lo necesario y avise de qué módulos funcionarán y cuáles no, **sin bloquear**; y que cada módulo avise al abrirlo si le falta algo | Fases 0 y 1 (hecho) |
 | K | Un **volumen general** de Manna, sin tocar el del equipo | Base en fase 0; mando en fase 5 |
 
 ## 2. Lo que se midió
@@ -26,7 +26,7 @@ Este documento es el plan y, al terminar, la base de la auditoría (sección 8).
 Datos medidos en el proyecto, no supuestos.
 
 - **Himnos.** `Himnario/` tiene 613 archivos `.mp4` (5,4 GB) con nombre `NNN Título.mp4`: H.264 a 1080p con **dos pistas de audio**. La primera es la cantada; la segunda, la instrumental (confirmado por el dueño). Elegir la pista con ffmpeg, sin recodificar, tarda **0,09 s** para un himno de 3 minutos.
-- **Búsqueda en todas las versiones.** Cargar las 14 biblias (430.000 versículos) tarda 1,2 s y ocupa unos 440 MB. Buscar una frase en todas tarda entre 30 y 85 ms sin índice.
+- **Búsqueda en todas las versiones** (14 biblias, 430.000 versículos). Sin índice, buscar una frase tardaba entre 30 y 85 ms. **Con el índice de la fase 1**: entre 1 y 8 ms lo habitual, y 80 ms en el peor caso (palabras que están en casi todos los versículos, como "de la"). Preparar el índice tarda 0,16 s por versión, en segundo plano. Memoria con todo cargado: 106 MB las biblias más 160 MB los índices.
 - **Conversión de video con ffmpeg** (Mac de desarrollo, M3 Pro, video de 1080p):
 
   | Caso | Qué hace Manna | Un video de 10 minutos |
@@ -37,7 +37,10 @@ Datos medidos en el proyecto, no supuestos.
   | AVI, MPEG, WMV y otros que el navegador no reproduce | Conversión completa | Entre 30 s (imagen tranquila, 21 veces más rápido que el video) y 4 min (mucho movimiento, 2,6 veces). Con el chip de video, 1,5 min constantes |
 
   En un equipo Windows de gama media la conversión completa será de 2 a 5 minutos; en uno antiguo, hasta unos 10. **La mayoría de los videos no necesita conversión.**
-- **Televisor del dueño: Samsung 55QN85F (Neo QLED, 2025).** Su navegador es reciente, así que debería poder abrir la pantalla de proyección normal. En la prueba no abrió ni `manna.local` ni las dos direcciones numéricas, mientras un iPhone entraba al instante. Que hubiera **dos direcciones** indica que el equipo principal estaba en dos redes: lo más probable es que el televisor esté en una red distinta de las dos (cable a otro router, red de invitados o wifi con aislamiento). Se diagnostica en la fase 3.
+- **Televisor del dueño: Samsung 55QN85F (Neo QLED, 2025).** Su navegador es reciente, así que debería poder abrir la pantalla de proyección normal. En la prueba no abrió ni `manna.local` ni las dos direcciones numéricas, mientras un iPhone entraba al instante. Comprobado el 2026-10-04 desde el Mac de desarrollo:
+  - El televisor está en `192.168.1.3` y el Mac en `192.168.1.14`: **misma red**. El televisor responde desde el Mac, el cortafuegos del Mac está apagado y Manna escucha en el puerto 80. **No es un problema de red.**
+  - La "segunda dirección" que mostraba Manna era `169.254.x.x`: la de un adaptador sin red. No sirve para nada y no debería ofrecerse.
+  - Lo que queda por descartar es el navegador del televisor: que convierta lo escrito en una búsqueda o que intente abrirlo como página segura (`https`), que Manna no ofrece. Se resuelve en la fase 3.
 - **Video en el navegador.** Chrome reproduce MP4, M4V y MOV con H.264, y WebM. No reproduce AVI, MPEG ni WMV.
 - **Herramientas.** En el Mac de desarrollo están ffmpeg 8.1, yt-dlp y PowerPoint. En el equipo Windows de la iglesia lo comprobará la revisión del equipo.
 - **Las categorías del himnario** en nuevohimnario.com se cargan con un programa de la página; su estructura se revisará en la fase 5.
@@ -74,10 +77,10 @@ Lo que varias fases necesitan, construido una sola vez. Dónde quedó cada pieza
 | 4 | Una sola salida de sonido | Base hecha | La pantalla de proyección del equipo principal es la que suena (`sound` en `createStage`). El volumen general está en `live.volume` (acción `projection.volume`). El mando se construye en la fase 5 |
 | 5 | Archivos grandes | Hecho | Trozos (Range) y subida directa a disco en `server/core/router.js`; `upload()` con avance en `web/core/api.js` |
 | 6 | Carpetas de contenido | Base hecha | `server/core/folders.js` (vigilar y listar), `app.mount()` para servirlas, `data/tmp/` que se vacía al abrir y al cerrar. `Himnario/` y `Medios/` se conectan con su módulo (fases 5 y 6) |
-| 7 | Programas externos | Hecho | `server/core/tools.js` e `install.js`; página `/requisitos`; sección en Ajustes |
+| 7 | Programas externos | Hecho | `server/core/tools.js` e `install.js`; página `/requisitos`; sección en Ajustes; aviso por módulo (`needs`, `web/core/needs.js`) |
 | 8 | "Más" en la barra de pestañas del celular | **Pasa a la fase 4** | Ver sección 10 |
 | 9 | Nombre editable en cualquier elemento del orden | Hecho | `order.rename`, `renameItem` en `server/modules/order/logic.js` |
-| 10 | Búsqueda compartida | **Pasa a la fase 1** | Ver sección 10 |
+| 10 | Búsqueda compartida | Hecho (fase 1) | `server/core/search.js` |
 | 11 | Selector de pasajes reutilizable | **Pasa a la fase 2** | Ver sección 10 |
 | 12 | Tareas en segundo plano con avance y tiempo restante (añadido) | Hecho | `server/core/jobs.js`, espacio `jobs`; `web/core/jobs.js`; se ven en el panel "Al aire" |
 
@@ -88,13 +91,15 @@ El código sigue sin dependencias. Lo aprobado son **programas aparte** y una bi
 | Qué | Para qué | Nivel |
 | --- | --- | --- |
 | Node.js 18+ | El servidor | Sin él no arranca (lo comprueba el instalador del icono) |
-| Chrome o Edge | Ventana de proyección | Imprescindible: sin él no se entra a la app |
+| Chrome o Edge | Ventana de proyección en la segunda pantalla | Necesario para esa función |
 | ffmpeg | Convertir, unir YouTube, pista de los himnos | Necesario para esas funciones |
 | yt-dlp | Descargar de YouTube | Necesario para YouTube |
 | PowerPoint | Convertir `.pptx` | Opcional: se usa por defecto si está; si no, se pide el PDF |
 | pdf.js (Mozilla, Apache 2.0) | Leer PDF en el navegador | Archivo en `web/vendor/`; llega en la fase 8 |
 
-**Revisión del equipo.** Cada vez que Manna se abre comprueba todo lo anterior. Si falta algo se abre en `/requisitos` en vez de en el control: para cada programa dice para qué sirve, ofrece **Instalar por mí** (ffmpeg y yt-dlp, descargados de su sitio oficial a `data/herramientas/`, con comprobación de la huella, sin tocar el sistema) y los pasos para hacerlo a mano. Si falta algo imprescindible, ninguna página de la app se abre. Si falta algo de una función, deja continuar con un clic y vuelve a avisar en el siguiente arranque.
+**Revisión del equipo.** Cada vez que Manna se abre comprueba todo lo anterior. Si falta algo se abre en `/requisitos` en vez de en el control. La página dice **qué módulos funcionarán completos y cuáles no**, y para cada programa, para qué sirve; ofrece **Instalar por mí** (ffmpeg y yt-dlp, descargados de su sitio oficial a `data/herramientas/`, con comprobación de la huella, sin tocar el sistema) y los pasos para hacerlo a mano.
+
+**Nada bloquea** (decisión del dueño): desde la revisión se continúa a la app con un clic, falte lo que falte. Dentro, **cada módulo avisa al abrirlo** de lo que no podrá hacer y ofrece instalarlo o ver cómo. Qué necesita cada módulo lo declara el propio módulo (`needs`).
 
 ## 4. Fases, en orden
 
@@ -121,7 +126,9 @@ Construido: la tabla de 3.3, la revisión del equipo de 3.4 y la **imagen de pru
 
 **Criterio de cierre, cumplido**: todas las pruebas anteriores pasan, y un tipo nuevo se dibuja, se gobierna en vivo, va a la par en dos pantallas y se añade al orden. Resultados y lo que quedó sin probar, en la sección 9.
 
-### Fase 1 · Búsqueda mejorada
+### Fase 1 · Búsqueda mejorada — hecha (1.2.0)
+
+Construido como estaba previsto, salvo lo anotado en la sección 10. Resultados en la sección 9.
 
 Resultados en tres niveles, en este orden:
 
@@ -134,10 +141,10 @@ En todos se **resalta** lo encontrado. Sin modelo de lenguaje (decisión 4). Par
 - **Índice** de todas las biblias instaladas, hecho en segundo plano al arrancar y rehecho al copiar o borrar una biblia: el texto ya normalizado y un índice de palabras. La primera búsqueda no espera.
 - La pieza de búsqueda (normalizar, ordenar por relevancia, resaltar) va en `server/core/search.js` para que el himnario use la misma.
 - Buscar mientras se escribe, con una pausa de 150 ms; 50 resultados por nivel con "ver más".
-- Si la memoria del equipo de la iglesia es justa, limitar la búsqueda global a unas versiones favoritas elegidas en Ajustes.
-- Moverse por los resultados con el teclado y proyectar con Enter.
+- Moverse por los resultados con el teclado: flechas para recorrerlos, Enter para ir al versículo y otro Enter para proyectarlo.
+- Si el texto que coincide es de otra versión, el resultado lo dice y al elegirlo se pasa a esa versión: se proyecta lo que se leyó.
 
-**Terminado cuando**: una búsqueda en todas las versiones responde en menos de 100 ms en el equipo de desarrollo (medido y anotado), con pruebas del orden de los resultados y del resaltado.
+**Criterio de cierre, cumplido**: una búsqueda en todas las versiones responde en menos de 100 ms en el equipo de desarrollo (1 a 8 ms lo habitual, 80 ms el peor caso), con pruebas del orden de los resultados y del resaltado.
 
 ### Fase 2 · Comparador de versiones
 
@@ -149,8 +156,8 @@ En todos se **resalta** lo encontrado. Sin modelo de lenguaje (decisión 4). Par
 
 ### Fase 3 · Pantalla para televisores
 
-1. **Diagnóstico con el Samsung 55QN85F.** En el televisor: Ajustes → General → Red → Estado de red → Config. IP, y comparar sus tres primeros números con los de la dirección de Manna. Si no coinciden, el televisor está en otra red: esa es la causa. Si coinciden: revisar el puerto (si Manna no pudo usar el 80, hay que escribir `:8000`) y el Firewall de Windows.
-2. **Ayuda dentro de Manna**: "Dispositivos" indicará la dirección exacta para escribir en un televisor y, con dos redes, cuál corresponde a cada una; Manna escuchará en el 80 **y** en el 8000 a la vez. La imagen de prueba (fase 0) confirma el encuadre y la sincronía.
+1. **Diagnóstico con el Samsung 55QN85F.** La red está descartada (sección 2). Pruebas, en este orden, con Manna abierto en el Mac: escribir la dirección **con `http://` delante** (`http://192.168.1.14`); si no, con puerto (`192.168.1.14:8000`, cuando Manna escuche también ahí). Si con alguna abre, la causa era cómo interpreta el televisor lo escrito.
+2. **Ayuda dentro de Manna**: "Dispositivos" mostrará la dirección completa para escribir en un televisor, con `http://`; dejará de ofrecer direcciones de adaptadores sin red (`169.254…`); y Manna escuchará en el 80 **y** en el 8000 a la vez. La imagen de prueba (fase 0) confirma el encuadre y la sincronía.
 3. **Pantalla completa con el mando**: botón grande que se activa con OK. `manna.local` no funciona en la mayoría de televisores: se usa la dirección numérica, y conviene fijarla en el router.
 4. **Página sencilla para televisores antiguos** (`/tv`, escrita para navegadores viejos): **solo si** las pruebas muestran que la página normal no abre en algún televisor. El del dueño es de 2025 y no debería necesitarla.
 5. **Alternativas sin navegador**, documentadas porque a menudo son mejores: el 55QN85F admite **proyección inalámbrica desde Windows** (Win + K: el televisor pasa a ser la segunda pantalla y Manna abre ahí la proyección sola) y **AirPlay** desde Mac o iPhone; también Chromecast o cable HDMI.
@@ -177,7 +184,7 @@ Himnario:
 - **Cantado o pista**: se elige antes de proyectar o de añadir al orden, y queda en el elemento. La pista se prepara con ffmpeg en 0,1 s, sin recodificar, en `data/tmp/`.
 - En el orden: barra de avance, pausa y reinicio en la propia fila.
 
-**Letras.** Pendiente de acuerdo: ver decisión 5. El buscador indexa las letras que haya en el equipo; sin ellas busca por número y título.
+**Letras.** Van en `Himnario/letras/`, junto a los videos, y viajan con esa carpeta entre las iglesias que tienen la licencia; no se publican en el repositorio. Manna las importa de archivos de texto (uno por himno) o de una exportación de OpenLP. El buscador las indexa con la misma pieza que la Biblia; sin ellas busca por número y título. Ver decisión 5.
 
 ### Fase 6 · Medios: videos y audios locales
 
@@ -226,20 +233,27 @@ Tomadas el 2026-10-04.
 | 2 | ¿ffmpeg y yt-dlp en el equipo principal, y pdf.js dentro del proyecto? | **Sí**, con una condición: que siga siendo fácil descargar y abrir la app, y que la revisión inicial garantice que el equipo tiene todo |
 | 3 | PowerPoint | **PowerPoint por defecto**, en segundo plano si es posible |
 | 4 | Búsqueda por significado | **Sin modelo de lenguaje.** Garantizar el índice y la velocidad en Biblia e himnario |
-| 5 | Letras de los himnos | **Pendiente de acuerdo**: ver nota |
+| 5 | Letras de los himnos | **Incluirlas**: las iglesias que usarán Manna tienen la licencia de la música oficial de la Iglesia Adventista. Cómo: ver nota |
 | 6 | Volumen | **Solo el de Manna**, como volumen general de todo lo que suene. No se toca el del equipo |
-| 7 | Televisor | Samsung 55QN85F. No abrió con el nombre ni con las dos direcciones; un iPhone sí |
+| 7 | Televisor | Samsung 55QN85F, en `192.168.1.3`. No abrió con el nombre ni con las dos direcciones; un iPhone sí |
 | 8 | Segunda pista de audio de los himnos | **Es la instrumental**: ofrecer "Cantado / Pista" |
 | 9 | ¿Publicar al cerrar cada fase? | **Sí** |
+| 10 | ¿Qué bloquea el arranque si falta un programa? | **Nada.** Se deja avanzar con un aviso de qué módulos funcionarán y cuáles no; y dentro de la app, el módulo al que le falte algo también avisa y ofrece instalarlo o ver cómo |
+| 11 | Informe al cerrar cada fase | Mostrar de nuevo el plan con las fases superadas y las observaciones, y un apartado con los cambios que se le sugieren |
 
-**Decisión 5 · Letras.** El dueño pidió copiar las letras de nuevohimnario.com y dar los créditos. No se hizo así, y se le explicó: las letras tienen derechos de autor, citar la fuente no equivale a tener permiso, y el repositorio es público. Lo que el plan sí contempla: el himnario lee las letras de una carpeta local (`Himnario/letras/`, un archivo de texto por himno) que vive solo en el equipo, como las biblias, y las indexa para el buscador. Las letras las aporta quien tenga derecho a usarlas. Queda por acordar con el dueño de dónde saldrán. Sin letras, el buscador funciona por número y título.
+**Decisión 5 · Letras.** El dueño pidió incluirlas: las iglesias donde se usará Manna tienen la licencia de las letras y de toda la música oficial de la Iglesia Adventista del Séptimo Día. Cómo se resuelve:
 
-**Sobre la condición de la decisión 2.** "Garantizar que el equipo tiene todo" se resolvió así: sin el navegador, la app no se abre; sin ffmpeg o yt-dlp, la revisión aparece en cada arranque pero deja continuar, para que un domingo no se quede la iglesia sin proyectar la Biblia porque falta el programa de YouTube. Si el dueño prefiere que también bloqueen, es cambiar su nivel de `feature` a `required` en `server/core/tools.js`.
+- Las letras **se usan**: Manna las lee de `Himnario/letras/`, las indexa y las ofrece en el buscador del himnario (fase 5).
+- **Viajan con la carpeta `Himnario/`**, igual que los videos, entre las iglesias que tienen la licencia. No van en el repositorio de GitHub, que es público y las entregaría a cualquiera, tenga licencia o no.
+- **El asistente no las copia de un sitio web**: no reproduce letras de canciones. Manna las importará de archivos que aporte el dueño: texto (un archivo por himno) o una exportación de OpenLP, programa del que ya vienen las biblias.
+- **Falta**: que el dueño diga en qué formato las tiene o puede conseguirlas (sección 11).
 
 ## 7. Riesgos
 
 | Riesgo | Cómo se reduce |
 | --- | --- |
+| Los índices de búsqueda ocupan memoria (160 MB con 14 versiones) | Medido; si el equipo de la iglesia va justo, se añade elegir en qué versiones se busca (sección 11) |
+| Las "parecidas" de la búsqueda salen de reglas, no de entender el texto | Van siempre al final, después de las coincidencias exactas; la tabla de verbos y sinónimos se amplía con el uso |
 | "Instalar por mí" no se ha probado en Windows | Probado en Mac con descargas simuladas y con el camino del `.zip`; siempre quedan los pasos a mano. Primera prueba pendiente en el equipo de la iglesia |
 | Los sitios de descarga cambian de dirección | Las direcciones están en un solo lugar (`server/core/tools.js`); el error dice que se instale a mano |
 | Navegadores de televisor muy antiguos | Página aparte solo si hace falta; alternativas sin navegador documentadas |
@@ -271,6 +285,7 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 - [ ] Toda acción declara permiso y valida su entrada.
 - [ ] Subidas: tamaño limitado, tipo comprobado, nombres saneados, nada fuera de sus carpetas.
 - [ ] Programas externos: solo a través de `server/core/tools.js`, siempre con lista de argumentos.
+- [ ] Ningún programa que falte bloquea la app: cada módulo declara lo que necesita (`needs`) y avisa.
 - [ ] Descargas de programas: solo de las direcciones fijadas en el código, con huella comprobada, y solo a petición desde el equipo principal.
 - [ ] Enlaces de YouTube validados.
 - [ ] Un dispositivo remoto sin PIN no puede cambiar nada.
@@ -281,7 +296,7 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 - [ ] Cada pantalla sigue `DESIGN.md`: un acento, iconos de la familia, estados vacío, cargando y error.
 
 **Rendimiento**
-- [ ] Arranque, memoria y tiempo de búsqueda medidos y anotados.
+- [ ] Arranque, memoria y tiempo de búsqueda medidos y anotados (búsqueda: hecho en la fase 1; repetir con el himnario).
 - [ ] Un video de una hora se reproduce y salta sin cargarlo entero.
 - [ ] Mover un mando en vivo no reenvía el contenido proyectado.
 
@@ -302,11 +317,11 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | Fase | Estado | Versión | Notas |
 | --- | --- | --- | --- |
 | 0 Cimientos | **Hecha** · 2026-10-04 | 1.1.0 | Ver abajo |
-| 1 Búsqueda | Siguiente | 1.2 | |
-| 2 Comparador | Pendiente | 1.3 | |
-| 3 Televisores | Pendiente | 1.4 | Necesita pruebas del dueño con el televisor |
+| 1 Búsqueda | **Hecha** · 2026-10-04 | 1.2.0 | Ver abajo. Incluye el cambio de la revisión del equipo: ya nada bloquea |
+| 2 Comparador | Siguiente | 1.3 | |
+| 3 Televisores | Pendiente | 1.4 | La red está descartada. Falta una prueba del dueño: escribir `http://192.168.1.14` en el televisor |
 | 4 Imágenes | Pendiente | 1.5 | |
-| 5 Himnario | Pendiente | 1.6 | Necesita acordar las letras (decisión 5) |
+| 5 Himnario | Pendiente | 1.6 | Necesita que el dueño diga en qué formato tiene las letras |
 | 6 Videos y audios | Pendiente | 1.7 | |
 | 7 YouTube | Pendiente | 1.8 | |
 | 8 Diapositivas | Pendiente | 1.9 | PowerPoint oculto: solo se puede probar en Windows |
@@ -318,6 +333,18 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 - **Chrome real** (`scripts/probar-chrome.mjs`): de 28 a 57 comprobaciones, todas pasan. Nuevas: la revisión del equipo de principio a fin (falta un programa → instalar con avance → abrir Manna), nombre propio en el orden, y la imagen de prueba con sus mandos: **el cronómetro marca lo mismo en dos pantallas y coincide con el servidor**.
 - **Pantallas** (`scripts/auditar-responsive.mjs`): 9 tamaños, ahora con cuatro pantallas más (mandos en vivo en el panel y en el orden, inicio y revisión del equipo). Sin problemas. Encontró y se corrigió un desborde de los mandos en el panel estrecho de tableta.
 - **Sin probar**: "Instalar por mí" con las descargas reales y en Windows; la detección de PowerPoint y de programas en Windows; la subida de un archivo de varios gigas (probado con 21 MB); el sonido (no hay nada que suene hasta la fase 5).
+
+### Fase 1 · resultados
+
+- **Búsqueda por niveles en todas las versiones**: frase exacta, todas las palabras y parecidas (otras formas de la palabra y 18 grupos de sinónimos bíblicos), con lo encontrado resaltado, la versión de la que sale cada texto y en cuántas más coincide. Un versículo sale una sola vez.
+- **Velocidad** (14 versiones, 430.000 versículos, Mac de desarrollo): 1 a 8 ms lo habitual; 41 ms "dio"; 80 ms "de la". El índice se prepara solo al arrancar (2,3 s en total, en segundo plano) y al copiar una biblia.
+- **Busca mientras se escribe**, con teclado: flechas, Enter para ir, Enter para proyectar.
+- **Revisión del equipo sin bloqueo** (decisión 10): dice qué módulos funcionarán; cada módulo avisa al abrirlo.
+- **Pruebas automáticas**: de 51 a 66. Nuevas: la pieza de búsqueda (raíces, niveles, marcas) y la búsqueda en varias versiones.
+- **Chrome real**: de 57 a 71 comprobaciones, con biblias de prueba fijas para que no dependa de las que haya en el equipo.
+- **Pantallas**: 9 tamaños, con dos pantallas más (resultados de búsqueda, aviso de módulo). Sin problemas.
+- **Sin probar**: la búsqueda en el equipo Windows de la iglesia (velocidad y memoria reales) y en un celular real.
+- **Límites conocidos**: sin tildes, "oró" y "oro" son la misma palabra, igual que "creó" y "creo"; las "parecidas" no entienden el significado, solo la forma de las palabras y la lista de sinónimos.
 
 ## 10. Cambios al plan
 
@@ -337,4 +364,24 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-04 | Fase 6: conversión en segundo plano con avance en el módulo y en "Al aire"; subtítulos de archivo `.srt`/`.vtt` | Observación del dueño; lo segundo aprovecha el mando de subtítulos de YouTube |
 | 2026-10-04 | Fase 7: subtítulos de YouTube con mando para activarlos | Petición del dueño; analizado como viable |
 | 2026-10-04 | Fase 8: PowerPoint por defecto, sin ventana, exportando imágenes directamente | Decisión 3. Exportar imágenes evita pasar por PDF |
-| 2026-10-04 | Letras de los himnos: de carpeta local, no copiadas de un sitio web | Derechos de autor (decisión 5, pendiente de acuerdo) |
+| 2026-10-04 | Letras de los himnos: de carpeta local, no copiadas de un sitio web | Derechos de autor (decisión 5) |
+| 2026-10-04 | **Ningún programa bloquea el arranque**, ni el navegador. La revisión avisa por módulo y cada módulo avisa al abrirlo | Decisión 10 del dueño. Sustituye a "sin el navegador no se entra" de la fase 0; se quitó el desvío de páginas del servidor |
+| 2026-10-04 | Los módulos declaran lo que necesitan (`needs`) y la barra muestra "Medios" en vez de "Imágenes" y "Videos" | Lo primero, para el aviso por módulo; lo segundo, refleja la decisión 1 |
+| 2026-10-04 | Fase 1: no se hizo la opción de limitar la búsqueda a unas versiones favoritas | Medido: con 14 versiones los índices ocupan 160 MB y la búsqueda tarda milisegundos. Queda como sugerencia si el equipo de la iglesia va justo (sección 11) |
+| 2026-10-04 | Fase 1: Enter sobre un resultado va al versículo; hace falta un segundo Enter para proyectar | El plan decía "proyectar con Enter". Un solo Enter proyectaría a la vista de todos un resultado elegido por error |
+| 2026-10-04 | Fase 1: elegir un resultado de otra versión cambia a esa versión | Lo que se proyecta debe ser el texto que se leyó en el resultado |
+| 2026-10-04 | Fase 3: el diagnóstico del televisor ya no empieza por la red | Comprobado que televisor y Mac están en la misma red y se ven (sección 2) |
+| 2026-10-04 | Fase 5: las letras se incluyen, importadas de archivos del dueño (texto u OpenLP), y viajan con la carpeta `Himnario/` | Decisión 5: las iglesias tienen la licencia. No van al repositorio público ni se copian de un sitio web |
+| 2026-10-04 | El informe de cada fase muestra de nuevo el plan y un apartado de cambios sugeridos (sección 11) | Decisión 11 del dueño |
+
+## 11. Cambios sugeridos al plan
+
+Propuestas del asistente que el dueño aún no ha decidido. Al decidirse, pasan a la sección 10 (si se aceptan) o se borran.
+
+| # | Sugerencia | Por qué | Qué cambiaría |
+| --- | --- | --- | --- |
+| S1 | Adelantar a la fase 2 tres arreglos pequeños de la fase 3: escuchar también en el puerto 8000, mostrar la dirección con `http://` y no ofrecer direcciones `169.254…` | El televisor ya está diagnosticado hasta donde se puede sin él. Con esos arreglos el dueño puede probarlo mientras se construye el comparador, en vez de esperar a la fase 3 | Medio día más en la fase 2; la fase 3 queda en pantalla completa con el mando y la página para televisores antiguos si hiciera falta |
+| S2 | Letras: que el dueño exporte el himnario desde OpenLP (o entregue los textos) antes de la fase 5 | Sin el archivo no se puede construir ni probar el importador. Si las iglesias ya tienen el himnario en OpenLP, es un clic | Nada en el plan; desbloquea la fase 5 |
+| S3 | Elegir en Ajustes en qué versiones se busca | Solo si el equipo Windows de la iglesia va justo de memoria con todas las biblias | Una opción en Ajustes; un día. No hacerlo hasta medir en ese equipo |
+| S4 | Filtrar la búsqueda por testamento o por libro | Con 14 versiones una palabra común da miles de resultados; un filtro los acota | Un desplegable junto al buscador; medio día, en la fase 2 o cuando se pida |
+

@@ -21,7 +21,7 @@ Usar siempre un servidor de prueba con `MANNA_DATA` temporal, `PORT=8123` y `MAN
 
 ## En un Chrome real
 
-- `node scripts/probar-chrome.mjs rapido` recorre la revisión del equipo y la interfaz como un usuario: Biblia, orden del culto, mandos en vivo, ajustes y permisos (1 min). Ejecutarlo tras cualquier cambio en `web/`. Usa los puertos 8123 y 8125: si la demostración está abierta, se niega a empezar.
+- `node scripts/probar-chrome.mjs rapido` recorre la revisión del equipo y la interfaz como un usuario: Biblia y su búsqueda, orden del culto, mandos en vivo, ajustes y permisos (1 min). Usa sus propias biblias (la RV1909 y una versión de prueba de dos versículos), no las de `Biblias/`. Ejecutarlo tras cualquier cambio en `web/`. Usa los puertos 8123 y 8125: si la demostración está abierta, se niega a empezar.
 - `node scripts/probar-chrome.mjs` añade lo que un navegador integrado no puede comprobar: el paso a la dirección con nombre, el aviso al cerrar y la reconexión tras un cambio de IP (3 min). Ejecutarlo al tocar la conexión, las direcciones o la navegación entre páginas.
 - `node scripts/auditar-responsive.mjs` abre la app en nueve tamaños (celular, tableta, escritorio) y verifica las garantías de `DESIGN.md`. Ejecutarlo al tocar cualquier disposición.
 

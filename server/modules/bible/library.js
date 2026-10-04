@@ -1,18 +1,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { normalize } from './canon.js';
+import { createTextIndex, findMarks, prepareQuery } from '../../core/search.js';
 import { parseBible } from './parsers.js';
 import { describeVersion } from './versions.js';
 import { parseReference, formatReference } from './reference.js';
 
 const EXTENSIONS = new Set(['.xmm', '.xml']);
 
+const LEVELS = [['exact', 'Frase exacta'], ['words', 'Todas las palabras'], ['similar', 'Parecidas']];
+
 // Biblioteca de biblias: lee la carpeta Biblias/, procesa cada versión la primera vez
 // que se usa y la deja en memoria.
 export class BibleLibrary {
   #dir;
   #versions = new Map(); // id -> { id, name, abbr, file }
-  #parsed = new Map();   // id -> { books, byNumber, flat? }
+  #parsed = new Map();   // id -> { books, byNumber, search? }
 
   constructor(dir) {
     this.#dir = dir;
@@ -124,27 +126,99 @@ export class BibleLibrary {
     return { book: b.n, chapter: c.n, verseStart: n, verseEnd: n };
   }
 
-  // Búsqueda: primero intenta leerla como cita; si no, busca las palabras (sin importar tildes ni mayúsculas).
-  search(id, query, limit = 60) {
+  // ---- Búsqueda ----
+  // Cada versión tiene su índice de palabras (ver core/search.js). Se hace una vez, en segundo
+  // plano al arrancar (index.js) o la primera vez que se busca en ella.
+
+  // Prepara el índice de una versión. Devuelve false si la versión no existe.
+  index(id) {
+    const bible = this.#load(id);
+    if (!bible) return false;
+    if (bible.search) return true;
+    const texts = [];
+    const keys = [];
+    for (const book of bible.books) {
+      for (const chapter of book.chapters) {
+        for (const verse of chapter.verses) {
+          texts.push(verse.text);
+          keys.push(book.n * 1_000_000 + chapter.n * 1000 + verse.n);
+        }
+      }
+    }
+    // keys: libro, capítulo y versículo de cada texto en un solo número, igual en todas las versiones.
+    bible.search = { texts, keys: Uint32Array.from(keys), index: createTextIndex(texts) };
+    return true;
+  }
+
+  // Versiones que aún no tienen índice.
+  pendingIndex() {
+    return [...this.#versions.keys()].filter((id) => !this.#parsed.get(id)?.search);
+  }
+
+  // Búsqueda: primero intenta leerla como cita; si no, busca el texto en todas las versiones que
+  // ya tienen índice. Los resultados van por niveles (frase exacta, todas las palabras, parecidas).
+  // Un mismo versículo sale una sola vez: con el texto de la versión elegida si coincide en ella,
+  // y si no, con el de la primera versión donde coincide, indicando cuál es.
+  search(id, query, { limit = 40 } = {}) {
     const bible = this.#load(id);
     if (!bible) return null;
     const ref = parseReference(query);
-    if (ref && this.chapter(id, ref.book, ref.chapter)) return { type: 'ref', ref };
-
-    const words = normalize(query).split(/\s+/).filter(Boolean);
-    if (!words.length) return { type: 'text', total: 0, results: [] };
-    bible.flat ||= bible.books.flatMap((b) => b.chapters.flatMap((c) => c.verses.map((v) => ({
-      book: b.n, name: b.name, chapter: c.n, verse: v.n, text: v.text, norm: normalize(v.text),
-    }))));
-    const results = [];
-    let total = 0;
-    for (const v of bible.flat) {
-      if (!words.every((w) => v.norm.includes(w))) continue;
-      total += 1;
-      if (results.length < limit) {
-        results.push({ book: v.book, chapter: v.chapter, verse: v.verse, reference: `${v.name} ${v.chapter}:${v.verse}`, text: v.text });
-      }
+    const chapter = ref && this.chapter(id, ref.book, ref.chapter);
+    if (chapter) {
+      const reference = ref.verseStart ? formatReference(ref, chapter.name) : `${chapter.name} ${chapter.chapter}`;
+      return { type: 'ref', ref, reference };
     }
-    return { type: 'text', total, results };
+
+    const started = performance.now();
+    const prepared = prepareQuery(query);
+    this.index(id);
+    // La versión elegida primero; después las demás, por nombre.
+    const order = [id, ...this.list().map((v) => v.id).filter((other) => other !== id)]
+      .map((vid) => ({ meta: this.#versions.get(vid), search: this.#parsed.get(vid)?.search, bible: this.#parsed.get(vid) }))
+      .filter((v) => v.search);
+    const found = order.map((v) => v.search.index.find(prepared));
+    const seen = new Set();
+
+    const levels = LEVELS.map(([level, label]) => {
+      const groups = new Map(); // versículo -> [{ versión, posición }], la versión elegida primero
+      order.forEach((version, vi) => {
+        for (const doc of found[vi][level]) {
+          const key = version.search.keys[doc];
+          if (seen.has(key)) continue;
+          const hits = groups.get(key);
+          if (hits) hits.push({ version, doc }); else groups.set(key, [{ version, doc }]);
+        }
+      });
+      const results = [];
+      for (const [key, hits] of groups) {
+        seen.add(key);
+        if (results.length >= limit) continue;
+        const [{ version, doc }] = hits;
+        const book = Math.floor(key / 1_000_000);
+        const text = version.search.texts[doc];
+        results.push({
+          book,
+          chapter: Math.floor(key / 1000) % 1000,
+          verse: key % 1000,
+          reference: `${version.bible.byNumber.get(book).name} ${Math.floor(key / 1000) % 1000}:${key % 1000}`,
+          versionId: version.meta.id,
+          version: version.meta.abbr || version.meta.name,
+          text,
+          marks: findMarks(text, prepared, level),
+          others: hits.slice(1).map((hit) => hit.version.meta.abbr || hit.version.meta.name),
+        });
+      }
+      return { id: level, label, total: groups.size, results };
+    }).filter((level) => level.total);
+
+    return {
+      type: 'text',
+      levels,
+      total: levels.reduce((sum, level) => sum + level.total, 0),
+      // En cuántas versiones se buscó, de cuántas hay: las demás aún se están preparando.
+      searched: order.length,
+      versions: this.#versions.size,
+      ms: Math.round((performance.now() - started) * 10) / 10,
+    };
   }
 }

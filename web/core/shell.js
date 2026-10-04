@@ -1,15 +1,18 @@
-import { action, connect, subscribe } from './api.js';
+import { action, connect, state, subscribe } from './api.js';
 import { mountConnectionBar } from './connection.js';
-import { h, confirmBeforeClose, guard } from './dom.js';
+import { h, confirmBeforeClose, go, guard } from './dom.js';
 import { icon } from './icons.js';
+import { joinNames, missingFor, toolsOf } from './needs.js';
 import { prefs } from './prefs.js';
 
 // Estructura de la app: barra de módulos, espacio de trabajo y panel "Al aire".
 // La usan todas las funciones de control; cada una le pasa los módulos que le corresponden.
 //
-// Un módulo es { id, name, icon, place?, soon?, mount(el, ctx) }:
+// Un módulo es { id, name, icon, place?, soon?, needs?, mount(el, ctx) }:
 //   place   'bottom' lo coloca al pie de la barra (ajustes)
 //   soon    módulo previsto pero aún no construido: se muestra atenuado y no se puede abrir
+//   needs   programas del equipo principal que necesita (ver core/needs.js). Si falta alguno,
+//           al abrir el módulo se avisa de qué no funcionará y se ofrece instalarlo
 //   mount   dibuja el módulo en el y puede devolver { onShow(), keys(evento) -> true si lo atendió }
 // ctx (lo que recibe cada módulo): { role, isLocal, canEdit, go(id), setPreview(elemento | null) }
 export function createShell({ role, isLocal, modules, extras = [], createDock }) {
@@ -18,7 +21,8 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
   const mounted = new Map(); // id -> { el, api }
   let current = null;
 
-  const work = h('main', { class: 'work' });
+  const notice = h('div', { class: 'ws-notice', role: 'status', hidden: true });
+  const work = h('main', { class: 'work' }, notice);
   const dockEl = h('aside', { class: 'dock', 'aria-label': 'Al aire' });
   const rail = h('nav', { class: 'rail', 'aria-label': 'Módulos' });
   const tabbar = h('nav', { class: 'tabbar', 'aria-label': 'Módulos' });
@@ -52,6 +56,30 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
   tabbar.append(...usable.map((m) => h('button', { dataset: { id: m.id }, onclick: () => show(m.id) }, icon(m.icon, 22), h('span', {}, m.name))));
   if (usable.length < 2) tabbar.hidden = true;
 
+  // ---- Aviso de lo que le falta al módulo abierto ----
+  // Nada impide usar el módulo: solo se dice qué parte no funcionará y cómo resolverlo.
+  const dismissed = new Set(); // módulos cuyo aviso se cerró en esta visita
+  function renderNotice() {
+    const module = usable.find((m) => m.id === current?.id);
+    const missing = module ? missingFor(module, state.tools?.list || []) : [];
+    if (!missing.length || dismissed.has(module.id)) {
+      notice.hidden = true;
+      return;
+    }
+    const tools = toolsOf(missing);
+    notice.replaceChildren(...[
+      icon('warning', 18),
+      h('p', {}, h('strong', {}, `${tools.length > 1 ? 'Faltan' : 'Falta'} ${joinNames(tools.map((t) => t.name))}. `),
+        `Aquí no se podrá ${joinNames(missing.map((m) => m.feature))}.`),
+      ...tools.filter((t) => t.installable && isLocal).map((t) => h('button', { class: 'btn', disabled: t.installing, onclick: guard(() => action('tools.install', { id: t.id })) },
+        icon('download-simple', 15), t.installing ? `Instalando ${t.name}…` : `Instalar ${t.name}`)),
+      h('button', { class: 'btn', onclick: () => go('/requisitos') }, 'Cómo instalarlo'),
+      h('button', { class: 'icon-btn sm', 'aria-label': 'Cerrar el aviso', onclick: () => { dismissed.add(module.id); renderNotice(); } }, icon('x', 14)),
+    ]);
+    notice.hidden = false;
+  }
+  subscribe('tools', renderNotice);
+
   function show(id) {
     const module = usable.find((m) => m.id === id) || usable[0];
     if (current?.id === module.id) return;
@@ -68,6 +96,7 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
     dock.setPreview(null);
     history.replaceState(null, '', `#${module.id}`);
     prefs.set(`modulo.${role}`, module.id);
+    renderNotice();
     current.api.onShow?.();
   }
 

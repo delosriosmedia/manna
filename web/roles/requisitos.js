@@ -2,16 +2,20 @@ import { action, connect, session, subscribe } from '../core/api.js';
 import { $, h, guard, toast } from '../core/dom.js';
 import { icon } from '../core/icons.js';
 import { jobRow } from '../core/jobs.js';
+import { joinNames, missingFor } from '../core/needs.js';
+import { MODULES } from '../modules/registry.js';
 
-// Revisión del equipo: lo que el equipo principal necesita para que todo funcione, qué falta
-// y cómo instalarlo. Manna se abre aquí en vez de en el control mientras falte algo.
-// La lista la publica el servidor (server/core/tools.js) y se actualiza sola.
+// Revisión del equipo: los programas que el equipo principal necesita, cuáles faltan, qué
+// módulos se ven afectados y cómo instalarlos. Manna se abre aquí en vez de en el control
+// mientras falte algo, pero nada bloquea: desde aquí se continúa a la app.
+// La lista de programas la publica el servidor (server/core/tools.js) y se actualiza sola;
+// lo que necesita cada módulo lo declara el propio módulo (`needs`).
 const me = await session.get();
 // En el equipo principal no hace falta PIN: se toma el control para poder instalar y comprobar.
 if (me.isLocal && me.role !== 'control') await session.open('control').catch(() => {});
 const canAct = me.isLocal || me.role === 'control';
 
-const LEVELS = { required: 'Imprescindible', feature: 'Necesario para algunas funciones', optional: 'Opcional' };
+const LEVELS = { feature: 'Necesario para algunas funciones', optional: 'Opcional' };
 const cards = new Map(); // id -> { el, update(tool), job(job) }
 let jobs = [];
 
@@ -76,13 +80,29 @@ function createCard(id) {
 const list = $('#list');
 const lead = $('#lead');
 const footer = $('#footer');
+const modules = $('#modules');
+
+// Qué funcionará en este equipo, módulo por módulo.
+function renderModules(tools) {
+  modules.replaceChildren(h('h2', {}, 'Qué funcionará en este equipo'), ...MODULES.map((module) => {
+    const missing = missingFor(module, tools);
+    const name = module.id === 'ajustes' ? 'Proyector de este equipo' : module.name;
+    const detail = missing.length
+      ? missing.map((m) => `No se podrá ${m.feature}: falta ${joinNames(m.tools.map((t) => t.name))}.`).join(' ')
+      : module.needs ? 'Completo.' : 'Completo. No necesita ningún programa.';
+    return h('div', { class: `mod${missing.length ? ' limited' : ''}`, dataset: { id: module.id } },
+      icon(missing.length ? 'warning-circle' : 'check-circle', 18),
+      h('p', {}, h('strong', {}, name), module.soon && h('small', {}, 'Próximamente'), h('span', {}, detail)));
+  }));
+}
 
 function paintJobs() {
   for (const [id, card] of cards) card.job(jobs.filter((j) => j.owner === 'tools' && j.ref === id).at(-1) || null);
 }
 
-subscribe('tools', ({ list: tools, blocked, pending, checked }) => {
+subscribe('tools', ({ list: tools, pending, checked }) => {
   if (!checked) return;
+  renderModules(tools);
   for (const tool of tools) {
     if (!cards.has(tool.id)) {
       cards.set(tool.id, createCard(tool.id));
@@ -92,18 +112,17 @@ subscribe('tools', ({ list: tools, blocked, pending, checked }) => {
   }
   paintJobs();
 
-  lead.textContent = blocked ? 'A este equipo le falta un programa imprescindible. Manna no puede abrirse hasta instalarlo.'
-    : pending ? 'Manna puede abrirse, pero algunas funciones no estarán disponibles hasta instalar lo que falta.'
-      : 'Este equipo tiene todo lo necesario.';
+  lead.textContent = pending
+    ? 'Manna funciona. A este equipo le falta algún programa: abajo dice qué no se podrá hacer hasta instalarlo.'
+    : 'Este equipo tiene todo lo necesario.';
   const recheck = canAct && h('button', { class: 'btn big', onclick: guard(async () => {
     await action('tools.scan');
     toast('Equipo revisado');
   }) }, icon('arrow-clockwise', 16), 'Volver a comprobar');
-  const open = !blocked && h('a', { class: `btn big${pending ? '' : ' primary'}`, href: '/control' }, pending ? 'Continuar sin instalarlo' : 'Abrir Manna');
   footer.replaceChildren(...[
-    h('div', { class: 'row' }, ...[open, recheck].filter(Boolean)),
-    pending > 0 && !blocked && h('p', {}, 'Esta revisión aparecerá cada vez que se abra Manna hasta que el equipo esté completo. También está en Ajustes.'),
-    !canAct && h('p', {}, 'Esto se resuelve en el equipo principal, el que tiene conectado el proyector.'),
+    h('div', { class: 'row' }, ...[h('a', { class: 'btn big primary', href: '/control' }, 'Abrir Manna'), recheck].filter(Boolean)),
+    pending > 0 && h('p', {}, 'Esta revisión aparecerá cada vez que se abra Manna hasta que el equipo esté completo. También está en Ajustes, y cada módulo avisa de lo que le falta.'),
+    !canAct && h('p', {}, 'Los programas se instalan en el equipo principal, el que tiene conectado el proyector.'),
   ].filter(Boolean));
 });
 

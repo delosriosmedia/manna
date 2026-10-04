@@ -8,10 +8,11 @@ import { installTool } from './install.js';
 // Programas del equipo principal que Manna usa pero no incluye: el navegador de la proyección,
 // ffmpeg, yt-dlp y PowerPoint. Este es el único lugar que los busca, los instala y los ejecuta.
 //
-// Cada uno tiene un nivel:
-//   required  sin él Manna no puede trabajar: no se entra a la app hasta que esté
-//   feature   lo necesita alguna función: se avisa al abrir, y se puede continuar sin él
+// Ninguno impide abrir Manna (decisión del dueño): si falta alguno, se avisa de qué dejará de
+// funcionar y se ayuda a instalarlo. Cada uno tiene un nivel:
+//   feature   lo necesita alguna función: Manna se abre en la revisión del equipo mientras falte
 //   optional  recomendado: solo se informa
+// Qué módulo necesita cada programa lo declara el propio módulo (`needs`, en web/modules/).
 //
 // Manna puede descargar ffmpeg y yt-dlp por su cuenta, a data/herramientas/, sin tocar el sistema.
 
@@ -136,7 +137,7 @@ const CATALOG = [
   {
     id: 'navegador',
     name: WIN ? 'Google Chrome o Microsoft Edge' : 'Google Chrome',
-    level: 'required',
+    level: 'feature',
     purpose: 'Abre la ventana de proyección a pantalla completa en el proyector.',
     link: 'https://www.google.com/chrome/',
     manual: {
@@ -201,7 +202,7 @@ export function setupTools(app) {
   const found = new Map();      // id -> { files: { binario: ruta }, version, detail, own }
   const installing = new Set();
 
-  store.register('tools', { list: [], blocked: false, pending: 0, checked: false });
+  store.register('tools', { list: [], pending: 0, checked: false });
 
   async function detect(tool) {
     if (tool.find) {
@@ -240,12 +241,8 @@ export function setupTools(app) {
         installing: installing.has(tool.id),
       };
     });
-    store.set('tools', {
-      list,
-      blocked: list.some((t) => t.level === 'required' && !t.found),
-      pending: list.filter((t) => t.level === 'feature' && !t.found).length,
-      checked: true,
-    });
+    // pending: cuántos programas no opcionales faltan.
+    store.set('tools', { list, pending: list.filter((t) => t.level === 'feature' && !t.found).length, checked: true });
   }
 
   async function scan() {
@@ -278,9 +275,6 @@ export function setupTools(app) {
     }
   }
 
-  // Mientras falte algo imprescindible, toda página lleva a la revisión del equipo.
-  app.gate(({ path: page }) => (store.get('tools').blocked && page !== '/requisitos' ? '/requisitos' : null));
-
   app.action('tools.scan', { permission: 'system.admin' }, async () => { await scan(); });
 
   app.action('tools.install', { permission: 'system.admin' }, ({ id }, ctx) => {
@@ -294,11 +288,9 @@ export function setupTools(app) {
     has: (id) => found.has(id),
     // Ruta del ejecutable, o null. binary: cuál, si el programa trae varios (ffmpeg / ffprobe).
     path: (id, binary = id) => found.get(id)?.files[binary] || null,
-    // Con qué página debe abrirse Manna en el equipo principal.
-    entry() {
-      const { blocked, pending } = store.get('tools');
-      return blocked || pending ? '/requisitos' : '/control';
-    },
+    // Con qué página debe abrirse Manna en el equipo principal: si falta algún programa, con la
+    // revisión del equipo, que avisa de lo que no funcionará y deja continuar.
+    entry: () => (store.get('tools').pending ? '/requisitos' : '/control'),
     // Lanza un programa externo. Siempre con lista de argumentos: nunca se arma una orden con texto.
     spawn(id, args, { binary = id, ...options } = {}) {
       const file = found.get(id)?.files[binary];

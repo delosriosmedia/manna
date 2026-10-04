@@ -1,10 +1,12 @@
 // Pruebas de extremo a extremo en un Chrome real (sin ventana). Cubren lo que no alcanzan
 // las pruebas automáticas ni un navegador integrado:
 //
-//   0. La revisión del equipo: avisa de un programa que falta, lo instala mostrando el avance
-//      y deja pasar a la app. La descarga sale de un servidor de mentira en este mismo equipo.
-//   1. La interfaz: Biblia, orden del culto (con nombres propios), mandos en vivo que van a la
-//      par en dos pantallas, ajustes y la función "Control del orden".
+//   0. La revisión del equipo: avisa de los programas que faltan y de qué módulos afecta, instala
+//      uno mostrando el avance y no bloquea la app; dentro, el módulo afectado también avisa.
+//      La descarga sale de un servidor de mentira en este mismo equipo.
+//   1. La interfaz: Biblia (búsqueda por niveles en varias versiones), orden del culto (con
+//      nombres propios), mandos en vivo que van a la par en dos pantallas, ajustes y la función
+//      "Control del orden".
 //   2. Al entrar por la dirección numérica, la página pasa sola a la dirección con nombre.
 //   3. El navegador pide confirmación al salir de la pestaña de control.
 //   4. Con un dispositivo conectado por el nombre, el equipo principal "cambia de IP" y el
@@ -13,7 +15,8 @@
 // Uso:  node scripts/probar-chrome.mjs          (unos 3 minutos)
 //       node scripts/probar-chrome.mjs rapido   (pasos 0 y 1, menos de un minuto)
 // Necesita Node 22 o superior (WebSocket integrado) y Chrome o Edge. No toca los datos reales:
-// usa los puertos 8123 y 8125, el nombre "manna-prueba.local" y una carpeta de datos temporal.
+// usa los puertos 8123 y 8125, el nombre "manna-prueba.local" y carpetas temporales de datos y de
+// biblias (la Reina-Valera 1909 del repositorio y una versión de prueba de dos versículos).
 import { spawn } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -30,6 +33,15 @@ const NAME = 'manna-prueba';
 const QUICK = process.argv.includes('rapido');
 const VERSION = 'reina-valera-1909';
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-chrome-'));
+
+// Biblias de la prueba: siempre las mismas, haya las que haya en la carpeta Biblias/ de este equipo.
+const bibles = path.join(tmp, 'biblias');
+fs.mkdirSync(bibles);
+fs.copyFileSync(path.join(ROOT, 'Biblias', 'Reina Valera 1909.xmm'), path.join(bibles, 'Reina Valera 1909.xmm'));
+fs.writeFileSync(path.join(bibles, 'Versión de prueba.xmm'), `<bible>
+  <b n="Salmos"><c n="23"><v n="1">El Señor es mi pastor; nada me falta.</v></c></b>
+  <b n="Juan"><c n="3"><v n="16">Porque tanto amó Dios al mundo, que dio a su Hijo único.</v></c></b>
+</bible>`);
 
 const ip = (await lanInterfaces())[0]?.address;
 if (!ip && !QUICK) {
@@ -52,7 +64,7 @@ for (const port of [PORT, 8125]) {
 
 // ---- Servidor de prueba ----
 function startServer(host, extra = {}) {
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_DATA: path.join(tmp, 'data'), PORT: String(PORT), ...extra };
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), ...extra };
   if (host) env.MANNA_HOST = host;
   return spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env });
 }
@@ -83,8 +95,9 @@ const click = (js) => run(`${js}.click()`);
 const text = (selector) => run(`return document.querySelector(${JSON.stringify(selector)})?.textContent`);
 
 // ================= 0. Revisión del equipo =================
-// Un Manna aparte al que "le falta" yt-dlp, y un sitio de descargas de mentira que entrega despacio
-// un programa mínimo, para ver el avance. En Windows no se ejecuta: el programa de mentira es de consola Unix.
+// Un Manna aparte al que "le faltan" yt-dlp y el navegador, y un sitio de descargas de mentira que
+// entrega despacio un programa mínimo, para ver el avance. En Windows no se ejecuta: el programa
+// de mentira es de consola Unix.
 async function reviewSection() {
   console.log('\n0. Revisión del equipo');
   const program = Buffer.from(`#!/bin/sh\necho 2026.01.01\n${'#'.repeat(60_000)}\n`);
@@ -101,7 +114,7 @@ async function reviewSection() {
   await new Promise((resolve) => downloads.listen(0, '127.0.0.1', resolve));
   const from = `http://127.0.0.1:${downloads.address().port}`;
   const review = startServer(null, {
-    PORT: '8125', MANNA_NAME: 'manna-revision', MANNA_DATA: path.join(tmp, 'revision'), MANNA_FALTA: 'yt-dlp',
+    PORT: '8125', MANNA_NAME: 'manna-revision', MANNA_DATA: path.join(tmp, 'revision'), MANNA_FALTA: 'yt-dlp,navegador',
     MANNA_DESCARGAS: JSON.stringify({ 'yt-dlp': { url: `${from}/yt-dlp-prueba`, sums: `${from}/SUMAS`, file: 'yt-dlp', size: '60 KB' } }),
   });
   try {
@@ -109,9 +122,11 @@ async function reviewSection() {
     await chrome.send('Page.navigate', { url: 'http://localhost:8125/requisitos' });
     await sleep(2000);
     const card = `document.querySelector('.req[data-id="yt-dlp"]')`;
-    check('la revisión lista los cuatro programas y marca el que falta', await run(`return document.querySelectorAll('.req').length === 4 && ${card}.classList.contains('missing') && document.querySelectorAll('.req.missing').length >= 1`));
+    const mod = (id) => `document.querySelector('#modules .mod[data-id=${id}]')`;
+    check('la revisión lista los cuatro programas y marca los que faltan', await run(`return document.querySelectorAll('.req').length === 4 && ${card}.classList.contains('missing') && document.querySelector('.req[data-id=navegador]').classList.contains('missing')`));
     check('explica para qué sirve y cómo instalarlo a mano', await run(`return ${card}.textContent.includes('YouTube') && Boolean(${card}.querySelector('details code'))`));
-    check('deja continuar sin él, avisando', await run(`return document.querySelector('#footer a').textContent === 'Continuar sin instalarlo' && document.querySelector('#lead').textContent.includes('algunas funciones')`));
+    check('dice qué módulos funcionarán completos y cuáles no', await run(`return ${mod('biblia')}.textContent.includes('Completo') && !${mod('biblia')}.classList.contains('limited') && ${mod('medios')}.classList.contains('limited') && ${mod('medios')}.textContent.includes('YouTube: falta yt-dlp') && ${mod('ajustes')}.textContent.includes('falta Google Chrome')`));
+    check('no bloquea: Manna se puede abrir aunque falten programas', await run(`const a = document.querySelector('#footer a'); return a.textContent === 'Abrir Manna' && a.getAttribute('href') === '/control' && document.querySelector('#lead').textContent.startsWith('Manna funciona')`));
     await click(`[...${card}.querySelectorAll('button')].find(b => b.textContent.includes('Instalar por mí'))`);
     await sleep(1300);
     const during = JSON.parse(await run(`const j = ${card}.querySelector('.job'); return JSON.stringify({ shown: Boolean(j), now: Number(j?.querySelector('.bar')?.getAttribute('aria-valuenow')), text: j?.querySelector('small')?.textContent, busy: ${card}.querySelector('.btn.primary')?.disabled })`));
@@ -123,15 +138,21 @@ async function reviewSection() {
     }
     check('al terminar, el programa queda instalado y reconocido', installed && await run(`return ${card}.textContent.includes('Instalado por Manna') && ${card}.textContent.includes('versión 2026.01.01')`));
     check('el programa quedó en la carpeta de Manna, sin tocar el sistema', fs.existsSync(path.join(tmp, 'revision', 'herramientas', 'yt-dlp')) && fs.readdirSync(path.join(tmp, 'revision', 'herramientas')).length === 1);
-    const pending = await run(`return (await (await fetch('/api/state')).json()).tools.pending`);
-    if (pending === 0) {
-      check('con todo instalado ofrece abrir Manna', await run(`return document.querySelector('#footer a').textContent === 'Abrir Manna' && document.querySelector('#lead').textContent.includes('todo lo necesario')`));
-    } else {
-      console.log('  · a este equipo le falta además otro programa: no se comprueba el mensaje de "todo listo"');
-    }
+    check('y el módulo afectado deja de avisar por ese programa', await run(`return !${mod('medios')}.textContent.includes('yt-dlp')`));
     await click(`document.querySelector('#footer a')`);
     await sleep(2000);
-    check('y de ahí se pasa al control', (await chrome.evaluate('location.pathname')) === '/control' && await run(`return Boolean(document.querySelector('.rail'))`));
+    check('de ahí se pasa al control, aunque siga faltando el navegador', (await chrome.evaluate('location.pathname')) === '/control' && await run(`return Boolean(document.querySelector('.rail'))`));
+    const notice = `document.querySelector('.ws-notice')`;
+    const goModule = async (id) => { await click(`document.querySelector('.rail-item[data-id=${id}]')`); await sleep(500); };
+    await goModule('ajustes');
+    check('dentro de la app, el módulo afectado avisa de lo que no podrá hacer y cómo resolverlo', await run(`return !${notice}.hidden && ${notice}.textContent.includes('Falta Google Chrome') && ${notice}.textContent.includes('segunda pantalla') && [...${notice}.querySelectorAll('button')].some(b => b.textContent === 'Cómo instalarlo')`));
+    await goModule('biblia');
+    check('un módulo al que no le falta nada no muestra aviso', await run(`return ${notice}.hidden`));
+    await goModule('ajustes');
+    await click(`${notice}.querySelector('.icon-btn')`);
+    await goModule('biblia');
+    await goModule('ajustes');
+    check('el aviso se puede cerrar y no vuelve a salir en esa visita', await run(`return ${notice}.hidden`));
     check('sin errores de JavaScript en la revisión', !chrome.events.some((e) => e.method === 'Runtime.exceptionThrown'));
   } finally {
     await stopServer(review);
@@ -169,10 +190,45 @@ try {
   await click(`[...document.querySelectorAll('.abar .btn')].find(b => b.textContent.includes('Añadir'))`);
   await sleep(600);
   check('"Añadir al orden" agrega el pasaje', (await live()).order.includes('Juan 3:19'));
-  await type('.ws[data-module=biblia] .search input', 'pastor');
+
+  console.log('\n1. Interfaz · Búsqueda en la Biblia');
+  const box = `document.querySelector('.ws[data-module=biblia] .search input')`;
+  const pop = `document.querySelector('.search-pop')`;
+  // Escribir sin pulsar Enter: la búsqueda sale sola tras una pausa.
+  const write = async (value) => { await run(`const i = ${box}; i.focus(); i.value = ${JSON.stringify(value)}; i.dispatchEvent(new Event('input'));`); await sleep(800); };
+  const rows = () => run(`return JSON.stringify([...${pop}.querySelectorAll('.search-item')].map(r => ({ ref: r.querySelector('strong')?.firstChild.textContent, version: r.querySelector('em')?.textContent || '', marks: [...r.querySelectorAll('mark')].map(m => m.textContent), level: r.dataset.level, active: r.classList.contains('active') })))`).then(JSON.parse);
+  const levels = () => run(`return JSON.stringify([...${pop}.querySelectorAll('.search-level span')].map(s => s.textContent))`).then(JSON.parse);
+  for (let i = 0; i < 20 && (await run(`const b = (await (await fetch('/api/state')).json()).bible; return b.indexed < b.versions.length`)); i += 1) await sleep(300);
+  await write('de tal manera amo');
+  let found = await rows();
+  check('busca mientras se escribe, sin tildes, y resalta la frase', await run(`return !${pop}.hidden`) && found[0]?.ref === 'Juan 3:16' && found[0].marks.join() === 'de tal manera amó' && (await levels())[0] === 'Frase exacta');
+  await write('amor');
+  check('ordena por niveles: frase exacta y después parecidas', JSON.stringify(await levels()) === JSON.stringify(['Frase exacta', 'Parecidas']) && (await rows()).some((r) => r.level === 'similar' && r.marks.some((m) => /^(amó|caridad)$/i.test(m))));
+  check('muestra el total y ofrece ver más', await run(`return /^\\d+ resultados en 2 versiones/.test(${pop}.querySelector('.search-count').textContent) && ${pop}.querySelectorAll('.search-item').length === 80`));
+  await click(`${pop}.querySelector('.search-more')`);
+  await sleep(700);
+  check('"ver más" amplía la lista', (await rows()).length > 80);
+  await write('tanto amo dios');
+  found = await rows();
+  check('encuentra la frase en otra versión y dice en cuál', found.filter((r) => r.level === 'exact').length === 1 && found[0].ref === 'Juan 3:16' && found[0].version === 'Versión de prueba' && found[0].marks.join() === 'tanto amó Dios');
+  await press('ArrowDown');
+  check('las flechas recorren los resultados', (await rows())[0].active);
+  await press('Enter');
+  await sleep(700);
+  check('Enter va al versículo, en la versión donde coincidió', await run(`return ${pop}.hidden && document.querySelector('.ws[data-module=biblia] select').value === 'version-de-prueba'`) && (await text('.sel-ref')) === 'Juan 3:16');
+  await press('Enter');
+  check('y un segundo Enter lo proyecta', await run(`const s = await (await fetch('/api/state')).json(); return s.projection.item.reference === 'Juan 3:16' && s.projection.item.verses[0].text.startsWith('Porque tanto amó')`));
+  await run(`const s = document.querySelector('.ws[data-module=biblia] select'); s.value = ${JSON.stringify(VERSION)}; s.dispatchEvent(new Event('change'));`);
+  await sleep(700);
+  await write('jn 3 18');
+  check('una cita ofrece ir al pasaje', (await run(`return ${pop}.querySelector('.search-item.go')?.textContent`))?.includes('Ir a Juan 3:18'));
+  await write('zzzz');
+  check('sin resultados lo dice', (await run(`return ${pop}.textContent`)).includes('Sin resultados para "zzzz"'));
+  await click(`${pop}.querySelector('.icon-btn')`);
+  await type('.ws[data-module=biblia] .search input', 'jn 3 18');
   await sleep(900);
-  check('la búsqueda por palabra muestra resultados', await run(`return document.querySelectorAll('.search-pop .search-item').length > 5`));
-  await click(`document.querySelector('.search-pop .icon-btn')`);
+  await press('Enter');
+  check('queda como estaba para seguir: Juan 3:18 al aire', (await live()).ref === 'Juan 3:18');
   await press('b');
   check('B pone la pantalla en negro', (await live()).mode === 'black');
   await press('b');

@@ -35,6 +35,15 @@
     .req-fix ol { margin: 4px 0 0; padding-left: 20px; display: grid; gap: 6px; }
     .command { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
     .command code { flex: 1; min-width: 0; padding: 8px 10px; background: var(--canvas); border: 1px solid var(--line); border-radius: var(--r-sm); font: 500 12px var(--mono); overflow-x: auto; white-space: nowrap; user-select: all; }
+    #modules { margin: 0 0 20px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-lg); display: grid; gap: 10px; }
+    #modules:empty { display: none; }
+    #modules h2 { margin-bottom: 2px; }
+    .mod { display: flex; align-items: flex-start; gap: 10px; color: var(--ok); }
+    .mod.limited { color: var(--accent); }
+    .mod p { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; color: var(--ink-3); }
+    .mod strong { color: var(--ink); font-weight: 600; }
+    .mod small { font-size: 11px; border: 1px solid var(--line-2); border-radius: 99px; padding: 0 7px; }
+    .mod span { flex-basis: 100%; }
     footer { margin-top: 20px; display: grid; gap: 10px; }
     footer .row { flex-wrap: wrap; }
     footer p { color: var(--ink-3); }
@@ -48,6 +57,7 @@
       <h1>Revisión del equipo</h1>
     </header>
     <p class="lead" id="lead">Comprobando lo que este equipo necesita…</p>
+    <section id="modules" aria-label="Qué funcionará en este equipo"></section>
     <div id="list"></div>
     <footer id="footer"></footer>
   </main>

@@ -14,7 +14,8 @@ El **servidor es la única fuente de verdad**. Los dispositivos son vistas: reci
 - **Sesiones** (`server/core/sessions.js`): una cookie por navegador con el rol. PIN para roles con `requiresPin`, salvo desde localhost.
 - **Almacenamiento** (`app.storage('nombre', porDefecto)`): un JSON por módulo en `data/`.
 - **Tareas** (`app.jobs`, `server/core/jobs.js`): lo que tarda (convertir, descargar) corre en segundo plano y publica su avance y el tiempo que falta en el espacio `jobs`. Nunca se hace esperar a una acción por un trabajo largo.
-- **Programas externos** (`app.tools`, `server/core/tools.js`): única puerta a ffmpeg, yt-dlp, PowerPoint y el navegador: `tools.has(id)`, `tools.path(id)`, `tools.spawn(id, args)`. Publica el espacio `tools` y, mientras falte uno imprescindible, desvía toda página a `/requisitos`.
+- **Programas externos** (`app.tools`, `server/core/tools.js`): única puerta a ffmpeg, yt-dlp, PowerPoint y el navegador: `tools.has(id)`, `tools.path(id)`, `tools.spawn(id, args)`. Publica el espacio `tools`. **Ninguno bloquea**: si falta, lo que falla es la función que lo usa, con un mensaje que dice cómo instalarlo. Qué necesita cada módulo lo declara él mismo en la web (`needs`, ver `web/core/needs.js`); con eso la revisión del equipo y el propio módulo avisan.
+- **Búsqueda de texto** (`server/core/search.js`): índice de palabras y búsqueda por niveles (frase exacta, todas las palabras, parecidas) con marcas de lo encontrado. La usa la Biblia (un índice por versión, `bible.indexed` dice cuántas están listas) y la usará el himnario.
 - **Reloj de reproducción** (`server/core/playback.js`): el servidor guarda `{ playing, position, at, duration }`; cada pantalla calcula la posición con la hora del servidor (`serverNow()` en `web/core/api.js`).
 
 ## Módulos
@@ -57,7 +58,7 @@ Todo lo que se proyecta es de un **tipo de contenido** (`kind`). Hoy existen `ve
 ## Arranque y apagado
 
 - El usuario abre Manna con un icono que ejecuta `node server/index.js --segundo-plano`. No hay ventana: la interfaz es el control en el navegador.
-- Antes de abrir el navegador, `app.tools.scan()` revisa los programas del equipo. Si falta alguno que no sea opcional, Manna se abre en `/requisitos` (revisión del equipo) en vez de en `/control`. Si falta uno imprescindible, además toda página se desvía ahí.
+- Antes de abrir el navegador, `app.tools.scan()` revisa los programas del equipo. Si falta alguno que no sea opcional, Manna se abre en `/requisitos` (revisión del equipo) en vez de en `/control`. Es solo un aviso: ninguna página se bloquea.
 - Pulsar el icono con Manna ya abierto no crea otra copia: `server/app.js` reconoce su propia instalación por `ajustes.json → id` (el mismo que devuelve `GET /api/ping`) y solo abre el control.
 - Se apaga con la acción `system.shutdown` (botón "Apagar"), que exige estar en el equipo principal (`ctx.isLocal`) y llama a `app.shutdown()`. Cerrar la pestaña del control no apaga nada.
 - Lo que un módulo deba liberar al apagar se registra con `app.onClose()`.

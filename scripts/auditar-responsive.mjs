@@ -9,6 +9,7 @@
 //   - en pantallas táctiles, los botones tienen tamaño para el dedo (40 px o más)
 //   - los títulos largos del orden del culto se leen (no se cortan en una sola línea)
 //   - los mandos en vivo de lo que está al aire caben, en el panel y en el orden
+//   - los resultados de la búsqueda y el aviso de un módulo al que le falta un programa caben
 //
 // Uso:  node scripts/auditar-responsive.mjs             resumen en la terminal
 //       node scripts/auditar-responsive.mjs capturas    además guarda una imagen de cada pantalla
@@ -43,9 +44,12 @@ const DEVICES = [
 // testcard: se revisa con la imagen de prueba al aire, que es un elemento con mandos en vivo.
 const SCREENS = [
   { name: 'Biblia', url: '/control#biblia', primary: '.abar .btn.primary', content: '.col-verses' },
+  { name: 'Biblia: búsqueda', url: '/control#biblia', inside: '.search-pop', settle: 1200,
+    prepare: `(() => { const i = document.querySelector('.ws[data-module=biblia] .search input'); i.focus(); i.value = 'amor'; i.dispatchEvent(new Event('input')); })()` },
   { name: 'Biblia: libros', url: '/control#biblia', narrowOnly: true, prepare: `document.querySelector('.crumbs button').click()`, primary: '.abar .btn.primary', content: '.col-books' },
   { name: 'Orden del culto', url: '/control#orden', content: '.olist', longTitles: true },
-  { name: 'Ajustes', url: '/control#ajustes', content: '.settings' },
+  // El equipo de la auditoría "no tiene" navegador para la proyección: Ajustes lleva su aviso.
+  { name: 'Ajustes, con aviso', url: '/control#ajustes', content: '.settings', inside: '.ws-notice' },
   { name: 'Al aire desplegado', url: '/control#orden', narrowOnly: true, prepare: `document.querySelector('.dock-mini-main').click()`, sheet: true },
   { name: 'Control del orden', url: '/orden', content: '.olist', longTitles: true },
   { name: 'Orden con mandos en vivo', url: '/control#orden', testcard: true, controls: '.odetail .live-controls' },
@@ -89,6 +93,7 @@ const MEASURE = (screen, touch) => `(() => {
   ${screen.primary ? `out.accion = inView(q(${JSON.stringify(screen.primary)}));` : ''}
   ${screen.content ? `{ const c = [...document.querySelectorAll(${JSON.stringify(screen.content)})].find(shown); out.espacioContenido = c ? Math.round(Math.min(box(c).bottom, vh) - Math.max(box(c).top, 0)) : 0; }` : ''}
   ${screen.longTitles ? `{ const t = [...document.querySelectorAll('.orow .item-text strong')].find((e) => e.textContent.length > 60); out.tituloLargo = Boolean(t) && t.scrollHeight <= t.clientHeight + 1; }` : ''}
+  ${screen.inside ? `{ const e = q(${JSON.stringify(screen.inside)}); const r = box(e); out.dentro = shown(e) && r.left >= -1 && r.right <= vw + 1 && r.top >= -1 && r.bottom <= vh + 1 && [...e.querySelectorAll('button')].every((b) => !shown(b) || (box(b).left >= r.left - 1 && box(b).right <= r.right + 1)); }` : ''}
   ${screen.controls ? `{ const c = q(${JSON.stringify(screen.controls)}); const r = box(c); out.mandos = shown(c) && r.left >= -1 && r.right <= vw + 1 && [...c.querySelectorAll('button')].every((b) => { const x = box(b); return shown(b) && x.left >= r.left - 1 && x.right <= r.right + 1; }); }` : ''}
   return out;
 })()`;
@@ -104,12 +109,12 @@ async function ready(screen) {
   await sleep(350);
 }
 
-const LABELS = { sinDesborde: 'sin desborde lateral', navegacion: 'navegación a la vista', alAire: '"Al aire" y mandos a la vista', monitorProporcion: 'monitor sin deformar', accion: 'acción principal a la vista', tituloLargo: 'títulos largos legibles', mandos: 'mandos en vivo completos y sin salirse', dedos: 'botones para el dedo' };
+const LABELS = { sinDesborde: 'sin desborde lateral', navegacion: 'navegación a la vista', alAire: '"Al aire" y mandos a la vista', monitorProporcion: 'monitor sin deformar', accion: 'acción principal a la vista', tituloLargo: 'títulos largos legibles', mandos: 'mandos en vivo completos y sin salirse', dentro: 'el recuadro cabe en la pantalla', dedos: 'botones para el dedo' };
 const MIN_CONTENT = 150;
 
 const server = spawn(process.execPath, ['server/index.js'], {
   cwd: ROOT, stdio: 'ignore',
-  env: { ...process.env, MANNA_NAME: 'manna-auditoria', MANNA_NO_OPEN: '1', MANNA_DATA: path.join(tmp, 'data'), PORT: String(PORT) },
+  env: { ...process.env, MANNA_NAME: 'manna-auditoria', MANNA_NO_OPEN: '1', MANNA_DATA: path.join(tmp, 'data'), PORT: String(PORT), MANNA_FALTA: 'navegador,yt-dlp' },
 });
 const example = seedExample(path.join(tmp, 'data'));
 const showInOrder = (id) => chrome.evaluate(`fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'order.show',payload:{id:${JSON.stringify(id)}}})}).then((r) => r.status)`);
@@ -134,7 +139,7 @@ try {
       const [pathname, hash = ''] = screen.url.split('#');
       await chrome.send('Page.navigate', { url: `${base}${pathname}?t=${Date.now()}${hash ? `#${hash}` : ''}` });
       await ready(screen);
-      if (screen.prepare) { await chrome.evaluate(screen.prepare); await sleep(500); }
+      if (screen.prepare) { await chrome.evaluate(screen.prepare); await sleep(screen.settle || 500); }
       const result = await chrome.evaluate(`JSON.stringify(${MEASURE(screen, device.touch)})`);
       const m = JSON.parse(result || '{}');
       const failures = Object.keys(LABELS).filter((k) => m[k] === false).map((k) => LABELS[k] + (k === 'dedos' ? `: ${m.pequenos.join(', ')}` : ''));

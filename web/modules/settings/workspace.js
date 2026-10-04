@@ -78,4 +78,7 @@ function mount(el, ctx) {
   }
 }
 
-export default { id: 'ajustes', name: 'Ajustes', icon: 'gear-six', place: 'bottom', mount };
+export default {
+  id: 'ajustes', name: 'Ajustes', icon: 'gear-six', place: 'bottom', mount,
+  needs: [{ tools: ['navegador'], feature: 'abrir sola la proyección en la segunda pantalla de este equipo' }],
+};

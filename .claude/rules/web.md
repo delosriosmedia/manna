@@ -21,12 +21,14 @@ paths:
 ## Estructura de la app
 
 - `web/core/shell.js` monta las tres zonas: barra de módulos, espacio de trabajo y panel "Al aire" (`web/modules/projection/dock.js`). También pone los atajos globales (← → B C), el aviso de conexión y la confirmación al cerrar.
-- Un **módulo** es `web/modules/<id>/workspace.js`, que exporta `{ id, name, icon, place?, mount(el, ctx) }`, y una línea en `web/modules/registry.js`.
+- Un **módulo** es `web/modules/<id>/workspace.js`, que exporta `{ id, name, icon, place?, needs?, mount(el, ctx) }`, y una línea en `web/modules/registry.js`.
+  - `needs` lista los programas del equipo principal que necesita: `[{ tools: ['ffmpeg'], feature: 'convertir videos' }]`, donde `feature` completa la frase "no se podrá…". Con eso la barra superior del módulo avisa si falta alguno (`web/core/shell.js`) y la revisión del equipo lo cuenta. Nunca se impide abrir un módulo por esto.
   - `mount` dibuja el módulo dentro de `el`, se suscribe al estado y puede devolver `{ onShow(), keys(evento) }`. `keys` devuelve `true` si atendió la tecla.
   - `ctx`: `{ role, isLocal, canEdit, go(id), setPreview(elemento | null) }`. `setPreview` muestra en el panel lo que se proyectaría.
   - El espacio de trabajo empieza con `.ws-head` (título y buscador o acción de entrada) y pone su acción principal abajo a la derecha.
 - Un módulo puede usar piezas de interfaz de `projection` (`stage.js` para dibujar miniaturas, `controls.js`) y de `system` (`devices.js`). Fuera de eso, no importa archivos de otros módulos.
-- Una página por función: `web/<rol>.html` + `web/roles/<rol>.js`, que empieza con `await ensureRole('<rol>')` y llama a `createShell()` con los módulos de esa función. Aparte está `web/requisitos.html`, la revisión del equipo: no es una función, se abre sin PIN y solo deja actuar desde el equipo principal.
+- Una página por función: `web/<rol>.html` + `web/roles/<rol>.js`, que empieza con `await ensureRole('<rol>')` y llama a `createShell()` con los módulos de esa función. Aparte está `web/requisitos.html`, la revisión del equipo: no es una función, se abre sin PIN, solo deja actuar desde el equipo principal y nunca bloquea el paso a la app.
+- Lo encontrado en una búsqueda llega del servidor como tramos `[inicio, fin)` del texto (`marks`) y se pinta con `<mark>`; ver `highlighted()` en `web/modules/bible/workspace.js`.
 - La proyección se dibuja solo con `createStage()` (`web/modules/projection/stage.js`), que usa unidades relativas al contenedor (`cqh`/`cqw`) para que una miniatura y la pantalla real se vean iguales. El escenario pone el fondo y el modo; **el contenido lo dibuja el tipo de cada elemento**.
 - Un **tipo de contenido** es `web/modules/<id>/kind.js`, que llama a `registerKind()` (contrato en `web/core/kinds.js`), y una línea en `web/modules/kinds.js`. Un `kind.js` no importa `stage.js` (se importarían en círculo); lo que comparten los tipos de texto está en `projection/text.js`.
 - Los **mandos en vivo** de un tipo (`controls` en su `registerKind`) se muestran con `createLiveControls(contenedor)` de `projection/live.js`. Se crea **una vez** por pantalla y se recoloca; no se crea en cada redibujado, porque se suscribe al estado.

@@ -4,6 +4,19 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.2.0 — 2026-10-04
+
+- **Búsqueda nueva en la Biblia.** Busca mientras escribes, en todas las versiones instaladas a la vez, y ordena lo que encuentra:
+  1. **Frase exacta**, sin importar tildes ni mayúsculas.
+  2. **Todas las palabras**, en cualquier orden.
+  3. **Parecidas**: otras formas de la misma palabra ("amó", "amar", "amor") y sinónimos bíblicos ("Jehová" y "Señor", "caridad" y "amor").
+- Lo encontrado va **resaltado**. Cada resultado dice de qué versión es el texto cuando no es la que tienes elegida, y en cuántas versiones más coincide. Un versículo sale una sola vez.
+- Al elegir un resultado de otra versión, Manna pasa a esa versión: proyectas lo mismo que leíste.
+- Con el teclado: **flechas** para recorrer los resultados, **Enter** para ir al versículo y **Enter** otra vez para proyectarlo. Una cita ("jn 3 16") sigue llevando directo al pasaje.
+- Es rápida: milésimas de segundo con 14 versiones. Manna prepara el índice solo al abrirse y cuando copias una biblia nueva.
+- **La revisión del equipo ya no bloquea nada.** Si falta un programa, dice qué módulos funcionarán completos y cuáles no, y deja abrir Manna. Dentro, el módulo al que le falte algo avisa al abrirlo y ofrece instalarlo.
+- En la barra, "Imágenes" y "Videos" pasan a ser un solo módulo previsto: **Medios**.
+
 ## 1.1.0 — 2026-10-04
 
 Primera etapa de la versión 2: los cimientos para los módulos que vienen (himnario, medios, diapositivas).

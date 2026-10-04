@@ -102,7 +102,10 @@ Reglas para un módulo:
 - **Mandos en vivo**: los mandos propios de lo que está al aire (imagen de prueba, zoom, reproducción) van en un recuadro bajo "Negro / Solo fondo" del panel, y repetidos en el detalle del elemento en el orden. Solo aparecen cuando lo proyectado los tiene. Filas de botones que se reparten el ancho; la opción activa, en ámbar suave. Nunca un botón ámbar lleno: ese es de la acción principal.
 - **Tareas**: lo que el equipo principal tarda en preparar se muestra como una ficha con título, barra fina ámbar y una línea "43 % · faltan 0:40". Al terminar pasa a verde un momento y desaparece; si falla, borde rojo, el motivo y un botón para quitarla. Nunca bloquea la pantalla ni usa una ventana.
 
-Fuera de las tres zonas hay dos páginas de una sola columna centrada: la **pantalla de inicio** (elegir función) y la **revisión del equipo** (`/requisitos`). En la revisión, cada programa es una ficha con su estado (verde "Listo", ámbar "Falta"), para qué sirve en una frase y, si falta, la acción "Instalar por mí" y los pasos a mano plegados.
+- **Aviso de módulo**: si al módulo abierto le falta un programa del equipo principal, una franja ámbar suave sobre su cabecera dice qué no se podrá hacer, con "Instalar…" o "Cómo instalarlo" y una equis para cerrarla. Informa; nunca impide usar el módulo.
+- **Resultados de búsqueda**: flotan bajo el buscador, sin empujar el contenido. Van por niveles, cada uno con su rótulo y su número ("Frase exacta 12"). Cada resultado: la cita en ámbar, el texto en hasta tres líneas con lo encontrado resaltado (fondo ámbar suave, texto claro), la versión en una píldora solo cuando no es la elegida, y "+3" si coincide en más versiones. El resultado señalado con el teclado lleva una barra ámbar a la izquierda.
+
+Fuera de las tres zonas hay dos páginas de una sola columna centrada: la **pantalla de inicio** (elegir función) y la **revisión del equipo** (`/requisitos`). La revisión empieza por lo que importa al usuario, **qué funcionará en este equipo**, módulo por módulo; después, cada programa en una ficha con su estado (verde "Listo", ámbar "Falta"), para qué sirve en una frase y, si falta, la acción "Instalar por mí" y los pasos a mano plegados. Su acción principal es siempre "Abrir Manna".
 
 ## 8. Orden del culto
 

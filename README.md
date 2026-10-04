@@ -7,11 +7,12 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 ## Qué hace
 
 - **Tres zonas, siempre iguales**: los módulos a la izquierda, el módulo activo al centro y el panel **Al aire** a la derecha, con el monitor de lo proyectado y los mandos (anterior, siguiente, negro, solo fondo).
-- **Biblia**: buscador por cita (`Juan 3:16-18`, `1 co 13 4`, `sal 23`) o por palabras sin importar tildes; los 66 libros a la vista en una rejilla; capítulos y versículos; pasajes recientes. Lee los archivos `.xmm` (OpenLP) y `.xml` de la carpeta `Biblias/`; basta copiar un archivo y aparece solo.
+- **Biblia**: los 66 libros a la vista en una rejilla; capítulos y versículos; pasajes recientes. Lee los archivos `.xmm` (OpenLP) y `.xml` de la carpeta `Biblias/`; basta copiar un archivo y aparece solo.
+- **Búsqueda**: por cita (`Juan 3:16-18`, `1 co 13 4`, `sal 23`) o por texto, mientras escribes y en todas las versiones a la vez. Los resultados salen por niveles (frase exacta, todas las palabras, parecidas), con lo encontrado resaltado y la versión de la que sale cada texto.
 - **Orden del culto**: la lista ordenada de todo lo que se va a proyectar, con secciones (Apertura, Mensaje…). Cada elemento muestra su tipo y sus pasos; "Siguiente" recorre los pasos y luego pasa al elemento que sigue. A cualquier elemento se le puede poner un nombre propio ("Lectura bíblica"). Se comparte entre todos los dispositivos.
 - **Mandos en vivo**: lo que está al aire trae sus propios mandos en el panel y en el orden del culto. Hoy los estrena la **imagen de prueba** (Ajustes → Proyector de este equipo), que sirve para encuadrar el proyector o un televisor y comprobar, con su cronómetro, que todas las pantallas van a la par.
-- **Revisión del equipo**: al abrirse, Manna comprueba que el equipo principal tiene los programas que necesita. Si falta alguno, lo explica y lo instala con un botón.
-- **Preparado para crecer**: himnario, imágenes, videos y presentaciones ya tienen su sitio en la interfaz. Cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
+- **Revisión del equipo**: al abrirse, Manna comprueba que el equipo principal tiene los programas que necesita. Si falta alguno, dice qué módulos se ven afectados y lo instala con un botón. Nunca impide abrir la app.
+- **Preparado para crecer**: himnario, medios (imágenes, videos, audios y YouTube) y presentaciones ya tienen su sitio en la interfaz. Cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
 - **Funciones por dispositivo**: cada dispositivo elige al entrar.
   - **Control completo**: todos los módulos. Pide PIN.
   - **Control del orden**: solo proyecta lo que ya está en el orden del culto. Pensado para el celular. Pide PIN.
@@ -26,12 +27,12 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 | Programa | Para qué | Si falta |
 | --- | --- | --- |
 | Node.js 18 o superior | Hace funcionar el servidor | Manna no arranca. Se descarga de https://nodejs.org/es/download |
-| Google Chrome (o Edge en Windows) | Ventana de proyección a pantalla completa | No se puede entrar a la app hasta instalarlo |
+| Google Chrome (o Edge en Windows) | Ventana de proyección a pantalla completa | Manna se abre; la proyección no se abre sola en la segunda pantalla |
 | ffmpeg | Convertir videos y audios, unir imagen y sonido de YouTube, elegir la pista de los himnos | Manna se abre; las funciones que lo usan no estarán disponibles |
 | yt-dlp | Descargar videos de YouTube | Igual |
 | Microsoft PowerPoint (opcional) | Convertir presentaciones `.pptx` | Se usa el PDF de la presentación |
 
-Solo Node.js se instala antes. Lo demás lo comprueba Manna cada vez que se abre: si falta algo, en vez del control muestra la **revisión del equipo**, que dice para qué sirve cada programa y ofrece **Instalar por mí** (descarga ffmpeg y yt-dlp de sus sitios oficiales a la carpeta `data/herramientas/`, sin tocar el sistema) o los pasos para hacerlo a mano. La misma revisión está en **Ajustes → Programas del equipo principal**. Los demás dispositivos no instalan nada.
+Solo Node.js se instala antes. Lo demás lo comprueba Manna cada vez que se abre: si falta algo, en vez del control muestra la **revisión del equipo**, que dice qué módulos funcionarán completos y cuáles no, para qué sirve cada programa, y ofrece **Abrir Manna** de todos modos e **Instalar por mí** (descarga ffmpeg y yt-dlp de sus sitios oficiales a la carpeta `data/herramientas/`, sin tocar el sistema) o los pasos para hacerlo a mano. La misma revisión está en **Ajustes → Programas del equipo principal**, y cada módulo avisa al abrirlo si le falta algo. Los demás dispositivos no instalan nada.
 
 ffmpeg, yt-dlp y PowerPoint los usarán los módulos de himnario, medios y diapositivas, que están en construcción (ver `docs/PLAN.md`).
 
@@ -88,6 +89,9 @@ Reconecta solo; no hay que recargar la página. Si el aviso rojo no desaparece:
 | ↓ ↑ | Mover la selección (versículo en Biblia, elemento en el orden) |
 | Enter | Proyectar lo seleccionado |
 | / | Ir al buscador de la Biblia |
+| ↓ ↑ en el buscador | Recorrer los resultados |
+| Enter en el buscador | Ir al resultado señalado (o al pasaje, si es una cita). Enter otra vez lo proyecta |
+| Esc | Cerrar los resultados |
 | Mayús + clic | Seleccionar varios versículos seguidos |
 
 "Siguiente" depende de lo que haya al aire: si viene del orden del culto, recorre sus pasos y luego pasa al elemento que sigue; si se proyectó suelto desde la Biblia, continúa con el versículo siguiente.
@@ -102,10 +106,11 @@ server/
   roles.js              funciones que puede elegir un dispositivo y sus permisos
   core/                 servidor HTTP (archivos grandes, subidas), estado compartido, tiempo real,
                         sesiones, almacenamiento, reloj de reproducción, tareas con avance,
-                        programas del equipo (detección e instalación) y carpetas de contenido
+                        programas del equipo (detección e instalación), carpetas de contenido
+                        y búsqueda de texto por niveles (la usan la Biblia y, después, el himnario)
   modules/
     system/             sesiones, PIN, direcciones de red
-    bible/              lectura de .xmm/.xml, libros, citas, búsqueda
+    bible/              lectura de .xmm/.xml, libros, citas, índice y búsqueda en todas las versiones
     projection/         contenido en vivo, mandos en vivo, volumen, estilos, segunda pantalla,
                         imagen de prueba
     order/              orden del culto: elementos, secciones y pasos

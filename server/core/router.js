@@ -167,7 +167,6 @@ function sendFile(req, res, file) {
 export function createRouter({ webDir, sessions }) {
   const routes = [];
   const mounts = []; // carpetas de contenido servidas bajo un prefijo: { prefix: '/media/', dir }
-  let gate = null;
 
   // route('GET', '/api/bible/:id/books', handler). El handler devuelve un objeto (se envía como JSON)
   // o undefined si ya respondió por su cuenta.
@@ -193,21 +192,11 @@ export function createRouter({ webDir, sessions }) {
     return sendFile(req, res, file);
   }
 
-  function serveStatic(pathname, req, res, isLocal) {
+  function serveStatic(pathname, req, res) {
     let rel;
     try { rel = decodeURIComponent(pathname); } catch { return false; }
     const mounted = mounts.find((m) => rel.startsWith(m.prefix));
     if (mounted) return serveFrom(req, res, mounted.dir, rel.slice(mounted.prefix.length));
-    const isPage = rel === '/' || !path.extname(rel) || rel.endsWith('.html');
-    if (isPage) {
-      // Mientras al equipo principal le falte algo imprescindible, toda página lleva a la revisión.
-      const to = gate?.({ path: rel.replace(/\.html$/, ''), isLocal });
-      if (to) {
-        res.writeHead(302, { Location: to, 'Cache-Control': 'no-store' });
-        res.end();
-        return true;
-      }
-    }
     if (rel === '/') rel = '/index.html';
     else if (!path.extname(rel)) rel += '.html';
     return serveFrom(req, res, webDir, rel.slice(1));
@@ -254,7 +243,7 @@ export function createRouter({ webDir, sessions }) {
         return;
       }
       const reads = req.method === 'GET' || req.method === 'HEAD';
-      if (reads && !url.pathname.startsWith('/api/') && serveStatic(url.pathname, req, res, isLocal)) return;
+      if (reads && !url.pathname.startsWith('/api/') && serveStatic(url.pathname, req, res)) return;
       sendJson(res, 404, { error: 'No encontrado.' });
     } catch (err) {
       if (!(err instanceof HttpError)) console.error(err);
@@ -262,5 +251,5 @@ export function createRouter({ webDir, sessions }) {
     }
   }
 
-  return { route, mount, handle, gate(fn) { gate = fn; } };
+  return { route, mount, handle };
 }

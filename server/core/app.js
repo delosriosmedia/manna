@@ -58,8 +58,6 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
     route: router.route,
     // mount('/himnario/', carpeta): sirve una carpeta de contenido (con saltos, para video y audio).
     mount: router.mount,
-    // gate(fn): fn({ path, isLocal }) devuelve a qué página desviar una visita, o null.
-    gate: router.gate,
     action(type, { permission }, handler) {
       actions.set(type, { permission, handler });
     },

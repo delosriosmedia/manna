@@ -34,8 +34,8 @@ Repositorio: https://github.com/delosriosmedia/manna
 
 - Siempre será una **web app en red local**. Nada de apps nativas ni servicios en la nube.
 - No añadir dependencias externas, frameworks ni compilación sin aprobación explícita. Aprobados el 2026-10-04: **ffmpeg y yt-dlp** como programas del equipo principal, **PowerPoint** para las presentaciones si está instalado, y **pdf.js** dentro de `web/vendor/`. Nada más.
-- La revisión inicial del equipo debe garantizar que está todo lo necesario antes de usar la app, y abrir Manna debe seguir siendo fácil para alguien sin conocimientos técnicos.
-- Las biblias con derechos de autor **nunca** se suben al repositorio (solo la Reina-Valera 1909). Tampoco los himnos en video (`Himnario/`), los medios de cada iglesia (`Medios/`) ni las letras de los himnos.
+- La revisión inicial del equipo comprueba que está todo lo necesario y avisa de qué módulos funcionarán y cuáles no, pero **nunca bloquea**: Manna se abre igual, y cada módulo avisa al abrirlo de lo que le falta y ofrece instalarlo. Abrir Manna debe seguir siendo fácil para alguien sin conocimientos técnicos.
+- Las biblias con derechos de autor **nunca** se suben al repositorio (solo la Reina-Valera 1909). Tampoco los himnos en video (`Himnario/`), los medios de cada iglesia (`Medios/`) ni las letras de los himnos: las letras se usan (las iglesias tienen la licencia), pero viajan con la carpeta `Himnario/`.
 - El volumen que maneja Manna es el suyo (un volumen general para todo lo que suene). No se toca el del equipo.
 - Sin modelos de lenguaje: la búsqueda se resuelve con índices propios.
 - Interfaz, mensajes, comentarios y documentación en **español**.
@@ -51,7 +51,8 @@ Repositorio: https://github.com/delosriosmedia/manna
 
 - Cambios grandes: primero un plan y esperar aprobación; luego implementar.
 - Probar de verdad antes de dar algo por hecho (`.claude/rules/pruebas.md`) y decir con claridad lo que no se pudo probar.
-- El trabajo de la versión 2 sigue `docs/PLAN.md`: al cerrar cada fase se actualizan su seguimiento (sección 9) y los cambios al plan (sección 10), se publica y se informa al dueño de los resultados, la fase que sigue y las modificaciones que el plan necesite.
+- El trabajo de la versión 2 sigue `docs/PLAN.md`: al cerrar cada fase se actualizan su seguimiento (sección 9), los cambios hechos al plan (sección 10) y los cambios sugeridos (sección 11), y se publica.
+- **Informe al dueño al cerrar cada fase**: resultados de la fase; **el plan de nuevo, con las fases superadas marcadas y las observaciones**; la fase que sigue; y **un apartado con los cambios que se le sugieren al plan**.
 - Publicar con la skill `/publicar`, que se detiene a mostrar el resumen antes del push. Excepción aprobada por el dueño el 2026-10-04: **al cerrar una fase del plan se publica sin esperar**, y el resumen se le entrega después.
 - **Al terminar cualquier cambio, actualizar la documentación** según `.claude/rules/documentacion.md`. El proyecto debe poder retomarlo otra persona u otro asistente solo con lo que está en el repositorio.
 

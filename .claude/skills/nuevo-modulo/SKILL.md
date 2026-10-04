@@ -11,7 +11,7 @@ Lee `.claude/rules/arquitectura.md` y `DESIGN.md`, y la fase correspondiente de 
 
 ## Pasos
 
-1. **Identificador**: una palabra en minúsculas. En el servidor, en inglés como los existentes (`songs`, `media`); en la interfaz, el `id` del módulo va en español porque aparece en la dirección (`himnario`, `imagenes`).
+1. **Identificador**: una palabra en minúsculas. En el servidor, en inglés como los existentes (`songs`, `media`); en la interfaz, el `id` del módulo va en español porque aparece en la dirección (`himnario`, `medios`).
 
 2. **Servidor**: `server/modules/<id>/index.js`
 
@@ -67,8 +67,14 @@ Lee `.claude/rules/arquitectura.md` y `DESIGN.md`, y la fase correspondiente de 
      // ctx.setPreview(elemento) muestra en el panel lo que se proyectaría.
      return { keys(e) { /* true si atendió la tecla */ } };
    }
-   export default { id: '<id>', name: 'Himnario', icon: 'music-notes', mount };
+   export default {
+     id: '<id>', name: 'Himnario', icon: 'music-notes', mount,
+     // Programas del equipo principal que necesita, si alguno. feature completa "no se podrá…".
+     needs: [{ tools: ['ffmpeg'], feature: 'elegir la pista instrumental de un himno' }],
+   };
    ```
+
+   Con `needs`, la revisión del equipo y la franja de aviso del módulo salen solas. Dentro del módulo, lo que dependa de un programa que falta se muestra deshabilitado con su explicación (`state.tools`), nunca oculto ni roto.
 
    Regístrala en `web/modules/registry.js` (sustituyendo la entrada `soon` si ya estaba prevista) y enlaza su `.css` en `web/control.html`.
 
@@ -83,7 +89,8 @@ Lee `.claude/rules/arquitectura.md` y `DESIGN.md`, y la fase correspondiente de 
 - [ ] En el servidor no importa archivos de otros módulos (usa `app.services`, `app.kinds` o `app.run`).
 - [ ] Toda acción tiene permiso y valida su entrada. Los mandos en vivo se validan en el `control()` del tipo.
 - [ ] Nada largo hace esperar a una acción: va como tarea (`app.jobs`).
-- [ ] Los programas externos se usan solo con `app.tools.spawn()`.
+- [ ] Los programas externos se usan solo con `app.tools.spawn()`, y el módulo declara en `needs` los que necesita. Sin ellos se abre igual y avisa.
+- [ ] Si busca texto, usa `server/core/search.js`.
 - [ ] Lo que produce se puede añadir al orden del culto.
 - [ ] Sigue `DESIGN.md`: un solo acento, iconos de la familia, acción principal abajo a la derecha, estados vacío y de error.
 - [ ] `npm test`, `node scripts/probar-chrome.mjs rapido` y `node scripts/auditar-responsive.mjs` pasan.

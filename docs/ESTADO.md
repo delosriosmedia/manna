@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Última actualización: 2026-10-04 · Versión: 1.1.0
+Última actualización: 2026-10-04 · Versión: 1.2.0
 
 Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver `.claude/rules/documentacion.md`). El historial está en `CHANGELOG.md`.
 
@@ -8,15 +8,17 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 - Servidor en red local con estado central y tiempo real.
 - **Interfaz en tres zonas** (ver `DESIGN.md`): barra de módulos, espacio de trabajo y panel "Al aire" con monitor y mandos. Adaptada a celular (vertical y horizontal), tableta y escritorio.
-- Módulos: `system`, `bible`, `projection`, `order`. En la interfaz: Orden, Biblia y Ajustes; Himnario, Imágenes, Videos y Diapositivas aparecen atenuados como previstos.
-- **Versión 2 en construcción**, por fases, según `docs/PLAN.md`. Hecha la fase 0 (cimientos); sigue la fase 1 (búsqueda).
+- Módulos: `system`, `bible`, `projection`, `order`. En la interfaz: Orden, Biblia y Ajustes; Himnario, Medios y Diapositivas aparecen atenuados como previstos.
+- **Versión 2 en construcción**, por fases, según `docs/PLAN.md`. Hechas las fases 0 (cimientos) y 1 (búsqueda); sigue la fase 2 (comparador de versiones).
 - Roles por dispositivo: control completo, control del orden (solo operar), pantalla de proyección. PIN para los de control (el equipo principal no lo necesita).
 - **Logo e identidad**: el logo del dueño, en vector, integrado en la interfaz, los iconos del sistema y la pestaña del navegador. La versión se muestra junto al logo y sale de `package.json`.
-- **Biblia**: buscador por cita o por palabras, pasajes recientes, rejilla de libros, capítulos, versículos con selección de varios, vista previa en el panel.
+- **Biblia**: pasajes recientes, rejilla de libros, capítulos, versículos con selección de varios, vista previa en el panel.
+- **Búsqueda en la Biblia**: mientras se escribe, en todas las versiones instaladas a la vez. Una cita ("jn 3 16") lleva al pasaje. Un texto sale por niveles: frase exacta, todas las palabras y parecidas (otras formas de la palabra y sinónimos bíblicos), con lo encontrado resaltado, la versión de la que sale cada texto y en cuántas más coincide. Un versículo no se repite. Con el teclado: flechas, Enter para ir al versículo y otro Enter para proyectarlo. El índice se prepara solo, en segundo plano, al arrancar y al copiar una biblia.
 - **Orden del culto** (antes "guion"): elementos con tipo y pasos, secciones, reordenar arrastrando o por menú, cita rápida, miniaturas de los pasos que se despliegan y se recogen con un clic, "todo junto" para pasajes cortos, **nombre propio para cualquier elemento** (el original queda a la vista debajo y se recupera dejando el nombre vacío). Al abrir, la lista se coloca en lo que está al aire. El guion de versiones anteriores se convierte solo.
 - **Tipos de contenido** (`app.kind`): `verses` y `testcard`. "Siguiente" recorre los pasos de un elemento y luego el orden. Cada tipo dice cómo se dibuja (`web/core/kinds.js`) y, si los tiene, qué **mandos en vivo** ofrece mientras está al aire; los mandos salen en el panel "Al aire" y en el detalle del elemento en el orden.
 - **Imagen de prueba** (Ajustes → Proyector de este equipo): encuadre, barras de color o blanco, con un cronómetro que marca lo mismo en todas las pantallas.
-- **Revisión del equipo** (`/requisitos`): al abrirse, Manna comprueba Chrome o Edge, ffmpeg, yt-dlp y PowerPoint. Si falta algo, se abre ahí en vez de en el control; "Instalar por mí" descarga ffmpeg (Windows) y yt-dlp (Windows y Mac) a `data/herramientas/`. Sin navegador, ninguna página de la app se abre. También está en Ajustes.
+- **Revisión del equipo** (`/requisitos`): al abrirse, Manna comprueba Chrome o Edge, ffmpeg, yt-dlp y PowerPoint. Si falta algo, se abre ahí en vez de en el control y dice qué módulos funcionarán completos y cuáles no; "Instalar por mí" descarga ffmpeg (Windows) y yt-dlp (Windows y Mac) a `data/herramientas/`. **Nada bloquea**: desde ahí se continúa a la app. También está en Ajustes.
+- **Aviso por módulo**: al abrir un módulo al que le falta un programa, una franja dice qué no podrá hacer y ofrece instalarlo o ver cómo. Hoy solo lo usa Ajustes (sin Chrome o Edge no se abre sola la proyección en la segunda pantalla).
 - **Cimientos para los módulos con medios** (aún sin módulo que los use): archivos servidos por trozos, subida directa a disco con avance, reloj de reproducción compartido, volumen general, tareas en segundo plano con avance y tiempo restante, carpeta temporal que se vacía al abrir y cerrar.
 - Biblias desde `Biblias/` en formatos `.xmm` y `.xml`, con recarga automática al copiar archivos.
 - Proyección con ajuste automático del tamaño, estilos e imagen de fondo propia (en Ajustes).
@@ -34,9 +36,12 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 | Área | Estado |
 | --- | --- |
-| Interfaz: Biblia, orden del culto (desplegar, recoger, nombre propio), ajustes, dispositivos, versión junto al logo y permisos del rol "Control del orden" | Probado en Chrome real con `scripts/probar-chrome.mjs` (57 comprobaciones en total) |
+| Interfaz: Biblia, orden del culto (desplegar, recoger, nombre propio), ajustes, dispositivos, versión junto al logo y permisos del rol "Control del orden" | Probado en Chrome real con `scripts/probar-chrome.mjs` (71 comprobaciones en total) |
+| Búsqueda en la Biblia: al escribir, niveles, resaltado, otra versión, teclado, "ver más", cita, sin resultados | Probado en Chrome real con dos versiones de prueba, y con pruebas automáticas del orden y de las marcas |
+| Búsqueda: velocidad y memoria | Medido en el Mac de desarrollo con las 14 biblias: 1 a 8 ms lo habitual, 80 ms el peor caso; 160 MB de índices. **Sin medir en el equipo Windows de la iglesia** |
+| Aviso por módulo cuando falta un programa | Probado en Chrome real con el navegador "ausente": aparece en Ajustes, no en Biblia, y se puede cerrar. **El botón de instalar desde el aviso no se probó** (usa la misma orden que la revisión, que sí) |
 | Mandos en vivo (imagen de prueba): cambiar de imagen, cronómetro, pausa; en el panel, en el orden y desde "Control del orden" | Probado en Chrome real. **El cronómetro marca lo mismo en dos pantallas** (diferencia de 0,0 s) y coincide con el servidor. Las dos pantallas estaban en el mismo equipo: **sin probar entre dispositivos distintos** |
-| Revisión del equipo: aviso de lo que falta, "Instalar por mí" con avance, paso al control, bloqueo si falta el navegador | Probado en Chrome real y por HTTP, **con una descarga simulada** servida en el propio equipo |
+| Revisión del equipo: aviso de lo que falta y de los módulos afectados, "Instalar por mí" con avance, paso al control sin bloqueo | Probado en Chrome real y por HTTP, **con una descarga simulada** servida en el propio equipo |
 | "Instalar por mí" con las **descargas reales** de ffmpeg y yt-dlp | **Sin probar.** Solo se comprobó que las direcciones responden. El camino del `.zip` (ffmpeg en Windows) está probado con un `.zip` simulado en Mac |
 | Revisión del equipo en **Windows**: detección de Edge, ffmpeg, yt-dlp y PowerPoint; instalación | **Sin probar** |
 | Servidor de archivos: trozos (Range), caché, salir de la carpeta, subida a disco con límite | Probado por HTTP en las pruebas automáticas. Subida probada hasta 21 MB: **sin probar con archivos de varios gigas** |
@@ -76,6 +81,10 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 - Las estelas tenues que el arte original tiene bajo las barras no están en el vector.
 - Los tipos de elemento futuros (himno, imagen, video, diapositivas) tienen icono, color y sitio en la interfaz, pero no existen: no se pueden añadir ni proyectar. Su icono y nombre provisionales están en `web/modules/kinds.js` y se quitan cuando llega cada módulo.
 - **ffmpeg y yt-dlp se piden ya, aunque todavía ningún módulo los usa** (llegan en las fases 5 a 7). En un equipo sin ellos, la revisión del equipo aparece en cada arranque hasta instalarlos; se continúa con un clic.
+- **Búsqueda sin tildes**: "oró" y "oro", o "creó" y "creo", son la misma palabra para el buscador. Las "parecidas" salen de reglas del español y de una lista de sinónimos (`server/core/search.js`), no de entender el texto: pueden traer alguna palabra que solo se parece. Van siempre al final.
+- **Memoria**: con las 14 biblias y sus índices, Manna ocupa unos 270 MB (500 MB en total para el sistema). No se ha medido en el equipo de la iglesia.
+- **Televisor Samsung**: no abre Manna aunque está en la misma red y se ve desde el equipo principal. Pendiente de la prueba de `docs/PLAN.md`, fase 3.
+- Con dos redes, "Dispositivos" ofrece también la dirección de un adaptador sin red (`169.254…`), que no sirve.
 - "Instalar por mí" no existe para ffmpeg en Mac (no hay una descarga oficial única): ahí se instala con Homebrew, y la revisión da la orden.
 - La pantalla que suena es la de proyección abierta en el propio equipo principal. Si se abren dos pantallas de proyección en ese equipo, sonarían las dos (se resuelve en la fase 5, cuando haya sonido).
 - La imagen de prueba se proyecta desde Ajustes; no tiene botón para añadirla al orden del culto (el servidor lo admite).
@@ -117,13 +126,15 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
   - Himnos: la segunda pista es la instrumental; se ofrece **"Cantado / Pista"** antes de proyectar o añadir al orden.
   - Conversión de videos **en segundo plano, con el avance a la vista** en el módulo y en "Al aire". **Subtítulos de YouTube** con mando para activarlos.
   - **Se publica al cerrar cada fase.**
-- **2026-10-04 · Qué bloquea el arranque.** Sin Chrome o Edge no se entra a la app. Sin ffmpeg o yt-dlp la revisión aparece en cada arranque, pero deja continuar: no se quiso dejar a la iglesia sin proyectar la Biblia por faltar el programa de YouTube. Decidido por el asistente; el dueño puede pedir que también bloqueen (un valor en `server/core/tools.js`).
+- **2026-10-04 · Ningún programa que falte bloquea el arranque**, tampoco el navegador. Se avisa de qué módulos funcionarán y cuáles no, y cada módulo avisa al abrirlo y ofrece instalar lo que le falta. (Sustituye a lo hecho en la fase 0, donde sin navegador no se entraba.)
+- **2026-10-04 · Letras de los himnos: se incluyen**, porque las iglesias que usarán Manna tienen la licencia de la música oficial de la Iglesia Adventista. Viajan con la carpeta `Himnario/`, no en el repositorio público, y Manna las importa de archivos del dueño. Detalle en `docs/PLAN.md`, decisión 5.
+- **2026-10-04 · Informe de cada fase**: muestra de nuevo el plan con las fases superadas y las observaciones, y un apartado de cambios sugeridos (`docs/PLAN.md`, sección 11).
 
 ## Decisiones pendientes del dueño
 
-### 0. Letras de los himnos
+### 0. Sugerencias al plan de la versión 2
 
-El dueño pidió copiarlas de nuevohimnario.com dando los créditos. No se hizo: tienen derechos de autor, citar la fuente no equivale a tener permiso y el repositorio es público. El plan prevé que el himnario las lea de una carpeta local (`Himnario/letras/`), como las biblias. **Falta acordar de dónde saldrán** (fase 5). Detalle en `docs/PLAN.md`, decisión 5.
+En `docs/PLAN.md`, sección 11. Las dos que desbloquean trabajo: adelantar los arreglos pequeños para el televisor (S1) y **en qué formato tiene el dueño las letras de los himnos** (S2: una exportación de OpenLP o archivos de texto), que hace falta antes de la fase 5.
 
 ### 1. Instaladores compilados (aplazada)
 
@@ -143,9 +154,10 @@ Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron*
 
 ## Próximos pasos
 
-- **Fase 1 del plan: búsqueda mejorada** (versión 1.2). El orden completo de las fases está en `docs/PLAN.md`.
+- **Fase 2 del plan: comparador de versiones** (versión 1.3). El orden completo de las fases está en `docs/PLAN.md`.
 - **Probar en el equipo Windows de la iglesia**, en este orden: `Instalar Manna en Windows.bat`, abrir con el icono, **revisión del equipo e "Instalar por mí"**, aviso del Firewall, proyección en la segunda pantalla, imagen de prueba, botón "Apagar", y `manna.local` desde un celular.
-- Con el televisor Samsung: mirar su dirección IP y compararla con la de Manna (fase 3 del plan). Cuando conecte, proyectar la imagen de prueba y comprobar el cronómetro frente al del control.
+- Con el televisor Samsung (misma red que el Mac, ya comprobado): escribir en su navegador `http://192.168.1.14`, con el `http://` delante, estando Manna abierto en el Mac. Cuando conecte, proyectar la imagen de prueba y comprobar el cronómetro frente al del control.
+- Medir la búsqueda y la memoria en el equipo Windows de la iglesia con todas las biblias.
 - Que el dueño revise la versión para celular y tableta (se hizo sin maqueta previa) y diga qué ajustar.
 - Probar `manna.local` desde celulares reales (iPhone, Android 12 o posterior, Android antiguo) y con un router real.
 

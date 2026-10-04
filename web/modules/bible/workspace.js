@@ -4,6 +4,24 @@ import { icon } from '../../core/icons.js';
 import { prefs } from '../../core/prefs.js';
 
 const MAX_RECENT = 8;
+const SEARCH_PAUSE_MS = 150; // al escribir, se busca cuando los dedos paran un instante
+const SEARCH_LIMIT = 40;     // resultados por nivel; "ver más" lo amplía
+const SEARCH_MAX = 400;
+
+// Un texto con lo encontrado resaltado. marks: tramos [inicio, fin) que da el servidor.
+function highlighted(text, marks) {
+  const out = [];
+  let at = 0;
+  for (const [start, end] of marks) {
+    if (end <= at) continue;
+    const from = Math.max(start, at);
+    if (from > at) out.push(text.slice(at, from));
+    out.push(h('mark', {}, text.slice(from, end)));
+    at = end;
+  }
+  if (at < text.length) out.push(text.slice(at));
+  return out;
+}
 
 // Módulo Biblia: elegir un pasaje y proyectarlo o añadirlo al orden del culto.
 // Los pasajes se identifican por posición (libro, capítulo, versículo), así que cambiar
@@ -14,9 +32,10 @@ function mount(el, ctx) {
   // ---- Estructura ----
   const versionSelect = h('select', { class: 'select', 'aria-label': 'Versión de la Biblia', onchange: () => setVersion(versionSelect.value) });
   const searchInput = h('input', {
-    type: 'search', placeholder: 'Juan 3:16-18, sal 23, o una palabra', autocomplete: 'off', 'aria-label': 'Buscar una cita o una palabra',
-    onkeydown: (e) => { if (e.key === 'Enter') search(searchInput.value.trim()); },
-    oninput: () => { if (!searchInput.value) results.hidden = true; },
+    type: 'search', placeholder: 'Juan 3:16-18, sal 23, o unas palabras', autocomplete: 'off', 'aria-label': 'Buscar una cita o un texto',
+    onkeydown: (e) => searchKey(e),
+    oninput: () => searchSoon(),
+    onfocus: () => { if (results.hidden && searchInput.value.trim().length >= 2) searchNow(); },
   });
   const results = h('div', { class: 'search-pop', hidden: true });
   const recents = h('div', { class: 'chips' });
@@ -212,30 +231,128 @@ function mount(el, ctx) {
   });
 
   // ---- Búsqueda ----
-  const search = guard(async (q) => {
-    if (!q) return;
-    const res = await api(`/api/bible/${view.versionId}/search?q=${encodeURIComponent(q)}`);
-    if (res.type === 'ref') {
-      results.hidden = true;
-      searchInput.value = '';
-      searchInput.blur();
-      await goTo(res.ref);
-      return;
+  // Se busca mientras se escribe. Una cita ("jn 3 16") ofrece ir al pasaje; un texto se busca en
+  // todas las versiones y sale por niveles: frase exacta, todas las palabras, parecidas.
+  const found = { timer: null, request: 0, rows: [], active: -1, limit: SEARCH_LIMIT };
+
+  function closeResults() {
+    clearTimeout(found.timer);
+    found.request += 1; // una respuesta que aún esté en camino ya no se muestra
+    found.rows = [];
+    found.active = -1;
+    results.hidden = true;
+  }
+
+  function searchSoon() {
+    clearTimeout(found.timer);
+    if (searchInput.value.trim().length < 2) return closeResults();
+    found.timer = setTimeout(searchNow, SEARCH_PAUSE_MS);
+    return undefined;
+  }
+
+  // Busca lo que hay escrito. Devuelve la respuesta, o null si ya se pidió otra búsqueda después.
+  async function searchNow(limit = SEARCH_LIMIT) {
+    clearTimeout(found.timer);
+    const q = searchInput.value.trim();
+    if (q.length < 2 || !view.versionId) return null;
+    found.request += 1;
+    const mine = found.request;
+    let res;
+    try {
+      res = await api(`/api/bible/${view.versionId}/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+    } catch (err) {
+      if (mine === found.request) toast(err.message, 'error');
+      return null;
     }
-    results.hidden = false;
-    const close = h('button', { class: 'icon-btn sm', 'aria-label': 'Cerrar resultados', onclick: () => { results.hidden = true; } }, icon('x', 14));
-    if (!res.total) {
-      results.replaceChildren(h('div', { class: 'search-count' }, `Sin resultados para "${q}"`, close));
-      return;
+    if (mine !== found.request) return null;
+    found.limit = limit;
+    renderResults(q, res);
+    return res;
+  }
+
+  function setActive(index, reveal = true) {
+    found.active = Math.max(-1, Math.min(index, found.rows.length - 1));
+    found.rows.forEach((row, i) => row.el.classList.toggle('active', i === found.active));
+    if (reveal) found.rows[found.active]?.el.scrollIntoView({ block: 'nearest' });
+  }
+
+  function searchKey(e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (results.hidden || !found.rows.length) return;
+      e.preventDefault();
+      setActive(found.active + (e.key === 'ArrowDown' ? 1 : -1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (found.active >= 0 && !results.hidden) found.rows[found.active].open();
+      // Sin nada elegido: se busca ya. Una cita lleva directo al pasaje; con un texto queda
+      // señalado el primer resultado, para ir a él con un segundo Enter.
+      else {
+        searchNow().then((res) => {
+          if (res?.type === 'ref') found.rows[0].open();
+          else if (res) setActive(0);
+        });
+      }
+    } else if (e.key === 'Escape') {
+      closeResults();
     }
-    results.replaceChildren(
-      h('div', { class: 'search-count' },
-        res.total > res.results.length ? `${res.total} resultados (se muestran ${res.results.length})` : `${res.total} resultados`, close),
-      ...res.results.map((r) => h('button', {
-        class: 'search-item',
-        onclick: () => { results.hidden = true; goTo({ book: r.book, chapter: r.chapter, verseStart: r.verse, verseEnd: r.verse }); },
-      }, h('strong', {}, r.reference), h('span', {}, r.text))));
+  }
+
+  // Va al versículo de un resultado. Si el texto que coincidió es de otra versión, se pasa a ella:
+  // lo que se va a proyectar es lo que se leyó en el resultado.
+  const openResult = guard(async (hit) => {
+    closeResults();
+    searchInput.blur();
+    if (hit.versionId !== view.versionId) {
+      await setVersion(hit.versionId);
+      toast(`Versión: ${state.bible?.versions.find((v) => v.id === hit.versionId)?.name || hit.version}`);
+    }
+    await goTo({ book: hit.book, chapter: hit.chapter, verseStart: hit.verse, verseEnd: hit.verse });
   });
+
+  function renderResults(q, res) {
+    const scroll = results.scrollTop;
+    const close = h('button', { class: 'icon-btn sm', 'aria-label': 'Cerrar resultados', onclick: closeResults }, icon('x', 14));
+    found.rows = [];
+    results.hidden = false;
+
+    if (res.type === 'ref') {
+      const row = h('button', { class: 'search-item go', onclick: () => found.rows[0].open() },
+        icon('caret-right', 14), h('span', {}, 'Ir a ', h('b', {}, res.reference)), h('kbd', {}, '↵'));
+      found.rows.push({ el: row, open: () => { closeResults(); searchInput.value = ''; searchInput.blur(); goTo(res.ref); } });
+      results.replaceChildren(h('div', { class: 'search-count' }, 'Cita', close), row);
+      setActive(0, false);
+      return;
+    }
+
+    // Mientras el equipo principal prepara las demás versiones, se busca en las que ya están.
+    const scope = res.searched < res.versions ? `en ${res.searched} de ${res.versions} versiones (las demás se están preparando)`
+      : res.versions > 1 ? `en ${res.versions} versiones` : '';
+    if (!res.total) {
+      results.replaceChildren(h('div', { class: 'search-count' }, `Sin resultados para "${q}" ${scope}`.trim(), close));
+      return;
+    }
+    const children = [h('div', { class: 'search-count' }, `${res.total} ${res.total === 1 ? 'resultado' : 'resultados'} ${scope}`.trim(), close)];
+    for (const level of res.levels) {
+      children.push(h('div', { class: 'search-level' }, h('span', {}, level.label), h('small', {}, String(level.total))));
+      for (const hit of level.results) {
+        const elsewhere = hit.versionId !== view.versionId;
+        const el = h('button', { class: 'search-item', dataset: { level: level.id }, onclick: () => openResult(hit) },
+          h('strong', {}, hit.reference,
+            elsewhere && h('em', { title: 'El texto que coincide es de esta versión' }, hit.version),
+            hit.others.length > 0 && h('small', { title: `También en: ${hit.others.join(', ')}` }, `+${hit.others.length}`)),
+          h('span', {}, ...highlighted(hit.text, hit.marks)));
+        found.rows.push({ el, open: () => openResult(hit) });
+        children.push(el);
+      }
+      if (level.total > level.results.length && found.limit < SEARCH_MAX) {
+        children.push(h('button', { class: 'search-more', onclick: () => searchNow(Math.min(found.limit * 4, SEARCH_MAX)) },
+          `Ver más (${level.total - level.results.length} más)`));
+      }
+    }
+    results.replaceChildren(...children);
+    results.scrollTop = found.limit > SEARCH_LIMIT ? scroll : 0;
+    setActive(-1, false);
+  }
 
   // ---- Estado compartido ----
   subscribe('bible', ({ versions }) => {
@@ -269,7 +386,7 @@ function mount(el, ctx) {
       if (e.key === 'Enter') project();
       else if (e.key === 'ArrowDown') move(1);
       else if (e.key === 'ArrowUp') move(-1);
-      else if (e.key === '/') searchInput.focus();
+      else if (e.key === '/') { searchInput.focus(); searchInput.select(); }
       else return false;
       return true;
     },
