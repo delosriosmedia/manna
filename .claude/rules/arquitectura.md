@@ -6,7 +6,7 @@ El **servidor es la única fuente de verdad**. Los dispositivos son vistas: reci
 
 ## Piezas
 
-- **Estado** (`server/core/store.js`): dividido por espacios. De los módulos: `system`, `bible`, `projection`, `live`, `order`. Del núcleo: `conexiones`, `jobs`, `tools`. `store.set(ns, patch)` lo cambia y lo envía a todos.
+- **Estado** (`server/core/store.js`): dividido por espacios. De los módulos: `system`, `bible`, `projection`, `live`, `order`, `tv`. Del núcleo: `conexiones`, `jobs`, `tools`. `store.set(ns, patch)` lo cambia y lo envía a todos.
 - **Tiempo real** (`server/core/realtime.js`): SSE en `GET /api/events?rol=<rol>`. Eventos `state` (todo, al conectar), `patch` (un espacio, en cada cambio) y `ping` (latido cada 10 s, con la hora del servidor). El cliente (`web/core/api.js`) rehace la conexión si pasan 25 s sin recibir nada y siempre recibe el estado completo al reconectar: ningún módulo necesita lógica propia de reconexión.
 - **Acciones** (`POST /api/action` con `{ type, payload }`): toda orden que cambia algo. Se registran con `app.action('modulo.verbo', { permission }, handler)`.
 - **Rutas** (`app.route`): solo para lecturas (`GET`) y subida de archivos. `app.mount('/prefijo/', carpeta)` sirve una carpeta de contenido.
@@ -71,6 +71,18 @@ Todo lo que se proyecta es de un **tipo de contenido** (`kind`). Hoy existen `ve
 - El nombre lo anuncia `server/modules/system/mdns.js`. Se comprueba a sí mismo cada 10 s y se rehace solo si deja de funcionar o cambia la IP.
 - Una página abierta por la dirección numérica pasa sola a la del nombre si el dispositivo la entiende (`web/core/upgrade.js`, que consulta `GET /api/ping`). Solo lo hacen la pantalla de inicio y la de proyección, antes de que exista sesión: la sesión es una cookie atada a la dirección, y cambiar de dirección con sesión abierta obligaría a repetir el PIN.
 - Las páginas no deben construir direcciones con la IP ni asumir un puerto: rutas relativas para lo propio, `state.system` para mostrar direcciones.
+- **`http` y `https` por el mismo puerto** (`server/core/listener.js`): se mira el primer byte de cada conexión y se entrega al servidor que corresponde. El certificado es propio (`server/core/cert.js`, guardado en `data/certificado/`) y no se rehace al cambiar la IP, para no invalidar lo que cada navegador ya aceptó. `system.secure` dice si hay `https`; `system.securePort`, si además se abrió el 443. Las direcciones que se muestran y el QR siguen siendo `http`.
+- `app.arrivals` (ip → cómo llegó: `http`, `https`, o saludo `https` cortado) y `app.realtime.has(rol, ip)` permiten a un módulo saber qué hace un equipo concreto de la red. Los usa el módulo de televisores para decir por qué uno no entra.
+
+## Equipos de la red que Manna gobierna
+
+El módulo `tv` usa un televisor como pantalla de proyección por su navegador. Manna es quien se conecta al televisor (al revés que con los demás dispositivos):
+
+- Lo propio de cada marca vive en un archivo (`server/modules/tv/samsung.js`): datos del equipo, vincular, abrir y cerrar el navegador, teclas, puntero y texto. `index.js` no sabe de marcas.
+- Solo se conecta a direcciones de una red local (`isLocalAddress`) y solo envía las teclas de una lista (`KEYS`).
+- La clave que entrega el televisor al vincularse se guarda con `app.storage('televisores')` y **nunca** entra en el estado que reciben los dispositivos.
+- El estado de cada televisor se consulta bajo demanda (`tv.refresh`, que la pantalla pide mientras está a la vista), no con un temporizador del servidor.
+- El cliente WebSocket que hace falta para el mando es propio: `server/core/ws.js`.
 
 ## Lo que debe sobrevivir a un reinicio
 

@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Última actualización: 2026-10-04 · Versión: 1.3.1
+Última actualización: 2026-10-04 · Versión: 1.4.0
 
 Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver `.claude/rules/documentacion.md`). El historial está en `CHANGELOG.md`.
 
@@ -8,8 +8,8 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 - Servidor en red local con estado central y tiempo real.
 - **Interfaz en tres zonas** (ver `DESIGN.md`): barra de módulos, espacio de trabajo y panel "Al aire" con monitor y mandos. Adaptada a celular (vertical y horizontal), tableta y escritorio.
-- Módulos: `system`, `bible`, `projection`, `order`. En la interfaz: Orden, Biblia, Comparador y Ajustes; Himnario, Medios y Diapositivas aparecen atenuados como previstos.
-- **Versión 2 en construcción**, por fases, según `docs/PLAN.md`. Hechas las fases 0 (cimientos), 1 (búsqueda) y 2 (comparador); sigue la fase 3 (televisores).
+- Módulos: `system`, `bible`, `projection`, `order`, `tv`. En la interfaz: Orden, Biblia, Comparador, Televisores y Ajustes; Himnario, Medios y Diapositivas aparecen atenuados como previstos.
+- **Versión 2 en construcción**, por fases, según `docs/PLAN.md`. Hechas las fases 0 (cimientos), 1 (búsqueda) y 2 (comparador); la 3 (televisores) está construida y espera la prueba del dueño con su televisor.
 - **Carpeta de la iglesia**: todo lo que pone cada iglesia va en `Contenido/` (`Biblias/`, `Himnario/videos/`, `Himnario/letras/`), con un `LEEME.txt` por carpeta. Nada de ahí se publica, salvo las instrucciones y la Reina-Valera 1909.
 - Roles por dispositivo: control completo, control del orden (solo operar), pantalla de proyección. PIN para los de control (el equipo principal no lo necesita).
 - **Logo e identidad**: el logo del dueño, en vector, integrado en la interfaz, los iconos del sistema y la pestaña del navegador. La versión se muestra junto al logo y sale de `package.json`.
@@ -29,6 +29,9 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 - Confirmación del navegador al cerrar la pestaña de control.
 - Dirección con nombre `manna.local` (mDNS propio, sin dependencias) y puerto 80, con el 8000 de reserva. Si hay otro Manna en la red, toma `manna-2.local`.
 - Con el puerto 80, Manna atiende **también en el 8000**, para televisores cuyo navegador no abre una dirección sin puerto; "Dispositivos" lo explica en "¿Es un televisor?". Ya no se ofrecen direcciones de adaptadores sin red (`169.254…`).
+- **`https` en los mismos puertos**: cada puerto de Manna atiende `http` y `https` a la vez, y con el 80 se abre además el 443. El certificado lo hace Manna la primera vez (`data/certificado/`, válido 825 días, se renueva solo) y no cambia aunque cambie la IP. Si no se puede crear, Manna sigue solo con `http`.
+- **Televisores** (módulo `tv`, Samsung): buscar en la red, añadir por dirección, vincular (la clave que entrega el televisor se guarda en `data/televisores.json` y no sale del servidor), abrir y cerrar su navegador, control remoto (teclas, puntero, texto) y escribirle la dirección de la proyección. La tarjeta dice si está encendido, si tiene el navegador abierto, si muestra la proyección y, si llegó a Manna y cortó la conexión segura, qué hacer.
+- **Pantalla completa en un televisor**: en la página de proyección, OK o un toque del puntero. Si el televisor abre la proyección tras pedírsela desde Manna, Manna le pulsa OK.
 - Paso automático de la dirección numérica al nombre en los dispositivos que lo admiten, y reconexión sola tras un cambio de IP del equipo principal.
 - Ventana "Dispositivos" con un solo código QR, la dirección `manna.local` y direcciones alternativas plegadas.
 - Instaladores del icono "Manna" para Windows y Mac. Comprueban Node.js (`instalacion/requisitos.html` si falta); el resto lo revisa Manna al abrirse.
@@ -39,11 +42,15 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 | Área | Estado |
 | --- | --- |
-| Interfaz: Biblia, orden del culto (desplegar, recoger, nombre propio), ajustes, dispositivos, versión junto al logo y permisos del rol "Control del orden" | Probado en Chrome real con `scripts/probar-chrome.mjs` (78 comprobaciones en total) |
+| Interfaz: Biblia, orden del culto (desplegar, recoger, nombre propio), ajustes, dispositivos, versión junto al logo y permisos del rol "Control del orden" | Probado en Chrome real con `scripts/probar-chrome.mjs` (91 comprobaciones en total) |
 | Búsqueda en la Biblia: al escribir, niveles, resaltado, teclado, "ver más", cita, sin resultados | Probado en Chrome real, y con pruebas automáticas del orden, de las marcas y de en qué versión se busca |
 | Búsqueda: velocidad y memoria | Con un solo índice (Reina-Valera 1960): unos milisegundos por búsqueda y unos 12 MB. **Sin medir en el equipo Windows de la iglesia** |
 | Comparador: elegir versiones, ver las dos junto a cada versículo, vista previa, disposición antes y al aire, "siguiente", versículo que falta en una versión, añadir al orden | Probado en Chrome real con dos versiones de prueba, y con pruebas automáticas del tipo `compare` |
-| Segundo puerto (8000) y televisor | El servidor atiende en los dos puertos (comprobado al arrancar). **Sin probar desde el televisor** |
+| `http` y `https` en los puertos 80, 443 y 8000 | Probado en el Mac de desarrollo, por la dirección de red, con un cliente que exige un certificado válido y con otro que lo rechaza. **Sin probar en Windows** (puertos 80 y 443 con el Firewall) |
+| Televisor Samsung real (QN55QN85F): encontrarlo en la red, leer sus datos, vincular, abrir y cerrar el navegador, tecla "Inicio" | **Probado desde Manna con el televisor del dueño** (se comprobó en el propio televisor, por su estado) |
+| Televisor real: puntero, clic y texto | Manna los envía sin error, pero **no se pudo comprobar que el televisor los obedece**: no hay forma de ver su pantalla desde el equipo de desarrollo, y varios intentos a ciegas de entrar a la barra de direcciones no lograron que el televisor llegara a Manna |
+| Televisor real: **abrir la proyección por `https`**, aceptar el certificado, pantalla completa con OK | **Sin probar. Es la prueba del dueño que cierra la fase 3** (pasos en "Próximos pasos") |
+| Módulo Televisores en la interfaz: añadir, vincular, abrir, control remoto, panel táctil, escribir la dirección, quitar | Probado en Chrome real contra un televisor de mentira (`scripts/lib/tv-falso.mjs`), y con pruebas automáticas del mando y del módulo |
 | Aviso por módulo cuando falta un programa | Probado en Chrome real con el navegador "ausente": aparece en Ajustes, no en Biblia, y se puede cerrar. **El botón de instalar desde el aviso no se probó** (usa la misma orden que la revisión, que sí) |
 | Mandos en vivo (imagen de prueba): cambiar de imagen, cronómetro, pausa; en el panel, en el orden y desde "Control del orden" | Probado en Chrome real. **El cronómetro marca lo mismo en dos pantallas** (diferencia de 0,0 s) y coincide con el servidor. Las dos pantallas estaban en el mismo equipo: **sin probar entre dispositivos distintos** |
 | Revisión del equipo: aviso de lo que falta y de los módulos afectados, "Instalar por mí" con avance, paso al control sin bloqueo | Probado en Chrome real y por HTTP, **con una descarga simulada** servida en el propio equipo |
@@ -87,7 +94,10 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 - Los tipos de elemento futuros (himno, imagen, video, diapositivas) tienen icono, color y sitio en la interfaz, pero no existen: no se pueden añadir ni proyectar. Su icono y nombre provisionales están en `web/modules/kinds.js` y se quitan cuando llega cada módulo.
 - **ffmpeg y yt-dlp se piden ya, aunque todavía ningún módulo los usa** (llegan en las fases 5 a 7). En un equipo sin ellos, la revisión del equipo aparece en cada arranque hasta instalarlos; se continúa con un clic.
 - **Búsqueda sin tildes**: "oró" y "oro", o "creó" y "creo", son la misma palabra para el buscador. Las "parecidas" salen de reglas del español y de una lista de sinónimos (`server/core/search.js`), no de entender el texto: pueden traer alguna palabra que solo se parece. Van siempre al final.
-- **Televisor Samsung**: su navegador convierte `http://192.168.1.14` en `https://192.168.1.14/` (foto del dueño, 2026-10-04) y dice "No se encontró el servidor", porque Manna no ofrece páginas seguras. Con puerto (`http://192.168.1.14:8000`) tampoco abrió. Usarlo como segunda pantalla funciona, pero esa salida es para el proyector: tiene que abrir por su navegador. La fase 3 lo ataca por dos lados: que Manna ofrezca `https` con un certificado propio, y el control por red que trae el televisor (puertos 8001 y 8002), con el que Manna puede abrirle el navegador en la dirección correcta.
+- **Televisor Samsung: lo que su control por red permite y lo que no** (comprobado en el QN55QN85F, 2026-10-04). Permite leer sus datos, abrir y cerrar aplicaciones (el navegador) y hacer de mando (teclas; puntero y texto, sin confirmar). **No permite decirle al navegador qué dirección abrir**: las órdenes para eso que valían en modelos anteriores, este las ignora. Por eso la primera vez hay que llevar el navegador a la dirección de Manna (con el botón que la escribe) y guardarla como página de inicio.
+- **El aviso de seguridad del televisor**: el certificado de Manna es propio, así que el navegador avisa y hay que elegir "Avanzado" y "Continuar". No se sabe cada cuánto lo vuelve a preguntar el televisor. No hay forma de evitarlo sin un nombre público en internet, que queda fuera de los límites del proyecto.
+- Cambiar de equipo principal, o borrar `data/certificado/`, crea otro certificado: los televisores volverán a avisar una vez.
+- El módulo Televisores solo conoce Samsung. Está hecho para añadir otras marcas (`server/modules/tv/samsung.js` es la única parte propia de la marca).
 - **Letras del himnario**: están las 613, pero 15 himnos tienen alguna parte de una sola línea, señal de que al copiarlas se perdieron líneas (48, 57, 58, 68, 83, 116, 128, 244, 265, 280, 318, 327, 458, 546 y 590). Hay además erratas sueltas. No afecta a nada hasta la fase 5.
 - En el comparador, dos archivos de la misma traducción (por ejemplo, las dos copias de Dios Habla Hoy) aparecen con la misma sigla.
 - "Instalar por mí" no existe para ffmpeg en Mac (no hay una descarga oficial única): ahí se instala con Homebrew, y la revisión da la orden.
@@ -163,7 +173,13 @@ Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron*
 
 ## Próximos pasos
 
-- **Fases 3 (televisores, versión 1.4) y 4 (imágenes, versión 1.5), a la vez.** El orden completo está en `docs/PLAN.md`.
+- **Prueba del dueño con el televisor (cierra la fase 3)**, con Manna abierto desde su icono:
+  1. Módulo **Televisores** → "Añadir televisor" → "Buscar en la red" (o escribir `192.168.1.3`) y aceptar el aviso en el televisor.
+  2. "Abrir la proyección": debe abrirse el navegador del televisor.
+  3. "Control remoto" → "La primera vez": entrar a la barra de direcciones del televisor (con el panel táctil de Manna o con su control) y pulsar "Escribe la dirección de Manna".
+  4. Anotar qué pasa: si abre directamente, si muestra un aviso de seguridad (y si deja continuar), o si no abre. La tarjeta del televisor en Manna dirá cómo llegó.
+  5. Si se ve la proyección: pulsar OK (pantalla completa) y guardar la página como página de inicio del navegador del televisor. Cerrar el navegador desde Manna y volver a "Abrir la proyección": debería salir sola.
+- **Fase 4 (imágenes, versión 1.5).** El orden completo está en `docs/PLAN.md`.
 - **Probar en el equipo Windows de la iglesia**, en este orden: `Instalar Manna en Windows.bat`, abrir con el icono, **revisión del equipo e "Instalar por mí"**, aviso del Firewall, proyección en la segunda pantalla, imagen de prueba, botón "Apagar", y `manna.local` desde un celular.
 - El dueño revisa las letras de los himnos (15 con partes incompletas, lista arriba) antes de la fase 5.
 - Que el dueño revise la versión para celular y tableta (se hizo sin maqueta previa) y diga qué ajustar.

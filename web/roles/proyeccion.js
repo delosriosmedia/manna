@@ -19,9 +19,18 @@ const toggleFullscreen = () => {
   if (document.fullscreenElement) document.exitFullscreen();
   else document.documentElement.requestFullscreen?.().catch(() => {});
 };
+// Un televisor no tiene doble clic ni tecla F: en su navegador, el botón OK del control (o un toque
+// del puntero) pone la pantalla completa. Solo entra, nunca sale: si llegan dos pulsaciones
+// seguidas no se deshace. Para salir está el botón "Atrás" del televisor.
+const isTv = /smart-?tv|tizen|web0s|webos|hbbtv|netcast|viera|bravia/i.test(navigator.userAgent);
+const enterFullscreen = () => {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
+};
 document.addEventListener('dblclick', toggleFullscreen);
+if (isTv) document.addEventListener('click', enterFullscreen);
 document.addEventListener('keydown', (e) => {
   if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+  else if (e.key === 'Enter') enterFullscreen();
 });
 
 // Mantiene la pantalla encendida en celulares y tabletas (si el navegador lo permite).
@@ -32,6 +41,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 const hint = $('#hint');
+if (isTv) hint.textContent = 'Pulsa OK en el control para pantalla completa';
 // En la ventana de kiosco ya está a pantalla completa: no hace falta la pista.
 if (window.innerHeight >= screen.height - 2) hint.remove();
 else setTimeout(() => { hint.style.opacity = 0; }, 5000);

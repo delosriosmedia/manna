@@ -89,13 +89,15 @@ Tres zonas fijas (`web/core/shell.js`):
 
 | Zona | Qué contiene |
 | --- | --- |
-| **Barra de módulos** (izquierda) | Un botón por módulo. Los previstos pero no construidos se muestran atenuados. Abajo: Dispositivos y Ajustes. |
+| **Barra de módulos** (izquierda) | Un botón por módulo. Los previstos pero no construidos se muestran atenuados. Abajo, lo que se prepara antes de la reunión: Dispositivos, Televisores y Ajustes. |
 | **Espacio de trabajo** (centro) | Solo el módulo activo. Cabecera con el título y su buscador o acción de entrada. |
 | **Panel "Al aire"** (derecha) | Monitor de lo proyectado, anterior / siguiente, negro, solo fondo, los mandos propios de lo que está al aire, las tareas en curso, vista previa de la selección y lo que sigue en el orden. Igual en todos los módulos. |
 
 Reglas para un módulo:
 
 - La **acción principal** (Proyectar) va abajo a la derecha de su espacio de trabajo y es el único botón ámbar de la pantalla.
+- Un módulo que gobierna **equipos** (Televisores) muestra una tarjeta por equipo: icono, nombre, modelo y dirección, una línea de estado con su punto (verde cuando ya muestra la proyección, ámbar cuando pide algo a la persona, gris apagado), su acción principal en ámbar y lo demás en un menú. Si hay algo que la persona deba hacer en el equipo, se dice en una franja ámbar suave dentro de la tarjeta, con las palabras que verá en su pantalla.
+- El **control remoto** de un equipo es una ventana: panel táctil arriba (se desliza para mover el puntero, un toque pulsa), teclas en rejilla de tres por tres con OK al centro, y los pasos de la primera vez plegados al final.
 - Lo que se selecciona se resalta en ámbar suave y aparece como **vista previa** en el panel.
 - Todo lo que un módulo produce puede **añadirse al orden del culto**, que es donde confluyen todos.
 - Lo que se configura una vez (apariencia, dispositivos) va en **Ajustes**, no en la pantalla de operación.

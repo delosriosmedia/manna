@@ -10,6 +10,7 @@
 //   - los títulos largos del orden del culto se leen (no se cortan en una sola línea)
 //   - los mandos en vivo de lo que está al aire caben, en el panel y en el orden
 //   - los resultados de la búsqueda y el aviso de un módulo al que le falta un programa caben
+//   - la tarjeta de un televisor y su control remoto caben, con teclas para el dedo
 //
 // Uso:  node scripts/auditar-responsive.mjs             resumen en la terminal
 //       node scripts/auditar-responsive.mjs capturas    además guarda una imagen de cada pantalla
@@ -21,6 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sleep, startChrome } from './lib/chrome.mjs';
 import { seedExample } from './lib/ejemplo.mjs';
+import { startFakeTv } from './lib/tv-falso.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = 8124;
@@ -55,6 +57,9 @@ const SCREENS = [
   { name: 'Control del orden', url: '/orden', content: '.olist', longTitles: true },
   { name: 'Orden con mandos en vivo', url: '/control#orden', testcard: true, controls: '.odetail .live-controls' },
   { name: 'Al aire con mandos en vivo', url: '/control#ajustes', testcard: true, controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
+  { name: 'Televisores', url: '/control#televisores', content: '.tvs', inside: '.tv' },
+  { name: 'Televisores: control remoto', url: '/control#televisores', inside: '.modal', settle: 700,
+    prepare: `[...document.querySelectorAll('.tv-actions .btn')].find((b) => b.textContent === 'Control remoto').click()` },
   { name: 'Inicio', url: '/', plain: '.role' },
   { name: 'Revisión del equipo', url: '/requisitos', plain: '.req' },
 ];
@@ -113,9 +118,15 @@ async function ready(screen) {
 const LABELS = { sinDesborde: 'sin desborde lateral', navegacion: 'navegación a la vista', alAire: '"Al aire" y mandos a la vista', monitorProporcion: 'monitor sin deformar', accion: 'acción principal a la vista', tituloLargo: 'títulos largos legibles', mandos: 'mandos en vivo completos y sin salirse', dentro: 'el recuadro cabe en la pantalla', dedos: 'botones para el dedo' };
 const MIN_CONTENT = 150;
 
+// Un televisor de mentira, ya vinculado, para revisar su tarjeta y su control remoto.
+const fakeTv = await startFakeTv();
+fs.mkdirSync(path.join(tmp, 'data'), { recursive: true });
+fs.writeFileSync(path.join(tmp, 'data', 'televisores.json'), JSON.stringify({
+  list: [{ id: 'tele', ip: '192.168.1.50', name: 'Televisor del salón de jóvenes', model: 'QN00PRUEBA', token: fakeTv.token }],
+}));
 const server = spawn(process.execPath, ['server/index.js'], {
   cwd: ROOT, stdio: 'ignore',
-  env: { ...process.env, MANNA_NAME: 'manna-auditoria', MANNA_NO_OPEN: '1', MANNA_DATA: path.join(tmp, 'data'), PORT: String(PORT), MANNA_FALTA: 'navegador,yt-dlp' },
+  env: { ...process.env, MANNA_NAME: 'manna-auditoria', MANNA_NO_OPEN: '1', MANNA_DATA: path.join(tmp, 'data'), PORT: String(PORT), MANNA_FALTA: 'navegador,yt-dlp', MANNA_TV_PRUEBA: JSON.stringify(fakeTv.endpoints) },
 });
 const example = seedExample(path.join(tmp, 'data'));
 const showInOrder = (id) => chrome.evaluate(`fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'order.show',payload:{id:${JSON.stringify(id)}}})}).then((r) => r.status)`);
@@ -159,6 +170,7 @@ try {
 } finally {
   chrome.close();
   server.kill();
+  await fakeTv.stop();
   await sleep(800);
   if (!SHOTS) fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5 });
 }

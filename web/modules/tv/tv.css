@@ -1,0 +1,41 @@
+/* Módulo Televisores: una tarjeta por televisor y su control remoto. */
+.tvs { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px 32px; }
+.tv-intro { max-width: 640px; margin-bottom: 16px; }
+.tv-list { display: grid; gap: 10px; max-width: 760px; }
+
+.tv { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px 14px; padding: 14px 16px; background: var(--s1); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.tv-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r); background: var(--s2); color: var(--ink-2); }
+.tv-text { display: grid; gap: 2px; min-width: 0; }
+.tv-text strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tv-text small { color: var(--ink-3); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tv-actions { display: flex; align-items: center; gap: 8px; }
+.tv-help { grid-column: 1 / -1; margin: 0; padding: 10px 12px; background: var(--accent-soft); border-radius: var(--r); color: var(--ink-2); font-size: 13px; }
+
+.tv-status { white-space: normal; }
+.tv-status.ok { color: var(--ok); }
+.tv-status.ok .tally { background: var(--ok); }
+.tv-status.on .tally { background: var(--ink-2); }
+.tv-status.warn { color: var(--accent); }
+.tv-status.warn .tally { background: var(--accent); }
+
+.tv-found { display: grid; gap: 6px; margin-top: 10px; }
+.tv-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r); }
+.tv-row .item-text { flex: 1; min-width: 0; display: grid; }
+.tv-row small { color: var(--ink-3); font-size: 12px; }
+.tv-address { font: 500 13px var(--mono); user-select: all; overflow-wrap: anywhere; }
+
+/* Control remoto */
+.pad { display: grid; place-content: center; justify-items: center; gap: 2px; height: 170px; margin: 12px 0; background: var(--s2); border: 1px dashed var(--line-2); border-radius: var(--r-lg); color: var(--ink-3); touch-action: none; user-select: none; -webkit-user-select: none; cursor: crosshair; }
+.pad.active { border-color: var(--accent); color: var(--ink-2); }
+.pad small { font-size: 12px; color: var(--ink-4); }
+.remote-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.remote-keys .btn { justify-content: center; min-height: 44px; font-weight: 600; }
+.modal .alt-addresses { margin-top: 14px; }
+.modal .steps .link { text-align: left; }
+
+@media (max-width: 859px) {
+  .tvs { padding: 12px 12px 24px; }
+  .tv { grid-template-columns: auto minmax(0, 1fr); }
+  .tv-actions { grid-column: 1 / -1; flex-wrap: wrap; }
+  .tv-actions .btn { flex: 1 1 auto; justify-content: center; min-width: 0; }
+}

@@ -250,6 +250,7 @@ html.touch .seg .icon-btn { width: 40px; height: 40px; }
 .qr { width: 190px; padding: 8px; background: #fff; border-radius: var(--r); line-height: 0; }
 .alt-addresses { margin-bottom: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r); }
 .alt-addresses summary { cursor: pointer; color: var(--ink-3); }
+html.touch .alt-addresses summary { padding: 11px 0; }
 .alt-addresses p { margin: 8px 0; }
 
 @media (prefers-reduced-motion: reduce) {

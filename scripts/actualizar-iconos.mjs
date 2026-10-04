@@ -19,6 +19,9 @@ const ICONS = [
   // estado
   'monitor', 'power', 'warning', 'clock-counter-clockwise', 'rows', 'qr-code', 'wifi-slash', 'eye-slash', 'selection-background',
   'check-circle', 'warning-circle', 'frame-corners', 'columns',
+  // televisores y medios
+  'television-simple', 'house', 'keyboard', 'speaker-low', 'speaker-high', 'upload-simple', 'images',
+  'magnifying-glass-plus', 'magnifying-glass-minus', 'arrows-out', 'squares-four',
 ];
 
 const base = `https://unpkg.com/@phosphor-icons/core@${VERSION}`;

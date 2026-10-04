@@ -8,6 +8,9 @@ const IPV4 = /^\d{1,3}(\.\d{1,3}){3}$/;
 // info: lo que devuelve GET /api/session ({ nameUrl, serverId }).
 export async function preferStableAddress({ nameUrl, serverId }) {
   if (!nameUrl || !IPV4.test(location.hostname) || location.hostname.startsWith('127.')) return;
+  // Quien entró por https (un televisor que no admite otra cosa) se queda donde está: la dirección
+  // con nombre se ofrece por http y el navegador no dejaría ni comprobarla.
+  if (location.protocol !== 'http:') return;
   try {
     const ping = await api(`${nameUrl}/api/ping`, { timeout: 2500, cache: 'no-store' });
     // Otro Manna de la misma red podría tener ese nombre: solo vale si es este mismo servidor.

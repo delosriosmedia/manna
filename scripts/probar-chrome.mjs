@@ -5,8 +5,8 @@
 //      uno mostrando el avance y no bloquea la app; dentro, el módulo afectado también avisa.
 //      La descarga sale de un servidor de mentira en este mismo equipo.
 //   1. La interfaz: Biblia (búsqueda por niveles), comparador de versiones, orden del culto (con
-//      nombres propios), mandos en vivo que van a la par en dos pantallas, ajustes y la función
-//      "Control del orden".
+//      nombres propios), televisores (con uno de mentira), mandos en vivo que van a la par en dos
+//      pantallas, ajustes y la función "Control del orden". También que Manna atiende por https.
 //   2. Al entrar por la dirección numérica, la página pasa sola a la dirección con nombre.
 //   3. El navegador pide confirmación al salir de la pestaña de control.
 //   4. Con un dispositivo conectado por el nombre, el equipo principal "cambia de IP" y el
@@ -26,6 +26,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { lanInterfaces } from '../server/modules/system/network.js';
 import { sleep, startChrome } from './lib/chrome.mjs';
+import { startFakeTv } from './lib/tv-falso.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = 8123;
@@ -63,8 +64,10 @@ for (const port of [PORT, 8125]) {
 }
 
 // ---- Servidor de prueba ----
+// Los televisores de la prueba son uno de mentira en este equipo: nada sale a la red.
+const fakeTv = await startFakeTv();
 function startServer(host, extra = {}) {
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), ...extra };
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify(fakeTv.endpoints), ...extra };
   if (host) env.MANNA_HOST = host;
   return spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env });
 }
@@ -322,6 +325,63 @@ try {
   const added = on.order.find((i) => i.kind === 'compare');
   check('se añade al orden como elemento propio, con sus dos versiones', Boolean(added) && added.subtitle === 'RV1909 · Versión de prueba' && added.data.layout === 'rows');
 
+  console.log('\n1. Interfaz · Televisores');
+  await click(`document.querySelector('.rail-item[data-id=televisores]')`);
+  await sleep(500);
+  const tvs = `document.querySelector('.ws[data-module=televisores]')`;
+  const modal = `document.querySelector('.modal')`;
+  const toastText = () => text('#toast');
+  const addTv = async (address) => {
+    await run(`const i = ${modal}.querySelector('input'); i.value = ${JSON.stringify(address)}; [...${modal}.querySelectorAll('.btn')].find(b => b.textContent === 'Añadir').click();`);
+    await sleep(900);
+  };
+  check('sin televisores, invita a añadir uno', await run(`return ${tvs}.querySelector('.empty').textContent.includes('Aún no hay televisores')`));
+  await click(`${tvs}.querySelector('.ws-head .btn')`);
+  await sleep(300);
+  await addTv('8.8.8.8');
+  check('solo admite direcciones de la red local', (await toastText()).includes('dirección del televisor') && await run(`return Boolean(${modal})`));
+  await addTv('192.168.1.50');
+  const tvCard = `${tvs}.querySelector('.tv')`;
+  check('añade el televisor con su nombre y modelo, y le pide permiso', await run(`return !${modal} && ${tvCard}.querySelector('strong').textContent === 'Tele "de prueba"' && ${tvCard}.querySelector('small').textContent === 'QN00PRUEBA · 192.168.1.50'`) && fakeTv.lastName === 'Manna');
+  await sleep(600);
+  check('al aceptarse en el televisor queda vinculado, y la clave no llega al navegador', await run(`const s = await (await fetch('/api/state')).json(); return s.tv.list[0].paired && !JSON.stringify(s).includes(${JSON.stringify(fakeTv.token)}) && ${tvCard}.querySelector('.tv-status').textContent === 'Encendido'`));
+  await click(`[...${tvCard}.querySelectorAll('.btn')].find(b => b.textContent.includes('Abrir la proyección'))`);
+  await sleep(900);
+  check('"Abrir la proyección" abre el navegador del televisor', fakeTv.browser.visible && (await run(`return ${tvCard}.querySelector('.tv-status').textContent`)) === 'Encendido · navegador abierto');
+  await click(`[...${tvCard}.querySelectorAll('.btn')].find(b => b.textContent === 'Control remoto')`);
+  await sleep(500);
+  check('el control remoto trae panel táctil, teclas y la dirección que hay que escribir', await run(`return Boolean(${modal}.querySelector('.pad')) && ${modal}.querySelectorAll('.remote-keys .btn').length === 9 && (${JSON.stringify(!ip)} || ${modal}.querySelector('.tv-address').textContent === ${JSON.stringify(`http://${ip}:${PORT}/proyeccion`)})`), await run(`return ${modal}.querySelector('.tv-address').textContent`));
+  await click(`${modal}.querySelector('.remote-keys [aria-label=Aceptar]')`);
+  await sleep(500);
+  check('una tecla del control llega al televisor', fakeTv.received.at(-1)?.DataOfCmd === 'KEY_ENTER');
+  // Deslizar el dedo por el panel mueve el puntero; un toque corto pulsa.
+  const pad = JSON.parse(await run(`const r = ${modal}.querySelector('.pad').getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2 })`));
+  const mouse = (kind, x, y) => chrome.send('Input.dispatchMouseEvent', { type: kind, x, y, button: 'left', buttons: kind === 'mouseReleased' ? 0 : 1, clickCount: 1 });
+  await mouse('mousePressed', pad.x, pad.y);
+  await mouse('mouseMoved', pad.x + 30, pad.y + 10);
+  await mouse('mouseMoved', pad.x + 60, pad.y + 20);
+  await mouse('mouseReleased', pad.x + 60, pad.y + 20);
+  await sleep(600);
+  const moves = fakeTv.received.filter((p) => p.Cmd === 'Move');
+  check('deslizar por el panel mueve el puntero del televisor', moves.length > 0 && moves.reduce((n, p) => n + p.Position.x, 0) === 120 && moves.reduce((n, p) => n + p.Position.y, 0) === 40 && !fakeTv.received.some((p) => p.Cmd === 'LeftClick'), `${moves.length} envíos`);
+  await mouse('mousePressed', pad.x, pad.y);
+  await mouse('mouseReleased', pad.x, pad.y);
+  await sleep(500);
+  check('un toque en el panel pulsa', fakeTv.received.at(-1)?.Cmd === 'LeftClick');
+  await run(`${modal}.querySelector('details').open = true; [...${modal}.querySelectorAll('.steps .link')].find(b => b.textContent.includes('Escribe la dirección')).click();`);
+  await sleep(700);
+  const typedUrl = fakeTv.received.find((p) => p.TypeOfRemote === 'SendInputString');
+  check('"Escribe la dirección de Manna" la teclea en el televisor', Boolean(typedUrl) && Buffer.from(typedUrl.Cmd, 'base64').toString().endsWith(`:${PORT}/proyeccion`) && fakeTv.received.at(-1)?.TypeOfRemote === 'SendInputEnd');
+  await click(`${modal}.querySelector('.modal-header .icon-btn')`);
+  check('Manna atiende también por https en el mismo puerto', await run(`const s = await (await fetch('/api/state')).json(); return s.system.secure === true`) && await new Promise((resolve) => {
+    import('node:https').then(({ default: https }) => https.get({ host: '127.0.0.1', port: PORT, path: '/api/ping', rejectUnauthorized: false, agent: false }, (res) => resolve(res.statusCode === 200)).on('error', () => resolve(false)));
+  }));
+  await click(`${tvCard}.querySelector('.icon-btn')`);
+  await sleep(300);
+  await click(`[...document.querySelectorAll('.menu button')].find(b => b.textContent.includes('Quitar'))`);
+  await sleep(500);
+  check('el televisor se puede quitar de la lista', await run(`return !${tvs}.querySelector('.tv') && Boolean(${tvs}.querySelector('.empty'))`));
+
   console.log('\n1. Interfaz · Ajustes, dispositivos y permisos');
   await click(`document.querySelector('.rail-item[data-id=ajustes]')`);
   await sleep(500);
@@ -432,6 +492,7 @@ try {
 } finally {
   chrome.close();
   await stopServer(server);
+  await fakeTv.stop();
   await sleep(800);
   fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5 });
 }

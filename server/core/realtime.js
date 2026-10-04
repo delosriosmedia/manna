@@ -33,7 +33,7 @@ export function createRealtime({ store, router }) {
       'X-Accel-Buffering': 'no',
     });
     res.write('retry: 1500\n\n');
-    const client = { res, role: (ctx.query.get('rol') || 'otro').slice(0, 20) };
+    const client = { res, role: (ctx.query.get('rol') || 'otro').slice(0, 20), ip: String(ctx.ip || '').replace(/^::ffff:/, '') };
     clients.add(client);
     send(res, 'state', store.snapshot());
     send(res, 'ping', { t: Date.now() });
@@ -52,6 +52,9 @@ export function createRealtime({ store, router }) {
   keepAlive.unref();
 
   return {
+    // ¿Hay algún dispositivo con esa dirección conectado con esa función? Lo usa quien necesita
+    // saber si un equipo concreto (un televisor) ya está mostrando la proyección.
+    has: (role, ip) => [...clients].some((c) => c.role === role && c.ip === ip),
     close() {
       clearInterval(keepAlive);
       for (const c of clients) c.res.end();

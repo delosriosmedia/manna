@@ -11,6 +11,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Búsqueda**: por cita (`Juan 3:16-18`, `1 co 13 4`, `sal 23`) o por texto, mientras escribes. El texto se busca en la Reina-Valera 1960 (o en la versión elegida, si no está instalada) y el resultado se abre en la versión que tengas elegida. Los resultados salen por niveles (frase exacta, todas las palabras, parecidas), con lo encontrado resaltado, y se pueden limitar al Antiguo o al Nuevo Testamento.
 - **Comparador**: el mismo pasaje en dos versiones, lado a lado o una sobre otra, cada una con su sigla. Se elige igual que en Biblia, se proyecta, se añade al orden como elemento propio, y la disposición se puede cambiar mientras está al aire.
 - **Orden del culto**: la lista ordenada de todo lo que se va a proyectar, con secciones (Apertura, Mensaje…). Cada elemento muestra su tipo y sus pasos; "Siguiente" recorre los pasos y luego pasa al elemento que sigue. A cualquier elemento se le puede poner un nombre propio ("Lectura bíblica"). Se comparte entre todos los dispositivos.
+- **Televisores**: un televisor Samsung de la misma red muestra la proyección desde su navegador, sin cables. Manna lo encuentra, le abre el navegador y le sirve de control remoto (teclas, puntero y texto); la primera vez le escribe la dirección por ti.
 - **Mandos en vivo**: lo que está al aire trae sus propios mandos en el panel y en el orden del culto. Hoy los estrena la **imagen de prueba** (Ajustes → Proyector de este equipo), que sirve para encuadrar el proyector o un televisor y comprobar, con su cronómetro, que todas las pantallas van a la par.
 - **Revisión del equipo**: al abrirse, Manna comprueba que el equipo principal tiene los programas que necesita. Si falta alguno, dice qué módulos se ven afectados y lo instala con un botón. Nunca impide abrir la app.
 - **Preparado para crecer**: himnario, medios (imágenes, videos, audios y YouTube) y presentaciones ya tienen su sitio en la interfaz. Cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
@@ -90,8 +91,20 @@ Reconecta solo; no hay que recargar la página. Si el aviso rojo no desaparece:
 - Si el navegador abre una búsqueda en vez de la página, escribe `manna.local/` con la barra final.
 - Si no abre en ningún dispositivo: en Windows, permite Node.js en el Firewall para redes privadas; en Mac, revisa Ajustes del Sistema → Privacidad y seguridad → Red local.
 - Si otro programa ya usa el puerto 80, Manna usa el 8000 y la dirección pasa a ser `manna.local:8000`. La dirección exacta siempre está en **Dispositivos**.
-- **En un televisor**: su navegador suele convertir la dirección en una página segura (`https`) que Manna no ofrece, y dice "No se encontró el servidor". Escribe la dirección completa con el segundo puerto, por ejemplo `http://192.168.1.14:8000` (está en **Dispositivos → ¿Es un televisor?**). Si aun así no abre, usa el televisor como segunda pantalla del equipo principal (duplicar pantalla en Windows con Win + K, o AirPlay en Mac): Manna abre ahí la proyección sola.
+- **En un televisor**: su navegador suele convertir la dirección en una página segura (`https`). Manna atiende de las dos formas; escribe la dirección completa, por ejemplo `192.168.1.14:8000/proyeccion` (está en **Dispositivos → ¿Es un televisor?**). Si el televisor muestra un aviso de seguridad, elige "Avanzado" y "Continuar": la página es tu propio equipo. Para pantalla completa, pulsa OK en su control.
 - Con dos Manna en la misma red, el segundo se llama `manna-2.local`.
+
+### Un televisor como pantalla
+
+Sirve para un televisor que está en la misma red y no se puede (o no se quiere) conectar por cable: la salida del equipo principal queda para el proyector.
+
+1. En el control, abre **Televisores** → **Añadir televisor** → **Buscar en la red**. Si no aparece, escribe su dirección (en el televisor: Configuración › Conexión › Red › Estado de red › Configuración IP).
+2. El televisor muestra un aviso preguntando si permite a "Manna": acéptalo con su control. Solo lo pregunta la primera vez.
+3. Pulsa **Abrir la proyección**: se abre el navegador del televisor.
+4. **La primera vez**, abre **Control remoto** → *La primera vez*: entra a la barra de direcciones del navegador del televisor y pulsa *Escribe la dirección de Manna*. Si aparece un aviso de seguridad, "Avanzado" y "Continuar". Cuando veas la proyección, guárdala como **página de inicio** en el menú del navegador del televisor.
+5. Desde entonces, **Abrir la proyección** basta. Al terminar, en el menú del televisor (⋯) está **Cerrar el navegador del televisor**.
+
+Conviene fijar en el router la dirección del equipo principal y la del televisor, para que no cambien. Hoy funciona con televisores Samsung (2016 en adelante).
 
 ## Atajos de teclado
 
@@ -118,7 +131,8 @@ instalacion/            aviso de que falta Node.js, lanzador de Windows e iconos
 server/
   index.js, app.js      arranque y lista de módulos
   roles.js              funciones que puede elegir un dispositivo y sus permisos
-  core/                 servidor HTTP (archivos grandes, subidas), estado compartido, tiempo real,
+  core/                 servidor HTTP y https en el mismo puerto (con certificado propio), archivos
+                        grandes y subidas, cliente WebSocket, estado compartido, tiempo real,
                         sesiones, almacenamiento, reloj de reproducción, tareas con avance,
                         programas del equipo (detección e instalación), carpetas de contenido
                         y búsqueda de texto por niveles (la usan la Biblia y, después, el himnario)
@@ -128,6 +142,8 @@ server/
     projection/         contenido en vivo, mandos en vivo, volumen, estilos, segunda pantalla,
                         imagen de prueba
     order/              orden del culto: elementos, secciones y pasos
+    tv/                 televisores de la red como pantalla: buscarlos, vincularlos, abrirles
+                        el navegador y hacerles de control remoto (samsung.js es lo propio de la marca)
 web/
   core/                 estructura de la app, conexión con el servidor, tipos de contenido,
                         reloj, tareas, iconos y estilos base

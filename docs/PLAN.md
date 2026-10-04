@@ -157,7 +157,9 @@ Construido como estaba previsto, salvo lo anotado en la sección 10. Resultados 
 - En el orden: tipo propio (`compare`), con icono, color y la etiqueta "Comparador", y las dos siglas en la línea secundaria.
 - Si un versículo no existe en una de las versiones, ese lado lo indica.
 
-### Fase 3 · Pantalla para televisores
+### Fase 3 · Pantalla para televisores — construida (1.4.0), falta la prueba del dueño
+
+Lo que se hizo está en la sección 9. Lo que sigue es el plan original, que se conserva como referencia.
 
 1. **Diagnóstico con el Samsung 55QN85F.** La red está descartada y la causa confirmada: el televisor convierte la dirección en `https` (sección 2). Prueba pendiente del dueño, con Manna reiniciado: `http://192.168.1.14:8000`.
    - **Si abre**: la fase queda en el botón de pantalla completa y la documentación.
@@ -332,7 +334,7 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 0 Cimientos | **Hecha** · 2026-10-04 | 1.1.0 | Ver abajo |
 | 1 Búsqueda | **Hecha** · 2026-10-04 | 1.2.0 | Ver abajo. Incluye el cambio de la revisión del equipo: ya nada bloquea |
 | 2 Comparador | **Hecha** · 2026-10-04 | 1.3.0 | Ver abajo. Incluye la carpeta `Contenido/`, la búsqueda solo en RVR1960 y el segundo puerto |
-| 3 Televisores | **En curso** | 1.4 | El televisor exige `https` también con puerto. Se cierra con una prueba del dueño |
+| 3 Televisores | **Construida** · 2026-10-04 · falta la prueba del dueño | 1.4.0 | Ver abajo. `https` propio y módulo Televisores. El control por red del televisor no deja pasarle la dirección |
 | 4 Imágenes | **En curso** | 1.5 | A la vez que la 3 |
 | 5 Himnario | Pendiente | 1.6 | Videos y letras ya están en `Contenido/Himnario/`. El dueño revisa las letras |
 | 6 Videos y audios | Pendiente | 1.7 | |
@@ -370,6 +372,20 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 - **Sin probar**: el segundo puerto desde el televisor; el comparador en un celular real.
 - **Límites conocidos**: se comparan los versículos por su número; si dos versiones numeran distinto un pasaje, cada lado muestra lo que tiene con ese número.
 - **Ajustes pedidos tras la revisión del dueño (1.3.1)**: el número delante de cada versículo en el comparador, también con uno solo; y el filtro de la búsqueda por testamento.
+
+### Fase 3 · resultados
+
+- **`https` propio**: Manna hace su certificado (X.509 armado a mano, sin dependencias) y cada puerto atiende `http` y `https` a la vez; con el 80 se abren también el 8000 y el 443. Comprobado en el Mac con un cliente que exige certificado válido.
+- **Control del televisor por la red** (lo que pidió el dueño), probado contra su QN55QN85F:
+  - **Funciona**: encontrarlo en la red, leer nombre y modelo, vincular (la clave se guarda), abrir y cerrar el navegador, teclas.
+  - **No lo permite este modelo**: pasarle una dirección al navegador. Se probaron las cuatro vías conocidas (abrir con enlace por el canal del mando, con y sin tipo "nativo"; el servicio de aplicaciones web; y parámetros en la orden de abrir): las ignora o no existen.
+  - **Sin confirmar**: puntero y texto. Manna los envía como marca el protocolo, pero sin ver la pantalla del televisor no se pudo comprobar que los obedezca.
+- **Módulo Televisores**: lista, búsqueda, vinculación, "Abrir la proyección", control remoto con panel táctil, y un botón que escribe la dirección en el televisor. Sabe si el televisor ya muestra la proyección y, si se quedó en el aviso de seguridad, lo explica.
+- **Pantalla completa con OK**, y Manna lo pulsa solo cuando el televisor llega a la proyección que se le pidió.
+- **Pruebas automáticas**: de 72 a 87. Nuevas: certificado, puerto doble, cliente WebSocket, mando de Samsung y módulo, contra un televisor de mentira.
+- **Chrome real**: 12 comprobaciones nuevas (Televisores y `https`). **Pantallas**: 9 tamaños, con la tarjeta y el control remoto.
+- **Sin probar** (es la prueba que cierra la fase): que el navegador del televisor abra Manna por `https`, qué aviso muestra y si deja continuar; la pantalla completa; puntero y texto.
+- **No hizo falta**: la página sencilla `/tv` para navegadores antiguos (el del dueño es reciente).
 
 ## 10. Cambios al plan
 
@@ -411,6 +427,10 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-04 | El himnario no se adelanta (se rechaza S6): sigue después de las fases 3 y 4 | Decisión 15: el dueño está revisando las letras |
 | 2026-10-04 | Las fases 3 y 4 se trabajan a la vez | Decisión 18. La 3 depende de pruebas del dueño con el televisor; la 4 no |
 | 2026-10-04 | Fase 3: el televisor debe abrir por su navegador; se descarta dar por buena la segunda pantalla. Se añade el control por IP del televisor (era la sugerencia S5) | Decisión 16. La dirección con puerto 8000 tampoco abrió |
+| 2026-10-04 | Fase 3: `http` y `https` van por el mismo puerto, en vez de un servidor `https` aparte | No se sabe a qué puerto va el televisor cuando convierte la dirección; así acierta en cualquiera (80, 443, 8000) |
+| 2026-10-04 | Fase 3: nace el módulo "Televisores" (buscar, vincular, abrir el navegador, control remoto, escribir la dirección) | El control por red del televisor abre el navegador pero no acepta una dirección: la primera vez hay que escribírsela, y Manna lo hace como un teclado |
+| 2026-10-04 | Fase 3: Manna anota cómo llega cada equipo (`http`, `https` o saludo cortado) | Sin ver el televisor no hay otra forma de saber por qué no entra; ahora lo dice la tarjeta |
+| 2026-10-04 | Fase 3: se quitan del plan las alternativas "como segunda pantalla" | Decisión 16 |
 
 ## 11. Cambios sugeridos al plan
 
@@ -418,5 +438,9 @@ Propuestas del asistente que el dueño aún no ha decidido. Al decidirse, pasan 
 
 | # | Sugerencia | Por qué | Qué cambiaría |
 | --- | --- | --- | --- |
+| S8 | Fijar en el router la dirección del equipo principal y la del televisor | La página de inicio del televisor guarda la dirección numérica de Manna; si el router la cambia, hay que volver a escribirla | Nada en Manna: es un ajuste del router. Se documentaría con capturas |
+| S9 | Encender y apagar el televisor desde Manna | Su control por red lo permite (encendido por red y tecla de apagado). No se incluyó para no apagar un televisor por error ni probarlo sin el dueño delante | Dos botones en la tarjeta del televisor. Pequeño; se haría tras la prueba del dueño |
+| S10 | Fase 7: enviar un video de YouTube directamente al televisor | El televisor anuncia su aplicación de YouTube en la red (se vio al explorarlo). Serviría para que el video lo reproduzca el propio televisor, sin pasar por su navegador | Se estudiaría en la fase 7; no cambia el plan todavía |
+| S11 | Otras marcas de televisor | El módulo está hecho para añadirlas. Los LG (webOS) sí aceptan que se les indique la dirección por la red | Solo si alguna iglesia lo necesita; hace falta un televisor de esa marca para probar |
 | S7 | Que el dueño revise los 15 himnos cuya letra parece incompleta (lista en `docs/ESTADO.md`) | Al copiar las letras se perdieron líneas en algunas partes. **En curso: el dueño las está revisando** | Nada en el plan; se corrigen los archivos `.md` y Manna los vuelve a leer solo |
 

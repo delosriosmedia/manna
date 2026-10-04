@@ -4,6 +4,15 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.4.0 — 2026-10-04
+
+- **Televisores**, un módulo nuevo: un televisor de la misma red muestra la proyección desde su navegador, sin cables y sin ocupar la salida del proyector. Manna lo busca en la red, se vincula (el televisor pide permiso una vez), le **abre y le cierra el navegador** y le sirve de **control remoto**: teclas, un panel táctil para el puntero y texto. Por ahora, televisores Samsung.
+- **La dirección se escribe sola**: con el teclado del televisor abierto, un botón le teclea la dirección de la proyección. Guardándola como página de inicio del navegador del televisor, después basta con «Abrir la proyección».
+- **Manna atiende también por `https`**, que es lo que exigen los navegadores de muchos televisores. Usa un certificado hecho por el propio Manna; el televisor avisa una vez de que no lo conoce y deja continuar. Todas las direcciones de siempre siguen funcionando igual.
+- En cada televisor de la lista se ve si está encendido, si tiene el navegador abierto y si ya muestra la proyección. Si llegó a Manna pero se quedó en el aviso de seguridad, Manna lo dice y explica qué pulsar.
+- **Pantalla completa con el control del televisor**: en la página de proyección basta pulsar OK. Cuando el televisor abre la proyección que se le pidió, Manna pulsa OK por ti.
+- "Dispositivos → ¿Es un televisor?" explica qué escribir y qué esperar.
+
 ## 1.3.1 — 2026-10-04
 
 - **Comparador**: cada versículo lleva su número delante en las dos versiones, también cuando se proyecta uno solo.

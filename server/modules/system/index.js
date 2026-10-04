@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { HttpError } from '../../core/router.js';
+import { networkName } from '../../core/app.js';
 import { lanInterfaces, origin } from './network.js';
 import { createResponder } from './mdns.js';
 
@@ -15,10 +16,11 @@ export default function setup(app) {
   // La versión se lee de package.json: es el único sitio donde se cambia.
   const { version } = JSON.parse(fs.readFileSync(path.join(app.rootDir, 'package.json'), 'utf8'));
   // altPort: segundo puerto en el que Manna también atiende (para televisores), o null.
-  store.register('system', { name: 'Manna', version, addresses: [], port: null, altPort: null, hostname: null, nameUrl: null });
+  // secure: Manna atiende también por https en esos mismos puertos. securePort: el puerto propio
+  // de https (443), al que llega un navegador que convierte la dirección por su cuenta, o null.
+  store.register('system', { name: 'Manna', version, addresses: [], port: null, altPort: null, secure: false, securePort: null, hostname: null, nameUrl: null });
 
-  const base = (process.env.MANNA_NAME || 'manna').toLowerCase().replace(/[^a-z0-9-]/g, '') || 'manna';
-  const responder = createResponder({ base });
+  const responder = createResponder({ base: networkName() });
   let announced = null;
   let busy = false;
   let failures = 0; // comprobaciones fallidas seguidas
@@ -49,6 +51,8 @@ export default function setup(app) {
         addresses: interfaces.map((i) => origin(i.address, app.port)),
         port: app.port,
         altPort: app.altPort,
+        secure: app.secure,
+        securePort: app.securePort,
         hostname,
         nameUrl: hostname ? origin(hostname, app.port) : null,
       };

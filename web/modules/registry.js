@@ -1,6 +1,7 @@
 import order from './order/workspace.js';
 import bible from './bible/workspace.js';
 import compare from './bible/compare.js';
+import televisores from './tv/workspace.js';
 import settings from './settings/workspace.js';
 
 // Módulos de la interfaz, en el orden en que aparecen en la barra.
@@ -21,6 +22,7 @@ export const MODULES = [
     ] },
   { id: 'diapositivas', name: 'Diapositivas', icon: 'presentation-chart', soon: true,
     needs: [{ tools: ['powerpoint'], feature: 'abrir presentaciones de PowerPoint (los PDF sí funcionan)' }] },
+  televisores,
   settings,
 ];
 

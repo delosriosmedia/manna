@@ -27,7 +27,7 @@ Repositorio: https://github.com/delosriosmedia/manna
 - Programas externos del equipo principal: Chrome o Edge, ffmpeg, yt-dlp y PowerPoint. Se detectan, se instalan y se ejecutan solo a través de `server/core/tools.js`. Al abrirse, Manna revisa que estén (`/requisitos`).
 - Web: HTML, CSS y JavaScript puro con módulos ES. **Sin framework ni paso de compilación.** Tipografía (Geist) e iconos (Phosphor) incluidos en `web/vendor/`.
 - Tiempo real: Server-Sent Events (`GET /api/events`). Órdenes: `POST /api/action`.
-- Red: puerto 80 (8000 si está ocupado) y nombre `manna.local` anunciado por mDNS, hecho a mano en `server/modules/system/mdns.js`.
+- Red: puerto 80 (8000 si está ocupado) y nombre `manna.local` anunciado por mDNS, hecho a mano en `server/modules/system/mdns.js`. Cada puerto atiende `http` y `https` a la vez (certificado propio, hecho a mano en `server/core/cert.js`); con el 80 se abren además el 8000 y el 443.
 - Datos locales en `data/` (JSON, medios subidos, programas instalados por Manna y temporales). Lo que pone cada iglesia, en `Contenido/`: `Biblias/`, `Himnario/videos/` y `Himnario/letras/` (ver `Contenido/LEEME.txt`).
 
 ## Límites fijados por el dueño del proyecto
