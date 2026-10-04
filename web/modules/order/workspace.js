@@ -1,17 +1,20 @@
 import { action, api, state, subscribe } from '../../core/api.js';
 import { h, dialog, guard, menu, toast } from '../../core/dom.js';
-import { icon, kindBadge, KINDS } from '../../core/icons.js';
+import { icon } from '../../core/icons.js';
+import { kindBadge, kindOf, titleOf } from '../../core/kinds.js';
 import { prefs } from '../../core/prefs.js';
 import { createStage } from '../projection/stage.js';
+import { createLiveControls } from '../projection/live.js';
 
 const MAX_SLIDES = 60;
 const wide = matchMedia('(min-width: 1180px)');
 
 // Línea secundaria de un elemento: tipo · detalle · cuántos pasos tiene.
+// Si lleva un nombre propio, primero va el que le da su contenido ("Juan 3:16"), para no perderlo.
 function describe(item) {
-  const kind = KINDS[item.kind];
+  const kind = kindOf(item.kind);
   const unit = kind?.unit && item.steps ? `${item.steps} ${kind.unit[item.steps === 1 ? 0 : 1]}` : '';
-  return [kind?.label, item.subtitle, unit].filter(Boolean).join(' · ');
+  return [item.original, kind?.label, item.subtitle, unit].filter(Boolean).join(' · ');
 }
 
 // Módulo Orden del culto: la lista de todo lo que se va a proyectar, en orden, venga del
@@ -23,10 +26,14 @@ function mount(el, ctx) {
   let live = null;        // source de lo que está al aire: { orderId, step }
   let loaded = null;      // { key, steps, whole } del elemento seleccionado
   let collapsed = false;  // el usuario recogió el detalle a propósito: no se vuelve a abrir solo
+  let opened = false;     // ya se mostró el orden por primera vez
 
   const list = h('div', { class: 'olist' });
   const detail = h('div', { class: 'odetail' });
   const side = h('div', { class: 'oside' });
+  // Mandos del elemento que está al aire. Se crean una vez y se colocan en su detalle.
+  const liveControls = h('div', {});
+  createLiveControls(liveControls);
   const quick = h('input', {
     type: 'text', placeholder: 'Añadir una cita rápida: jn 3 16', autocomplete: 'off', 'aria-label': 'Añadir una cita al orden',
     onkeydown: (e) => { if (e.key === 'Enter') quickAdd(quick.value.trim()); },
@@ -50,7 +57,7 @@ function mount(el, ctx) {
   function openAddMenu(anchor) {
     menu(anchor, [
       { label: 'Pasaje bíblico', icon: 'book-open-text', onclick: () => ctx.go('biblia') },
-      { label: 'Sección', icon: 'rows', onclick: () => askTitle('Nueva sección', '', (title) => run('order.addSection', { title })) },
+      { label: 'Sección', icon: 'rows', onclick: () => askTitle({ title: 'Nueva sección', onSave: (title) => run('order.addSection', { title }) }) },
       '-',
       { label: 'Himno', icon: 'music-notes', note: 'Próximamente', disabled: true },
       { label: 'Imagen', icon: 'image', note: 'Próximamente', disabled: true },
@@ -59,10 +66,12 @@ function mount(el, ctx) {
     ]);
   }
 
-  function askTitle(title, value, onSave) {
-    const input = h('input', { class: 'input', value, maxLength: 60, placeholder: 'Apertura, Alabanza, Mensaje…', 'aria-label': 'Nombre de la sección' });
-    const box = dialog(title, h('form', { onsubmit: (e) => { e.preventDefault(); if (input.value.trim()) { onSave(input.value.trim()); box.close(); } } },
+  // Pide un nombre. allowEmpty: se puede guardar vacío (vuelve al nombre original).
+  function askTitle({ title, value = '', maxLength = 60, placeholder = 'Apertura, Alabanza, Mensaje…', hint = null, allowEmpty = false, onSave }) {
+    const input = h('input', { class: 'input', value, maxLength, placeholder, 'aria-label': 'Nombre' });
+    const box = dialog(title, h('form', { onsubmit: (e) => { e.preventDefault(); if (allowEmpty || input.value.trim()) { onSave(input.value.trim()); box.close(); } } },
       h('div', { class: 'field' }, input),
+      hint && h('p', { class: 'muted' }, hint),
       h('div', { class: 'row', style: 'justify-content: flex-end;' },
         h('button', { class: 'btn', type: 'button', onclick: () => box.close() }, 'Cancelar'),
         h('button', { class: 'btn primary' }, 'Guardar'))));
@@ -91,15 +100,25 @@ function mount(el, ctx) {
     toast(`Añadido: ${item.title}`);
   });
 
+  // Cualquier elemento puede llevar un nombre propio; el de su contenido sigue a la vista debajo.
+  function rename(item) {
+    const save = (title) => run('order.rename', { id: item.id, title });
+    if (item.kind === 'section') return askTitle({ title: 'Cambiar nombre', value: item.title, onSave: save });
+    return askTitle({
+      title: 'Cambiar nombre', value: item.title, maxLength: 120, placeholder: item.original || item.title, allowEmpty: true, onSave: save,
+      hint: item.original ? `Déjalo vacío para volver a "${item.original}".` : 'Es el nombre que se verá en el orden del culto. No cambia lo que se proyecta.',
+    });
+  }
+
   // ---- Lista ----
   function rowMenu(anchor, item, index) {
     menu(anchor, [
-      item.kind === 'section' && { label: 'Cambiar nombre', icon: 'pencil-simple', onclick: () => askTitle('Cambiar nombre', item.title, (title) => run('order.rename', { id: item.id, title })) },
+      { label: 'Cambiar nombre', icon: 'pencil-simple', onclick: () => rename(item) },
       { label: 'Subir', icon: 'arrow-up', disabled: index === 0, onclick: () => run('order.move', { id: item.id, toIndex: index - 1 }) },
       { label: 'Bajar', icon: 'arrow-down', disabled: index === items.length - 1, onclick: () => run('order.move', { id: item.id, toIndex: index + 1 }) },
       '-',
       { label: 'Quitar del orden', icon: 'trash', onclick: () => run('order.remove', { id: item.id }) },
-    ].filter(Boolean));
+    ]);
   }
 
   function renderList() {
@@ -171,7 +190,8 @@ function mount(el, ctx) {
     const item = items.find((i) => i.id === id);
     if (!item) return renderDetail(null);
     placeDetail();
-    if (reveal) list.querySelector('.orow.selected')?.scrollIntoView({ block: 'nearest' });
+    // reveal: true lleva la fila a la vista moviendo lo mínimo; 'center' la centra (al abrir).
+    if (reveal) list.querySelector('.orow.selected')?.scrollIntoView({ block: reveal === true ? 'nearest' : reveal });
     const key = `${item.id}|${item.title}|${item.steps}`;
     if (loaded?.key !== key) {
       loaded = null;
@@ -200,6 +220,7 @@ function mount(el, ctx) {
     // En celular la fila no lleva el botón de opciones (el ancho es para el título): van aquí.
     const index = items.indexOf(item);
     const tools = ctx.canEdit && h('div', { class: 'odetail-tools' },
+      h('button', { class: 'btn', onclick: () => rename(item) }, icon('pencil-simple', 16), 'Nombre'),
       h('button', { class: 'btn', disabled: index === 0, onclick: () => run('order.move', { id: item.id, toIndex: index - 1 }) }, icon('arrow-up', 16), 'Subir'),
       h('button', { class: 'btn', disabled: index === items.length - 1, onclick: () => run('order.move', { id: item.id, toIndex: index + 1 }) }, icon('arrow-down', 16), 'Bajar'),
       h('button', { class: 'btn danger', onclick: () => run('order.remove', { id: item.id }) }, icon('trash', 16), 'Quitar'));
@@ -209,13 +230,15 @@ function mount(el, ctx) {
       return;
     }
     const onAir = live?.orderId === item.id;
+    // Un elemento de un solo paso se rotula con su tipo; los demás, con lo que muestra cada paso.
+    const caption = (s, i) => (loaded.steps.length === 1 ? kindOf(item.kind)?.label : s.reference || titleOf(s)) || `Paso ${i + 1}`;
     const slides = loaded.steps.slice(0, MAX_SLIDES).map((s, i) =>
-      slide(s.reference || `Paso ${i + 1}`, s, onAir && live.step === i, () => show(item.id, i)));
+      slide(caption(s, i), s, onAir && live.step === i, () => show(item.id, i)));
     // Pasajes cortos: también se pueden mostrar enteros en una sola pantalla.
     if (loaded.whole && item.kind === 'verses' && item.steps <= 6) {
       slides.unshift(slide('Todo junto', loaded.whole, onAir && live.step == null, () => show(item.id, null)));
     }
-    detail.replaceChildren(...[head, h('div', { class: 'slides' }, ...slides),
+    detail.replaceChildren(...[head, onAir && liveControls, h('div', { class: 'slides' }, ...slides),
       loaded.steps.length > MAX_SLIDES && h('p', { class: 'muted', style: 'margin-top: 12px;' }, `Se muestran los primeros ${MAX_SLIDES} pasos. Usa "Siguiente" para recorrer el resto.`),
       !loaded.steps.length && h('p', { class: 'muted' }, 'Este elemento no tiene pasos que mostrar.'),
       tools,
@@ -270,8 +293,10 @@ function mount(el, ctx) {
     if (!items.some((i) => i.id === selectedId)) selectedId = null;
     renderList();
     const first = selectedId || (!collapsed && (live?.orderId || content()[0]?.id));
-    if (first && items.some((i) => i.id === first)) select(first);
+    // Al abrir, la lista se coloca en lo que está al aire; después ya no se mueve sola.
+    if (first && items.some((i) => i.id === first)) select(first, { reveal: !opened && first === live?.orderId && 'center' });
     else renderDetail(null);
+    opened = true;
   });
 
   subscribe('projection', (p) => {

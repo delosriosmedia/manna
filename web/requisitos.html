@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0d12">
+  <link rel="icon" type="image/svg+xml" href="/logo.svg">
+  <link rel="alternate icon" type="image/png" href="/icono.png">
+  <title>Manna · Revisión del equipo</title>
+  <script>if (matchMedia('(pointer: coarse)').matches || /[?&]tactil/.test(location.search)) document.documentElement.classList.add('touch');</script>
+  <link rel="stylesheet" href="/core/app.css">
+  <style>
+    main { max-width: 620px; margin: 0 auto; padding: 32px 16px 48px; }
+    header { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+    header img { width: 52px; height: 52px; flex-shrink: 0; }
+    header h1 { font-size: 20px; }
+    .lead { color: var(--ink-2); margin: 0 0 20px; }
+    .req { padding: 14px 16px; margin-bottom: 8px; background: var(--s1); border: 1px solid var(--line); border-radius: var(--r-lg); }
+    .req.missing { border-color: var(--line-2); }
+    .req-head { display: flex; align-items: flex-start; gap: 12px; }
+    .req-mark { margin-top: 1px; color: var(--ok); }
+    .req.missing .req-mark { color: var(--accent); }
+    .req-head h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+    .req-head h2 small { color: var(--ink-3); font-size: 12px; font-weight: 400; }
+    .req-head p { margin-top: 2px; color: var(--ink-3); }
+    .req-state { margin-left: auto; white-space: nowrap; font-size: 12px; font-weight: 600; color: var(--ok); }
+    .req.missing .req-state { color: var(--accent); }
+    /* Lo opcional que falta no es un aviso: se muestra apagado. */
+    .req.optional.missing .req-mark, .req.optional.missing .req-state { color: var(--ink-3); }
+    .req-fix, .req-job { margin: 12px 0 0 30px; }
+    .req-fix { display: grid; gap: 10px; }
+    .req-fix .row { flex-wrap: wrap; }
+    .req-fix details { color: var(--ink-2); }
+    .req-fix summary { cursor: pointer; color: var(--ink-3); min-height: var(--control); display: flex; align-items: center; }
+    .req-fix ol { margin: 4px 0 0; padding-left: 20px; display: grid; gap: 6px; }
+    .command { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+    .command code { flex: 1; min-width: 0; padding: 8px 10px; background: var(--canvas); border: 1px solid var(--line); border-radius: var(--r-sm); font: 500 12px var(--mono); overflow-x: auto; white-space: nowrap; user-select: all; }
+    footer { margin-top: 20px; display: grid; gap: 10px; }
+    footer .row { flex-wrap: wrap; }
+    footer p { color: var(--ink-3); }
+    @media (max-width: 520px) { .req-fix, .req-job { margin-left: 0; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <img src="/logo.svg" alt="Manna">
+      <h1>Revisión del equipo</h1>
+    </header>
+    <p class="lead" id="lead">Comprobando lo que este equipo necesita…</p>
+    <div id="list"></div>
+    <footer id="footer"></footer>
+  </main>
+  <script type="module" src="/roles/requisitos.js"></script>
+</body>
+</html>

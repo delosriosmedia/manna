@@ -8,7 +8,9 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 
 - **Tres zonas, siempre iguales**: los módulos a la izquierda, el módulo activo al centro y el panel **Al aire** a la derecha, con el monitor de lo proyectado y los mandos (anterior, siguiente, negro, solo fondo).
 - **Biblia**: buscador por cita (`Juan 3:16-18`, `1 co 13 4`, `sal 23`) o por palabras sin importar tildes; los 66 libros a la vista en una rejilla; capítulos y versículos; pasajes recientes. Lee los archivos `.xmm` (OpenLP) y `.xml` de la carpeta `Biblias/`; basta copiar un archivo y aparece solo.
-- **Orden del culto**: la lista ordenada de todo lo que se va a proyectar, con secciones (Apertura, Mensaje…). Cada elemento muestra su tipo y sus pasos; "Siguiente" recorre los pasos y luego pasa al elemento que sigue. Se comparte entre todos los dispositivos.
+- **Orden del culto**: la lista ordenada de todo lo que se va a proyectar, con secciones (Apertura, Mensaje…). Cada elemento muestra su tipo y sus pasos; "Siguiente" recorre los pasos y luego pasa al elemento que sigue. A cualquier elemento se le puede poner un nombre propio ("Lectura bíblica"). Se comparte entre todos los dispositivos.
+- **Mandos en vivo**: lo que está al aire trae sus propios mandos en el panel y en el orden del culto. Hoy los estrena la **imagen de prueba** (Ajustes → Proyector de este equipo), que sirve para encuadrar el proyector o un televisor y comprobar, con su cronómetro, que todas las pantallas van a la par.
+- **Revisión del equipo**: al abrirse, Manna comprueba que el equipo principal tiene los programas que necesita. Si falta alguno, lo explica y lo instala con un botón.
 - **Preparado para crecer**: himnario, imágenes, videos y presentaciones ya tienen su sitio en la interfaz. Cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
 - **Funciones por dispositivo**: cada dispositivo elige al entrar.
   - **Control completo**: todos los módulos. Pide PIN.
@@ -21,12 +23,17 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 
 ## Requisitos (solo en el equipo principal)
 
-| Programa | Para qué | Descarga |
+| Programa | Para qué | Si falta |
 | --- | --- | --- |
-| Node.js 18 o superior | Hace funcionar el servidor | https://nodejs.org/es/download |
-| Google Chrome (o Edge en Windows) | Ventana de proyección a pantalla completa | https://www.google.com/chrome/ |
+| Node.js 18 o superior | Hace funcionar el servidor | Manna no arranca. Se descarga de https://nodejs.org/es/download |
+| Google Chrome (o Edge en Windows) | Ventana de proyección a pantalla completa | No se puede entrar a la app hasta instalarlo |
+| ffmpeg | Convertir videos y audios, unir imagen y sonido de YouTube, elegir la pista de los himnos | Manna se abre; las funciones que lo usan no estarán disponibles |
+| yt-dlp | Descargar videos de YouTube | Igual |
+| Microsoft PowerPoint (opcional) | Convertir presentaciones `.pptx` | Se usa el PDF de la presentación |
 
-Si falta alguno, Manna no arranca y abre una página con las instrucciones (`instalacion/requisitos.html`). Los demás dispositivos no instalan nada.
+Solo Node.js se instala antes. Lo demás lo comprueba Manna cada vez que se abre: si falta algo, en vez del control muestra la **revisión del equipo**, que dice para qué sirve cada programa y ofrece **Instalar por mí** (descarga ffmpeg y yt-dlp de sus sitios oficiales a la carpeta `data/herramientas/`, sin tocar el sistema) o los pasos para hacerlo a mano. La misma revisión está en **Ajustes → Programas del equipo principal**. Los demás dispositivos no instalan nada.
+
+ffmpeg, yt-dlp y PowerPoint los usarán los módulos de himnario, medios y diapositivas, que están en construcción (ver `docs/PLAN.md`).
 
 ## Instalación (una sola vez por equipo)
 
@@ -34,7 +41,7 @@ Si falta alguno, Manna no arranca y abre una página con las instrucciones (`ins
 2. Abre con doble clic el archivo que corresponda:
    - **Windows**: `Instalar Manna en Windows.bat`
    - **Mac**: `Instalar Manna en Mac.command`
-3. El instalador comprueba los requisitos y crea el icono **Manna** en el Escritorio (y en el menú Inicio o en Aplicaciones). Al terminar, abre Manna.
+3. El instalador comprueba que está Node.js y crea el icono **Manna** en el Escritorio (y en el menú Inicio o en Aplicaciones). Al terminar, abre Manna, que revisa el resto del equipo.
 
 Avisos que pueden salir la primera vez:
 
@@ -89,28 +96,34 @@ Reconecta solo; no hay que recargar la página. Si el aviso rojo no desaparece:
 
 ```
 Instalar Manna en ….    instaladores del icono (Windows y Mac)
-instalacion/            página de requisitos, lanzador de Windows e iconos
+instalacion/            aviso de que falta Node.js, lanzador de Windows e iconos
 server/
   index.js, app.js      arranque y lista de módulos
   roles.js              funciones que puede elegir un dispositivo y sus permisos
-  preflight.js          comprobación de requisitos
-  core/                 servidor HTTP, estado compartido, tiempo real, sesiones, almacenamiento
+  core/                 servidor HTTP (archivos grandes, subidas), estado compartido, tiempo real,
+                        sesiones, almacenamiento, reloj de reproducción, tareas con avance,
+                        programas del equipo (detección e instalación) y carpetas de contenido
   modules/
     system/             sesiones, PIN, direcciones de red
     bible/              lectura de .xmm/.xml, libros, citas, búsqueda
-    projection/         contenido en vivo, estilos, segunda pantalla
+    projection/         contenido en vivo, mandos en vivo, volumen, estilos, segunda pantalla,
+                        imagen de prueba
     order/              orden del culto: elementos, secciones y pasos
 web/
-  core/                 estructura de la app, conexión con el servidor, iconos y estilos base
-  modules/              la pantalla de cada módulo (registry.js es la lista)
-  roles/                una página por función: control, orden, proyeccion
+  core/                 estructura de la app, conexión con el servidor, tipos de contenido,
+                        reloj, tareas, iconos y estilos base
+  modules/              la pantalla de cada módulo (registry.js es la lista) y cómo se dibuja
+                        cada tipo de contenido (kinds.js es la lista)
+  roles/                una página por función: control, orden, proyeccion, y la revisión del equipo
   vendor/               tipografía Geist, iconos Phosphor y generador de QR, con sus licencias
 DESIGN.md               sistema de diseño de la interfaz
 Biblias/                tus biblias (no se suben a GitHub, salvo la RV1909)
-data/                   ajustes, PIN, orden del culto y fondos de este equipo (no se sube)
+data/                   ajustes, PIN, orden del culto, fondos, programas instalados por Manna
+                        y archivos temporales de este equipo (no se sube)
 test/                   pruebas (npm test)
 scripts/                pruebas en un Chrome real, auditoría de pantallas, logo e iconos
 docs/ESTADO.md          estado actual: qué funciona, qué falta probar, qué sigue
+docs/PLAN.md            plan de trabajo en curso, por fases, y lista de la auditoría final
 CHANGELOG.md            historial de cambios por versión
 CLAUDE.md, AGENTS.md    instrucciones para asistentes de programación
 .claude/                reglas, procedimientos (skills) y automatizaciones de desarrollo
@@ -128,11 +141,11 @@ CLAUDE.md, AGENTS.md    instrucciones para asistentes de programación
 El procedimiento completo está en `.claude/skills/nuevo-modulo/SKILL.md`. En resumen:
 
 1. **Servidor**: `server/modules/<id>/index.js` exporta `setup(app)` y se registra en `server/app.js`. Usa `app.store.register()` para su estado, `app.action()` para sus órdenes y `app.storage()` para guardar datos.
-2. **Tipo de contenido**: si aporta algo proyectable, lo registra con `app.kind()`. Con eso sus elementos ya se pueden añadir al orden del culto y recorrer con "Siguiente".
-3. **Interfaz**: `web/modules/<id>/workspace.js` y una línea en `web/modules/registry.js`. Aparece en la barra de módulos.
+2. **Tipo de contenido**: si aporta algo proyectable, lo registra con `app.kind()`. Con eso sus elementos ya se pueden añadir al orden del culto y recorrer con "Siguiente". Si tiene mandos mientras está al aire (zoom, reproducción), los declara ahí mismo.
+3. **Interfaz**: `web/modules/<id>/workspace.js` y una línea en `web/modules/registry.js`. Aparece en la barra de módulos. Cómo se dibuja su tipo de contenido y sus mandos van en `web/modules/<id>/kind.js`.
 4. **Aspecto**: siguiendo `DESIGN.md`.
 
-No tiene dependencias externas: no hace falta `npm install`.
+El código no tiene dependencias: no hace falta `npm install`. Los programas externos del equipo principal (ffmpeg, yt-dlp, PowerPoint) se usan solo a través de `server/core/tools.js`.
 
 ### Para continuar el desarrollo
 
@@ -150,4 +163,5 @@ Se incluye la Reina-Valera 1909, de dominio público ([eBible.org](https://ebibl
 - Tipografía [Geist](https://github.com/vercel/geist-font) (SIL Open Font License).
 - Iconos [Phosphor](https://phosphoricons.com) (licencia MIT).
 - Códigos QR: [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) de Kazuhiko Arase (licencia MIT).
+- Programas que Manna puede instalar en el equipo principal y usa sin incluirlos: [ffmpeg](https://ffmpeg.org) (compilación para Windows de [gyan.dev](https://www.gyan.dev/ffmpeg/builds/)) y [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 - Referencias de diseño: [taste-skill](https://github.com/Leonxlnx/taste-skill) y [awesome-design-md](https://github.com/voltagent/awesome-design-md).

@@ -7,6 +7,8 @@ import { createStorage } from './storage.js';
 import { createRouter, HttpError } from './router.js';
 import { createSessions } from './sessions.js';
 import { createRealtime } from './realtime.js';
+import { createJobs } from './jobs.js';
+import { setupTools } from './tools.js';
 import { ROLES } from '../roles.js';
 
 // Puertos a intentar, en orden. Sin puerto fijado se prefiere el 80, que permite entrar sin
@@ -33,18 +35,31 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
   }
   const store = new Store();
   const sessions = createSessions({ storage, roles: ROLES });
-  const router = createRouter({ webDir: path.join(rootDir, 'web'), mediaDir: path.join(dataDir, 'media'), sessions });
+  const router = createRouter({ webDir: path.join(rootDir, 'web'), sessions });
   const realtime = createRealtime({ store, router });
+  const jobs = createJobs({ store });
   const actions = new Map();
   const kinds = new Map();
   const closers = [];
 
+  // Lo que se sube desde la app (fondos, imágenes, medios) se guarda aquí y se sirve por /media/.
+  const uploadsDir = path.join(dataDir, 'media');
+  // Archivos de paso (descargas, conversiones al vuelo). Se vacía al abrir y al cerrar Manna.
+  const tmpDir = path.join(dataDir, 'tmp');
+  const emptyTmp = () => fs.rmSync(tmpDir, { recursive: true, force: true, maxRetries: 3 });
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  router.mount('/media/', uploadsDir);
+
   const app = {
-    rootDir, dataDir, biblesDir,
-    store, storage, settings, sessions, realtime,
+    rootDir, dataDir, biblesDir, uploadsDir, tmpDir,
+    store, storage, settings, sessions, realtime, jobs,
     services: {},
     port: null,
     route: router.route,
+    // mount('/himnario/', carpeta): sirve una carpeta de contenido (con saltos, para video y audio).
+    mount: router.mount,
+    // gate(fn): fn({ path, isLocal }) devuelve a qué página desviar una visita, o null.
+    gate: router.gate,
     action(type, { permission }, handler) {
       actions.set(type, { permission, handler });
     },
@@ -55,17 +70,26 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
       return def.handler(payload);
     },
     onClose(fn) { closers.push(fn); },
-    // Tipos de contenido proyectable ('verses', y en el futuro 'song', 'image', 'video', 'slides').
-    // Cada módulo registra el suyo: { label, describe(data), resolve(data, step), neighbor?(data, step, delta) }.
-    //   describe  -> { title, subtitle, steps, data } para la lista del orden del culto, o null si no existe
-    //   resolve   -> lo que se proyecta. step null = el elemento entero; 0..n-1 = uno de sus pasos
-    //   neighbor  -> qué sigue al avanzar fuera del orden del culto (p. ej. el versículo siguiente)
+    // Tipos de contenido proyectable ('verses', 'testcard', y los que añada cada módulo).
+    // Cada módulo registra el suyo:
+    //   label     nombre del tipo
+    //   describe(data)            -> { title, subtitle, steps, data } para el orden del culto, o null si ya no existe
+    //   resolve(data, step)       -> lo que se proyecta. step null = el elemento entero; 0..n-1 = uno de sus pasos
+    //   neighbor?(data, step, d)  -> qué sigue al avanzar fuera del orden del culto (p. ej. el versículo siguiente)
+    //   live?(content, previous)  -> estado inicial de sus mandos en vivo (zoom, reproducción), o null si no tiene.
+    //                                previous = { state, at } cuando se recupera tras un reinicio del servidor
+    //   control?(state, patch, { content, now }) -> estado nuevo tras una orden; valida el patch
     kinds,
     kind(name, def) { kinds.set(name, def); },
     shutdown: null, // lo asigna server/app.js: apagado ordenado de todo el programa
+    // Atiende una petición HTTP. Lo usa listen(); las pruebas lo montan en su propio servidor.
+    handle: router.handle,
     listen,
     close,
   };
+  app.tools = setupTools(app);
+
+  app.action('jobs.dismiss', { permission: 'jobs.manage' }, ({ id }) => jobs.dismiss(String(id)));
 
   router.route('POST', '/api/action', async (ctx) => {
     const { type, payload } = await ctx.json();
@@ -89,6 +113,9 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
           else reject(err);
         });
         server.listen(ports[i], process.env.MANNA_HOST || '0.0.0.0', () => {
+          // Hasta aquí no se toca la carpeta temporal: podría ser de otro Manna ya abierto con estos datos.
+          emptyTmp();
+          fs.mkdirSync(tmpDir, { recursive: true });
           app.port = ports[i];
           store.emit('listening', app.port);
           resolve(app.port);
@@ -100,9 +127,11 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
 
   async function close() {
     for (const fn of closers) await fn();
+    jobs.close();
     storage.flushAll();
     realtime.close();
     server?.close();
+    if (app.port) emptyTmp();
   }
 
   return app;

@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { createApp, portCandidates } from './core/app.js';
 import { logToFile } from './core/log.js';
-import { checkRequirements } from './preflight.js';
 
 import system from './modules/system/index.js';
 import bible from './modules/bible/index.js';
@@ -46,14 +45,6 @@ async function findRunning(app) {
 }
 
 async function run() {
-  const problems = checkRequirements();
-  if (problems.length) {
-    console.error('\nFaltan requisitos para ejecutar Manna:\n');
-    for (const p of problems) console.error(`  - ${p.message}\n    ${p.link}\n`);
-    openInBrowser(path.join(ROOT, 'instalacion', 'requisitos.html'));
-    process.exit(1);
-  }
-
   const app = createApp({
     rootDir: ROOT,
     dataDir: DATA,
@@ -68,8 +59,12 @@ async function run() {
   }
 
   for (const setup of MODULES) await setup(app);
+  // Revisión del equipo: si falta algún programa, Manna se abre en la página que lo explica
+  // y ayuda a instalarlo (web/requisitos.html) en vez de en el control.
+  const { list } = await app.tools.scan();
   const port = await app.listen();
   await app.services.network.refresh();
+  const entry = app.tools.entry();
 
   const { addresses: [main, ...others], nameUrl } = app.store.get('system');
   console.log('\n==========================================================');
@@ -88,7 +83,10 @@ async function run() {
     console.log('  Deja esta ventana abierta. Ciérrala para apagar Manna.\n');
   }
 
-  openInBrowser(`${localUrl(port)}/control`);
+  for (const tool of list.filter((t) => !t.found && t.level !== 'optional')) {
+    console.log(`  Falta ${tool.name}: ${tool.purpose}`);
+  }
+  openInBrowser(`${localUrl(port)}${entry}`);
 
   // Apagado ordenado: cierra la ventana de proyección, despide el nombre de red y guarda lo pendiente.
   let closing = false;

@@ -8,6 +8,11 @@
 .swatches button { aspect-ratio: 1; border: 1px solid var(--line-2); border-radius: var(--r-sm); transition: border-color 0.15s var(--ease); }
 .swatches button:hover { border-color: var(--ink); }
 
+.tools { display: grid; gap: 4px; margin-bottom: 12px; }
+.tool { display: flex; align-items: center; gap: 10px; min-height: 36px; color: var(--ok); }
+.tool.missing { color: var(--accent); }
+.tool .item-text strong { color: var(--ink); font-weight: 500; }
+
 .goodbye { margin: auto; padding: 24px; text-align: center; min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: 8px; }
 .about { align-items: flex-start; text-align: left; }
 .about img { width: 84px; margin-left: -8px; }

@@ -1,30 +1,5 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { spawn } from 'node:child_process';
-
-function candidates() {
-  if (process.platform === 'darwin') {
-    return [
-      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-      '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
-      '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
-      '/Applications/Chromium.app/Contents/MacOS/Chromium',
-    ];
-  }
-  if (process.platform === 'win32') {
-    const roots = [process.env.PROGRAMFILES, process.env['PROGRAMFILES(X86)'], process.env.LOCALAPPDATA].filter(Boolean);
-    return roots.flatMap((r) => [
-      path.join(r, 'Google', 'Chrome', 'Application', 'chrome.exe'),
-      path.join(r, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
-    ]);
-  }
-  return ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/microsoft-edge'];
-}
-
-// Navegador tipo Chrome instalado en el equipo servidor, o null.
-export function findBrowser() {
-  return candidates().find((p) => fs.existsSync(p)) || null;
-}
+import { findBrowser } from '../../core/tools.js';
 
 // Abre una ventana a pantalla completa (modo kiosco) sobre la pantalla indicada.
 // Usa un perfil propio para no mezclarse con el Chrome del usuario.

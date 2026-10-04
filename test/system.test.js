@@ -37,7 +37,10 @@ test('rankAddresses deja al final las direcciones sin DHCP y omite IPv6 e intern
 test('liveToRestore recupera lo proyectado solo si el reinicio es reciente', () => {
   const now = 1_000_000_000;
   const source = { kind: 'verses', data: { versionId: 'rv1909', ref: { book: 43, chapter: 3, verseStart: 16, verseEnd: 16 } }, step: null, orderId: null };
-  assert.deepEqual(liveToRestore({ mode: 'black', source, at: now - 60_000 }, now), { mode: 'black', source });
+  assert.deepEqual(liveToRestore({ mode: 'black', source, at: now - 60_000 }, now), { mode: 'black', source, previous: null });
+  // Los mandos en vivo (zoom, punto de la reproducción) vuelven junto con el momento en que se guardaron.
+  const state = { pattern: 'barras' };
+  assert.deepEqual(liveToRestore({ mode: 'live', source, state, at: now - 5000 }, now).previous, { state, at: now - 5000 });
   assert.equal(liveToRestore({ mode: 'live', source, at: now - RESTORE_WINDOW_MS - 1 }, now), null);
   assert.equal(liveToRestore({ mode: 'live', source, at: now + 5000 }, now), null);
   assert.equal(liveToRestore(null, now), null);

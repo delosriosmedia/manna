@@ -14,3 +14,9 @@ node_modules/
 # Archivos personales de desarrollo
 CLAUDE.local.md
 .claude/settings.local.json
+
+# Himnos y medios de cada iglesia: videos, audios e imágenes propios o con derechos, no se publican
+Himnario/*
+!Himnario/LEEME.txt
+Medios/*
+!Medios/LEEME.txt

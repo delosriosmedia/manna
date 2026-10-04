@@ -1,6 +1,8 @@
 // Canal en tiempo real (Server-Sent Events): el servidor empuja cada cambio de estado
 // a todos los dispositivos conectados. Las órdenes viajan aparte, por POST /api/action.
 // Eventos: 'state' (todo, al conectar), 'patch' (un espacio que cambió) y 'ping' (latido).
+// El latido lleva la hora del servidor: con ella cada pantalla ajusta su reloj y la
+// reproducción va a la par en todas (ver web/core/playback.js).
 const PING_MS = 10_000;
 
 export function createRealtime({ store, router }) {
@@ -34,6 +36,7 @@ export function createRealtime({ store, router }) {
     const client = { res, role: (ctx.query.get('rol') || 'otro').slice(0, 20) };
     clients.add(client);
     send(res, 'state', store.snapshot());
+    send(res, 'ping', { t: Date.now() });
     publishCounts();
     req.on('close', () => {
       clients.delete(client);
@@ -44,7 +47,7 @@ export function createRealtime({ store, router }) {
   // Latido: permite al cliente detectar una conexión que sigue abierta pero ya no recibe nada
   // (wifi caída, router reiniciado). Si deja de llegar, el cliente reconecta. Ver web/core/api.js.
   const keepAlive = setInterval(() => {
-    for (const c of clients) send(c.res, 'ping', {});
+    for (const c of clients) send(c.res, 'ping', { t: Date.now() });
   }, PING_MS);
   keepAlive.unref();
 

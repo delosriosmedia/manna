@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { HttpError } from '../../core/router.js';
-import { migrateLegacy, moveItem, neighbor } from './logic.js';
+import { migrateLegacy, moveItem, neighbor, renameItem } from './logic.js';
 
 const MAX_STEPS_SHOWN = 200;
 
@@ -58,10 +58,12 @@ export default function setup(app) {
     return item;
   });
 
+  // Cualquier elemento puede llevar un nombre propio ("Lectura bíblica", "Video de bienvenida").
+  // Sin nombre, vuelve al que le da su contenido.
   app.action('order.rename', { permission: 'order.edit' }, ({ id, title }) => {
     const item = find(id);
-    if (item.kind !== 'section') throw new HttpError(400, 'Solo se puede cambiar el nombre de una sección.');
-    update(items().map((i) => (i.id === id ? { ...i, title: text(title, 60) || i.title } : i)));
+    update(items().map((i) => (i.id === id ? renameItem(i, title, app.kinds.get(i.kind)?.describe(i.data)?.title) : i)));
+    return items().find((i) => i.id === id);
   });
 
   app.action('order.remove', { permission: 'order.edit' }, ({ id }) => {

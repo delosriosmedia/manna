@@ -75,3 +75,112 @@
 .stage[data-mode='black'] .stage-overlay {
   opacity: 1 !important;
 }
+
+/* Contenido que ocupa toda la pantalla (imagen de prueba, y más adelante imágenes y video):
+   sin márgenes y por encima del fondo. En "solo fondo" se oculta igual que el texto. */
+.stage[data-fill='full'] .stage-content {
+  padding: 0;
+  display: block;
+  background: #000;
+}
+
+/* ---- Imagen de prueba ---- */
+.tc {
+  position: absolute;
+  inset: 0;
+  background: #101318;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.tc-bars {
+  position: absolute;
+  inset: 0;
+  display: none;
+}
+
+.tc-bars span {
+  flex: 1;
+}
+
+/* Marco pegado al borde: si un lado no se ve, la pantalla está recortando la imagen. */
+.tc-frame {
+  position: absolute;
+  inset: 0;
+  border: 0.6cqh solid #fff;
+}
+
+.tc-frame i {
+  position: absolute;
+  width: 9cqh;
+  height: 9cqh;
+  border: 0 solid #eda93a;
+}
+
+.tc-frame .tl { top: 3cqh; left: 3cqh; border-top-width: 1cqh; border-left-width: 1cqh; }
+.tc-frame .tr { top: 3cqh; right: 3cqh; border-top-width: 1cqh; border-right-width: 1cqh; }
+.tc-frame .bl { bottom: 3cqh; left: 3cqh; border-bottom-width: 1cqh; border-left-width: 1cqh; }
+.tc-frame .br { bottom: 3cqh; right: 3cqh; border-bottom-width: 1cqh; border-right-width: 1cqh; }
+
+/* Círculo: si se ve ovalado, la pantalla está estirando la imagen. */
+.tc-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 62cqh;
+  height: 62cqh;
+  transform: translate(-50%, -50%);
+  border: 0.5cqh solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+}
+
+.tc-info {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5cqh;
+  font-size: 3.6cqh;
+  text-align: center;
+}
+
+.tc-info strong {
+  font-size: 5cqh;
+  font-weight: 600;
+}
+
+.tc-time {
+  font-size: 13cqh;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.tc[data-pattern='barras'] .tc-bars {
+  display: flex;
+}
+
+.tc[data-pattern='barras'] .tc-circle,
+.tc[data-pattern='barras'] .tc-frame {
+  display: none;
+}
+
+.tc[data-pattern='barras'] .tc-info {
+  top: auto;
+  height: 30cqh;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.tc[data-pattern='barras'] .tc-time {
+  font-size: 9cqh;
+}
+
+.tc[data-pattern='blanco'] {
+  background: #fff;
+}
+
+.tc[data-pattern='blanco'] > * {
+  display: none;
+}

@@ -4,6 +4,21 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.1.0 — 2026-10-04
+
+Primera etapa de la versión 2: los cimientos para los módulos que vienen (himnario, medios, diapositivas).
+
+- **Revisión del equipo.** Cada vez que se abre, Manna comprueba que el equipo principal tiene los programas que necesita: Chrome o Edge, ffmpeg, yt-dlp y PowerPoint. Si falta alguno, en vez del control aparece una página que dice para qué sirve cada uno y cómo instalarlo.
+- **"Instalar por mí"**: Manna descarga ffmpeg y yt-dlp de sus sitios oficiales y los guarda en su propia carpeta, sin tocar el sistema, mostrando el avance. (ffmpeg en Mac se instala a mano; la página da la orden.)
+- La misma revisión está en **Ajustes → Programas del equipo principal**.
+- **Nombre propio para cualquier elemento del orden del culto**: "Lectura bíblica" en vez de "Salmos 23:1-3". El original sigue a la vista debajo, y se recupera dejando el nombre vacío. Antes solo se podían renombrar las secciones.
+- **Imagen de prueba** (Ajustes → Proyector de este equipo → Mostrar imagen de prueba): un encuadre con bordes y esquinas, barras de color o blanco, para ajustar el proyector o un televisor. Su cronómetro debe marcar lo mismo en todas las pantallas.
+- **Mandos de lo que está al aire.** El panel "Al aire" y el detalle del elemento en el orden muestran los mandos propios de lo que se proyecta. Hoy los usa la imagen de prueba; los usarán las imágenes (zoom), los himnos y los videos (pausa, avance, volumen).
+- **Tareas con avance.** Lo que el equipo principal tarda en preparar (hoy una instalación; después, convertir un video o descargarlo) se ve en el panel "Al aire" con su porcentaje y el tiempo que falta, sin detener la app.
+- Al abrir el orden del culto, la lista se coloca en lo que está al aire.
+- La app carga más rápido al volver a entrar: el navegador ya no vuelve a descargar lo que no cambió.
+- Por dentro: el servidor ya entrega archivos por trozos (lo que necesita un video para saltar a un punto) y recibe subidas grandes directamente a disco.
+
 ## 1.0.0 — 2026-10-04
 
 Primera versión estable.

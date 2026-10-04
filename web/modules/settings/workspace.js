@@ -1,7 +1,7 @@
 import { action, disconnect, subscribe } from '../../core/api.js';
 import { h, allowLeaving, dialog, go, guard } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
-import { createDisplayToggle, createStylePanel, describeDisplay } from '../projection/controls.js';
+import { createDisplayToggle, createStylePanel, createTestCardButton, describeDisplay } from '../projection/controls.js';
 import { openDevicesDialog } from '../system/devices.js';
 
 // Módulo Ajustes: lo que se prepara antes de la reunión y no hace falta tener a mano durante ella.
@@ -9,6 +9,7 @@ function mount(el, ctx) {
   const styles = h('div', {});
   const displayText = h('p', { class: 'muted' });
   const screens = h('p', { class: 'muted' });
+  const tools = h('div', { class: 'tools' });
   const version = h('p', { class: 'version' });
 
   const section = (title, hint, ...content) => h('section', { class: 'set' },
@@ -20,9 +21,11 @@ function mount(el, ctx) {
     h('div', { class: 'settings' },
       section('Apariencia de la proyección', 'Los cambios se ven al instante en el monitor "Al aire" y en todas las pantallas.', styles),
       section('Proyector de este equipo', 'La ventana a pantalla completa en la segunda pantalla del equipo principal.',
-        displayText, h('div', { class: 'row' }, createDisplayToggle())),
+        displayText, h('div', { class: 'row', style: 'flex-wrap: wrap;' }, createDisplayToggle(), createTestCardButton())),
       section('Dispositivos', 'Celulares, tabletas y otros equipos de la misma red.',
         screens, h('div', { class: 'row' }, h('button', { class: 'btn', onclick: guard(() => openDevicesDialog(ctx.isLocal)) }, icon('qr-code', 16), 'Conectar un dispositivo'))),
+      section('Programas del equipo principal', 'Lo que Manna usa para convertir videos, descargar de YouTube y abrir presentaciones.',
+        tools, h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => go('/requisitos') }, icon('check-circle', 16), 'Revisar el equipo'))),
       section('Este dispositivo', null,
         h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => go('/') }, icon('arrows-left-right', 16), 'Cambiar de función'))),
       ctx.isLocal && section('Apagar', 'Manna funciona sin ventana propia. Al apagarlo se cierra la proyección y los demás dispositivos se desconectan.',
@@ -43,6 +46,12 @@ function mount(el, ctx) {
     displayText.textContent = d.warn
       ? 'No hay una segunda pantalla conectada. Al conectar el proyector, la ventana se abre sola.'
       : `${d.text}.`;
+  });
+  subscribe('tools', ({ list }) => {
+    tools.replaceChildren(...list.map((t) => h('div', { class: `tool${t.found ? '' : ' missing'}` },
+      icon(t.found ? 'check-circle' : 'warning-circle', 18),
+      h('span', { class: 'item-text' }, h('strong', {}, t.name),
+        h('small', {}, t.found ? [t.detail !== t.name && t.detail, t.version && `versión ${t.version}`].filter(Boolean).join(' · ') || 'Instalado' : t.level === 'optional' ? 'No está (opcional)' : 'Falta')))));
   });
   subscribe('conexiones', ({ porRol = {} }) => {
     const n = (role) => porRol[role] || 0;

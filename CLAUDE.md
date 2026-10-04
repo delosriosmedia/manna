@@ -6,7 +6,7 @@ Repositorio: https://github.com/delosriosmedia/manna
 
 ## Antes de empezar a trabajar
 
-1. Lee `docs/ESTADO.md`: qué funciona, qué falta probar y qué sigue.
+1. Lee `docs/ESTADO.md`: qué funciona, qué falta probar y qué sigue. El trabajo en curso sigue `docs/PLAN.md`, fase a fase.
 2. Las reglas detalladas están en `.claude/rules/` (arquitectura, servidor, web, biblias, pruebas, documentación).
 3. Antes de tocar cualquier pantalla, lee `DESIGN.md`: el sistema de diseño de la interfaz.
 
@@ -17,26 +17,30 @@ Repositorio: https://github.com/delosriosmedia/manna
 - Pruebas: `npm test`
 - Servidor de prueba sin abrir navegador ni tocar los datos reales:
   `MANNA_NAME=manna-prueba MANNA_NO_OPEN=1 MANNA_DATA="$TMPDIR/manna-prueba" PORT=8123 node server/index.js`
-- Pruebas de extremo a extremo en un Chrome real: `node scripts/probar-chrome.mjs` (completas, 3 min) o `node scripts/probar-chrome.mjs rapido` (solo la interfaz, 30 s)
+- Pruebas de extremo a extremo en un Chrome real: `node scripts/probar-chrome.mjs` (completas, 3 min) o `node scripts/probar-chrome.mjs rapido` (revisión del equipo e interfaz, 1 min). Usa los puertos 8123 y 8125: cierra antes la demostración
 - Auditoría de adaptación a pantallas (celular, tableta, escritorio): `node scripts/auditar-responsive.mjs`
 - Demostración con un orden del culto de ejemplo y datos temporales: `node scripts/demo.mjs` (puerto 8123). Con ella, `/vista-previa` muestra la app en el marco de un celular o una tableta
 
 ## Stack
 
 - Servidor: Node.js 18+, módulos ES, **sin dependencias** (no hay `npm install`).
+- Programas externos del equipo principal: Chrome o Edge, ffmpeg, yt-dlp y PowerPoint. Se detectan, se instalan y se ejecutan solo a través de `server/core/tools.js`. Al abrirse, Manna revisa que estén (`/requisitos`).
 - Web: HTML, CSS y JavaScript puro con módulos ES. **Sin framework ni paso de compilación.** Tipografía (Geist) e iconos (Phosphor) incluidos en `web/vendor/`.
 - Tiempo real: Server-Sent Events (`GET /api/events`). Órdenes: `POST /api/action`.
 - Red: puerto 80 (8000 si está ocupado) y nombre `manna.local` anunciado por mDNS, hecho a mano en `server/modules/system/mdns.js`.
-- Datos locales en `data/` (JSON y medios). Biblias en `Biblias/`.
+- Datos locales en `data/` (JSON, medios subidos, programas instalados por Manna y temporales). Biblias en `Biblias/`; himnos en `Himnario/`.
 
 ## Límites fijados por el dueño del proyecto
 
 - Siempre será una **web app en red local**. Nada de apps nativas ni servicios en la nube.
-- No añadir dependencias externas, frameworks ni compilación sin aprobación explícita.
-- Las biblias con derechos de autor **nunca** se suben al repositorio (solo la Reina-Valera 1909).
+- No añadir dependencias externas, frameworks ni compilación sin aprobación explícita. Aprobados el 2026-10-04: **ffmpeg y yt-dlp** como programas del equipo principal, **PowerPoint** para las presentaciones si está instalado, y **pdf.js** dentro de `web/vendor/`. Nada más.
+- La revisión inicial del equipo debe garantizar que está todo lo necesario antes de usar la app, y abrir Manna debe seguir siendo fácil para alguien sin conocimientos técnicos.
+- Las biblias con derechos de autor **nunca** se suben al repositorio (solo la Reina-Valera 1909). Tampoco los himnos en video (`Himnario/`), los medios de cada iglesia (`Medios/`) ni las letras de los himnos.
+- El volumen que maneja Manna es el suyo (un volumen general para todo lo que suene). No se toca el del equipo.
+- Sin modelos de lenguaje: la búsqueda se resuelve con índices propios.
 - Interfaz, mensajes, comentarios y documentación en **español**.
 - El equipo principal de la iglesia es **Windows**. Lo que afecte al arranque o al sistema debe funcionar ahí, aunque el desarrollo se haga en Mac.
-- Por ahora se aceptan Node.js y Chrome como requisitos del equipo principal. Compilar instaladores (Electron) está aplazado; ver `docs/ESTADO.md`.
+- Por ahora se acepta que el equipo principal necesite programas instalados (Node.js antes de abrir; el resto lo revisa e instala Manna). Compilar instaladores (Electron) está aplazado; ver `docs/ESTADO.md`.
 - La ventana de proyección del equipo principal solo se abre en una **segunda pantalla**; si no hay, se avisa y no se abre.
 - Todo rol que no sea "proyección" exige PIN desde dispositivos remotos.
 - El proyecto va a crecer con muchos módulos: todo lo nuevo entra como módulo, sin acoplarse a los existentes.
@@ -47,7 +51,8 @@ Repositorio: https://github.com/delosriosmedia/manna
 
 - Cambios grandes: primero un plan y esperar aprobación; luego implementar.
 - Probar de verdad antes de dar algo por hecho (`.claude/rules/pruebas.md`) y decir con claridad lo que no se pudo probar.
-- Publicar con la skill `/publicar`, que se detiene a mostrar el resumen antes del push.
+- El trabajo de la versión 2 sigue `docs/PLAN.md`: al cerrar cada fase se actualizan su seguimiento (sección 9) y los cambios al plan (sección 10), se publica y se informa al dueño de los resultados, la fase que sigue y las modificaciones que el plan necesite.
+- Publicar con la skill `/publicar`, que se detiene a mostrar el resumen antes del push. Excepción aprobada por el dueño el 2026-10-04: **al cerrar una fase del plan se publica sin esperar**, y el resumen se le entrega después.
 - **Al terminar cualquier cambio, actualizar la documentación** según `.claude/rules/documentacion.md`. El proyecto debe poder retomarlo otra persona u otro asistente solo con lo que está en el repositorio.
 
 ## Skills del proyecto

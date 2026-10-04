@@ -6,7 +6,9 @@ disable-model-invocation: true
 
 # Publicar cambios de Manna
 
-El push **siempre** espera la confirmación del dueño. No lo hagas antes.
+El push espera la confirmación del dueño. No lo hagas antes.
+
+**Excepción aprobada por el dueño el 2026-10-04**: al cerrar una fase de `docs/PLAN.md` se publica sin esperar (pasos 1 a 6 y 8), y el resumen del paso 7 se le entrega después, junto con los resultados de la fase, la fase que sigue y los cambios que necesite el plan. Antes de publicar una fase, además: su fila de la sección 9 del plan está al día y cada cambio al plan consta en la sección 10.
 
 ## 1. Revisar qué hay
 
@@ -30,7 +32,8 @@ Si fallan, detente e informa. No se publica con pruebas rotas.
 Confirma que entre los archivos a publicar no hay:
 
 - Biblias distintas de `Biblias/Reina Valera 1909.xmm`.
-- Nada de `data/` (incluye `manna.log` y `error.html`), ni archivos `.local`.
+- Nada de `Himnario/` ni de `Medios/` (salvo sus `LEEME.txt`), ni letras de himnos.
+- Nada de `data/` (incluye `manna.log`, `error.html` y los programas de `data/herramientas/`), ni archivos `.local`.
 - PIN, contraseñas o claves.
 
 ## 4. Documentación

@@ -37,13 +37,14 @@ node scripts/probar-chrome.mjs rapido
 node scripts/auditar-responsive.mjs
 ```
 
-El primero usa la interfaz como un usuario (30 s). El segundo la abre en nueve tamaños y comprueba que nada se desborda, que "Al aire" y la acción principal están a la vista y que los botones tienen tamaño para el dedo; con `capturas` guarda además una imagen de cada pantalla. Ninguno debe correr a la vez que otro servidor en los puertos 8123 o 8124.
+El primero usa la revisión del equipo y la interfaz como un usuario (1 min). El segundo la abre en nueve tamaños y comprueba que nada se desborda, que "Al aire" y la acción principal están a la vista, que los mandos en vivo caben y que los botones tienen tamaño para el dedo; con `capturas` guarda además una imagen de cada pantalla. Ninguno debe correr a la vez que otro servidor en los puertos 8123, 8124 o 8125 (el primero avisa si la demostración sigue abierta).
 
 Después, a mano, lo que el cambio tenga de nuevo. Abre `http://localhost:8123/control` y revisa:
 
 - **Consola** sin errores.
 - **Lo nuevo**: cada camino del cambio, incluidos los casos de error (datos vacíos, sin conexión, sin permiso).
 - **Tiempo real**: con `/proyeccion` abierto en otra pestaña, el cambio aparece al instante.
+- **Revisión del equipo**: para ver cómo se comporta un equipo al que le falta un programa, arranca el servidor de prueba con `MANNA_FALTA=ffmpeg,yt-dlp` (o `navegador`, que bloquea la app) y abre `/requisitos`. No pulses "Instalar por mí" sin permiso del dueño: descarga programas de internet.
 - **Celular y tableta**: `http://localhost:8123/vista-previa` muestra la app real dentro del marco de un celular (vertical y horizontal) y de una tableta.
 - **Permisos** (desde la IP de red, no desde localhost, para que pida PIN):
 

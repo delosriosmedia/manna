@@ -2,11 +2,14 @@
 // lo que estaba en pantalla se recupera, siempre que el reinicio sea reciente.
 export const RESTORE_WINDOW_MS = 15 * 60_000;
 
-// saved: { mode, source: { kind, data, step, orderId }, at } guardado en disco. Devuelve lo que
-// hay que restaurar ({ mode, source }), o null si no hay nada o ya pasó demasiado tiempo.
+// saved: { mode, source: { kind, data, step, orderId }, state, at } guardado en disco. Devuelve lo que
+// hay que restaurar ({ mode, source, previous }), o null si no hay nada o ya pasó demasiado tiempo.
+// previous = { state, at }: los mandos en vivo que tenía (zoom, punto de la reproducción) y cuándo
+// se guardaron; cada tipo decide qué recupera de ahí.
 export function liveToRestore(saved, now = Date.now()) {
   if (!saved?.source?.kind || !saved.source.data) return null;
   if (!Number.isFinite(saved.at) || now - saved.at > RESTORE_WINDOW_MS || saved.at > now) return null;
   const mode = ['live', 'clear', 'black'].includes(saved.mode) ? saved.mode : 'live';
-  return { mode, source: saved.source };
+  const previous = saved.state && typeof saved.state === 'object' ? { state: saved.state, at: saved.at } : null;
+  return { mode, source: saved.source, previous };
 }

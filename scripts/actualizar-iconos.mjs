@@ -15,8 +15,10 @@ const ICONS = [
   // acciones
   'magnifying-glass', 'plus', 'minus', 'x', 'check', 'play', 'trash', 'pencil-simple', 'dots-three', 'dots-six-vertical',
   'caret-left', 'caret-right', 'caret-up', 'caret-down', 'arrow-left', 'arrow-up', 'arrow-down', 'arrows-left-right',
+  'pause', 'arrow-counter-clockwise', 'arrow-clockwise', 'download-simple', 'copy', 'arrow-square-out',
   // estado
   'monitor', 'power', 'warning', 'clock-counter-clockwise', 'rows', 'qr-code', 'wifi-slash', 'eye-slash', 'selection-background',
+  'check-circle', 'warning-circle', 'frame-corners',
 ];
 
 const base = `https://unpkg.com/@phosphor-icons/core@${VERSION}`;

@@ -22,8 +22,8 @@
 <body>
   <main>
     <img src="icono/manna.svg" alt="Manna" width="72" height="72" style="display:block;margin-bottom:16px">
-    <h1>Faltan requisitos para iniciar Manna</h1>
-    <p class="lead">Solo el <strong>equipo principal</strong> (el que tiene conectado el proyector) necesita estos dos programas. Los celulares y demás equipos no instalan nada: entran por el navegador.</p>
+    <h1>Falta Node.js para iniciar Manna</h1>
+    <p class="lead">Solo el <strong>equipo principal</strong> (el que tiene conectado el proyector) necesita programas instalados. Los celulares y demás equipos no instalan nada: entran por el navegador.</p>
 
     <div class="card" id="node">
       <h2><span class="n">1</span>Node.js (versión 18 o superior)</h2>
@@ -36,15 +36,10 @@
       </ol>
     </div>
 
-    <div class="card" id="navegador">
-      <h2><span class="n">2</span>Google Chrome</h2>
-      <p>Manna lo usa para abrir la ventana de proyección a pantalla completa en el proyector. En Windows también sirve Microsoft Edge, que ya viene instalado.</p>
-      <a class="btn" href="https://www.google.com/chrome/">Descargar Google Chrome</a>
-      <ol>
-        <li>Descarga e instala Chrome normalmente.</li>
-        <li>En Mac, arrástralo a la carpeta <strong>Aplicaciones</strong>.</li>
-        <li>Vuelve a abrir el icono <strong>Manna</strong>.</li>
-      </ol>
+    <div class="card" id="resto">
+      <h2><span class="n">2</span>Lo demás lo revisa Manna</h2>
+      <p>Con Node.js instalado, Manna comprueba por sí mismo cada vez que se abre que el equipo tiene todo lo demás: Google Chrome (o Microsoft Edge, que ya viene con Windows), ffmpeg, yt-dlp y PowerPoint.</p>
+      <p>Si falta algo, muestra una <strong>revisión del equipo</strong> que explica para qué sirve cada programa y lo instala por ti con un botón, o te da los pasos para hacerlo a mano.</p>
     </div>
 
     <div class="card">

@@ -7,7 +7,7 @@ description: Crea un módulo nuevo de Manna con todas sus piezas (servidor, tipo
 
 Antes de escribir código, acuerda con el dueño: qué hace el módulo, qué roles lo usan y qué aporta al orden del culto. Si el alcance es grande, presenta un plan y espera aprobación.
 
-Lee `.claude/rules/arquitectura.md` y `DESIGN.md`. Ejemplos completos para copiar la forma: `server/modules/bible/` + `web/modules/bible/` (un módulo que aporta contenido) y `server/modules/order/` + `web/modules/order/`.
+Lee `.claude/rules/arquitectura.md` y `DESIGN.md`, y la fase correspondiente de `docs/PLAN.md`. Ejemplos completos para copiar la forma: `server/modules/bible/` + `web/modules/bible/` (un módulo que aporta contenido), `server/modules/order/` + `web/modules/order/`, y la imagen de prueba (`server/modules/projection/testcard.js` + `web/modules/projection/testcard.js`), que es el tipo con mandos en vivo más pequeño.
 
 ## Pasos
 
@@ -44,10 +44,15 @@ Lee `.claude/rules/arquitectura.md` y `DESIGN.md`. Ejemplos completos para copia
      describe: (data) => ({ title, subtitle, steps, data }),
      // Qué se proyecta. step null = el elemento entero; 0..n-1 = uno de sus pasos.
      resolve: (data, step) => ({ /* contenido para dibujar */ }),
+     // Solo si tiene mandos mientras está al aire (zoom, reproducción):
+     live: (content, previous) => ({ /* estado inicial de los mandos */ }),
+     control: (state, patch, { content, now }) => ({ /* estado nuevo, tras validar patch */ }),
    });
    ```
 
    `data` es lo mínimo para localizar el contenido (un identificador, una ruta), nunca el contenido mismo. Con esto el elemento ya se puede añadir al orden con `order.add { kind, data }` y recorrer con "Siguiente".
+
+   Para lo que el módulo necesite del núcleo: archivos del usuario con `watchFolder`/`listFiles` y `app.mount()`; subidas con `ctx.save()`; trabajos largos con `app.jobs`; programas externos con `app.tools`; reproducción con `server/core/playback.js`. Ver `.claude/rules/servidor.md`.
 
 4. **Registro**: añade el módulo a la lista `MODULES` de `server/app.js`.
 
@@ -67,7 +72,7 @@ Lee `.claude/rules/arquitectura.md` y `DESIGN.md`. Ejemplos completos para copia
 
    Regístrala en `web/modules/registry.js` (sustituyendo la entrada `soon` si ya estaba prevista) y enlaza su `.css` en `web/control.html`.
 
-7. **Aspecto del tipo**, si registró uno: icono y nombre en `KINDS` (`web/core/icons.js`), color en `.kind.k-<tipo>` (`web/core/app.css`) y cómo se dibuja en `web/modules/projection/stage.js`. Si falta un icono, `scripts/actualizar-iconos.mjs`.
+7. **Aspecto del tipo**, si registró uno: `web/modules/<id>/kind.js` con `registerKind('<tipo>', { icon, label, unit, title, key, background, draw, controls })` (contrato en `web/core/kinds.js`), una línea en `web/modules/kinds.js` (y quitar su entrada de la tabla de tipos previstos, si estaba), y su color en `.kind.k-<tipo>` (`web/core/app.css`). Si falta un icono, `scripts/actualizar-iconos.mjs`.
 
 8. **Pruebas**: `test/<id>.test.js` para la lógica pura. Añade su recorrido a `scripts/probar-chrome.mjs` y su pantalla a `SCREENS` en `scripts/auditar-responsive.mjs`.
 
@@ -76,7 +81,9 @@ Lee `.claude/rules/arquitectura.md` y `DESIGN.md`. Ejemplos completos para copia
 ## Comprobación final
 
 - [ ] En el servidor no importa archivos de otros módulos (usa `app.services`, `app.kinds` o `app.run`).
-- [ ] Toda acción tiene permiso y valida su entrada.
+- [ ] Toda acción tiene permiso y valida su entrada. Los mandos en vivo se validan en el `control()` del tipo.
+- [ ] Nada largo hace esperar a una acción: va como tarea (`app.jobs`).
+- [ ] Los programas externos se usan solo con `app.tools.spawn()`.
 - [ ] Lo que produce se puede añadir al orden del culto.
 - [ ] Sigue `DESIGN.md`: un solo acento, iconos de la familia, acción principal abajo a la derecha, estados vacío y de error.
 - [ ] `npm test`, `node scripts/probar-chrome.mjs rapido` y `node scripts/auditar-responsive.mjs` pasan.

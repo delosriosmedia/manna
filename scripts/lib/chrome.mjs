@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { findBrowser } from '../../server/modules/projection/launcher.js';
+import { findBrowser } from '../../server/core/tools.js';
 
 export const sleep = (ms) => new Promise((r) => { setTimeout(r, ms); });
 

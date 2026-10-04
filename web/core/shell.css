@@ -44,6 +44,13 @@ body.app { display: flex; flex-direction: column; height: 100dvh; overflow: hidd
 .dock-close { display: none; }
 .dock-ref { color: var(--ink-2); font-weight: 500; min-height: 1.45em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .transport { display: flex; gap: 6px; }
+/* Mandos del tipo de contenido que está al aire (ver modules/projection/live.js). */
+.live-controls { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: var(--r); background: var(--canvas); }
+.live-controls .transport { align-items: center; }
+/* El panel puede ser estrecho (288 px en tableta): los botones se reparten el ancho y encogen. */
+.live-controls .btn.grow { flex: 1 1 0; min-width: 0; padding: 0 6px; overflow: hidden; text-overflow: ellipsis; }
+.live-controls p { font-size: 12px; }
+.tc-clock { min-width: 64px; font: 600 15px var(--mono); }
 .dock-label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 600; margin-top: 8px; }
 .dock-label span { color: var(--ink-3); font-weight: 400; font-size: 12px; }
 .next-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; text-align: left; border: 1px solid var(--line); border-radius: var(--r); background: var(--canvas); transition: border-color 0.15s var(--ease); }

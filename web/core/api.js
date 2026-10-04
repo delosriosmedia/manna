@@ -28,6 +28,27 @@ const postJson = (path, data) => api(path, {
   body: JSON.stringify(data),
 });
 
+// Sube un archivo mostrando el avance. body: un File o Blob; onProgress(0..1).
+// Va por XMLHttpRequest porque fetch no informa de cuánto lleva enviado.
+export function upload(path, body, { headers = {}, onProgress } = {}) {
+  return new Promise((resolve, reject) => {
+    const fail = (message, status) => reject(Object.assign(new Error(message), { status }));
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', path);
+    for (const [name, value] of Object.entries(headers)) xhr.setRequestHeader(name, value);
+    if (onProgress) xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+    xhr.onerror = () => fail(OFFLINE_MESSAGE, 0);
+    xhr.onabort = () => fail('La subida se canceló.', 0);
+    xhr.onload = () => {
+      let data = {};
+      try { data = JSON.parse(xhr.responseText); } catch { /* respuesta sin cuerpo */ }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+      else fail(data.error || 'No se pudo subir el archivo.', xhr.status);
+    };
+    xhr.send(body);
+  });
+}
+
 // Ejecuta una acción de un módulo, p. ej. action('projection.show', { versionId, ref }).
 export async function action(type, payload = {}) {
   return (await postJson('/api/action', { type, payload })).result;
@@ -45,10 +66,23 @@ const statusListeners = new Set();
 let online = false;
 
 // subscribe('projection', fn): llama a fn(estado) ahora (si ya hay datos) y en cada cambio.
+// Devuelve la función que cancela la suscripción.
 export function subscribe(ns, fn) {
   if (!listeners.has(ns)) listeners.set(ns, new Set());
   listeners.get(ns).add(fn);
   if (state[ns]) fn(state[ns]);
+  return () => listeners.get(ns).delete(fn);
+}
+
+// Hora del servidor, en milisegundos. Cada dispositivo tiene su reloj un poco distinto; con esto
+// todos calculan lo mismo (por ejemplo, en qué segundo va un video). Ver core/playback.js.
+// El servidor manda su hora en cada latido; la diferencia real es la mayor de las medidas
+// recientes, porque el retraso de la red solo puede hacerla parecer menor.
+let offsets = [];
+export const serverNow = () => Date.now() + (offsets.length ? Math.max(...offsets) : 0);
+function syncClock(serverTime) {
+  if (!Number.isFinite(serverTime)) return;
+  offsets = [...offsets.slice(-5), serverTime - Date.now()];
 }
 
 export function onConnection(fn) {
@@ -103,7 +137,10 @@ export function connect(role) {
       state[ns] = next;
       emit(ns);
     });
-    source.addEventListener('ping', seen);
+    source.addEventListener('ping', (e) => {
+      seen();
+      try { syncClock(JSON.parse(e.data).t); } catch { /* latido sin hora */ }
+    });
     source.onerror = () => {
       setOnline(false);
       // El navegador reintenta solo, salvo cuando da la conexión por cerrada.

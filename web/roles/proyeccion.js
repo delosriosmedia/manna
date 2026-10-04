@@ -5,11 +5,15 @@ import { preferStableAddress } from '../core/upgrade.js';
 
 // Pantalla de proyección: solo muestra. La usan la ventana de la segunda pantalla
 // y cualquier dispositivo que elija esta función.
-const stage = createStage($('#stage'));
+const me = await session.get().catch(() => null);
+// Una sola salida de sonido: suena la pantalla de proyección del equipo principal.
+// Las demás reproducen en silencio, para que no haya eco ni desfases.
+const stage = createStage($('#stage'), { sound: Boolean(me?.isLocal) });
 subscribe('projection', (p) => stage.render(p));
+subscribe('live', (live) => stage.setLive(live));
 connect('proyeccion');
 // Una pantalla remota que entró por la IP pasa a la dirección con nombre si puede.
-session.get().then(preferStableAddress).catch(() => {});
+if (me) preferStableAddress(me);
 
 const toggleFullscreen = () => {
   if (document.fullscreenElement) document.exitFullscreen();

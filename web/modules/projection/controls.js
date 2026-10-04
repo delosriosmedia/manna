@@ -1,5 +1,7 @@
-import { action, api, state, subscribe } from '../../core/api.js';
+import { action, state, subscribe, upload } from '../../core/api.js';
 import { h, guard, toast } from '../../core/dom.js';
+import { icon } from '../../core/icons.js';
+import { titleOf } from '../../core/kinds.js';
 
 const BACKGROUNDS = [
   ['Noche azul', { backgroundType: 'gradient', bgGradient: 'radial-gradient(ellipse at center, #1e293b 0%, #0f172a 100%)' }],
@@ -21,7 +23,7 @@ export function toggleMode(mode) {
 //   state  'live' | 'clear' | 'black' | 'empty'
 //   label  estado ("Al aire", "Solo fondo"…)   text  el contenido, si lo hay
 export function describeLive({ mode, item }) {
-  const text = item ? `${item.reference}${item.version ? ` (${item.version})` : ''}` : '';
+  const text = titleOf(item);
   if (mode === 'black') return { state: 'black', label: 'Pantalla en negro', text };
   if (!item) return { state: 'empty', label: 'Nada en pantalla', text: '' };
   if (mode === 'clear') return { state: 'clear', label: 'Solo fondo', text };
@@ -50,6 +52,14 @@ export function createDisplayToggle() {
     button.disabled = !display.hasSecond;
   });
   return button;
+}
+
+// Imagen de prueba: para encuadrar el proyector o un televisor y ver que las pantallas van a la par.
+export function createTestCardButton() {
+  return h('button', { class: 'btn', onclick: guard(async () => {
+    await action('projection.show', { kind: 'testcard', data: {} });
+    toast('Imagen de prueba en pantalla. Sus mandos están en el panel "Al aire".');
+  }) }, icon('frame-corners', 16), 'Mostrar imagen de prueba');
 }
 
 // Controles de apariencia de la proyección.
@@ -87,7 +97,7 @@ export function createStylePanel(container) {
       const file = upload.files[0];
       upload.value = '';
       if (!file) return;
-      await api('/api/projection/background', { method: 'POST', headers: { 'Content-Type': file.type }, body: file, timeout: 120_000 });
+      await upload('/api/projection/background', file, { headers: { 'Content-Type': file.type } });
       toast('Imagen de fondo actualizada');
     }) });
 

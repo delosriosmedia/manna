@@ -10,7 +10,7 @@ paths:
 
 - JavaScript puro con módulos ES, cargado directo por el navegador. **Sin framework, sin compilación, sin CDN** (la red de la iglesia puede no tener internet). Lo de terceros se copia a `web/vendor/` con su licencia.
 - Rutas siempre absolutas desde la raíz (`/core/api.js`, `/modules/...`).
-- Comunicación con el servidor solo a través de `web/core/api.js`: `api()`, `action()`, `subscribe(ns, fn)`, `connect(rol)`. Siempre con rutas relativas: la misma página puede estar abierta por `localhost`, por la IP o por `manna.local`.
+- Comunicación con el servidor solo a través de `web/core/api.js`: `api()`, `action()`, `upload()` (subida con avance), `subscribe(ns, fn)` (devuelve cómo cancelarla), `connect(rol)` y `serverNow()`. Siempre con rutas relativas: la misma página puede estar abierta por `localhost`, por la IP o por `manna.local`.
 - Construir el DOM con `h()` de `web/core/dom.js`. **No usar `innerHTML` con datos** (texto bíblico, nombres, lo que venga del servidor). Ojo: `h()` descarta los hijos `false` o `null`, pero `replaceChildren()` y `append()` del navegador no; si hay hijos condicionales fuera de `h()`, filtrarlos con `.filter(Boolean)`.
 - Los manejadores que llaman al servidor se envuelven en `guard()`: muestra el error en pantalla y vuelve al inicio si falta sesión.
 - Ventanas y menús: `dialog()` y `menu()` de `web/core/dom.js`. Nunca `alert()` ni `confirm()`.
@@ -26,8 +26,12 @@ paths:
   - `ctx`: `{ role, isLocal, canEdit, go(id), setPreview(elemento | null) }`. `setPreview` muestra en el panel lo que se proyectaría.
   - El espacio de trabajo empieza con `.ws-head` (título y buscador o acción de entrada) y pone su acción principal abajo a la derecha.
 - Un módulo puede usar piezas de interfaz de `projection` (`stage.js` para dibujar miniaturas, `controls.js`) y de `system` (`devices.js`). Fuera de eso, no importa archivos de otros módulos.
-- Una página por función: `web/<rol>.html` + `web/roles/<rol>.js`, que empieza con `await ensureRole('<rol>')` y llama a `createShell()` con los módulos de esa función.
-- La proyección se dibuja solo con `createStage()` (`web/modules/projection/stage.js`), que usa unidades relativas al contenedor (`cqh`/`cqw`) para que una miniatura y la pantalla real se vean iguales.
+- Una página por función: `web/<rol>.html` + `web/roles/<rol>.js`, que empieza con `await ensureRole('<rol>')` y llama a `createShell()` con los módulos de esa función. Aparte está `web/requisitos.html`, la revisión del equipo: no es una función, se abre sin PIN y solo deja actuar desde el equipo principal.
+- La proyección se dibuja solo con `createStage()` (`web/modules/projection/stage.js`), que usa unidades relativas al contenedor (`cqh`/`cqw`) para que una miniatura y la pantalla real se vean iguales. El escenario pone el fondo y el modo; **el contenido lo dibuja el tipo de cada elemento**.
+- Un **tipo de contenido** es `web/modules/<id>/kind.js`, que llama a `registerKind()` (contrato en `web/core/kinds.js`), y una línea en `web/modules/kinds.js`. Un `kind.js` no importa `stage.js` (se importarían en círculo); lo que comparten los tipos de texto está en `projection/text.js`.
+- Los **mandos en vivo** de un tipo (`controls` en su `registerKind`) se muestran con `createLiveControls(contenedor)` de `projection/live.js`. Se crea **una vez** por pantalla y se recoloca; no se crea en cada redibujado, porque se suscribe al estado.
+- Lo que depende del tiempo (un cronómetro, el avance de un video) se calcula con `positionAt(reloj)` de `web/core/playback.js`, nunca contando segundos en el navegador.
+- Las tareas en curso se muestran con `createJobsList()` o `jobRow()` de `web/core/jobs.js`.
 
 ## Pantallas táctiles y tamaños
 
@@ -41,4 +45,6 @@ paths:
 - En la lista de versículos, un clic nunca desplaza la lista (rompería el doble clic). Solo la desplazan el teclado, los botones y las búsquedas.
 - La conexión en tiempo real se suelta en `pagehide` (`web/core/api.js`). Sin eso, tras unas cuantas navegaciones el navegador agota sus seis conexiones por servidor y la app deja de cargar.
 - Dentro de un contenedor flex con desplazamiento, los hijos necesitan `flex-shrink: 0` o los monitores se aplastan.
+- El panel "Al aire" mide 288 px en tableta: una fila de tres botones con texto se sale si no pueden encoger (`min-width: 0`).
+- Las capturas del navegador integrado pueden mostrar un cuadro anterior. Para comprobar algo que cambia en el tiempo, leer el DOM o usar `scripts/auditar-responsive.mjs capturas`.
 - Textos de la interfaz en español, claros para voluntarios sin conocimientos técnicos.

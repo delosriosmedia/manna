@@ -1,5 +1,5 @@
-import fs from 'node:fs';
 import { HttpError } from '../../core/router.js';
+import { watchFolder } from '../../core/folders.js';
 import { BibleLibrary } from './library.js';
 
 // Módulo Biblia: versiones disponibles, lectura por capítulo y búsqueda.
@@ -11,14 +11,7 @@ export default function setup(app) {
   const rescan = () => app.store.set('bible', { versions: library.scan() });
 
   // Si se copia o borra una biblia en la carpeta, la lista se actualiza sola.
-  let timer = null;
-  try {
-    const watcher = fs.watch(app.biblesDir, () => {
-      clearTimeout(timer);
-      timer = setTimeout(rescan, 1000);
-    });
-    app.onClose(() => watcher.close());
-  } catch { /* sin vigilancia de carpeta: queda el botón de recargar */ }
+  app.onClose(watchFolder(app.biblesDir, rescan));
 
   const found = (value) => {
     if (!value) throw new HttpError(404, 'No se encontró esa versión o pasaje.');

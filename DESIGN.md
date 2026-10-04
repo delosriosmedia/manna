@@ -91,7 +91,7 @@ Tres zonas fijas (`web/core/shell.js`):
 | --- | --- |
 | **Barra de módulos** (izquierda) | Un botón por módulo. Los previstos pero no construidos se muestran atenuados. Abajo: Dispositivos y Ajustes. |
 | **Espacio de trabajo** (centro) | Solo el módulo activo. Cabecera con el título y su buscador o acción de entrada. |
-| **Panel "Al aire"** (derecha) | Monitor de lo proyectado, anterior / siguiente, negro, solo fondo, vista previa de la selección y lo que sigue en el orden. Igual en todos los módulos. |
+| **Panel "Al aire"** (derecha) | Monitor de lo proyectado, anterior / siguiente, negro, solo fondo, los mandos propios de lo que está al aire, las tareas en curso, vista previa de la selección y lo que sigue en el orden. Igual en todos los módulos. |
 
 Reglas para un módulo:
 
@@ -99,12 +99,17 @@ Reglas para un módulo:
 - Lo que se selecciona se resalta en ámbar suave y aparece como **vista previa** en el panel.
 - Todo lo que un módulo produce puede **añadirse al orden del culto**, que es donde confluyen todos.
 - Lo que se configura una vez (apariencia, dispositivos) va en **Ajustes**, no en la pantalla de operación.
+- **Mandos en vivo**: los mandos propios de lo que está al aire (imagen de prueba, zoom, reproducción) van en un recuadro bajo "Negro / Solo fondo" del panel, y repetidos en el detalle del elemento en el orden. Solo aparecen cuando lo proyectado los tiene. Filas de botones que se reparten el ancho; la opción activa, en ámbar suave. Nunca un botón ámbar lleno: ese es de la acción principal.
+- **Tareas**: lo que el equipo principal tarda en preparar se muestra como una ficha con título, barra fina ámbar y una línea "43 % · faltan 0:40". Al terminar pasa a verde un momento y desaparece; si falla, borde rojo, el motivo y un botón para quitarla. Nunca bloquea la pantalla ni usa una ventana.
+
+Fuera de las tres zonas hay dos páginas de una sola columna centrada: la **pantalla de inicio** (elegir función) y la **revisión del equipo** (`/requisitos`). En la revisión, cada programa es una ficha con su estado (verde "Listo", ámbar "Falta"), para qué sirve en una frase y, si falta, la acción "Instalar por mí" y los pasos a mano plegados.
 
 ## 8. Orden del culto
 
 - Cada elemento muestra: número, icono de su tipo, **título** y una línea secundaria (tipo · detalle · cuántos pasos).
 - **Los títulos largos se leen**: hasta tres líneas en escritorio y cinco en celular, y enteros en el elemento elegido. La lista es la columna ancha.
 - Las **secciones** ("Apertura", "Mensaje") son separadores: texto pequeño y una línea. No se proyectan.
+- Un elemento con **nombre propio** muestra ese nombre como título, y el que le da su contenido pasa al principio de la línea secundaria ("Juan 3:16 · Biblia · …").
 - Lo que ya pasó se atenúa; lo que está al aire lleva fondo rojo suave y la insignia "Al aire".
 - Al elegir un elemento se despliegan sus **pasos** como miniaturas (versículos, estrofas, diapositivas). Un toque en una miniatura proyecta ese paso. **Otro clic sobre el mismo elemento lo recoge**, y recogido se queda hasta que se elija otro.
 
@@ -122,7 +127,7 @@ Toda pantalla contempla, además del caso normal:
 
 - Solo transiciones de 120-200 ms en fondo, borde y opacidad, con la curva `--ease`.
 - Se anima `transform` y `opacity`; nunca tamaño ni posición.
-- Nada se mueve en bucle. Con "reducir movimiento" activado en el sistema, no se anima nada.
+- Nada se mueve en bucle, salvo dos indicadores de espera: la silueta de carga y la barra de una tarea cuyo avance aún no se conoce. Con "reducir movimiento" activado en el sistema, no se anima nada.
 
 ## 11. Texto de la interfaz
 

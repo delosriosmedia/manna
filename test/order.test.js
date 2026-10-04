@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { migrateLegacy, moveItem, neighbor } from '../server/modules/order/logic.js';
+import { migrateLegacy, moveItem, neighbor, renameItem } from '../server/modules/order/logic.js';
 
 const items = [
   { id: 's1', kind: 'section', title: 'Apertura' },
@@ -55,4 +55,27 @@ test('migrateLegacy convierte el guion antiguo y tolera versiones que ya no est�
   assert.deepEqual(out[0], { id: '1', kind: 'verses', title: 'Juan 3:16-17', subtitle: 'Reina-Valera 1909', steps: 2, data: { versionId: 'rv', ref } });
   assert.deepEqual([out[1].title, out[1].subtitle, out[1].steps], ['Juan 3:16-17', 'XYZ', 2]);
   assert.deepEqual(migrateLegacy(undefined, describe), []);
+});
+
+test('renameItem pone un nombre propio y recuerda el original', () => {
+  const item = { id: 'a', kind: 'verses', title: 'Juan 3:16', steps: 1 };
+  const renamed = renameItem(item, '  Lectura   bíblica ', 'Juan 3:16');
+  assert.equal(renamed.title, 'Lectura bíblica');
+  assert.equal(renamed.original, 'Juan 3:16');
+  // Un segundo cambio conserva el original verdadero, no el nombre anterior.
+  assert.equal(renameItem(renamed, 'Texto base', 'Juan 3:16').original, 'Juan 3:16');
+});
+
+test('renameItem vuelve al nombre original con un nombre vacío o igual al original', () => {
+  const renamed = { id: 'a', kind: 'verses', title: 'Lectura', original: 'Juan 3:16', steps: 1 };
+  assert.deepEqual(renameItem(renamed, '   ', 'Juan 3:16'), { id: 'a', kind: 'verses', title: 'Juan 3:16', steps: 1 });
+  assert.deepEqual(renameItem(renamed, 'Juan 3:16', 'Juan 3:16'), { id: 'a', kind: 'verses', title: 'Juan 3:16', steps: 1 });
+  // Si el contenido ya no existe, se conserva el título que tenía.
+  assert.equal(renameItem({ id: 'b', kind: 'video', title: 'Bienvenida' }, '', undefined).title, 'Bienvenida');
+});
+
+test('renameItem en una sección solo cambia el título y no admite dejarlo vacío', () => {
+  const section = { id: 's', kind: 'section', title: 'Apertura' };
+  assert.deepEqual(renameItem(section, 'Alabanza'), { id: 's', kind: 'section', title: 'Alabanza' });
+  assert.deepEqual(renameItem(section, ''), section);
 });

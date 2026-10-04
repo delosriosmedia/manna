@@ -4,6 +4,7 @@ import { HttpError } from '../../core/router.js';
 import { listScreens, secondScreen } from './display.js';
 import { openKiosk } from './launcher.js';
 import { liveToRestore } from './live.js';
+import { registerTestCard } from './testcard.js';
 
 const DEFAULT_STYLES = {
   fontSize: 48,
@@ -33,22 +34,31 @@ const STYLE_RULES = {
 };
 
 const IMAGE_TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
+const BACKGROUND_LIMIT = 20 * 1024 * 1024;
 const SCREEN_POLL_MS = 5000;
 
-// Módulo Proyección: qué se muestra (contenido, modo, estilos) y la ventana en la segunda pantalla.
+// Módulo Proyección: qué se muestra (contenido, modo, estilos), sus mandos en vivo y la ventana
+// en la segunda pantalla.
 export default function setup(app) {
   const { store, services } = app;
-  const saved = app.storage('proyeccion', { styles: {}, displayOn: true });
-  const mediaDir = path.join(app.dataDir, 'media');
-  fs.mkdirSync(mediaDir, { recursive: true });
+  const saved = app.storage('proyeccion', { styles: {}, displayOn: true, volume: 1 });
+  const mediaDir = app.uploadsDir;
 
   store.register('projection', {
     mode: 'clear', // 'live' = contenido visible, 'clear' = solo fondo, 'black' = negro
-    item: null,    // { kind, ...contenido, source: { kind, data, step, orderId } }
+    item: null,    // { kind, uid, ...contenido, source: { kind, data, step, orderId } }
     styles: { ...DEFAULT_STYLES, ...saved.data.styles },
     display: { supported: true, hasSecond: false, on: saved.data.displayOn, open: false },
   });
+  // Lo que cambia mientras algo está al aire va en un espacio aparte, para que mover un mando
+  // (el zoom de una imagen, el avance de un video) no reenvíe todo el contenido proyectado.
+  //   uid     a qué proyección pertenece `state` (coincide con projection.item.uid)
+  //   state   estado de los mandos del tipo que está al aire, o null si no tiene
+  //   volume  volumen general de Manna, de 0 a 1: vale para todo lo que suene
+  const validVolume = (v) => Number.isFinite(v) && v >= 0 && v <= 1;
+  store.register('live', { uid: 0, state: null, volume: validVolume(saved.data.volume) ? saved.data.volume : 1 });
   const get = () => store.get('projection');
+  let uid = 0;
 
   // ---- Contenido ----
   // Cambia lo que está en pantalla y lo anota en disco (solo de dónde sale, no el texto)
@@ -60,7 +70,7 @@ export default function setup(app) {
 
   function touchLive() {
     const { mode, item } = get();
-    saved.data.live = item ? { mode, source: item.source, at: Date.now() } : null;
+    saved.data.live = item ? { mode, source: item.source, state: store.get('live').state, at: Date.now() } : null;
     saved.save();
   }
 
@@ -73,12 +83,18 @@ export default function setup(app) {
   });
 
   // Proyecta un contenido. source: { kind, data, step, orderId }.
-  //   step     null = el elemento entero; 0..n-1 = uno de sus pasos
-  //   orderId  si viene del orden del culto, para que "siguiente" recorra el orden
-  function present({ kind, data, step = null, orderId = null }, mode = 'live') {
-    const content = app.kinds.get(kind)?.resolve(data, step);
+  //   step      null = el elemento entero; 0..n-1 = uno de sus pasos
+  //   orderId   si viene del orden del culto, para que "siguiente" recorra el orden
+  //   previous  { state, at }: mandos en vivo que tenía antes de un reinicio del servidor
+  function present({ kind, data, step = null, orderId = null }, mode = 'live', previous = null) {
+    const def = app.kinds.get(kind);
+    const content = def?.resolve(data, step);
     if (!content) throw new HttpError(404, 'Ese contenido ya no está disponible.');
-    const item = { kind, ...content, source: { kind, data, step, orderId } };
+    uid += 1;
+    const item = { kind, ...content, uid, source: { kind, data, step, orderId } };
+    // Primero los mandos y después el contenido: cuando una pantalla recibe lo nuevo,
+    // su estado en vivo ya está ahí.
+    store.set('live', { uid, state: def.live?.(content, previous) ?? null });
     setLive({ item, mode });
     return item;
   }
@@ -88,7 +104,7 @@ export default function setup(app) {
   store.on('listening', () => {
     const restore = liveToRestore(saved.data.live);
     if (!restore) return;
-    try { present(restore.source, restore.mode); } catch { /* ese contenido ya no existe */ }
+    try { present(restore.source, restore.mode, restore.previous); } catch { /* ese contenido ya no existe */ }
   });
 
   app.action('projection.show', { permission: 'projection.control' }, ({ kind, data, step }) =>
@@ -115,8 +131,32 @@ export default function setup(app) {
   });
 
   app.action('projection.clear', { permission: 'projection.control' }, () => {
+    store.set('live', { uid: 0, state: null });
     setLive({ item: null, mode: 'clear' });
   });
+
+  // ---- Mandos en vivo ----
+  // Una orden para lo que está al aire (zoom, pausa, avance…). Qué órdenes existen y cuáles
+  // valen lo decide el tipo de contenido, en su control().
+  app.action('projection.control', { permission: 'projection.control' }, (patch) => {
+    const { item } = get();
+    const def = item && app.kinds.get(item.kind);
+    const live = store.get('live');
+    if (!def?.control || live.uid !== item.uid || !live.state) throw new HttpError(409, 'Lo que está en pantalla no tiene mandos.');
+    const clean = patch && typeof patch === 'object' && !Array.isArray(patch) ? patch : {};
+    store.set('live', { state: def.control(live.state, clean, { content: item, now: Date.now() }) });
+    touchLive();
+  });
+
+  // Volumen general de Manna. No toca el volumen del equipo.
+  app.action('projection.volume', { permission: 'projection.control' }, ({ volume }) => {
+    if (!validVolume(volume)) throw new HttpError(400, 'El volumen va de 0 a 1.');
+    saved.data.volume = volume;
+    saved.save();
+    store.set('live', { volume });
+  });
+
+  registerTestCard(app);
 
   // ---- Estilos ----
   // patch viene del cliente y se valida; extra lo pone el servidor.
@@ -145,10 +185,9 @@ export default function setup(app) {
     ctx.require('projection.style');
     const ext = IMAGE_TYPES[(ctx.req.headers['content-type'] || '').split(';')[0]];
     if (!ext) throw new HttpError(415, 'Usa una imagen JPG, PNG, WebP o GIF.');
-    const data = await ctx.raw(20 * 1024 * 1024);
-    removeBackgroundFile();
     const name = `fondo-${Date.now()}${ext}`;
-    fs.writeFileSync(path.join(mediaDir, name), data);
+    await ctx.save(path.join(mediaDir, name), BACKGROUND_LIMIT);
+    removeBackgroundFile();
     setStyles({}, { backgroundType: 'image', bgImage: `/media/${name}` });
     return { url: `/media/${name}` };
   });

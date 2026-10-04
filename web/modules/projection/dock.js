@@ -1,10 +1,11 @@
 import { action, state, subscribe } from '../../core/api.js';
 import { h, guard } from '../../core/dom.js';
-import { icon, kindBadge } from '../../core/icons.js';
+import { icon } from '../../core/icons.js';
+import { createJobsList } from '../../core/jobs.js';
+import { keyOf, kindBadge } from '../../core/kinds.js';
 import { createStage } from './stage.js';
+import { createLiveControls } from './live.js';
 import { describeDisplay, describeLive, toggleMode } from './controls.js';
-
-const key = (item) => (item ? `${item.versionId}|${item.reference}` : '');
 
 // Panel "Al aire": lo que está en pantalla y los mandos para gobernarlo, visible desde cualquier módulo.
 // En pantallas estrechas se reduce a una barra compacta que se despliega al tocarla.
@@ -19,6 +20,8 @@ export function createDock(container, ctx) {
   const ref = h('div', { class: 'dock-ref' });
   const black = h('button', { class: 'btn grow', title: 'Pantalla en negro', onclick: () => toggleMode('black') }, 'Negro', h('kbd', {}, 'B'));
   const clear = h('button', { class: 'btn grow', title: 'Ocultar el texto y dejar el fondo', onclick: () => toggleMode('clear') }, 'Solo fondo', h('kbd', {}, 'C'));
+  const liveControls = h('div', {});
+  const jobs = h('div', {});
   const previewMonitor = h('div', { class: 'monitor' });
   const previewBlock = h('div', { hidden: true },
     h('div', { class: 'dock-label', style: 'margin-bottom: 10px;' }, 'Vista previa', h('span', {}, 'lo que se proyectará')),
@@ -38,6 +41,8 @@ export function createDock(container, ctx) {
       h('button', { class: 'btn', title: 'Anterior', 'aria-label': 'Anterior', onclick: step(-1) }, icon('caret-left', 16)),
       h('button', { class: 'btn grow', onclick: step(1) }, 'Siguiente', icon('caret-right', 16), h('kbd', {}, '→'))),
     h('div', { class: 'transport' }, black, clear),
+    liveControls,
+    jobs,
     previewBlock,
     nextBlock);
 
@@ -55,12 +60,15 @@ export function createDock(container, ctx) {
 
   const programStage = createStage(program);
   const previewStage = createStage(previewMonitor);
+  createLiveControls(liveControls);
+  // Lo que el equipo principal está preparando (conversiones, descargas), con su avance.
+  createJobsList(jobs, { canDismiss: ctx.canEdit });
   let preview = null;
 
   function renderPreview() {
     const p = state.projection;
     // Si lo seleccionado ya es lo que está al aire, la vista previa sobra.
-    const show = Boolean(p && preview && !(p.mode === 'live' && key(preview) === key(p.item)));
+    const show = Boolean(p && preview && !(p.mode === 'live' && keyOf(preview) === keyOf(p.item)));
     previewBlock.hidden = !show;
     if (show) previewStage.render({ mode: 'live', item: preview, styles: p.styles });
   }
@@ -97,6 +105,7 @@ export function createDock(container, ctx) {
     renderNext();
   });
   subscribe('order', renderNext);
+  subscribe('live', (live) => programStage.setLive(live));
 
   return {
     toggleMode,
