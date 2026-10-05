@@ -13,6 +13,8 @@
 //   - la tarjeta de un televisor y su control remoto caben, con teclas para el dedo
 //   - la biblioteca de imágenes deja a la vista su acción principal, y los mandos de una imagen
 //     al aire caben en el panel
+//   - el himnario (todos, por categorías y lo encontrado al buscar) deja a la vista «Proyectar» y el
+//     sonido elegido, y los mandos de un himno al aire (cantado o pista, avance, volumen) caben
 //   - en Diapositivas, las presentaciones y las diapositivas de la elegida dejan a la vista
 //     «Proyectar», y los mandos de una diapositiva al aire (por dónde va, la que sigue, acercar) caben
 //   - en YouTube, el campo del enlace cabe en la cabecera y los mandos de un video con subtítulos
@@ -76,6 +78,14 @@ const SCREENS = [
   { name: 'Al aire con un video', url: '/control#orden', show: 'video', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
   { name: 'Orden con un video al aire', url: '/control#orden', show: 'video', controls: '.odetail .live-controls' },
   { name: 'Al aire con una imagen', url: '/control#medios', show: 'image', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
+  { name: 'Himnario', url: '/control#himnario', content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: '.hymn-bar', settle: 700,
+    prepare: `document.querySelector('.ws[data-module=himnario] .hymn')?.click()` },
+  { name: 'Himnario: categorías', url: '/control#himnario', content: '.hymns-body', inside: '.hymn-group header', settle: 700,
+    prepare: `document.querySelector('.hymn-views [data-view=categories]').click()` },
+  { name: 'Himnario: búsqueda', url: '/control#himnario', content: '.hymns-body', inside: '.hymn-hit', settle: 1100,
+    prepare: `(() => { document.querySelector('.hymn-views [data-view=grid]').click(); const i = document.querySelector('.ws[data-module=himnario] .search input'); i.value = 'renglon inventado'; i.dispatchEvent(new Event('input')); })()` },
+  { name: 'Al aire con un himno', url: '/control#himnario', show: 'song', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
+  { name: 'Orden con un himno al aire', url: '/control#orden', show: 'song', controls: '.odetail .live-controls' },
   { name: 'Diapositivas: presentaciones', url: '/control#diapositivas', content: '.decks', inside: '.deck' },
   { name: 'Diapositivas: una presentación', url: '/control#diapositivas', content: '.deck-pages', primary: '.deck-bar .btn.primary', inside: '.deck-bar', settle: 600,
     prepare: `document.querySelector('.ws[data-module=diapositivas] .deck-pick').click()` },
@@ -152,7 +162,7 @@ fs.writeFileSync(path.join(tmp, 'data', 'televisores.json'), JSON.stringify({
 const example = seedExample(path.join(tmp, 'data'));
 const server = killOnExit(spawn(process.execPath, ['server/index.js'], {
   cwd: ROOT, stdio: 'ignore',
-  env: { ...process.env, MANNA_NAME: 'manna-auditoria', MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_DATA: path.join(tmp, 'data'), PORT: String(PORT), MANNA_FALTA: 'navegador,yt-dlp', MANNA_TV_PRUEBA: JSON.stringify(fakeTv.endpoints) },
+  env: { ...process.env, MANNA_NAME: 'manna-auditoria', MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_DATA: path.join(tmp, 'data'), PORT: String(PORT), MANNA_HIMNARIO: example.hymnal, MANNA_FALTA: 'navegador,yt-dlp', MANNA_TV_PRUEBA: JSON.stringify(fakeTv.endpoints) },
 }));
 const showInOrder = (id) => chrome.evaluate(`fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'order.show',payload:{id:${JSON.stringify(id)}}})}).then((r) => r.status)`);
 await sleep(3000);

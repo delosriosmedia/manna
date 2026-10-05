@@ -1,6 +1,7 @@
-// Un orden del culto de ejemplo para demostraciones y auditorías. Incluye elementos de un tipo
-// que todavía no existe (himno) y títulos largos, para ver cómo se comporta
-// la interfaz con ellos. Esos elementos se ven, pero no se pueden proyectar.
+// Un orden del culto de ejemplo para demostraciones y auditorías, con elementos de todos los tipos
+// y títulos largos, para ver cómo se comporta la interfaz con ellos.
+// Los himnos salen de un himnario inventado (himnario-falso.mjs), que se deja en dataDir/himnario:
+// quien arranca el servidor se lo señala con MANNA_HIMNARIO.
 // La imagen de prueba sí existe (lleva `data: {}`, que es todo lo que necesita), y también las
 // imágenes: se crean dos carteles de ejemplo en la biblioteca de Medios. Con ffmpeg en el equipo se
 // crean además un video, un audio y un video "de YouTube" de verdad (cortos y a bajo volumen; el de
@@ -11,17 +12,22 @@ import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { hymnTitle, seedHymnal } from './himnario-falso.mjs';
 import { examplePoster } from './png.mjs';
 
 // Escribe el ejemplo en dataDir (orden.json, medios.json y las imágenes) y devuelve los id de los
 // elementos del orden que sí se pueden proyectar:
 //   { live: un pasaje, testcard: la imagen de prueba, image: una imagen de la biblioteca, video: un video,
-//     youtube: un video de YouTube con subtítulos en dos idiomas, slides: una presentación }
+//     youtube: un video de YouTube con subtítulos en dos idiomas, slides: una presentación,
+//     song: un himno, hymnal: la carpeta del himnario de ejemplo }
 export function seedExample(dataDir) {
   const id = () => crypto.randomUUID();
   const verses = (title, book, chapter, a, b) => ({ id: id(), kind: 'verses', title, subtitle: 'Reina-Valera 1909', steps: b - a + 1, data: { versionId: 'reina-valera-1909', ref: { book, chapter, verseStart: a, verseEnd: b } } });
   const other = (kind, title, subtitle, steps) => ({ id: id(), kind, title, subtitle, steps, data: {} });
   const section = (title) => ({ id: id(), kind: 'section', title });
+  const hymnal = seedHymnal(path.join(dataDir, 'himnario'), { count: 60, seconds: 20 });
+  const song = (number, track) => ({ id: id(), kind: 'song', title: hymnTitle(number), subtitle: `N.º ${number} · ${track === 'instrumental' ? 'Pista' : 'Cantado'}`, steps: 1, data: { number, track } });
+  const opening = song(1, 'vocal');
   const live = verses('Juan 3:16-17', 43, 3, 16, 17);
   const testcard = other('testcard', 'Imagen de prueba', 'Para encuadrar la pantalla', 1);
   // Dos imágenes en la biblioteca: una apaisada y un cartel vertical (sin miniatura: se ve la propia imagen).
@@ -81,15 +87,15 @@ export function seedExample(dataDir) {
   const image = { id: id(), kind: 'image', title: images[0].name, subtitle: 'Imagen · 1600 × 900', steps: 1, data: { id: images[0].id, fit: 'contain' } };
   const items = [
     section('Apertura'), verses('Salmos 100:1-5', 19, 100, 1, 5),
-    other('song', 'Santo, Santo, Santo', 'Himnario n.º 1', 4),
+    opening,
     image,
     section('Mensaje'), live, verses('Romanos 8:28', 45, 8, 28, 28),
     video,
     youtube,
     slides,
-    section('Cierre'), other('song', 'Cuán grande es Él', 'Himnario n.º 69', 4), testcard,
+    section('Cierre'), song(9, 'instrumental'), testcard,
   ];
   fs.mkdirSync(dataDir, { recursive: true });
   fs.writeFileSync(path.join(dataDir, 'orden.json'), JSON.stringify({ items }));
-  return { live: live.id, testcard: testcard.id, image: image.id, video: video.id, youtube: youtube.id, slides: slides.id };
+  return { live: live.id, testcard: testcard.id, image: image.id, video: video.id, youtube: youtube.id, slides: slides.id, song: opening.id, hymnal: hymnal.dir };
 }

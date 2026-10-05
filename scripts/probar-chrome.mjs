@@ -5,7 +5,7 @@
 //      uno mostrando el avance y no bloquea la app; dentro, el módulo afectado también avisa.
 //      La descarga sale de un servidor de mentira en este mismo equipo.
 //   1. La interfaz: Biblia (búsqueda por niveles), comparador de versiones, orden del culto (con
-//      nombres propios), medios (subir imágenes, ajuste, encuadre al aire en dos pantallas; videos
+//      nombres propios), himnario (uno inventado: buscar por número, título y letra, cantado y pista), medios (subir imágenes, ajuste, encuadre al aire en dos pantallas; videos
 //      y audios que van a la par; YouTube, con un yt-dlp de mentira), televisores (con uno de
 //      mentira), diapositivas (un PDF de verdad, convertido por el propio Chrome, y un PowerPoint
 //      con un PowerPoint de mentira), mandos en vivo que van a la par en dos pantallas, ajustes
@@ -39,6 +39,7 @@ import { startFakeTv } from './lib/tv-falso.mjs';
 import { writeFakeYtDlp } from './lib/yt-dlp-falso.mjs';
 import { fakePresentation, writeFakePowerPoint } from './lib/powerpoint-falso.mjs';
 import { makePdf } from './lib/pdf.mjs';
+import { HYMN_FACTS, hymnTitle, seedHymnal } from './lib/himnario-falso.mjs';
 import { examplePoster } from './lib/png.mjs';
 import { checkContract, sourceFiles } from './lib/codigo.mjs';
 
@@ -110,6 +111,11 @@ const ytAsked = path.join(tmp, 'yt-dlp-pedido.json');
 if (CAN_YOUTUBE) writeFakeYtDlp(path.join(tmp, 'data', 'herramientas'), { title: 'Saludo de la iglesia hermana', seconds: 6, log: ytAsked, pause: 600 });
 else UNTOUCHED['media.youtube'] = 'el yt-dlp de mentira necesita ffmpeg y un sistema que ejecute guiones; se prueba en test/youtube.test.js';
 
+// El himnario de la prueba es inventado (videos de colores con dos tonos, letras escritas aquí):
+// no se usa el de Contenido/Himnario.
+const hymnal = seedHymnal(path.join(tmp, 'himnario'), { count: 14, seconds: 14 });
+if (!HAS_FFMPEG) UNTOUCHED['GET /api/hymns/:number/pista.mp4'] = 'este equipo no tiene ffmpeg para fabricar los himnos de la prueba ni para sacarles la pista';
+
 // PowerPoint, igual: uno de mentira (un guion que deja tres imágenes), para no abrir el de verdad.
 const fakePpt = writeFakePowerPoint(path.join(tmp, 'powerpoint'), { slides: 3, pause: 1200 });
 
@@ -119,7 +125,7 @@ const fakeTv = await startFakeTv();
 function startServer(host, extra = {}) {
   // MANNA_SIN_VENTANA: la prueba no abre su proyección en el proyector de verdad, si lo hay.
   // MANNA_CONVERSION_LENTA: cada conversión tarda en empezar, para poder ver qué pasa mientras tanto.
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), ...extra };
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), ...extra };
   if (host) env.MANNA_HOST = host;
   // killOnExit: si la prueba se corta a medias, el servidor no se queda abierto ocupando el puerto.
   return killOnExit(spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env }));
@@ -544,10 +550,10 @@ try {
   // que abre los demás (el reparto se prueba también en test/codigo.test.js).
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await sleep(500);
-  check('en el celular, la barra muestra cuatro módulos y «Más»', await run(`return [...document.querySelectorAll('.tabbar button')].map(b => b.textContent).join('|') === 'Orden|Biblia|Comparador|Medios|Más' && document.querySelector('.tabbar button.on').textContent === 'Medios'`), await run(`return [...document.querySelectorAll('.tabbar button')].map(b => b.textContent).join('|')`));
+  check('en el celular, la barra muestra cuatro módulos y «Más»', await run(`return [...document.querySelectorAll('.tabbar button')].map(b => b.textContent).join('|') === 'Orden|Biblia|Himnario|Medios|Más' && document.querySelector('.tabbar button.on').textContent === 'Medios'`), await run(`return [...document.querySelectorAll('.tabbar button')].map(b => b.textContent).join('|')`));
   await click(`[...document.querySelectorAll('.tabbar button')].find(b => b.textContent === 'Más')`);
   await sleep(300);
-  check('«Más» abre los que no caben', await run(`return [...document.querySelectorAll('.menu button')].map(b => b.textContent).join('|') === 'Diapositivas|Ajustes'`), await run(`return [...document.querySelectorAll('.menu button')].map(b => b.textContent).join('|')`));
+  check('«Más» abre los que no caben', await run(`return [...document.querySelectorAll('.menu button')].map(b => b.textContent).join('|') === 'Comparador|Diapositivas|Ajustes'`), await run(`return [...document.querySelectorAll('.menu button')].map(b => b.textContent).join('|')`));
   await press('Escape');
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(400);
@@ -811,6 +817,86 @@ try {
       await sleep(700);
       check('y al eliminarlo no queda ningún aviso suyo', (await tubesNow()).length === 1 && await run(`return !document.querySelector('.dock .job.error')`));
     }
+  }
+
+  console.log('\n1. Interfaz · Himnario');
+  {
+    const ws = `document.querySelector('.ws[data-module=himnario]')`;
+    const hbar = `${ws}.querySelector('.hymn-bar')`;
+    const hymnBox = `${ws}.querySelector('.search input')`;
+    const tile = (n) => `${ws}.querySelector('.hymn[data-n="${n}"]')`;
+    const typeIn = async (value) => { await run(`const i = ${hymnBox}; i.focus(); i.value = ${JSON.stringify(value)}; i.dispatchEvent(new Event('input'));`); await sleep(800); };
+    const hits = () => run(`return JSON.stringify([...${ws}.querySelectorAll('.hymn-hit')].map(r => ({ n: Number(r.dataset.n), title: r.querySelector('.hymn-title').textContent, label: r.querySelector('small b')?.textContent || null, text: r.querySelector('small')?.textContent || null, marks: [...r.querySelectorAll('mark')].map(m => m.textContent) })))`).then(JSON.parse);
+    const onAir = () => run(`const s = await (await fetch('/api/state')).json(); const v = document.querySelector('.dock .monitor video'); return JSON.stringify({ item: s.projection.item, live: s.live.state, order: s.order.items, src: v ? decodeURIComponent(v.getAttribute('src') || '') : null, paused: v?.paused, t: v?.currentTime, pos: s.live.state?.clock ? s.live.state.clock.position + (s.live.state.clock.playing ? (Date.now() - s.live.state.clock.at) / 1000 : 0) : null })`).then(JSON.parse);
+    const liveBox = `document.querySelector('.dock .live-controls')`;
+    await click(`document.querySelector('.rail-item[data-id=himnario]')`);
+    check('el himnario lee los videos de su carpeta: una ficha por himno, con su número y su título', await until(`${ws}.querySelectorAll('.hymn').length === 13`, 20)
+      && await run(`return document.title === 'Manna · Himnario' && ${tile(1)}.querySelector('.hymn-n').textContent === '1' && ${tile(1)}.querySelector('.hymn-title').textContent === ${JSON.stringify(hymnTitle(1))} && !${tile(HYMN_FACTS.withoutVideo)} && ${hbar}.hidden`));
+    check('el título lleva las tildes y los signos del archivo de letras, que el nombre del video no tiene', await run(`return ${tile(13)}.querySelector('.hymn-title').textContent === ${JSON.stringify(hymnTitle(13))} && ${JSON.stringify(hymnTitle(13))}.includes('¡')`));
+    check('avisa de lo que conviene revisar en la carpeta', await run(`return !${ws}.querySelector('.hymn-notes').hidden && ${ws}.querySelector('.hymn-notes').textContent === '4 avisos'`), await run(`return ${ws}.querySelector('.hymn-notes')?.textContent`));
+    await click(`${ws}.querySelector('.hymn-notes')`);
+    await sleep(300);
+    check('y lo dice con claridad: videos que faltan, letras que no corresponden a su video, himnos sin letra', await run(`const items = [...${modal}.querySelectorAll('.hymn-notes-list li')].map(l => l.textContent); return items.length === 4 && items[0].includes('Faltan los videos de un himno: 7') && items[1].includes('otro título que su video') && items[1].includes(': 4.') && items[2].includes('No hay letra para un himno: 6') && items[3].includes('sin video') && ${modal}.textContent.includes('13 himnos en video, 11 con letra')`), await run(`return ${modal}.textContent.slice(0, 200)`));
+    await modalButton('Entendido');
+    await click(`${ws}.querySelector('.hymn-views [data-view=categories]')`);
+    await sleep(400);
+    check('la vista por categorías agrupa los himnos bajo el nombre de cada una', await run(`const g = [...${ws}.querySelectorAll('.hymn-group')]; return g.length === 3 && g.map(x => x.querySelector('h2').textContent).join('|') === 'Cantos de la mañana|Cantos del camino|Cantos de gratitud y esperanza para todos los días' && g.map(x => x.querySelectorAll('.hymn').length).join() === '3,4,6' && g[0].querySelector('small').textContent === '1–3 · 3 himnos'`), await run(`return [...${ws}.querySelectorAll('.hymn-group')].map(x => x.querySelector('h2').textContent + ' ' + x.querySelectorAll('.hymn').length).join(' | ')`));
+    await click(`${ws}.querySelector('.hymn-views [data-view=grid]')`);
+    await sleep(300);
+
+    // Buscar: por la letra, por el título y por el número.
+    await typeIn('lampara encendida');
+    let found = await hits();
+    check('busca en la letra mientras se escribe, sin tildes, y muestra el renglón con lo encontrado', found.length === 1 && found[0].n === HYMN_FACTS.phrase.number && found[0].label === 'Estrofa 2' && found[0].marks.join() === 'lámpara encendida' && found[0].text.includes('en la ventana') && await run(`return ${ws}.querySelector('.hymn-level').textContent.startsWith('Frase exacta')`), JSON.stringify(found[0] || null));
+    await typeIn('sendero');
+    found = await hits();
+    check('y en el título', found[0]?.n === 10 && found[0].label === null && found[0].marks.join() === 'Sendero', JSON.stringify(found[0] || null));
+    await typeIn('titulo que no es el de su video');
+    check('una letra que no corresponde a su video no se encuentra', (await hits()).length === 0 && await run(`return ${ws}.querySelector('.empty').textContent.includes('Ningún himno coincide')`));
+    await typeIn('9');
+    found = await hits();
+    check('un número lleva a ese himno', found.length === 1 && found[0].n === 9 && found[0].title === hymnTitle(9));
+    await press('Enter');
+    check('Enter lo elige y deja el buscador: se ve en la vista previa, con su número', await run(`const m = document.querySelectorAll('.dock .monitor')[1]; return ${hymnBox}.value === '' && ${tile(9)}.classList.contains('selected') && ${hbar}.querySelector('.hymn-sel-n').textContent === '9' && !${hbar}.hidden && m.querySelector('.song-number').textContent === '9' && m.querySelector('.song-card .stage-ref').textContent === ${JSON.stringify(hymnTitle(9))} && document.activeElement !== ${hymnBox}`));
+    await click(`${hbar}.querySelector('.btn')`);
+    await sleep(500);
+    check('«Letra» muestra la letra del himno, por partes', await run(`return ${modal}.querySelector('h2').textContent === ${JSON.stringify(`9 · ${hymnTitle(9)}`)} && [...${modal}.querySelectorAll('.hymn-lyrics h3')].map(h => h.textContent).join() === 'Estrofa 1,Coro,Estrofa 2' && ${modal}.querySelectorAll('.hymn-lyrics p').length === 10 && ${modal}.querySelector('.hymn-lyrics section:nth-child(2) p').textContent.startsWith(${JSON.stringify(HYMN_FACTS.chorus.text)})`));
+    await modalButton('Cerrar');
+    await click(tile(HYMN_FACTS.withoutLyrics));
+    await sleep(300);
+    check('un himno sin letra lo dice en su botón', await run(`const b = ${hbar}.querySelector('.btn'); return b.disabled && b.title.includes('No hay letra')`));
+
+    if (!HAS_FFMPEG) console.log('  (este equipo no tiene ffmpeg: los himnos de la prueba no se pueden reproducir y esa parte se salta)');
+    else {
+      const chip = (id) => `${hbar}.querySelector('.hymn-sound [data-track=${id}]')`;
+      check('Manna mira cada video: cuánto dura y si trae pista instrumental', await until(`(await (await fetch('/api/hymns', { headers: { 'X-Prueba': '1' } })).json()).hymns.every(h => h.instrumental != null)`, 50) && await (async () => { await click(tile(HYMN_FACTS.single)); await sleep(400); return run(`return ${hbar}.querySelector('.hint').textContent.endsWith('0:14') && ${chip('instrumental')}.disabled && ${chip('instrumental')}.title.includes('no trae pista') && ${chip('vocal')}.classList.contains('on')`); })(), await run(`return ${hbar}.querySelector('.hint').textContent`));
+      await click(tile(9));
+      await sleep(300);
+      await click(chip('instrumental'));
+      await sleep(300);
+      check('antes de proyectar se elige el sonido: cantado o pista', await run(`const m = document.querySelectorAll('.dock .monitor')[1]; return ${chip('instrumental')}.classList.contains('on') && !${chip('vocal')}.classList.contains('on') && m.querySelector('.song-track').textContent === 'Pista'`));
+      await press('Enter');
+      await sleep(2200);
+      let air = await onAir();
+      check('Enter lo proyecta con la pista instrumental, reproduciéndose', air.item.kind === 'song' && air.item.number === 9 && air.live.track === 'instrumental' && air.live.clock.playing === true && /^\/api\/hymns\/9\/pista\.mp4/.test(air.src) && air.paused === false && air.t > 0.3
+        && await run(`return ${tile(9)}.classList.contains('live') && document.querySelector('.dock-ref').textContent === ${JSON.stringify(`9 · ${hymnTitle(9)}`)}`), JSON.stringify({ src: air.src, t: air.t, track: air.live?.track }));
+      check('los mandos de un himno: cantado o pista, y los de cualquier cosa que suena', await run(`const c = ${liveBox}; return [...c.querySelectorAll('.song-tracks button')].map(b => b.textContent + (b.classList.contains('on') ? '*' : '')).join() === 'Cantado,Pista*' && Boolean(c.querySelector('.clip-seek input')) && Boolean(c.querySelector('.volume input')) && c.querySelector('.clip-seek .clip-time:last-child').textContent === '0:14'`), await run(`return ${liveBox}.textContent`));
+      await click(`${liveBox}.querySelector('.song-tracks [data-track=vocal]')`);
+      await sleep(2200);
+      air = await onAir();
+      check('al aire se pasa de la pista al himno cantado sin perder el punto', air.live.track === 'vocal' && air.src === `/himnos/009 ${hymnTitle(9)}.mp4` && air.paused === false && Math.abs(air.t - air.pos) < 0.7 && air.t > 2, JSON.stringify({ src: air.src, t: air.t, pos: air.pos }));
+      await click(`[...${liveBox}.querySelectorAll('button')].find(b => b.textContent.includes('Pausar'))`);
+      await sleep(700);
+      check('y se pausa como cualquier video', (await onAir()).live.clock.playing === false);
+    }
+    await click(tile(9));
+    await sleep(300);
+    await click(`[...${hbar}.querySelectorAll('.btn')].find(b => b.textContent.includes('Añadir'))`);
+    await sleep(600);
+    const inOrder = (await onAir()).order.find((i) => i.kind === 'song');
+    check('un himno se añade al orden del culto con el sonido elegido', Boolean(inOrder) && inOrder.title === hymnTitle(9) && inOrder.subtitle === (HAS_FFMPEG ? 'N.º 9 · Pista' : 'N.º 9 · Cantado') && inOrder.steps === 1, JSON.stringify(inOrder || null));
+    await press('ArrowDown');
+    check('↓ pasa al himno siguiente sin tocar la proyección', await run(`return ${tile(10)}.classList.contains('selected') && ${hbar}.querySelector('.hymn-sel-n').textContent === '10'`));
   }
 
   console.log('\n1. Interfaz · Diapositivas');
@@ -1234,6 +1320,14 @@ try {
     await sleep(700);
     check('"Reintentar" lo vuelve a mirar (sin ffmpeg, sigue esperando)', await run(`return Boolean(${waiting})`));
   }
+
+  console.log('\n5. Himnario en un equipo sin ffmpeg');
+  await click(`document.querySelector('.rail-item[data-id=himnario]')`);
+  check('sin ffmpeg el himnario avisa de que no habrá pista, y los himnos se proyectan cantados', await until(`document.querySelectorAll('.ws[data-module=himnario] .hymn').length === 13`, 20) && await (async () => {
+    await click(`document.querySelector('.ws[data-module=himnario] .hymn[data-n="2"]')`);
+    await sleep(400);
+    return run(`const n = document.querySelector('.ws-notice'); const c = document.querySelector('.hymn-sound [data-track=instrumental]'); return !n.hidden && n.textContent.includes('Falta ffmpeg') && n.textContent.includes('pista instrumental') && c.disabled && c.title.includes('ffmpeg') && document.querySelector('.hymn-sound [data-track=vocal]').classList.contains('on')`);
+  })());
 
   console.log('\n5. Diapositivas en un equipo sin PowerPoint');
   await click(`document.querySelector('.rail-item[data-id=diapositivas]')`);

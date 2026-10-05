@@ -6,7 +6,7 @@ El **servidor es la única fuente de verdad**. Los dispositivos son vistas: reci
 
 ## Piezas
 
-- **Estado** (`server/core/store.js`): dividido por espacios. De los módulos: `system`, `bible`, `projection`, `live`, `order`, `media`, `slides`, `tv`. Del núcleo: `conexiones`, `jobs`, `tools`. `store.set(ns, patch)` lo cambia y lo envía a todos.
+- **Estado** (`server/core/store.js`): dividido por espacios. De los módulos: `system`, `bible`, `projection`, `live`, `order`, `media`, `slides`, `hymns`, `tv`. Del núcleo: `conexiones`, `jobs`, `tools`. `store.set(ns, patch)` lo cambia y lo envía a todos.
 - **Tiempo real** (`server/core/realtime.js`): SSE en `GET /api/events?rol=<rol>`. Eventos `state` (todo, al conectar), `patch` (un espacio, en cada cambio) y `ping` (latido cada 10 s, con la hora del servidor). El cliente (`web/core/api.js`) rehace la conexión si pasan 25 s sin recibir nada y siempre recibe el estado completo al reconectar: ningún módulo necesita lógica propia de reconexión.
 - **Acciones** (`POST /api/action` con `{ type, payload }`): toda orden que cambia algo. Se registran con `app.action('modulo.verbo', { permission }, handler)`.
 - **Rutas** (`app.route`): solo para lecturas (`GET`) y subida de archivos. `app.mount('/prefijo/', carpeta)` sirve una carpeta de contenido.
@@ -15,8 +15,8 @@ El **servidor es la única fuente de verdad**. Los dispositivos son vistas: reci
 - **Almacenamiento** (`app.storage('nombre', porDefecto)`): un JSON por módulo en `data/`.
 - **Tareas** (`app.jobs`, `server/core/jobs.js`): lo que tarda (convertir, descargar) corre en segundo plano y publica su avance y el tiempo que falta en el espacio `jobs`. Nunca se hace esperar a una acción por un trabajo largo. Una tarea puede cambiar de título mientras corre (una descarga no sabe cómo se llama el video hasta que empieza), y quien la lanzó retira sus avisos de error cuando ya no vienen al caso (`jobs.dismiss`).
 - **Programas externos** (`app.tools`, `server/core/tools.js`): única puerta a ffmpeg, yt-dlp, PowerPoint y el navegador: `tools.has(id)`, `tools.path(id)`, `tools.spawn(id, args)`. Publica el espacio `tools`. **Ninguno bloquea**: si falta, lo que falla es la función que lo usa, con un mensaje que dice cómo instalarlo. Qué necesita cada módulo lo declara él mismo en la web (`needs`, ver `web/core/needs.js`); con eso la revisión del equipo y el propio módulo avisan.
-- **Búsqueda de texto** (`server/core/search.js`): índice de palabras y búsqueda por niveles (frase exacta, todas las palabras, parecidas) con marcas de lo encontrado. La usa la Biblia, con un solo índice (el de la Reina-Valera 1960), y la usará el himnario.
-- **Contenido de la iglesia**: todo en `Contenido/` (`Biblias/`, `Himnario/videos/`, `Himnario/letras/`, `Medios/`). El servidor lo recibe por carpeta (`app.biblesDir`, `app.mediaDir`) desde `server/app.js`.
+- **Búsqueda de texto** (`server/core/search.js`): índice de palabras y búsqueda por niveles (frase exacta, todas las palabras, parecidas) con marcas de lo encontrado. La usan la Biblia, con un solo índice (el de la Reina-Valera 1960), y el himnario (títulos y letras).
+- **Contenido de la iglesia**: todo en `Contenido/` (`Biblias/`, `Himnario/videos/`, `Himnario/letras/`, `Medios/`). El servidor lo recibe por carpeta (`app.biblesDir`, `app.mediaDir`, `app.hymnsDir`) desde `server/app.js`.
 - **Reloj de reproducción** (`server/core/playback.js`): el servidor guarda `{ playing, position, at, duration }`; cada pantalla calcula la posición con la hora del servidor (`serverNow()` en `web/core/api.js`).
 
 ## Módulos
@@ -33,7 +33,7 @@ Para crear uno, usa la skill `/nuevo-modulo`.
 
 ## Contenido proyectable y orden del culto
 
-Todo lo que se proyecta es de un **tipo de contenido** (`kind`). Hoy existen `verses` y `compare` (Biblia: un pasaje en una versión o en dos a la vez), `image` (Medios: una imagen de la biblioteca, con ajuste, zoom y desplazamiento), `video`, `audio` y `youtube` (Medios: se reproducen con el reloj compartido; `youtube` es un video que Manna descargó, y solo cambian su icono y su nombre), `slides` (Diapositivas: una presentación convertida en imágenes, una diapositiva por paso, con los mandos de una imagen) y `testcard` (imagen de prueba, en `projection`: el ejemplo más pequeño de un tipo con mandos). Los que faltan están en `docs/PLAN.md`, sección 3.2. Un módulo registra el suyo con `app.kind(nombre, { label, describe, resolve, neighbor, live, control })`:
+Todo lo que se proyecta es de un **tipo de contenido** (`kind`). Hoy existen `verses` y `compare` (Biblia: un pasaje en una versión o en dos a la vez), `image` (Medios: una imagen de la biblioteca, con ajuste, zoom y desplazamiento), `video`, `audio` y `youtube` (Medios: se reproducen con el reloj compartido; `youtube` es un video que Manna descargó, y solo cambian su icono y su nombre), `slides` (Diapositivas: una presentación convertida en imágenes, una diapositiva por paso, con los mandos de una imagen), `song` (Himnario: el video de un himno, cantado o con la pista instrumental) y `testcard` (imagen de prueba, en `projection`: el ejemplo más pequeño de un tipo con mandos). Los que faltan están en `docs/PLAN.md`, sección 3.2. Un módulo registra el suyo con `app.kind(nombre, { label, describe, resolve, neighbor, live, control })`:
 
 - `describe(data)` → `{ title, subtitle, steps, data }`: cómo se ve en el orden del culto y cuántos **pasos** tiene (versículos, estrofas, diapositivas). `null` si ya no existe.
 - `resolve(data, step)` → lo que se proyecta. `step` `null` es el elemento entero; `0..n-1`, uno de sus pasos.
@@ -44,6 +44,8 @@ Todo lo que se proyecta es de un **tipo de contenido** (`kind`). Hoy existen `ve
 `data` es lo mínimo para localizar el contenido (para `verses`: `{ versionId, ref }`; para `image`: `{ id, fit }`), nunca el contenido mismo. Lo que se elige antes de proyectar y debe recordarse en el orden del culto (el ajuste de una imagen, la disposición del comparador) va en `data`; lo que se mueve al aire, en los mandos en vivo.
 
 Lo que se proyecta **como una imagen** (una imagen de Medios, una diapositiva) comparte la cuenta de su vista: ajuste, zoom y punto central, en `server/core/view.js` (`initialView`, `applyView`) y, en la web, `projection/view.js` y `projection/picture.js`. Si lleva `thumb`, las miniaturas usan esa versión pequeña.
+
+Un catálogo grande tampoco va en el estado: el himnario publica solo `hymns.version` y cuántos hay, y la interfaz pide la lista a `GET /api/hymns` cuando la versión cambia.
 
 Un contenido con muchos pasos no publica su lista en el estado: Diapositivas publica de cada presentación `base`, `ext`, `thumbs` y `pages`, y la interfaz arma la dirección de cada diapositiva.
 
@@ -56,8 +58,9 @@ Un contenido con muchos pasos no publica su lista en el estado: Diapositivas pub
 - Las órdenes van por la acción `projection.control`, que entrega el patch al `control()` del tipo: este **valida** y devuelve el estado nuevo.
 - `volume` es el volumen general de Manna (acción `projection.volume`; su mando es `web/modules/projection/volume.js`).
 - **Suena una sola pantalla, siempre del equipo principal**, y la elige el servidor: su primera pantalla de proyección y, si no hay, su página de control (`conexiones.sonido`, en `server/core/realtime.js`). En la pantalla de proyección no hay avisos ni botones para hacer sonar: una página a la que el navegador no deja sonar (una pestaña que nadie ha tocado) lo dice con `POST /api/events/sound` y el servidor elige otra; si ninguna puede, `sonido` es `null` y lo avisan los mandos, en el control. Cada conexión sabe quién es por el evento `hello`; el escenario recibe si le toca sonar (`stage.setSound`) y se lo pasa al tipo en `live(state, { volume, sound })`.
-- **Lo que se reproduce** (video, audio, y luego himnos) guarda en sus mandos un reloj `{ playing, position, at, duration }`. El servidor no reproduce nada; cada pantalla lleva su reproductor a ese punto (`web/modules/media/player.js`) y corrige el desfase sola.
-- Un video puede llevar dos archivos: `url`, el que reproduce cualquier pantalla (la copia ligera; `null` mientras se hace), y `local`, el original, para las pantallas del equipo principal cuando su navegador puede con él. Cada pantalla elige (`web/modules/media/clip.js`); la que aún no tiene qué reproducir muestra la imagen y `waiting`. Cada conexión sabe si es del equipo principal por el evento `hello`. Cuando a lo que está al aire le llega su copia, `services.projection.refresh()` lo republica sin tocar la reproducción.
+- **Lo que se reproduce** (video, audio, himnos) guarda en sus mandos un reloj `{ playing, position, at, duration }`. El servidor no reproduce nada; cada pantalla lleva su reproductor a ese punto (`web/modules/projection/player.js`) y corrige el desfase sola. El dibujo y los mandos comunes de todo lo que suena están en `web/modules/projection/clip.js`.
+- Un mismo contenido puede tener **más de un archivo y cambiar entre ellos al aire** sin perder el punto: un himno lleva `url` (cantado) e `instrumental` (la pista), y el mando en vivo `track` dice cuál suena. La pantalla hace un reproductor nuevo en el mismo segundo y el sonido del anterior se desvanece.
+- Un video puede llevar dos archivos: `url`, el que reproduce cualquier pantalla (la copia ligera; `null` mientras se hace), y `local`, el original, para las pantallas del equipo principal cuando su navegador puede con él. Cada pantalla elige (`sources` en `web/modules/media/clip.js`); la que aún no tiene qué reproducir muestra la imagen y `waiting`. Cada conexión sabe si es del equipo principal por el evento `hello`. Cuando a lo que está al aire le llega su copia, `services.projection.refresh()` lo republica sin tocar la reproducción.
 - Los subtítulos de lo que se proyecta son una lista, `subtitles: [{ lang, label, url }]` (el archivo añadido a mano lleva `lang: 'sub'`; los de YouTube, su idioma), y el mando en vivo `subtitles` vale `false` o el `lang` que se muestra.
 - Un contenido que existe pero aún no se puede mostrar en ninguna pantalla (un video que se está convirtiendo y que el equipo principal no reproduce tal cual, o uno de YouTube que aún se descarga) lo dice su `resolve()` con `{ unavailable: 'por qué' }`: la proyección responde con ese mensaje en vez de ponerlo en pantalla, y en el orden del culto se ve como está.
 
@@ -84,6 +87,10 @@ Un contenido con muchos pasos no publica su lista en el estado: Diapositivas pub
 - Las páginas no deben construir direcciones con la IP ni asumir un puerto: rutas relativas para lo propio, `state.system` para mostrar direcciones.
 - **`http` y `https` por el mismo puerto** (`server/core/listener.js`): se mira el primer byte de cada conexión y se entrega al servidor que corresponde. El certificado es propio (`server/core/cert.js`, guardado en `data/certificado/`) y no se rehace al cambiar la IP, para no invalidar lo que cada navegador ya aceptó. `system.secure` dice si hay `https`; `system.securePort`, si además se abrió el 443. Las direcciones que se muestran y el QR siguen siendo `http`.
 - `app.arrivals` (ip → cómo llegó: `http`, `https`, o saludo `https` cortado) y `app.realtime.has(rol, ip)` permiten a un módulo saber qué hace un equipo concreto de la red. Los usa el módulo de televisores para decir por qué uno no entra.
+
+## Contenido que no cuadra
+
+Lo que la iglesia pone en sus carpetas puede venir con errores, y Manna no debe mostrar algo equivocado por ello. En el himnario **los videos mandan**: un himno existe si tiene video, y su número y su título son los del archivo. La letra de un número (del archivo de `letras/`) solo se usa si su título es el del video, sin contar tildes ni signos (`buildCatalog` en `server/modules/hymns/catalog.js`); lo que no cuadra no se usa y se dice en `report` (la interfaz lo muestra en «avisos»). El archivo de letras se acepta escrito de varias formas (`parseLyrics`, en `lyrics.js`).
 
 ## Lo que convierte el navegador y lo que convierte el equipo principal
 

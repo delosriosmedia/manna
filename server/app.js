@@ -12,9 +12,10 @@ import order from './modules/order/index.js';
 import tv from './modules/tv/index.js';
 import media from './modules/media/index.js';
 import slides from './modules/slides/index.js';
+import hymns from './modules/hymns/index.js';
 
 // Para añadir un módulo nuevo: crea su carpeta en server/modules y agrégalo aquí.
-const MODULES = [system, bible, projection, order, media, slides, tv];
+const MODULES = [system, bible, projection, order, media, slides, hymns, tv];
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = process.env.MANNA_DATA || path.join(ROOT, 'data');
@@ -76,6 +77,7 @@ async function run() {
     dataDir: DATA,
     biblesDir: process.env.MANNA_BIBLIAS || path.join(CONTENT, 'Biblias'),
     mediaDir: process.env.MANNA_MEDIOS || path.join(CONTENT, 'Medios'),
+    hymnsDir: process.env.MANNA_HIMNARIO || path.join(CONTENT, 'Himnario'),
   };
   let app = createApp(options);
 

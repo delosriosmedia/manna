@@ -1,6 +1,6 @@
 # Plan de trabajo: versión 2
 
-Estado: **aprobado por el dueño el 2026-10-04. En curso: hechas las fases 0, 1, 2, 4, 6, 7 y 8. Detenido para las pruebas del dueño (decisión 28); después, la 5 (himnario, pospuesta). La 3 (televisores) está en pausa.**
+Estado: **aprobado por el dueño el 2026-10-04. En curso: hechas las fases 0, 1, 2, 4, 5, 6, 7 y 8. Siguen las pruebas del dueño y las sugerencias S23 a S28 (decisión 29); después, la 9 (auditoría). La 3 (televisores) está en pausa.**
 Parte de la versión 1.0.0 y termina en la 2.0.0.
 
 Este documento es el plan y, al terminar, la base de la auditoría (sección 8). Se actualiza al cerrar cada fase: la sección 9 lleva el avance, la 10 cada cambio que se le hizo al plan y por qué, y la 11 los cambios que se le sugieren al dueño y aún no ha decidido.
@@ -13,7 +13,7 @@ Este documento es el plan y, al terminar, la base de la auditoría (sección 8).
 | B | Búsqueda mejor: exactas primero, parecidas después, resaltado; rápida. **Solo en la Reina-Valera 1960** (decisión 12) | Fase 1 (hecho), ajustada en la 2 |
 | C | Pantalla de proyección en televisores (Samsung, LG, Android TV), a pantalla completa | Fase 3 |
 | D | Imágenes: subir, nombrar, ajustar a pantalla, zoom y desplazamiento en vivo | Fase 4 |
-| E | Himnario: 613 videos, dos vistas, buscador con letra, volumen, barra de avance, **cantado o pista** | Fase 5 |
+| E | Himnario: 613 videos, dos vistas, buscador con letra, volumen, barra de avance, **cantado o pista** | Fase 5 (hecho; 73 letras por corregir) |
 | F | Videos y audios locales en cualquier formato, con **conversión en segundo plano y avance a la vista** | Fase 6 |
 | G | YouTube: descargar al añadir el enlace, proyectar sin anuncios, **con subtítulos opcionales** | Fase 7 (hecho) |
 | H | Diapositivas: PDF y PowerPoint, con vista de la siguiente, cuántas faltan y zoom | Fase 8 (hecho; PowerPoint real sin probar) |
@@ -56,7 +56,8 @@ Datos medidos en el proyecto, no supuestos.
 
   Bajar la calidad o el tamaño del resultado casi no ahorra tiempo: lo que cuesta es leer el 4K. En Windows, Chrome y Edge reproducen HEVC solo si la tarjeta gráfica lo decodifica (en general, equipos de 2017 en adelante); en uno más antiguo hay que convertir, y ahí tardaría varios minutos.
 - **Herramientas.** En el Mac de desarrollo están ffmpeg 8.1, yt-dlp y PowerPoint. En el equipo Windows de la iglesia lo comprobará la revisión del equipo.
-- **Las categorías del himnario** en nuevohimnario.com se cargan con un programa de la página; su estructura se revisará en la fase 5.
+- **Las categorías del himnario** en nuevohimnario.com se cargan con un programa de la página. No hizo falta revisarlas: en la fase 5 las categorías vinieron en el archivo de letras del dueño (decisión 29).
+- **El archivo de letras del dueño** (2026-10-05, 408 KB): 614 himnos, 2165 partes y 24 categorías; se lee en 18 ms. De los 613 himnos con video, 540 coinciden en título con el archivo y 73 no (del 123 al 195). Catálogo e índice de búsqueda: 50 ms. Una búsqueda: de 0,2 a 5 ms.
 
 ## 3. Decisiones de diseño
 
@@ -72,7 +73,7 @@ Datos medidos en el proyecto, no supuestos.
 | `testcard` | Proyección | Uno | Imagen (encuadre, colores, blanco) y cronómetro | Hecho (1.1) |
 | `compare` | Biblia (pantalla Comparador) | Un versículo por paso | Disposición: lado a lado o una sobre otra | Hecho (1.3) |
 | `image` | Medios | Uno | Ajuste, zoom, desplazamiento | Hecho (1.5) |
-| `song` | Himnario | Uno (el video) | Pausa, reinicio, avance; cantado o pista | Fase 5 |
+| `song` | Himnario | Uno (el video) | Pausa, reinicio, saltos, barra de avance; cantado o pista; volumen general | Hecho (1.9) |
 | `video`, `audio` | Medios | Uno | Pausa, reinicio, saltos, barra de avance; subtítulos; volumen general | Hecho (1.6) |
 | `youtube` | Medios | Uno | Los mismos, con elección del idioma de los subtítulos | Hecho (1.7) |
 | `slides` | Diapositivas | Una diapositiva por paso | Zoom, desplazamiento, vista de la siguiente, cuántas quedan | Hecho (1.8) |
@@ -198,9 +199,9 @@ Lo que se hizo está en la sección 9. Lo que sigue es el plan original, que se 
 - **Al aire**: un recuadro donde se arrastra y se hace zoom (rueda, dos dedos o deslizador); la proyección lo sigue. Botón para volver a la vista completa.
 - **Navegación**: con este módulo las pestañas del celular pasan de cuatro; se añade "Más".
 
-### Fase 5 · Himnario — pospuesta, va después de la 6 (decisión 20)
+### Fase 5 · Himnario — hecha (1.9.0)
 
-La reproducción, que se iba a estrenar aquí, se construye en la fase 6. El himnario la recibe hecha.
+La reproducción, que se iba a estrenar aquí, se construyó en la fase 6. El himnario la recibió hecha. Lo que cambió respecto a lo escrito abajo está en la sección 10: las letras y las categorías salen de **un solo archivo** entregado por el dueño, la pista se sirve preparada al pedirla, y los mandos van donde los de cualquier video.
 
 Himnario:
 
@@ -285,6 +286,7 @@ Tomadas el 2026-10-04.
 | 24 | «Negro» y «Solo fondo» con algo sonando (S16) | **Lo pausan.** Y todo lo que detenga el sonido (pausa, negro, cambiar de contenido) lo hace con un **desvanecido rápido**, sin corte; la interfaz reacciona al instante |
 | 25 | Al terminar un video (S17) | **Pasar a «Solo fondo»** con un desvanecido rápido |
 | 26 | Botón para hacer sonar (S18) | **No.** Se quita también el aviso «Toca aquí para que suene». El sonido va solo al dispositivo de audio configurado en el equipo principal |
+| 29 | Tras la fase 8 (2026-10-05) | **Empezar ya el himnario**, con un archivo `.md` que el dueño dejó en `Contenido/Himnario/letras/` con todas las letras **y las categorías**. Las sugerencias S23 a S28 y las pruebas, después |
 | 28 | Orden tras la fase 7 (2026-10-05) | **Pasar de una vez a la fase 8 (diapositivas) y ahí detenerse** para hacer pruebas, antes de revisar la fase del himnario |
 | 27 | La espera al convertir un video pesado (S19, S20, S21) | **Convertir más rápido y poder usar el video de inmediato**; la conversión para los dispositivos remotos, de fondo. **No** medir el equipo desde la revisión |
 | 19 | Televisor, tras la primera prueba | **En pausa.** Remotamente solo se abrió el navegador y el puntero se movió un poco; escribiendo la dirección a mano tampoco carga. Se retoma cuando estén hechas las demás modificaciones |
@@ -374,7 +376,7 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 6 Videos y audios | **Hecha** · 2026-10-04 | 1.6.0 | Ver abajo. Fue antes que el himnario (decisión 20) y estrenó la reproducción |
 | 7 YouTube | **Hecha** · 2026-10-05 | 1.7.0 | Ver abajo. Los videos se conservan en la biblioteca (cambio al plan). Probado con un yt-dlp de mentira: **falta la primera descarga real** |
 | 8 Diapositivas | **Hecha** · 2026-10-05 | 1.8.0 | Ver abajo. El PDF, probado de verdad; **PowerPoint, solo con uno de mentira**: falta la prueba en Windows. Aquí se detiene el trabajo (decisión 28) |
-| 5 Himnario | Pospuesta · **es lo que sigue**, tras las pruebas del dueño | 1.9 | Videos y letras ya están en `Contenido/Himnario/`. El dueño revisa las letras |
+| 5 Himnario | **Hecha** · 2026-10-05 | 1.9.0 | Ver abajo. Probado con el himnario real: 613 himnos, 540 con letra. **El archivo de letras tiene 73 himnos (123 a 195) que no corresponden a sus videos**: no se usan hasta que se corrijan |
 | 9 Auditoría | Pendiente | 2.0 | |
 
 ### Fase 0 · resultados
@@ -501,6 +503,20 @@ Lo que se añadió para que esta clase de fallos no vuelva:
 - **Pruebas automáticas**: de 129 a 136. **Chrome real**: de 196 a 226 comprobaciones, con un PDF de verdad convertido por el propio Chrome. **Pantallas**: 9 tamaños, 27 pantallas en cada uno.
 - **Sin probar**: **PowerPoint de verdad**, en Windows (no hay) y en Mac (se abrió, pero no respondió: macOS pide un permiso que solo acepta una persona). Presentaciones reales de la iglesia, PDF grandes y la subida desde un celular real.
 
+### Fase 5 · resultados
+
+- **Módulo Himnario** y tipo de contenido `song`: una ficha por video, dos vistas (todos y por categorías), buscador por número, título y letra, y **cantado o pista** antes de proyectar y al aire.
+- **Análisis del archivo de letras entregado** (408 KB, un solo `.md`): viene en dos formas mezcladas (los himnos 1 a 21 a renglón seguido con barras; los demás con las marcas escapadas y un renglón por párrafo) y Manna las lee las dos. 614 himnos, 2165 partes, 24 categorías, ningún aviso de formato. Comparado con los videos:
+  - **540 títulos coinciden** (sin contar tildes ni signos) y toman la letra y el título bien escrito.
+  - **73 no coinciden: del 123 al 195, seguidos.** El archivo pone en esos números otros himnos; 57 de esos títulos no son de ningún video. Sus letras no se usan.
+  - El archivo trae un 614 que no tiene video; 5 himnos tienen una parte de un solo renglón (antes eran 15).
+  - **Las categorías son tramos de números seguidos** (1 a 45 y luego de 25 en 25), no el índice del himnario.
+- **Regla nueva**: los videos mandan. La letra de un número solo se usa si su título es el del video. Lo que no cuadra se dice en «avisos», en frases.
+- **La pista** se prepara al pedirla (una copia del video con su segunda pista de sonido, sin recodificar) y cada pantalla la reproduce como un video más; al cambiar de sonido al aire sigue en el mismo segundo.
+- **Para compartir** lo que ya existía: el reproductor y los mandos de lo que suena pasaron a piezas comunes de la proyección (los usan Medios y el Himnario); el resaltado de lo encontrado, a una pieza común (la usan la Biblia y el Himnario).
+- **Pruebas automáticas**: de 136 a 143. **Chrome real**: de 226 a 247 comprobaciones. **Pantallas**: 9 tamaños, 32 pantallas en cada uno. Todas con un himnario inventado; además, el recorrido se hizo a mano con el himnario real (sección "Probado y sin probar" de `docs/ESTADO.md`).
+- **Sin probar**: oír las dos pistas, el equipo Windows y un celular real.
+
 ## 10. Cambios al plan
 
 Cada modificación del plan aprobado, con su motivo. Es parte de la base de la auditoría.
@@ -560,6 +576,14 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-04 | Fase 6: un video que hay que convertir ya no espera a la conversión si el equipo principal reproduce el original; la copia ligera queda para las demás pantallas | Decisión 27 (eran S19 y S20). El plan decía que el elemento quedaba listo "al terminar" la conversión |
 | 2026-10-04 | Fase 6: la conversión se detiene mientras algo se reproduce | Para que usar un video recién agregado no compita con su propia conversión en un equipo modesto |
 | 2026-10-04 | No se añade la medición del equipo a la revisión (S21) | Decisión 27 |
+| 2026-10-05 | **Fase 5: las categorías salen del archivo de letras del dueño**, no de nuevohimnario.com | Decisión 29: el dueño entregó el archivo "con las categorías". Son líneas `##` que él puede cambiar; sustituye a la decisión 14 |
+| 2026-10-05 | Fase 5: las letras van en un solo archivo, que puede venir escrito de varias formas (también como lo exporta Word) | Es como lo entregó el dueño. El formato de los trece archivos anteriores sigue valiendo |
+| 2026-10-05 | Fase 5: **la letra de un número solo se usa si su título es el del video** | El archivo trae 73 himnos seguidos (123 a 195) que no son los de esos números. Mejor un himno sin letra que con la letra de otro |
+| 2026-10-05 | Fase 5: la pista no se deja en `data/tmp/` al elegirla, sino que se prepara cuando una pantalla la pide | Así sirve igual desde el orden del culto y tras un reinicio, sin pasos previos; tarda décimas de segundo |
+| 2026-10-05 | Fase 5: los mandos del himno van en el panel "Al aire" y en el detalle del elemento del orden, no en la propia fila | Es donde están los de cualquier video desde la fase 6 |
+| 2026-10-05 | Fase 5: se añade ver la letra del himno elegido («Letra») | Ya estaba leída para buscar; sirve para confirmar que es el himno que se quiere |
+| 2026-10-05 | El Himnario va tercero en la barra, después de Biblia; el Comparador pasa a «Más» en el celular | Se usa en todos los cultos; en el celular solo caben cuatro módulos a la vista |
+| 2026-10-05 | Las pruebas, la auditoría y la demostración usan un himnario inventado (`MANNA_HIMNARIO`) y el Chrome de las pruebas va sin sonido | No dependen de `Contenido/` ni suenan en el equipo donde se ejecutan |
 | 2026-10-05 | Fase 8: el módulo no avisa en cada visita de que falta PowerPoint; lo explica al elegir un PowerPoint | Es un programa opcional. El plan decía que cada módulo avisa al abrirlo de lo que le falta, pero una franja permanente por algo opcional solo estorba |
 | 2026-10-05 | Fase 8: no se guarda el archivo original, solo las imágenes | No hace falta para proyectar y duplica lo que ocupa. Para cambiar una diapositiva se sube la presentación de nuevo |
 | 2026-10-05 | Fase 8: la miniatura de "la que viene" y "quedan N" van en los mandos en vivo (panel "Al aire" y orden), no solo en el orden | Así también sirven al proyectar una presentación directamente desde su módulo |
@@ -583,7 +607,7 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 
 Propuestas del asistente que el dueño aún no ha decidido. Al decidirse, pasan a la sección 10 (si se aceptan) o se borran.
 
-Las sugerencias S8 a S11 son del televisor: esperan a que se retome la fase 3 (decisión 19).
+Las sugerencias S8 a S11 son del televisor: esperan a que se retome la fase 3 (decisión 19). Las S23 a S28 quedaron, por decisión del dueño, para después del himnario (decisión 29): son lo siguiente, junto con sus pruebas.
 
 | # | Sugerencia | Por qué | Qué cambiaría |
 | --- | --- | --- | --- |
@@ -594,9 +618,13 @@ Las sugerencias S8 a S11 son del televisor: esperan a que se retome la fase 3 (d
 | S22 | Que el dueño haga la **primera descarga real de YouTube** antes de usarlo en un culto | Es lo único de la fase 7 que no se pudo probar sin salir a internet. Si YouTube pide iniciar sesión desde la red de la iglesia, conviene saberlo con tiempo | Nada en el plan. Si falla, se vería qué dice yt-dlp y se ajustaría |
 | S23 | Subtítulos con el estilo de la proyección (tipografía, tamaño y sombra de Ajustes) | Hoy los dibuja el navegador con su estilo: letra blanca sobre una caja oscura. Se leen bien, pero no se parecen al resto de la proyección ni se puede cambiar su tamaño | Dibujarlos Manna en vez del navegador. Mediano; vale para YouTube, videos e himnos |
 | S24 | Aviso de espacio en disco en Ajustes | Los videos de YouTube y las copias convertidas se acumulan en `data/media/`. El plan ya lo preveía como riesgo ("tamaño visible en Ajustes") y aún no existe | Una línea en Ajustes con lo que ocupa cada biblioteca. Pequeño; encaja en la auditoría (fase 9) |
+| S29 | **Corregir en el archivo de letras los himnos 123 a 195** | Sus títulos (y, por tanto, sus letras) no son los de los videos de esos números. Hasta entonces esos 73 himnos no se encuentran por la letra | Nada en Manna: al guardar el archivo corregido se vuelve a leer solo y el aviso desaparece. Si el dueño tiene las letras buenas en otro formato, se pueden pegar tal cual |
+| S30 | Usar el **índice temático del propio himnario** como categorías | Las del archivo son tramos de 25 himnos seguidos con nombres que se repiten; el himnario impreso tiene su propio índice (secciones y subsecciones) | Escribir esas secciones como líneas `##` en el archivo de letras, o en un archivo aparte solo de categorías ("## Nombre" y debajo "1-21"), que Manna leería igual. Pequeño |
+| S31 | Proyectar la **letra como texto**, estrofa a estrofa, para himnos sin video o para cantar a capela | Ya se lee la letra; faltaría dibujarla con el estilo de la proyección, como un pasaje | Mediano. Solo con las letras que cuadran |
+| S32 | **Favoritos o "los de este mes"** en el himnario | Con 613 himnos, tener a mano los que más se cantan ahorra búsquedas | Pequeño: una marca por himno, guardada en el servidor, y una tercera vista |
 | S25 | Que el dueño pruebe **PowerPoint en el equipo Windows** con dos o tres presentaciones reales | Es lo único de la fase 8 que no se pudo ejecutar: en el equipo de desarrollo no hay Windows, y en Mac PowerPoint no respondió sin que alguien aceptara un permiso | Nada en el plan. Si falla, lo que diga la tarjeta de la presentación es el punto de partida; mientras tanto, el PDF funciona |
 | S26 | Una carpeta `Contenido/Diapositivas/` donde dejar PDF, que el control del equipo principal convierta solo | Es lo que ya hacen los videos con `Contenido/Medios/`. Hoy una presentación solo entra subiéndola desde la app | Pequeño-mediano: lo convertiría la página de control del equipo principal (el servidor no sabe leer un PDF), como ya hace para comprobar los videos |
 | S27 | Guardar también el PDF original y poder **reemplazar** una presentación conservando su sitio en el orden del culto | Hoy, si se corrige una diapositiva a última hora, hay que subir la presentación de nuevo y volver a añadirla al orden | Pequeño. Ocupa algo más de disco |
 | S28 | Mostrar las **notas del orador** de un PowerPoint en el panel "Al aire" | PowerPoint las puede entregar al convertir; a quien predica o dirige le sirven | Mediano; solo para PowerPoint (un PDF no las trae) |
-| S7 | Que el dueño revise los 15 himnos cuya letra parece incompleta (lista en `docs/ESTADO.md`) | Al copiar las letras se perdieron líneas en algunas partes. **En curso: el dueño las está revisando** | Nada en el plan; se corrigen los archivos `.md` y Manna los vuelve a leer solo |
+| S7 | Revisar los 5 himnos con alguna parte de un solo renglón (58, 68, 352, 546 y 590) | Puede que les falten líneas. Eran 15 en los archivos anteriores | Nada en el plan; se corrige el archivo y Manna lo vuelve a leer solo |
 

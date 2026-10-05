@@ -44,7 +44,9 @@ const freePort = () => new Promise((resolve, reject) => {
 export async function startChrome() {
   const debugPort = await freePort();
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-chrome-'));
-  const child = killOnExit(spawn(findBrowser(), ['--headless=new', `--remote-debugging-port=${debugPort}`, `--user-data-dir=${profile}`,
+  // --mute-audio: lo que las pruebas reproducen no suena en este equipo (los reproductores de la
+  // página se comportan igual: solo se calla la salida del navegador).
+  const child = killOnExit(spawn(findBrowser(), ['--headless=new', '--mute-audio', `--remote-debugging-port=${debugPort}`, `--user-data-dir=${profile}`,
     '--no-first-run', '--window-size=1280,800', 'about:blank'], { stdio: 'ignore' }));
 
   let target;

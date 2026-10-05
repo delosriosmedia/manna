@@ -11,6 +11,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Búsqueda**: por cita (`Juan 3:16-18`, `1 co 13 4`, `sal 23`) o por texto, mientras escribes. El texto se busca en la Reina-Valera 1960 (o en la versión elegida, si no está instalada) y el resultado se abre en la versión que tengas elegida. Los resultados salen por niveles (frase exacta, todas las palabras, parecidas), con lo encontrado resaltado, y se pueden limitar al Antiguo o al Nuevo Testamento.
 - **Comparador**: el mismo pasaje en dos versiones, lado a lado o una sobre otra, cada una con su sigla. Se elige igual que en Biblia, se proyecta, se añade al orden como elemento propio, y la disposición se puede cambiar mientras está al aire.
 - **Orden del culto**: la lista ordenada de todo lo que se va a proyectar, con secciones (Apertura, Mensaje…). Cada elemento muestra su tipo y sus pasos; "Siguiente" recorre los pasos y luego pasa al elemento que sigue. A cualquier elemento se le puede poner un nombre propio ("Lectura bíblica"). Se comparte entre todos los dispositivos.
+- **Himnario**: los himnos en video de tu iglesia, en una rejilla por número o agrupados por categorías. Se llega a uno por su número, por su título o por un trozo de su letra; se elige si suena **cantado o solo la pista**, y se gobierna como cualquier video.
 - **Medios**: la biblioteca de la iglesia, en pestañas.
   - **Imágenes** (anuncios, carteles, fotos): se suben desde el equipo principal o desde la galería del celular, con el nombre que quieras; se elige si la imagen se ve completa o llenando la pantalla; y, mientras está al aire, se acerca y se desplaza desde el panel.
   - **Videos y audios**: se suben o se copian a `Contenido/Medios/`. Lo habitual se usa tal cual y lo demás se convierte solo, en segundo plano. Al aire: pausa, saltos, barra de avance, subtítulos y el volumen de Manna. Todas las pantallas van a la par y suena una sola.
@@ -20,7 +21,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Televisores** (en pausa y fuera de la barra, ver `docs/ESTADO.md`): un televisor Samsung de la misma red muestra la proyección desde su navegador, sin cables. Manna lo encuentra, le abre el navegador y le sirve de control remoto (teclas, puntero y texto); la primera vez le escribe la dirección por ti.
 - **Mandos en vivo**: lo que está al aire trae sus propios mandos en el panel y en el orden del culto. Los tienen las imágenes, los videos, las diapositivas y la **imagen de prueba** (Ajustes → Proyector de este equipo), que sirve para encuadrar el proyector o un televisor y comprobar, con su cronómetro, que todas las pantallas van a la par.
 - **Revisión del equipo**: al abrirse, Manna comprueba que el equipo principal tiene los programas que necesita. Si falta alguno, dice qué módulos se ven afectados y lo instala con un botón. Nunca impide abrir la app.
-- **Preparado para crecer**: el himnario ya tiene su sitio en la interfaz. Cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
+- **Preparado para crecer**: cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
 - **Funciones por dispositivo**: cada dispositivo elige al entrar.
   - **Control completo**: todos los módulos. Pide PIN.
   - **Control del orden**: solo proyecta lo que ya está en el orden del culto. Pensado para el celular. Pide PIN.
@@ -36,7 +37,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 | --- | --- | --- |
 | Node.js 18 o superior | Hace funcionar el servidor | Manna no arranca. Se descarga de https://nodejs.org/es/download |
 | Google Chrome (o Edge en Windows) | Ventana de proyección a pantalla completa | Manna se abre; la proyección no se abre sola en la segunda pantalla |
-| ffmpeg | Convertir videos y audios, unir imagen y sonido de YouTube, elegir la pista de los himnos | Manna se abre; las funciones que lo usan no estarán disponibles |
+| ffmpeg | Convertir videos y audios, unir imagen y sonido de YouTube, sacar la pista instrumental de los himnos | Manna se abre; las funciones que lo usan no estarán disponibles |
 | yt-dlp | Descargar videos de YouTube | Igual |
 | Microsoft PowerPoint (opcional) | Convertir las presentaciones de PowerPoint en diapositivas | Se sube el PDF de la presentación, que no necesita ningún programa |
 
@@ -67,10 +68,10 @@ Todo lo que pone cada iglesia va en una sola carpeta, `Contenido/`. Manna lee lo
 | --- | --- |
 | `Contenido/Biblias/` | Las versiones de la Biblia, en `.xmm` o `.xml` |
 | `Contenido/Himnario/videos/` | Los himnos en video, uno por archivo: `001 Cantad alegres al Señor.mp4` |
-| `Contenido/Himnario/letras/` | Las letras de los himnos, en archivos de texto `.md` |
+| `Contenido/Himnario/letras/` | Las letras de los himnos y sus categorías, en un archivo de texto `.md` (cómo se escribe, en su `LEEME.txt`) |
 | `Contenido/Medios/` | Videos y audios para proyectar. También se pueden subir desde la app; para archivos grandes, copiarlos aquí es lo más rápido |
 
-Al actualizar Manna, conserva `Contenido/` y `data/`; lo demás se reemplaza. Nada de `Contenido/` se publica en GitHub, salvo las instrucciones y la Reina-Valera 1909. (El himnario se está construyendo: ver `docs/PLAN.md`.)
+Al actualizar Manna, conserva `Contenido/` y `data/`; lo demás se reemplaza. Nada de `Contenido/` se publica en GitHub, salvo las instrucciones y la Reina-Valera 1909.
 
 ## Uso diario
 
@@ -135,6 +136,18 @@ El sonido sale siempre por el equipo principal, por el dispositivo de audio que 
 
 Los videos se guardan en `data/media/youtube/` del equipo principal, a 1080p como mucho. Descargar de YouTube solo está permitido con videos propios o con permiso de su autor: úsalo con los de tu iglesia.
 
+### Himnario
+
+1. Copia los videos de los himnos a `Contenido/Himnario/videos/` del equipo principal, uno por himno y con su número delante (`001 Título.mp4`), y el archivo de letras a `Contenido/Himnario/letras/`. Aparecen solos en **Himnario**.
+2. Busca el himno: escribe su **número**, parte de su **título** o un trozo de su **letra**. O recórrelos en **Todos** o por **Categorías**.
+3. Elige el sonido: **Cantado** (con las voces) o **Pista** (solo la música, para que cante la iglesia). Manna recuerda lo último que elegiste en ese dispositivo.
+4. **Proyectar** (o doble clic, o Enter), o **Añadir al orden**. Con el teclado: el número, Enter y Enter.
+5. Con el himno al aire, el panel tiene **Cantado / Pista** (se puede cambiar sin perder el punto), pausa, volver al principio, saltos, barra de avance y el volumen de Manna.
+
+**Letra** muestra la del himno elegido. El botón **avisos** aparece si en la carpeta hay algo que revisar: videos que faltan, himnos sin letra o letras cuyo título no es el de su video (esas no se usan, para que nunca salga la letra de un himno en otro).
+
+La pista instrumental necesita ffmpeg en el equipo principal: los videos traen dos pistas de sonido y el navegador solo reproduce la primera, así que Manna prepara al momento una copia con la segunda. Sin ffmpeg, los himnos se proyectan cantados.
+
 ### Diapositivas
 
 1. En **Diapositivas**, pulsa **Subir presentación** y elige un **PDF** o un **PowerPoint** (también puedes arrastrarlo hasta la pantalla).
@@ -191,7 +204,7 @@ server/
                         grandes y subidas, cliente WebSocket, estado compartido, tiempo real,
                         sesiones, almacenamiento, reloj de reproducción, tareas con avance,
                         programas del equipo (detección e instalación), carpetas de contenido
-                        y búsqueda de texto por niveles (la usan la Biblia y, después, el himnario)
+                        y búsqueda de texto por niveles (la usan la Biblia y el himnario)
   modules/
     system/             sesiones, PIN, direcciones de red
     bible/              lectura de .xmm/.xml, libros, citas, búsqueda y comparación de dos versiones
@@ -201,6 +214,8 @@ server/
     media/              biblioteca de imágenes, videos y audios: subir, reconocer, convertir con ffmpeg,
                         subtítulos, descargar de YouTube con yt-dlp (youtube.js), y la reproducción
                         a la par en todas las pantallas
+    hymns/              el himnario: videos y letras de la carpeta de la iglesia, búsqueda por número,
+                        título y letra, y la pista instrumental de cada himno
     slides/             presentaciones convertidas en diapositivas: recibir las páginas de un PDF, pedirle
                         a PowerPoint que exporte las de una presentación (powerpoint.js) y proyectarlas
     tv/                 televisores de la red como pantalla: buscarlos, vincularlos, abrirles

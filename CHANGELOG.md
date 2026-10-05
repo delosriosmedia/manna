@@ -4,6 +4,19 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.9.0 — 2026-10-05
+
+- **Himnario**, un módulo nuevo: los himnos en video de la carpeta de la iglesia (`Contenido/Himnario/videos/`), cada uno en una ficha con su número y su título.
+- **Dos vistas**: **Todos**, en una rejilla por número, y **Categorías**, con los himnos agrupados bajo el nombre de cada una.
+- **Buscador por número, título y letra**, mientras se escribe y sin importar las tildes. Lo encontrado sale por niveles (frase exacta, todas las palabras, parecidas) con el renglón de la letra donde está, resaltado. Escribir el número y pulsar Enter dos veces proyecta el himno.
+- **Cantado o pista**: antes de proyectar o de añadir al orden se elige si el himno suena con las voces o solo con la música, y también se puede cambiar **mientras está al aire**, sin perder el punto. (La pista necesita ffmpeg en el equipo principal; cantados funcionan siempre.)
+- **Al aire**, un himno se gobierna como cualquier video: pausa, volver al principio, saltos, barra de avance y el volumen de Manna. En el orden del culto es un elemento propio, con su número y su sonido.
+- **Letra**: el botón «Letra» muestra la del himno elegido, por partes (estrofas y coro), para leerla en el control.
+- **Las letras y las categorías salen de un archivo de texto** en `Contenido/Himnario/letras/` (su `LEEME.txt` explica cómo se escribe). Manna lo lee solo y lo vuelve a leer al guardarlo. El título de cada himno se muestra con sus tildes y signos.
+- **Una letra nunca aparece en el himno equivocado**: la de un número solo se usa si su título es el del video de ese número. Lo que no cuadra (videos que faltan, letras con otro título, himnos sin letra) se dice en el botón **avisos** del himnario.
+- En el celular, la barra de abajo muestra **Orden, Biblia, Himnario y Medios**; Comparador, Diapositivas y Ajustes están en «Más».
+- Las pruebas ya no hacen sonar nada en el equipo donde se ejecutan.
+
 ## 1.8.0 — 2026-10-05
 
 - **Diapositivas**, un módulo nuevo: las presentaciones de la iglesia, en **PDF o en PowerPoint**, convertidas en imágenes, una por diapositiva. Así se ven igual en todas las pantallas.

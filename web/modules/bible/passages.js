@@ -1,5 +1,5 @@
 import { action, api, state, subscribe } from '../../core/api.js';
-import { h, guard, toast } from '../../core/dom.js';
+import { h, guard, marked, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { prefs } from '../../core/prefs.js';
 
@@ -9,21 +9,6 @@ const SEARCH_LIMIT = 40;     // resultados por nivel; "ver más" lo amplía
 const SEARCH_MAX = 400;
 // Dónde se busca un texto. Se recuerda en este dispositivo.
 const SCOPES = [['all', 'Toda la Biblia'], ['ot', 'Antiguo Testamento'], ['nt', 'Nuevo Testamento']];
-
-// Un texto con lo encontrado resaltado. marks: tramos [inicio, fin) que da el servidor.
-function highlighted(text, marks) {
-  const out = [];
-  let at = 0;
-  for (const [start, end] of marks) {
-    if (end <= at) continue;
-    const from = Math.max(start, at);
-    if (from > at) out.push(text.slice(at, from));
-    out.push(h('mark', {}, text.slice(from, end)));
-    at = end;
-  }
-  if (at < text.length) out.push(text.slice(at));
-  return out;
-}
 
 // Elegir un pasaje de la Biblia: buscador, recientes, libros, capítulos y versículos, con la
 // selección y la barra para proyectarla o añadirla al orden. Lo usan las dos pantallas de este
@@ -376,7 +361,7 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
       children.push(h('div', { class: 'search-level' }, h('span', {}, level.label), h('small', {}, String(level.total))));
       for (const hit of level.results) {
         const row = h('button', { class: 'search-item', dataset: { level: level.id }, onclick: () => openResult(hit) },
-          h('strong', {}, hit.reference), h('span', {}, ...highlighted(hit.text, hit.marks)));
+          h('strong', {}, hit.reference), h('span', {}, ...marked(hit.text, hit.marks)));
         found.rows.push({ el: row, open: () => openResult(hit) });
         children.push(row);
       }

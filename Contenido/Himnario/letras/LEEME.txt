@@ -1,29 +1,50 @@
-LETRAS DE LOS HIMNOS
+LETRAS Y CATEGORÍAS DEL HIMNARIO
 
-Archivos de texto con extensión .md. Pueden traer un himno o muchos; el nombre del archivo da igual
-(por ejemplo "himnos_001_050.md"). Manna los lee todos y busca en ellos por número, título y letra.
+Aquí va el archivo (o los archivos) con las letras de los himnos, en texto: .md o .txt.
+Manna lo lee solo, y lo vuelve a leer cada vez que lo guardas. Con él:
 
-Formato de cada himno:
+  - busca un himno por un trozo de su letra, además de por su número y su título;
+  - muestra la letra en el control (botón "Letra");
+  - pone a cada himno su título con tildes y signos (el nombre de un video no suele llevarlos);
+  - agrupa los himnos por categorías.
 
-  ## 12. Título del himno
+CÓMO SE ESCRIBE
 
-  ### Estrofa 1
-  Primera línea
-  Segunda línea
+  # Nombre del himnario
 
-  ### Coro
-  Primera línea del coro
-  Segunda línea del coro
+  ## Nombre de una categoría
 
-  ### Estrofa 2
-  ...
+  ### 1. Título del himno
+
+  **Estrofa 1**
+  Primer renglón de la estrofa,
+  segundo renglón de la estrofa.
+
+  **Coro**
+  Primer renglón del coro.
 
   ---
 
-- La línea "## número. título" empieza un himno. El número es el del himnario (vale "01" o "1").
-- "### Estrofa 1", "### Coro", "### Estrofa Única"… empiezan cada parte.
-- "---" separa un himno del siguiente (opcional).
-- Una línea que empieza con un solo "#" es un título del archivo y se ignora.
+  ### 2. Título del siguiente himno
+  ...
 
-Las letras tienen derechos de autor: usa las que tu iglesia tenga licencia para usar.
-Esta carpeta no se publica en GitHub.
+  - "## Nombre" empieza una categoría: son suyos los himnos que vienen después, hasta la siguiente.
+    El mismo nombre repetido más abajo sigue siendo la misma categoría.
+  - "### número. Título" empieza un himno.
+  - "**Estrofa 1**", "**Coro**", "**Estrofa única**"... empiezan una parte del himno.
+  - Cada renglón de la letra va en su renglón. Puede haber una línea en blanco entre renglones.
+  - "---" entre himnos es opcional.
+
+Los archivos exportados de Word o de otro programa suelen traer las marcas con una barra delante
+("\#", "\*\*Coro\*\*", "1\.") y una barra al final de cada renglón: Manna las entiende igual.
+También vale sin almohadillas: el título del himno solo en su renglón ("1. Título") y, antes, el
+nombre de la categoría solo en el suyo.
+
+IMPORTANTE: EL NÚMERO Y EL TÍTULO TIENEN QUE SER LOS DEL VIDEO
+
+Los videos mandan. La letra de un número solo se usa si su título es el mismo que el del video de
+ese número (no importan las tildes, las mayúsculas ni los signos). Si el archivo dice que el 130 es
+un himno y el video 130 es otro, esa letra no se usa: así nunca aparece la letra de un himno en
+otro. Manna avisa de los números en que pasa (botón "avisos", en el himnario) para que los corrijas.
+
+Las letras de los himnos tienen derechos de autor. Esta carpeta no se publica en GitHub.

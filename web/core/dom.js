@@ -118,3 +118,19 @@ export function menu(anchor, items) {
   });
   return close;
 }
+
+// Un texto con lo encontrado resaltado. marks: tramos [inicio, fin) que da el servidor (core/search.js).
+// Devuelve una lista de trozos de texto y elementos <mark>, para pasarla a h().
+export function marked(text, marks = []) {
+  const out = [];
+  let at = 0;
+  for (const [start, end] of marks) {
+    if (end <= at) continue;
+    const from = Math.max(start, at);
+    if (from > at) out.push(text.slice(at, from));
+    out.push(h('mark', {}, text.slice(from, end)));
+    at = end;
+  }
+  if (at < text.length) out.push(text.slice(at));
+  return out;
+}
