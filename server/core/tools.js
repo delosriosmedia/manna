@@ -188,6 +188,8 @@ const CATALOG = [
     link: 'https://www.microsoft.com/microsoft-365/powerpoint',
     manual: { other: { steps: ['Si la iglesia tiene Microsoft Office, instálalo en este equipo. No es obligatorio.'] } },
     find: async () => {
+      // Solo para pruebas: un PowerPoint de mentira (un guion que hace de él; ver modules/slides/powerpoint.js).
+      if (process.env.MANNA_POWERPOINT_PRUEBA) return { file: process.env.MANNA_POWERPOINT_PRUEBA, detail: 'De prueba' };
       const file = await findPowerPoint();
       return file ? { file } : null;
     },

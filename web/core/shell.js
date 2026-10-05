@@ -76,7 +76,8 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
   const parts = new Map();     // id del módulo -> la parte (pestaña) que tiene abierta
   function renderNotice() {
     const module = usable.find((m) => m.id === current?.id);
-    const missing = module ? missingFor(module, state.tools?.list || [], parts.get(module.id)).filter((m) => !m.soon) : [];
+    // Un programa opcional (PowerPoint) no merece una franja en cada visita: el módulo lo explica cuando hace falta.
+    const missing = module ? missingFor(module, state.tools?.list || [], parts.get(module.id)).filter((m) => !m.soon && m.tools.some((t) => t.level !== 'optional')) : [];
     const tools = toolsOf(missing);
     // Cerrar un aviso vale para ese módulo y esos programas: el de otra pestaña a la que le falta otra cosa sí sale.
     const key = `${module?.id}:${tools.map((t) => t.id).join()}`;

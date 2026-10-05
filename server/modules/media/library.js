@@ -7,7 +7,7 @@ import { listFiles, watchFolder } from '../../core/folders.js';
 import { applyClock, createClock, freezeClock } from '../../core/playback.js';
 import { AUDIO_EXTENSIONS, SUBTITLE_EXTENSIONS, VIDEO_EXTENSIONS, clipKind, clock, originalMayPlay, planFor, playsAsIs, toVtt } from './clips.js';
 import { createConverter } from './convert.js';
-import { cleanName } from './images.js';
+import { cleanName } from '../../core/names.js';
 import { cleanVtt, createDownloader, findSubtitles, youtubeId } from './youtube.js';
 
 // Videos y audios de Medios. Llegan de tres sitios:

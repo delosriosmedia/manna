@@ -2,6 +2,7 @@ import order from './order/workspace.js';
 import bible from './bible/workspace.js';
 import compare from './bible/compare.js';
 import medios from './media/workspace.js';
+import diapositivas from './slides/workspace.js';
 import televisores from './tv/workspace.js';
 import settings from './settings/workspace.js';
 
@@ -18,8 +19,7 @@ export const MODULES = [
   medios,
   { id: 'himnario', name: 'Himnario', icon: 'music-notes', soon: true,
     needs: [{ tools: ['ffmpeg'], feature: 'elegir la pista instrumental de un himno' }] },
-  { id: 'diapositivas', name: 'Diapositivas', icon: 'presentation-chart', soon: true,
-    needs: [{ tools: ['powerpoint'], feature: 'abrir presentaciones de PowerPoint (los PDF sí funcionan)' }] },
+  diapositivas,
   // En pausa por decisión del dueño (docs/ESTADO.md): al retomarlo, basta quitar `hidden`.
   { ...televisores, hidden: true },
   settings,

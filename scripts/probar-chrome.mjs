@@ -7,8 +7,9 @@
 //   1. La interfaz: Biblia (búsqueda por niveles), comparador de versiones, orden del culto (con
 //      nombres propios), medios (subir imágenes, ajuste, encuadre al aire en dos pantallas; videos
 //      y audios que van a la par; YouTube, con un yt-dlp de mentira), televisores (con uno de
-//      mentira), mandos en vivo que van a la par en dos pantallas, ajustes y la función "Control
-//      del orden". También que Manna atiende por https.
+//      mentira), diapositivas (un PDF de verdad, convertido por el propio Chrome, y un PowerPoint
+//      con un PowerPoint de mentira), mandos en vivo que van a la par en dos pantallas, ajustes
+//      y la función "Control del orden". También que Manna atiende por https.
 //   2. Al entrar por la dirección numérica, la página pasa sola a la dirección con nombre.
 //   3. El navegador pide confirmación al salir de la pestaña de control.
 //   4. Con un dispositivo conectado por el nombre, el equipo principal "cambia de IP" y el
@@ -36,6 +37,8 @@ import { lanInterfaces } from '../server/modules/system/network.js';
 import { killOnExit, sleep, startChrome } from './lib/chrome.mjs';
 import { startFakeTv } from './lib/tv-falso.mjs';
 import { writeFakeYtDlp } from './lib/yt-dlp-falso.mjs';
+import { fakePresentation, writeFakePowerPoint } from './lib/powerpoint-falso.mjs';
+import { makePdf } from './lib/pdf.mjs';
 import { examplePoster } from './lib/png.mjs';
 import { checkContract, sourceFiles } from './lib/codigo.mjs';
 
@@ -107,13 +110,16 @@ const ytAsked = path.join(tmp, 'yt-dlp-pedido.json');
 if (CAN_YOUTUBE) writeFakeYtDlp(path.join(tmp, 'data', 'herramientas'), { title: 'Saludo de la iglesia hermana', seconds: 6, log: ytAsked, pause: 600 });
 else UNTOUCHED['media.youtube'] = 'el yt-dlp de mentira necesita ffmpeg y un sistema que ejecute guiones; se prueba en test/youtube.test.js';
 
+// PowerPoint, igual: uno de mentira (un guion que deja tres imágenes), para no abrir el de verdad.
+const fakePpt = writeFakePowerPoint(path.join(tmp, 'powerpoint'), { slides: 3, pause: 1200 });
+
 // ---- Servidor de prueba ----
 // Los televisores de la prueba son uno de mentira en este equipo: nada sale a la red.
 const fakeTv = await startFakeTv();
 function startServer(host, extra = {}) {
   // MANNA_SIN_VENTANA: la prueba no abre su proyección en el proyector de verdad, si lo hay.
   // MANNA_CONVERSION_LENTA: cada conversión tarda en empezar, para poder ver qué pasa mientras tanto.
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp', MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), ...extra };
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), ...extra };
   if (host) env.MANNA_HOST = host;
   // killOnExit: si la prueba se corta a medias, el servidor no se queda abierto ocupando el puerto.
   return killOnExit(spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env }));
@@ -185,7 +191,7 @@ const post = (type, payload = {}) => `fetch('/api/action',{method:'POST',headers
 const live = async () => JSON.parse(await run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ mode: s.projection.mode, ref: s.projection.item?.reference, kind: s.projection.item?.kind, order: s.order.items.map(i => i.title), size: s.projection.styles.fontSize, pattern: s.live.state?.pattern, clock: s.live.state?.clock })`));
 // "1:02.5" -> 62.5
 const seconds = (text) => String(text).split(':').reduce((total, part) => total * 60 + Number(part), 0);
-const CODES = { Enter: 13, ArrowDown: 40, ArrowUp: 38, ArrowRight: 39, ArrowLeft: 37, b: 66 };
+const CODES = { Enter: 13, Escape: 27, ArrowDown: 40, ArrowUp: 38, ArrowRight: 39, ArrowLeft: 37, b: 66 };
 async function press(key) {
   for (const type of ['keyDown', 'keyUp']) await chrome.send('Input.dispatchKeyEvent', { type, key, windowsVirtualKeyCode: CODES[key] });
   await sleep(450);
@@ -534,11 +540,15 @@ try {
   await click(`${modal}.querySelector('.btn.danger')`);
   await sleep(600);
   check('una imagen se puede eliminar de la biblioteca', await run(`return !${modal} && ${med}.querySelectorAll('.media-card').length === 1 && (await fetch(${JSON.stringify(lib.find((i) => i.id !== ad?.id)?.url || '/x')})).status === 404`));
-  // En el celular caben cinco pestañas, y hoy hay cinco módulos: se ven todos, sin "Más"
-  // (el reparto cuando no caben se prueba en test/codigo.test.js).
+  // En el celular caben cinco pestañas y hay seis módulos: se ven los cuatro primeros y "Más",
+  // que abre los demás (el reparto se prueba también en test/codigo.test.js).
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await sleep(500);
-  check('en el celular, la barra muestra los cinco módulos', await run(`return [...document.querySelectorAll('.tabbar button')].map(b => b.textContent).join('|') === 'Orden|Biblia|Comparador|Medios|Ajustes' && document.querySelector('.tabbar button.on').textContent === 'Medios'`), await run(`return [...document.querySelectorAll('.tabbar button')].map(b => b.textContent).join('|')`));
+  check('en el celular, la barra muestra cuatro módulos y «Más»', await run(`return [...document.querySelectorAll('.tabbar button')].map(b => b.textContent).join('|') === 'Orden|Biblia|Comparador|Medios|Más' && document.querySelector('.tabbar button.on').textContent === 'Medios'`), await run(`return [...document.querySelectorAll('.tabbar button')].map(b => b.textContent).join('|')`));
+  await click(`[...document.querySelectorAll('.tabbar button')].find(b => b.textContent === 'Más')`);
+  await sleep(300);
+  check('«Más» abre los que no caben', await run(`return [...document.querySelectorAll('.menu button')].map(b => b.textContent).join('|') === 'Diapositivas|Ajustes'`), await run(`return [...document.querySelectorAll('.menu button')].map(b => b.textContent).join('|')`));
+  await press('Escape');
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(400);
 
@@ -803,6 +813,133 @@ try {
     }
   }
 
+  console.log('\n1. Interfaz · Diapositivas');
+  {
+    const ws = `document.querySelector('.ws[data-module=diapositivas]')`;
+    const dbar = `${ws}.querySelector('.deck-bar')`;
+    const decksNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).slides.decks)`).then(JSON.parse);
+    const onAir = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ item: s.projection.item, live: s.live.state, order: s.order.items })`).then(JSON.parse);
+    const pickFile = async (file) => { await chooseFiles('.ws[data-module=diapositivas] input[type=file]', [file]); await sleep(600); };
+    const slide = (n) => `${ws}.querySelector('.slide-pick[data-n="${n}"]')`;
+    const deckMenu = async (cardJs, label) => { await click(`${cardJs}.querySelector('.deck-more')`); await sleep(300); await menuItem(label); await sleep(400); };
+    const liveBox = `document.querySelector('.dock .live-controls')`;
+    await click(`document.querySelector('.rail-item[data-id=diapositivas]')`);
+    await sleep(500);
+    check('Diapositivas ya es un módulo: sin presentaciones, invita a subir un PDF o un PowerPoint', await run(`return document.title === 'Manna · Diapositivas' && ${ws}.querySelector('.empty').textContent.includes('Aún no hay presentaciones') && ${ws}.querySelector('.empty').textContent.includes('PDF o una presentación de PowerPoint') && ${dbar}.hidden`));
+    const notDeck = path.join(tmp, 'no-es-presentacion.txt');
+    fs.writeFileSync(notDeck, 'unas notas');
+    await pickFile(notDeck);
+    check('un archivo que no es una presentación se explica, y dice cómo sacar el PDF', await run(`return ${modal}.querySelector('h2').textContent === 'Ese archivo no es una presentación' && ${modal}.textContent.includes('Exportar')`));
+    await modalButton('Entendido');
+
+    // Un PDF de verdad, de cuatro páginas, hecho aquí mismo. Lo convierte este Chrome con pdf.js.
+    const COLORS = [[29, 78, 216], [15, 118, 110], [190, 18, 60], [124, 58, 237]];
+    const report = path.join(tmp, 'informe_de-tesoreria.pdf');
+    fs.writeFileSync(report, makePdf(COLORS.map((color, i) => ({ text: `Diapositiva ${i + 1}`, color }))));
+    await pickFile(report);
+    check('al elegir un PDF propone un nombre y dice cuántas diapositivas tiene', await run(`return ${modal}.querySelector('h2').textContent === 'Subir una presentación' && ${modal}.querySelector('input').value === 'informe de tesoreria'`)
+      && await until(`${modal}.querySelector('.deck-up-status').textContent.startsWith('4 diapositivas') && !${modal}.querySelector('.btn.primary').disabled`, 40), await run(`return ${modal}.querySelector('.deck-up-status')?.textContent`));
+    check('avisa de lo que se pierde: animaciones, transiciones y videos', await run(`return ${modal}.querySelector('.deck-up-note').textContent.includes('animaciones')`));
+    await run(`${modal}.querySelector('input').value = 'Informe de tesorería';`);
+    await modalButton('Subir');
+    check('convierte cada página en una imagen, las sube y cierra la ventana', await until(`!${modal} && ${ws}.querySelectorAll('.slide-pick').length === 4`, 80), await run(`return ${modal}?.querySelector('.deck-up-status')?.textContent || ''`));
+    let decks = await decksNow();
+    const deck = decks[0] || {};
+    check('queda en la biblioteca con sus cuatro diapositivas, grandes y con miniatura', decks.length === 1 && deck.name === 'Informe de tesorería' && deck.pages === 4 && deck.width === 2560 && deck.height === 1440 && deck.thumbs === true && deck.source === 'pdf'
+      && await run(`const r = await fetch(${JSON.stringify(`${deck.base}4.jpg`)}); return r.status === 200 && r.headers.get('content-type') === 'image/jpeg'`), JSON.stringify(decks.map((d) => [d.name, d.pages, d.width, d.height, d.thumbs])));
+    const deckCard = `${ws}.querySelector('.deck[data-id="${deck.id}"]')`;
+    check('se abre sola, con la portada en su tarjeta y una miniatura por diapositiva', await until(`${deckCard}.classList.contains('selected') && ${deckCard}.querySelector('.deck-cover img').naturalWidth === 320 && [...${ws}.querySelectorAll('.slide-thumb img')].every(i => i.naturalWidth === 320)`, 20)
+      && await run(`return ${deckCard}.querySelector('small').textContent.startsWith('4 diapositivas · PDF')`));
+    await click(slide(2));
+    await sleep(500);
+    check('al elegir una diapositiva se ve en la vista previa y la barra dice cuál es', await run(`const m = document.querySelectorAll('.dock .monitor')[1]; return ${slide(2)}.classList.contains('selected') && m.querySelector('.img-view img').getAttribute('src') === ${JSON.stringify(`${deck.base}m2.jpg`)} && ${dbar}.querySelector('.sel-ref').textContent === 'Diapositiva 2 de 4' && ${dbar}.querySelector('.hint').textContent === 'Informe de tesorería'`));
+    await press('Enter');
+    await sleep(600);
+    let air = await onAir();
+    check('Enter la proyecta, y la rejilla marca cuál está al aire', air.item.kind === 'slides' && air.item.number === 2 && air.item.pages === 4 && await run(`return Boolean(${slide(2)}.querySelector('.badge.live')) && ${deckCard}.classList.contains('live') && document.querySelector('.dock-ref').textContent === 'Informe de tesorería · 2 de 4'`));
+    check('los mandos dicen por dónde va, cuántas quedan y cuál sigue', await run(`const c = ${liveBox}; return c.querySelector('.slide-count strong').textContent === 'Diapositiva 2 de 4' && c.querySelector('.slide-count small').textContent === 'Quedan 2' && c.querySelector('.slide-next img').getAttribute('src') === ${JSON.stringify(`${deck.base}m3.jpg`)} && c.querySelector('.slide-next-text').textContent === 'SigueDiapositiva 3'`), await run(`return ${liveBox}.textContent`));
+    // Otra pantalla de proyección: a tamaño completo carga la imagen grande.
+    await run(`const f = document.createElement('iframe'); f.id = 'pantalla'; f.src = '/proyeccion'; f.style.cssText = 'position:fixed;left:0;bottom:0;width:640px;height:360px;z-index:99;border:0'; document.body.append(f);`);
+    const far = `document.querySelector('#pantalla').contentDocument`;
+    check('la pantalla de proyección muestra la diapositiva a su tamaño completo', await until(`${far}?.querySelector('.img-view img')?.naturalWidth === 2560 && ${far}.querySelector('.img-view img').getAttribute('src') === ${JSON.stringify(`${deck.base}2.jpg`)}`, 30));
+    await press('ArrowRight');
+    air = await onAir();
+    check('→ pasa a la diapositiva siguiente en las dos pantallas, y la selección la acompaña', air.item.number === 3 && await until(`${far}.querySelector('.img-view img').getAttribute('src') === ${JSON.stringify(`${deck.base}3.jpg`)}`, 10) && await run(`return ${slide(3)}.classList.contains('selected') && Boolean(${slide(3)}.querySelector('.badge.live')) && !${slide(2)}.querySelector('.badge')`));
+    await run(`const s = ${liveBox}.querySelector('input[type=range]'); s.value = 2; s.dispatchEvent(new Event('input'));`);
+    await sleep(800);
+    air = await onAir();
+    const part = await run(`const root = ${far}; const i = root.querySelector('.img-view img'); const scale = Number(/scale\\(([\\d.]+)\\)/.exec(i.style.transform)?.[1]); return root.querySelector('.img-view').clientWidth / (i.naturalWidth * scale);`);
+    check('una diapositiva se acerca como una imagen: la pantalla muestra la mitad de su ancho', air.live.zoom === 2 && Math.abs(part - 0.5) < 0.01 && await run(`return !${liveBox}.querySelector('.nav-frame').hidden && ![...${liveBox}.querySelectorAll('button')].some(b => b.textContent === 'Llenar')`), `se ve ${(part * 100).toFixed(1)} % del ancho`);
+    await press('ArrowRight');
+    air = await onAir();
+    check('la siguiente empieza en vista completa, y en la última los mandos lo dicen', air.item.number === 4 && air.live.zoom === 1 && air.item.next === null && await run(`const c = ${liveBox}; return c.querySelector('.slide-count small').textContent === 'Es la última' && c.querySelector('.slide-next-text').textContent === 'SigueFin de la presentación' && c.querySelector('.slide-next').classList.contains('none')`));
+    await press('ArrowRight');
+    check('tras la última, → no hace nada', (await onAir()).item.number === 4);
+    await press('ArrowUp');
+    check('↑ mueve la selección sin tocar lo que está al aire', (await onAir()).item.number === 4 && await run(`return ${slide(3)}.classList.contains('selected') && ${dbar}.querySelector('.sel-ref').textContent === 'Diapositiva 3 de 4'`));
+    await run(`document.querySelector('#pantalla').remove()`);
+
+    await click(`[...${dbar}.querySelectorAll('.btn')].find(b => b.textContent.includes('Añadir'))`);
+    await sleep(600);
+    const inOrder = (await onAir()).order.find((i) => i.kind === 'slides');
+    check('la presentación se añade al orden del culto con una diapositiva por paso', Boolean(inOrder) && inOrder.title === 'Informe de tesorería' && inOrder.steps === 4 && inOrder.subtitle === 'PDF');
+    await click(`document.querySelector('.rail-item[data-id=orden]')`);
+    await sleep(500);
+    await click(`[...document.querySelectorAll('.ws[data-module=orden] .orow')].find(r => r.textContent.includes('Informe de tesorería'))`);
+    const detail = `document.querySelector('.ws[data-module=orden] .odetail')`;
+    // Las miniaturas cargan la versión pequeña de cada diapositiva (320 px), no la imagen grande.
+    // Se cuentan las imágenes: mientras se ve el esqueleto de carga aún no hay ninguna.
+    check('en el orden se ven sus diapositivas en miniatura, rotuladas, con la imagen pequeña de cada una', await until(`${detail}.querySelectorAll('.slide img').length === 4 && [...${detail}.querySelectorAll('.slide img')].every(i => i.naturalWidth === 320 && /\\/m\\d\\.jpg$/.test(i.getAttribute('src')))
+      && [...${detail}.querySelectorAll('.slide-cap span')].map(s => s.textContent).join() === 'Diapositiva 1,Diapositiva 2,Diapositiva 3,Diapositiva 4'`, 30)
+      && await run(`return ${detail}.querySelector('.odetail-head small').textContent === 'Diapositivas · PDF · 4 diapositivas'`), await run(`return [...${detail}.querySelectorAll('.slide img')].map(i => (i.getAttribute('src') || '').split('/').pop() + ' ' + i.naturalWidth).join(', ')`));
+    await click(`${detail}.querySelectorAll('.slide')[1]`);
+    await sleep(600);
+    air = await onAir();
+    check('desde el orden se proyecta la que se toque, y «Siguiente» sigue por ahí', air.item.number === 2 && air.item.source.orderId === inOrder.id && await (async () => { await press('ArrowRight'); return (await onAir()).item.number === 3; })());
+
+    // Un PowerPoint: lo convierte el PowerPoint del equipo principal (aquí, uno de mentira).
+    await click(`document.querySelector('.rail-item[data-id=diapositivas]')`);
+    await sleep(400);
+    const lesson = path.join(tmp, 'escuela sabatica.pptx');
+    fs.writeFileSync(lesson, fakePresentation());
+    await pickFile(lesson);
+    check('un PowerPoint se sube tal cual: lo convertirá el PowerPoint del equipo', await run(`return ${modal}.querySelector('input').value === 'escuela sabatica' && ${modal}.querySelector('.deck-up-status').textContent.includes('PowerPoint del equipo principal') && !${modal}.querySelector('.btn.primary').disabled`));
+    await modalButton('Subir');
+    const converting = `${ws}.querySelector('.deck[data-status=converting]')`;
+    check('la conversión corre de fondo, con su avance en la tarjeta y en el panel', await until(`!${modal} && ${converting}?.querySelector('.deck-status .bar') && [...document.querySelectorAll('.dock .job strong')].some(s => s.textContent === 'Convirtiendo «escuela sabatica»')`, 15) && (await text('#toast')).includes('PowerPoint la está convirtiendo')
+      && await until(`/Diapositiva \\d de 3/.test(${converting}?.querySelector('.deck-status small')?.textContent || '')`, 15), await run(`return ${converting}?.querySelector('.deck-status small')?.textContent`));
+    check('al terminar quedan sus tres diapositivas', await until(`${ws}.querySelectorAll('.deck[data-status=ready]').length === 2`, 40) && await (async () => { decks = await decksNow(); const made = decks.find((d) => d.source === 'powerpoint'); return made?.pages === 3 && made.ext === 'png' && await run(`return ${ws}.querySelector('.deck[data-id="${made.id}"]').classList.contains('selected') && ${ws}.querySelectorAll('.slide-pick').length === 3 && [...${ws}.querySelectorAll('.slide-thumb img')].every(i => i.getAttribute('src').endsWith('.png'))`); })());
+    const made = decks.find((d) => d.source === 'powerpoint') || {};
+    await deckMenu(deckCard, 'Cambiar el nombre');
+    await run(`${modal}.querySelector('input').value = 'Informe del trimestre';`);
+    await modalButton('Guardar');
+    await sleep(600);
+    check('una presentación se renombra, también lo que está al aire', await run(`return !${modal} && ${deckCard}.querySelector('strong').textContent === 'Informe del trimestre' && document.querySelector('.dock-ref').textContent === 'Informe del trimestre · 3 de 4'`), await text('.dock-ref'));
+    await deckMenu(`${ws}.querySelector('.deck[data-id="${made.id}"]')`, 'Eliminar');
+    await modalButton('Eliminar');
+    await sleep(700);
+    check('y se elimina con todas sus imágenes', (await decksNow()).length === 1 && await run(`return (await fetch(${JSON.stringify(`${made.base}1.png`)})).status === 404`));
+
+    // En el celular: primero las presentaciones; al tocar una, sus diapositivas.
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+    await chrome.send('Page.navigate', { url: `${local}/control?m=${Date.now()}#diapositivas` });
+    await sleep(2500);
+    const shownPane = () => run(`const vis = (s) => { const e = ${ws}.querySelector(s); return Boolean(e) && e.getClientRects().length > 0; }; return JSON.stringify({ list: vis('.deck-list'), pages: vis('.deck-pages'), back: vis('.deck-back'), tab: document.querySelector('.tabbar button.on')?.textContent })`).then(JSON.parse);
+    let pane = await shownPane();
+    check('en el celular se entra por «Más» y se ven primero las presentaciones', pane.list && !pane.pages && !pane.back && pane.tab === 'Más', JSON.stringify(pane));
+    await click(`${ws}.querySelector('.deck-pick')`);
+    await sleep(400);
+    pane = await shownPane();
+    check('al tocar una se ven sus diapositivas, con el botón para volver', !pane.list && pane.pages && pane.back && await run(`return ${ws}.querySelectorAll('.slide-pick').length === 4 && ${dbar}.querySelector('.sel-ref').textContent === 'Diapositiva 3 de 4'`), JSON.stringify(pane));
+    await click(`${ws}.querySelector('.deck-back')`);
+    await sleep(300);
+    pane = await shownPane();
+    check('«Presentaciones» vuelve a la lista', pane.list && !pane.pages);
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+    await chrome.send('Page.navigate', { url: `${local}/control?d=${Date.now()}#diapositivas` });
+    await sleep(2500);
+  }
+
   console.log('\n1. Interfaz · Televisores');
   // El módulo está en pausa: no sale en la barra, pero sigue ahí y se entra por su dirección.
   check('Televisores, en pausa, no aparece en la barra de módulos', await run(`return !document.querySelector('.rail-item[data-id=televisores]') && !document.querySelector('.tabbar [data-id=televisores]')`));
@@ -1034,7 +1171,7 @@ try {
   // Un Manna que "arrancó con el código de antes" (huella fingida): debe notarlo y decirlo.
   await stopServer(server);
   // De paso, sin ffmpeg: para ver cómo se comporta Medios en un equipo que no lo tiene.
-  server = startServer(null, { MANNA_HUELLA: 'de-antes', MANNA_REVISAR_CODIGO_MS: '300', MANNA_FALTA: 'ffmpeg,yt-dlp' });
+  server = startServer(null, { MANNA_HUELLA: 'de-antes', MANNA_REVISAR_CODIGO_MS: '300', MANNA_FALTA: 'ffmpeg,yt-dlp,powerpoint' });
   await sleep(3000);
   await chrome.send('Page.navigate', { url: `${local}/control?fin=${Date.now()}#orden` });
   await sleep(2500);
@@ -1097,6 +1234,17 @@ try {
     await sleep(700);
     check('"Reintentar" lo vuelve a mirar (sin ffmpeg, sigue esperando)', await run(`return Boolean(${waiting})`));
   }
+
+  console.log('\n5. Diapositivas en un equipo sin PowerPoint');
+  await click(`document.querySelector('.rail-item[data-id=diapositivas]')`);
+  await sleep(500);
+  const withoutPpt = path.join(tmp, 'sermon del sabado.pptx');
+  fs.writeFileSync(withoutPpt, fakePresentation());
+  await chooseFiles('.ws[data-module=diapositivas] input[type=file]', [withoutPpt]);
+  await sleep(600);
+  check('sin PowerPoint, al elegir uno se explica cómo guardarlo como PDF, sin subir nada', await run(`return ${modal}.querySelector('h2').textContent === 'Hace falta el PDF de la presentación' && ${modal}.textContent.includes('Exportar') && !${modal}.querySelector('input')`) && await run(`return document.querySelector('.ws-notice').hidden`));
+  await modalButton('Entendido');
+  check('y lo que ya estaba en la biblioteca sigue ahí tras reabrir Manna', await run(`return document.querySelectorAll('.ws[data-module=diapositivas] .deck[data-status=ready]').length === 1`));
 
   console.log('\n5. Actualización con Manna abierto, reinicio y apagado');
   const bar = `document.querySelector('.update-bar')`;

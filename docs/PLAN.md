@@ -1,6 +1,6 @@
 # Plan de trabajo: versión 2
 
-Estado: **aprobado por el dueño el 2026-10-04. En curso: hechas las fases 0, 1, 2, 4, 6 y 7; sigue la 8 (diapositivas). La 3 (televisores) está en pausa y la 5 (himnario), pospuesta.**
+Estado: **aprobado por el dueño el 2026-10-04. En curso: hechas las fases 0, 1, 2, 4, 6, 7 y 8. Detenido para las pruebas del dueño (decisión 28); después, la 5 (himnario, pospuesta). La 3 (televisores) está en pausa.**
 Parte de la versión 1.0.0 y termina en la 2.0.0.
 
 Este documento es el plan y, al terminar, la base de la auditoría (sección 8). Se actualiza al cerrar cada fase: la sección 9 lleva el avance, la 10 cada cambio que se le hizo al plan y por qué, y la 11 los cambios que se le sugieren al dueño y aún no ha decidido.
@@ -16,7 +16,7 @@ Este documento es el plan y, al terminar, la base de la auditoría (sección 8).
 | E | Himnario: 613 videos, dos vistas, buscador con letra, volumen, barra de avance, **cantado o pista** | Fase 5 |
 | F | Videos y audios locales en cualquier formato, con **conversión en segundo plano y avance a la vista** | Fase 6 |
 | G | YouTube: descargar al añadir el enlace, proyectar sin anuncios, **con subtítulos opcionales** | Fase 7 (hecho) |
-| H | Diapositivas: PDF y PowerPoint, con vista de la siguiente, cuántas faltan y zoom | Fase 8 |
+| H | Diapositivas: PDF y PowerPoint, con vista de la siguiente, cuántas faltan y zoom | Fase 8 (hecho; PowerPoint real sin probar) |
 | I | Imágenes y medios en un solo módulo | Decidido: sí (3.1) |
 | J | Que la **revisión inicial del equipo** compruebe lo necesario y avise de qué módulos funcionarán y cuáles no, **sin bloquear**; y que cada módulo avise al abrirlo si le falta algo | Fases 0 y 1 (hecho) |
 | K | Un **volumen general** de Manna, sin tocar el del equipo | Base en fase 0; mando en fase 5 |
@@ -75,7 +75,7 @@ Datos medidos en el proyecto, no supuestos.
 | `song` | Himnario | Uno (el video) | Pausa, reinicio, avance; cantado o pista | Fase 5 |
 | `video`, `audio` | Medios | Uno | Pausa, reinicio, saltos, barra de avance; subtítulos; volumen general | Hecho (1.6) |
 | `youtube` | Medios | Uno | Los mismos, con elección del idioma de los subtítulos | Hecho (1.7) |
-| `slides` | Diapositivas | Una diapositiva por paso | Zoom, desplazamiento, vista de la siguiente | Fase 8 |
+| `slides` | Diapositivas | Una diapositiva por paso | Zoom, desplazamiento, vista de la siguiente, cuántas quedan | Hecho (1.8) |
 
 "Cantado o pista" se elige **antes** de proyectar o de añadir al orden (queda guardado en el elemento) y también se puede cambiar al aire.
 
@@ -109,7 +109,7 @@ El código sigue sin dependencias. Lo aprobado son **programas aparte** y una bi
 | ffmpeg | Convertir, unir YouTube, pista de los himnos | Necesario para esas funciones |
 | yt-dlp | Descargar de YouTube | Necesario para YouTube |
 | PowerPoint | Convertir `.pptx` | Opcional: se usa por defecto si está; si no, se pide el PDF |
-| pdf.js (Mozilla, Apache 2.0) | Leer PDF en el navegador | Archivo en `web/vendor/`; llega en la fase 8 |
+| pdf.js (Mozilla, Apache 2.0) | Leer PDF en el navegador | En `web/vendor/pdfjs/` desde la fase 8 (versión 6.4.299, variante para navegadores no tan nuevos); se renueva con `scripts/actualizar-pdfjs.mjs` |
 
 **Revisión del equipo.** Cada vez que Manna se abre comprueba todo lo anterior. Si falta algo se abre en `/requisitos` en vez de en el control. La página dice **qué módulos funcionarán completos y cuáles no**, y para cada programa, para qué sirve; ofrece **Instalar por mí** (ffmpeg y yt-dlp, descargados de su sitio oficial a `data/herramientas/`, con comprobación de la huella, sin tocar el sistema) y los pasos para hacerlo a mano.
 
@@ -233,12 +233,13 @@ Reproducción (para todo lo que suena): reloj compartido (hecho), pausa, reinici
 
 **Límites**: hace falta internet al añadir el enlace, no al proyectar. yt-dlp deja de funcionar cada cierto tiempo cuando YouTube cambia algo: Ajustes tiene un botón para actualizarlo. Descargar de YouTube va contra sus condiciones salvo contenido propio o con permiso: úsalo con los videos de la iglesia.
 
-### Fase 8 · Diapositivas
+### Fase 8 · Diapositivas — hecha (1.8.0)
 
 - **PDF**: el navegador del control lo convierte en imágenes, una por página. Sirven en cualquier pantalla y heredan el zoom de la fase 4.
 - **PowerPoint, por defecto con PowerPoint** (decisión 3): en Windows se le pide, sin ventana, que exporte cada diapositiva como imagen (automatización de Office con `WithWindow` desactivado; si ya había un PowerPoint abierto, no se cierra). Sin PowerPoint, se pide el PDF. En Mac, PowerPoint se abre a la vista un momento.
-- En el orden: anterior y siguiente, miniatura de la que viene, "quedan N", zoom y desplazamiento.
+- En el orden y en el panel: anterior y siguiente, miniatura de la que viene, "quedan N", zoom y desplazamiento.
 - **Límite**: animaciones, transiciones y videos incrustados se pierden; cada diapositiva es una imagen fija.
+- **Pendiente de la fase**: ejecutar los guiones de PowerPoint contra un PowerPoint de verdad (sección 9).
 
 ### Fase 9 · Auditoría
 
@@ -303,6 +304,8 @@ Tomadas el 2026-10-04.
 | "Instalar por mí" no se ha probado en Windows | Probado en Mac con descargas simuladas y con el camino del `.zip`; siempre quedan los pasos a mano. Primera prueba pendiente en el equipo de la iglesia |
 | Los sitios de descarga cambian de dirección | Las direcciones están en un solo lugar (`server/core/tools.js`); el error dice que se instale a mano |
 | Navegadores de televisor muy antiguos | Página aparte solo si hace falta; alternativas sin navegador documentadas |
+| El guion que gobierna PowerPoint no se ha ejecutado contra uno de verdad | El PDF funciona siempre y sin programas; si PowerPoint falla, la tarjeta lo dice y propone el PDF; primera prueba pendiente en el equipo Windows (S25) |
+| Un PDF malicioso | Lo abre pdf.js en el navegador de quien lo sube, con la ejecución de código del PDF desactivada; al servidor solo llegan imágenes JPG, que comprueba por su contenido |
 | yt-dlp deja de funcionar | Botón «Actualizar» en Ajustes (hecho); el fallo se dice con palabras de quien usa Manna y sugiere actualizar; lo ya descargado sigue en la biblioteca; el resto de Manna no depende de él |
 | YouTube exige iniciar sesión o bloquea las descargas desde la red de la iglesia | No hay arreglo desde Manna: se dice que se intente más tarde. Alternativa de siempre: descargar el video por otro medio y subirlo a la pestaña Videos |
 | Conversión lenta de videos largos | Se hace al añadir, no al proyectar; en segundo plano con avance; se guarda el resultado |
@@ -370,8 +373,8 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 4 Imágenes | **Hecha** · 2026-10-04 | 1.5.0 / 1.5.1 | Ver abajo. Incluye «Más» en la barra del celular. La 1.5.1 corrige dos fallos que encontró el dueño |
 | 6 Videos y audios | **Hecha** · 2026-10-04 | 1.6.0 | Ver abajo. Fue antes que el himnario (decisión 20) y estrenó la reproducción |
 | 7 YouTube | **Hecha** · 2026-10-05 | 1.7.0 | Ver abajo. Los videos se conservan en la biblioteca (cambio al plan). Probado con un yt-dlp de mentira: **falta la primera descarga real** |
-| 8 Diapositivas | **Sigue** (decisión 28) | 1.8 | PowerPoint oculto: solo se puede probar en Windows. Al terminarla se detiene el trabajo para las pruebas del dueño |
-| 5 Himnario | Pospuesta | 1.9 | Videos y letras ya están en `Contenido/Himnario/`. El dueño revisa las letras. Se revisa después de la fase 8 |
+| 8 Diapositivas | **Hecha** · 2026-10-05 | 1.8.0 | Ver abajo. El PDF, probado de verdad; **PowerPoint, solo con uno de mentira**: falta la prueba en Windows. Aquí se detiene el trabajo (decisión 28) |
+| 5 Himnario | Pospuesta · **es lo que sigue**, tras las pruebas del dueño | 1.9 | Videos y letras ya están en `Contenido/Himnario/`. El dueño revisa las letras |
 | 9 Auditoría | Pendiente | 2.0 | |
 
 ### Fase 0 · resultados
@@ -487,6 +490,17 @@ Lo que se añadió para que esta clase de fallos no vuelva:
 - **Pruebas automáticas**: de 122 a 129. **Chrome real**: de 175 a 196 comprobaciones. **Pantallas**: 9 tamaños, 23 pantallas en cada uno, con la pestaña YouTube y los mandos de un video con subtítulos en dos idiomas.
 - **Sin probar**: **una descarga real de YouTube**. Todo lo anterior se probó con un yt-dlp de mentira, porque las pruebas no salen a internet; con el de verdad solo se comprobó, sin descargar, que YouTube acepta la orden y elige el formato esperado. Tampoco en Windows.
 
+### Fase 8 · resultados
+
+- **Módulo Diapositivas**, con su tipo de contenido `slides`: una presentación es una carpeta de imágenes (2560 px de lado mayor, con miniaturas) y cada diapositiva, un paso.
+- **PDF con pdf.js**, incluido en el proyecto (4,7 MB en `web/vendor/pdfjs/`, descargado del registro oficial comprobando su huella). Lo convierte el navegador de quien sube, página a página, y envía las imágenes; el servidor las reconoce por su contenido y no publica la presentación hasta tenerlas todas. Se carga solo al elegir un PDF.
+- **PowerPoint con PowerPoint**: guion de PowerShell para Windows (sin ventana, sin diapositivas ocultas, sin cerrar un PowerPoint en uso, rutas por variables de entorno, guion codificado) y AppleScript para Mac (dentro de la carpeta propia de PowerPoint, miniaturas con `sips`). Corre como tarea con avance. Sin PowerPoint, la interfaz explica cómo sacar el PDF.
+- **Al aire**: por cuál va, cuántas quedan, miniatura de la que sigue, y el encuadre de una imagen. Para no escribir dos veces lo mismo, lo que se proyecta "como imagen" (dibujo, encuadre y su cuenta) pasó a piezas comunes que usan Medios y Diapositivas.
+- **En el orden del culto**, miniaturas de cada diapositiva (con la versión pequeña de cada imagen).
+- **De paso**: corregida una carrera al elegir lo recién subido (también en Medios); el aviso de un módulo no sale por un programa opcional; «Más» en el celular ya se usa (seis módulos).
+- **Pruebas automáticas**: de 129 a 136. **Chrome real**: de 196 a 226 comprobaciones, con un PDF de verdad convertido por el propio Chrome. **Pantallas**: 9 tamaños, 27 pantallas en cada uno.
+- **Sin probar**: **PowerPoint de verdad**, en Windows (no hay) y en Mac (se abrió, pero no respondió: macOS pide un permiso que solo acepta una persona). Presentaciones reales de la iglesia, PDF grandes y la subida desde un celular real.
+
 ## 10. Cambios al plan
 
 Cada modificación del plan aprobado, con su motivo. Es parte de la base de la auditoría.
@@ -546,6 +560,12 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-04 | Fase 6: un video que hay que convertir ya no espera a la conversión si el equipo principal reproduce el original; la copia ligera queda para las demás pantallas | Decisión 27 (eran S19 y S20). El plan decía que el elemento quedaba listo "al terminar" la conversión |
 | 2026-10-04 | Fase 6: la conversión se detiene mientras algo se reproduce | Para que usar un video recién agregado no compita con su propia conversión en un equipo modesto |
 | 2026-10-04 | No se añade la medición del equipo a la revisión (S21) | Decisión 27 |
+| 2026-10-05 | Fase 8: el módulo no avisa en cada visita de que falta PowerPoint; lo explica al elegir un PowerPoint | Es un programa opcional. El plan decía que cada módulo avisa al abrirlo de lo que le falta, pero una franja permanente por algo opcional solo estorba |
+| 2026-10-05 | Fase 8: no se guarda el archivo original, solo las imágenes | No hace falta para proyectar y duplica lo que ocupa. Para cambiar una diapositiva se sube la presentación de nuevo |
+| 2026-10-05 | Fase 8: la miniatura de "la que viene" y "quedan N" van en los mandos en vivo (panel "Al aire" y orden), no solo en el orden | Así también sirven al proyectar una presentación directamente desde su módulo |
+| 2026-10-05 | Fase 8: en Windows no se exportan las diapositivas ocultas | Tampoco saldrían al presentar con PowerPoint |
+| 2026-10-05 | Lo que se proyecta como imagen (dibujo, encuadre y su cuenta) pasa a piezas comunes: `server/core/view.js`, `web/modules/projection/picture.js` y `view.js` | Lo usaba Medios y ahora también Diapositivas; un módulo no importa archivos de otro |
+| 2026-10-05 | **Tras la fase 8 el trabajo se detiene** para las pruebas del dueño; el himnario se revisa después | Decisión 28 |
 | 2026-10-05 | **Fase 7: los videos de YouTube se conservan en la biblioteca**; no se borran al cerrar Manna ni se vuelven a descargar al necesitarlos | Un video preparado con tiempo debe poder proyectarse el día del culto aunque ese día no haya internet, YouTube pida iniciar sesión o yt-dlp haya dejado de funcionar. Es además lo que ya hacen los demás videos. A cambio ocupan disco hasta que se eliminan |
 | 2026-10-05 | Fase 7: los subtítulos se piden solo en español e inglés | Pedir "todos" trae decenas de traducciones automáticas por video. Añadir un idioma es una línea (`SUBTITLE_LANGS`) |
 | 2026-10-05 | Fase 7: los subtítulos se dibujan como los del navegador, no con el estilo de la proyección | Es lo que ya hacía la fase 6 con los `.srt`; se ven igual en todas las pantallas. Darles el estilo de la proyección queda como sugerencia (S23) |
@@ -574,5 +594,9 @@ Las sugerencias S8 a S11 son del televisor: esperan a que se retome la fase 3 (d
 | S22 | Que el dueño haga la **primera descarga real de YouTube** antes de usarlo en un culto | Es lo único de la fase 7 que no se pudo probar sin salir a internet. Si YouTube pide iniciar sesión desde la red de la iglesia, conviene saberlo con tiempo | Nada en el plan. Si falla, se vería qué dice yt-dlp y se ajustaría |
 | S23 | Subtítulos con el estilo de la proyección (tipografía, tamaño y sombra de Ajustes) | Hoy los dibuja el navegador con su estilo: letra blanca sobre una caja oscura. Se leen bien, pero no se parecen al resto de la proyección ni se puede cambiar su tamaño | Dibujarlos Manna en vez del navegador. Mediano; vale para YouTube, videos e himnos |
 | S24 | Aviso de espacio en disco en Ajustes | Los videos de YouTube y las copias convertidas se acumulan en `data/media/`. El plan ya lo preveía como riesgo ("tamaño visible en Ajustes") y aún no existe | Una línea en Ajustes con lo que ocupa cada biblioteca. Pequeño; encaja en la auditoría (fase 9) |
+| S25 | Que el dueño pruebe **PowerPoint en el equipo Windows** con dos o tres presentaciones reales | Es lo único de la fase 8 que no se pudo ejecutar: en el equipo de desarrollo no hay Windows, y en Mac PowerPoint no respondió sin que alguien aceptara un permiso | Nada en el plan. Si falla, lo que diga la tarjeta de la presentación es el punto de partida; mientras tanto, el PDF funciona |
+| S26 | Una carpeta `Contenido/Diapositivas/` donde dejar PDF, que el control del equipo principal convierta solo | Es lo que ya hacen los videos con `Contenido/Medios/`. Hoy una presentación solo entra subiéndola desde la app | Pequeño-mediano: lo convertiría la página de control del equipo principal (el servidor no sabe leer un PDF), como ya hace para comprobar los videos |
+| S27 | Guardar también el PDF original y poder **reemplazar** una presentación conservando su sitio en el orden del culto | Hoy, si se corrige una diapositiva a última hora, hay que subir la presentación de nuevo y volver a añadirla al orden | Pequeño. Ocupa algo más de disco |
+| S28 | Mostrar las **notas del orador** de un PowerPoint en el panel "Al aire" | PowerPoint las puede entregar al convertir; a quien predica o dirige le sirven | Mediano; solo para PowerPoint (un PDF no las trae) |
 | S7 | Que el dueño revise los 15 himnos cuya letra parece incompleta (lista en `docs/ESTADO.md`) | Al copiar las letras se perdieron líneas en algunas partes. **En curso: el dueño las está revisando** | Nada en el plan; se corrigen los archivos `.md` y Manna los vuelve a leer solo |
 

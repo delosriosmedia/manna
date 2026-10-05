@@ -3,7 +3,7 @@
 // coinciden siempre. Las mismas reglas valen para una miniatura: solo cambia el tamaño.
 //
 // screen: { W, H } de la pantalla, { iw, ih } de la imagen.
-// view:   { fit: 'contain' | 'cover', zoom: 1..5, x, y } (ver server/modules/media/images.js)
+// view:   { fit: 'contain' | 'cover', zoom: 1..5, x, y } (ver server/core/view.js)
 export function place({ W, H, iw, ih }, { fit, zoom, x, y }) {
   const base = fit === 'cover' ? Math.max(W / iw, H / ih) : Math.min(W / iw, H / ih);
   const width = iw * base * zoom;

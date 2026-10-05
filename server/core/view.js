@@ -1,6 +1,7 @@
-// Lógica de las imágenes al aire que no depende del servidor: la vista (ajuste, zoom, punto central).
-
-// ---- La vista de una imagen al aire ----
+// La vista de una imagen al aire: cómo se ajusta a la pantalla, cuánto se acerca y qué punto queda
+// en el centro. Es lógica pura, igual para todo lo que se proyecta como imagen (una imagen de
+// Medios, una diapositiva). En la interfaz, la misma cuenta está en web/modules/projection/view.js.
+//
 // fit    'contain' = completa, con bandas negras si no tiene la forma de la pantalla
 //        'cover'   = llena la pantalla, recortando lo que sobre
 // zoom   1 (lo que da el ajuste) a MAX_ZOOM
@@ -26,6 +27,3 @@ export function applyView(state, patch) {
     y: Math.round(between(patch.y, 0, 1, state.y) * 1000) / 1000,
   };
 }
-
-// Nombre que se ve en la biblioteca y en el orden del culto.
-export const cleanName = (name) => String(name ?? '').replace(/\s+/g, ' ').trim().slice(0, 80);

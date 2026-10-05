@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { HttpError } from '../../core/router.js';
 import { EXTENSIONS, IMAGE_TYPES, readImageInfo } from '../../core/images.js';
-import { applyView, cleanName, initialView, validFit } from './images.js';
+import { cleanName } from '../../core/names.js';
+import { applyView, initialView, validFit } from '../../core/view.js';
 import { registerClips } from './library.js';
 
 // Módulo Medios: la biblioteca de lo que la iglesia proyecta. Imágenes (aquí), videos y audios

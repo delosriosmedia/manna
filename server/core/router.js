@@ -25,6 +25,7 @@ const MIME = {
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
   '.pdf': 'application/pdf',
+  '.wasm': 'application/wasm',
   // Chrome reproduce un .mov con H.264 si se le entrega como MP4.
   '.mp4': 'video/mp4',
   '.m4v': 'video/mp4',

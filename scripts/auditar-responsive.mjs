@@ -13,6 +13,8 @@
 //   - la tarjeta de un televisor y su control remoto caben, con teclas para el dedo
 //   - la biblioteca de imágenes deja a la vista su acción principal, y los mandos de una imagen
 //     al aire caben en el panel
+//   - en Diapositivas, las presentaciones y las diapositivas de la elegida dejan a la vista
+//     «Proyectar», y los mandos de una diapositiva al aire (por dónde va, la que sigue, acercar) caben
 //   - en YouTube, el campo del enlace cabe en la cabecera y los mandos de un video con subtítulos
 //     en dos idiomas (botón y lista) caben en el panel
 //
@@ -47,7 +49,7 @@ const DEVICES = [
 ];
 
 // Pantallas a revisar. prepare: lo que hay que hacer tras cargar. primary: la acción principal.
-// show: se revisa con ese elemento del ejemplo al aire ('testcard' o 'image': los dos tienen mandos en vivo).
+// show: se revisa con ese elemento del ejemplo al aire ('testcard', 'image', 'video', 'youtube' o 'slides': todos tienen mandos en vivo).
 const SCREENS = [
   { name: 'Biblia', url: '/control#biblia', primary: '.abar .btn.primary', content: '.col-verses' },
   { name: 'Biblia: búsqueda', url: '/control#biblia', inside: '.search-pop', settle: 1200,
@@ -74,6 +76,11 @@ const SCREENS = [
   { name: 'Al aire con un video', url: '/control#orden', show: 'video', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
   { name: 'Orden con un video al aire', url: '/control#orden', show: 'video', controls: '.odetail .live-controls' },
   { name: 'Al aire con una imagen', url: '/control#medios', show: 'image', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
+  { name: 'Diapositivas: presentaciones', url: '/control#diapositivas', content: '.decks', inside: '.deck' },
+  { name: 'Diapositivas: una presentación', url: '/control#diapositivas', content: '.deck-pages', primary: '.deck-bar .btn.primary', inside: '.deck-bar', settle: 600,
+    prepare: `document.querySelector('.ws[data-module=diapositivas] .deck-pick').click()` },
+  { name: 'Al aire con una diapositiva', url: '/control#diapositivas', show: 'slides', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
+  { name: 'Orden con una diapositiva al aire', url: '/control#orden', show: 'slides', controls: '.odetail .live-controls' },
   { name: 'Televisores', url: '/control#televisores', content: '.tvs', inside: '.tv' },
   { name: 'Televisores: control remoto', url: '/control#televisores', inside: '.modal', settle: 700,
     prepare: `[...document.querySelectorAll('.tv-actions .btn')].find((b) => b.textContent === 'Control remoto').click()` },

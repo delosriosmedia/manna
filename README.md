@@ -15,11 +15,12 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
   - **Imágenes** (anuncios, carteles, fotos): se suben desde el equipo principal o desde la galería del celular, con el nombre que quieras; se elige si la imagen se ve completa o llenando la pantalla; y, mientras está al aire, se acerca y se desplaza desde el panel.
   - **Videos y audios**: se suben o se copian a `Contenido/Medios/`. Lo habitual se usa tal cual y lo demás se convierte solo, en segundo plano. Al aire: pausa, saltos, barra de avance, subtítulos y el volumen de Manna. Todas las pantallas van a la par y suena una sola.
   - **YouTube**: se pega el enlace de un video y Manna lo descarga una vez, con su título, su imagen y sus subtítulos en español e inglés. Queda en la biblioteca y se proyecta sin anuncios, sin cortes y sin internet, con los mismos mandos que cualquier video.
+- **Diapositivas**: las presentaciones de la iglesia, en PDF o en PowerPoint, convertidas en imágenes. Se recorren con «Siguiente», el panel muestra la diapositiva que viene y cuántas quedan, y cada una se puede acercar como una imagen.
 - **Fondos**: seis colores y las imágenes que subas, que quedan guardadas junto a ellos en Ajustes.
 - **Televisores** (en pausa y fuera de la barra, ver `docs/ESTADO.md`): un televisor Samsung de la misma red muestra la proyección desde su navegador, sin cables. Manna lo encuentra, le abre el navegador y le sirve de control remoto (teclas, puntero y texto); la primera vez le escribe la dirección por ti.
-- **Mandos en vivo**: lo que está al aire trae sus propios mandos en el panel y en el orden del culto. Hoy los estrena la **imagen de prueba** (Ajustes → Proyector de este equipo), que sirve para encuadrar el proyector o un televisor y comprobar, con su cronómetro, que todas las pantallas van a la par.
+- **Mandos en vivo**: lo que está al aire trae sus propios mandos en el panel y en el orden del culto. Los tienen las imágenes, los videos, las diapositivas y la **imagen de prueba** (Ajustes → Proyector de este equipo), que sirve para encuadrar el proyector o un televisor y comprobar, con su cronómetro, que todas las pantallas van a la par.
 - **Revisión del equipo**: al abrirse, Manna comprueba que el equipo principal tiene los programas que necesita. Si falta alguno, dice qué módulos se ven afectados y lo instala con un botón. Nunca impide abrir la app.
-- **Preparado para crecer**: himnario y presentaciones ya tienen su sitio en la interfaz. Cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
+- **Preparado para crecer**: el himnario ya tiene su sitio en la interfaz. Cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
 - **Funciones por dispositivo**: cada dispositivo elige al entrar.
   - **Control completo**: todos los módulos. Pide PIN.
   - **Control del orden**: solo proyecta lo que ya está en el orden del culto. Pensado para el celular. Pide PIN.
@@ -37,11 +38,11 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 | Google Chrome (o Edge en Windows) | Ventana de proyección a pantalla completa | Manna se abre; la proyección no se abre sola en la segunda pantalla |
 | ffmpeg | Convertir videos y audios, unir imagen y sonido de YouTube, elegir la pista de los himnos | Manna se abre; las funciones que lo usan no estarán disponibles |
 | yt-dlp | Descargar videos de YouTube | Igual |
-| Microsoft PowerPoint (opcional) | Convertir presentaciones `.pptx` | Se usa el PDF de la presentación |
+| Microsoft PowerPoint (opcional) | Convertir las presentaciones de PowerPoint en diapositivas | Se sube el PDF de la presentación, que no necesita ningún programa |
 
 Solo Node.js se instala antes. Lo demás lo comprueba Manna cada vez que se abre: si falta algo, en vez del control muestra la **revisión del equipo**, que dice qué módulos funcionarán completos y cuáles no, para qué sirve cada programa, y ofrece **Abrir Manna** de todos modos e **Instalar por mí** (descarga ffmpeg y yt-dlp de sus sitios oficiales a la carpeta `data/herramientas/`, sin tocar el sistema) o los pasos para hacerlo a mano. La misma revisión está en **Ajustes → Programas del equipo principal**, y cada módulo avisa al abrirlo si le falta algo. Los demás dispositivos no instalan nada.
 
-ffmpeg lo usa Medios para convertir los videos y audios que el navegador no reproduce; sin él, los MP4 y MP3 habituales funcionan igual. yt-dlp (con ffmpeg) descarga los videos de YouTube; como YouTube cambia a menudo, en **Ajustes → Programas del equipo principal** hay un botón **Actualizar** para ponerlo al día. PowerPoint lo usarán las diapositivas, que están en construcción (ver `docs/PLAN.md`).
+ffmpeg lo usa Medios para convertir los videos y audios que el navegador no reproduce; sin él, los MP4 y MP3 habituales funcionan igual. yt-dlp (con ffmpeg) descarga los videos de YouTube; como YouTube cambia a menudo, en **Ajustes → Programas del equipo principal** hay un botón **Actualizar** para ponerlo al día. PowerPoint lo usa Diapositivas para convertir una presentación `.pptx`; es opcional, porque un PDF se convierte en el propio navegador.
 
 ## Instalación (una sola vez por equipo)
 
@@ -134,6 +135,18 @@ El sonido sale siempre por el equipo principal, por el dispositivo de audio que 
 
 Los videos se guardan en `data/media/youtube/` del equipo principal, a 1080p como mucho. Descargar de YouTube solo está permitido con videos propios o con permiso de su autor: úsalo con los de tu iglesia.
 
+### Diapositivas
+
+1. En **Diapositivas**, pulsa **Subir presentación** y elige un **PDF** o un **PowerPoint** (también puedes arrastrarlo hasta la pantalla).
+2. Ponle el nombre con el que quieres verla en el orden del culto y pulsa **Subir**.
+   - Un **PDF** lo convierte el propio navegador, página a página, con el avance a la vista. Se puede hacer desde un celular.
+   - Un **PowerPoint** lo convierte el PowerPoint del equipo principal, de fondo; mientras tanto puedes seguir usando Manna. En Windows no se ve ninguna ventana. En Mac, PowerPoint se abre un momento, y la primera vez macOS pregunta si Manna puede controlarlo: hay que aceptar.
+   - Si el equipo principal **no tiene PowerPoint**, guarda la presentación como PDF donde la hiciste (en PowerPoint: Archivo → Exportar → PDF; en Presentaciones de Google: Archivo → Descargar → PDF; en Keynote: Archivo → Exportar a → PDF) y sube el PDF.
+3. Elige la presentación: a su lado aparecen sus diapositivas. Toca aquella por la que quieres empezar y pulsa **Proyectar** (o doble clic), o **Añadir al orden** para dejarla preparada.
+4. Con una diapositiva al aire, **Siguiente** y **Anterior** (o ← →) las recorren. El panel **Al aire** dice por cuál vas, cuántas quedan y muestra la que sigue; debajo, el recuadro para acercar y desplazar, como en una imagen.
+
+Cada diapositiva queda como una imagen: las **animaciones, las transiciones y los videos incrustados no se conservan**. Si una presentación lleva un video, súbelo aparte a Medios y ponlo en el orden del culto en su sitio. Las diapositivas se guardan en `data/media/diapositivas/` del equipo principal.
+
 ### Un televisor como pantalla
 
 > **En pausa.** En la primera prueba con un televisor real, Manna le abrió el navegador pero el televisor no llegó a mostrar la proyección. El módulo no aparece en la barra; lo que sigue describe cómo está pensado y se retomará más adelante.
@@ -188,6 +201,8 @@ server/
     media/              biblioteca de imágenes, videos y audios: subir, reconocer, convertir con ffmpeg,
                         subtítulos, descargar de YouTube con yt-dlp (youtube.js), y la reproducción
                         a la par en todas las pantallas
+    slides/             presentaciones convertidas en diapositivas: recibir las páginas de un PDF, pedirle
+                        a PowerPoint que exporte las de una presentación (powerpoint.js) y proyectarlas
     tv/                 televisores de la red como pantalla: buscarlos, vincularlos, abrirles
                         el navegador y hacerles de control remoto (samsung.js es lo propio de la marca)
 web/
@@ -196,7 +211,8 @@ web/
   modules/              la pantalla de cada módulo (registry.js es la lista) y cómo se dibuja
                         cada tipo de contenido (kinds.js es la lista)
   roles/                una página por función: control, orden, proyeccion, y la revisión del equipo
-  vendor/               tipografía Geist, iconos Phosphor y generador de QR, con sus licencias
+  vendor/               tipografía Geist, iconos Phosphor, generador de QR y pdf.js (para leer los PDF
+                        en el navegador), con sus licencias
 DESIGN.md               sistema de diseño de la interfaz
 Contenido/              lo de tu iglesia: biblias, himnos en video y letras (no se sube a GitHub,
                         salvo las instrucciones y la RV1909)
@@ -227,7 +243,7 @@ El procedimiento completo está en `.claude/skills/nuevo-modulo/SKILL.md`. En re
 3. **Interfaz**: `web/modules/<id>/workspace.js` y una línea en `web/modules/registry.js`. Aparece en la barra de módulos. Cómo se dibuja su tipo de contenido y sus mandos van en `web/modules/<id>/kind.js`.
 4. **Aspecto**: siguiendo `DESIGN.md`.
 
-El código no tiene dependencias: no hace falta `npm install`. Los programas externos del equipo principal (ffmpeg, yt-dlp, PowerPoint) se usan solo a través de `server/core/tools.js`.
+El código no tiene dependencias: no hace falta `npm install`. Los programas externos del equipo principal (ffmpeg, yt-dlp, PowerPoint) se detectan en `server/core/tools.js` y se usan solo desde ahí o, PowerPoint, desde `server/modules/slides/powerpoint.js`. Lo de terceros que va dentro del proyecto (`web/vendor/`) se renueva con `scripts/actualizar-iconos.mjs` y `scripts/actualizar-pdfjs.mjs`.
 
 ### Para continuar el desarrollo
 
@@ -244,6 +260,7 @@ Se incluye la Reina-Valera 1909, de dominio público ([eBible.org](https://ebibl
 - Logo: diseño del autor del proyecto, reconstruido en vector (`instalacion/icono/manna.svg`).
 - Tipografía [Geist](https://github.com/vercel/geist-font) (SIL Open Font License).
 - Iconos [Phosphor](https://phosphoricons.com) (licencia MIT).
+- Lectura de PDF: [pdf.js](https://mozilla.github.io/pdf.js/) de Mozilla (licencia Apache 2.0), incluido en `web/vendor/pdfjs/`.
 - Códigos QR: [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) de Kazuhiko Arase (licencia MIT).
 - Programas que Manna puede instalar en el equipo principal y usa sin incluirlos: [ffmpeg](https://ffmpeg.org) (compilación para Windows de [gyan.dev](https://www.gyan.dev/ffmpeg/builds/)) y [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 - Referencias de diseño: [taste-skill](https://github.com/Leonxlnx/taste-skill) y [awesome-design-md](https://github.com/voltagent/awesome-design-md).

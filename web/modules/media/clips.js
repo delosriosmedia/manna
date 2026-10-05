@@ -73,8 +73,12 @@ export function createClipsPanel(ctx, kind) {
     }) }, icon('plus', 16), 'Añadir al orden'),
     show);
 
+  // Lo recién subido puede no haber llegado aún con el estado (la respuesta de la subida se
+  // adelanta al aviso del servidor): se recuerda, y queda elegido en cuanto aparece.
+  let awaited = null;
   function select(id) {
     selected = id;
+    awaited = id && !current() ? id : null;
     render();
   }
 
@@ -118,7 +122,8 @@ export function createClipsPanel(ctx, kind) {
 
   function render() {
     const list = clips();
-    if (selected && !current()) selected = null;
+    if (current()) awaited = null;
+    else if (selected !== awaited) selected = null;
     const live = state.projection?.item;
     const onAir = state.projection?.mode === 'live' && live?.kind === kind ? live.source?.data?.id : null;
 

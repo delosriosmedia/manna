@@ -4,6 +4,19 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.8.0 — 2026-10-05
+
+- **Diapositivas**, un módulo nuevo: las presentaciones de la iglesia, en **PDF o en PowerPoint**, convertidas en imágenes, una por diapositiva. Así se ven igual en todas las pantallas.
+- **Subir un PDF** desde el equipo principal o desde un celular: el propio navegador convierte cada página y muestra el avance. No hace falta instalar nada.
+- **Subir un PowerPoint** (`.pptx`, `.ppt`, `.ppsx`): lo convierte el PowerPoint del equipo principal, de fondo y con su avance a la vista; en Windows, sin que se abra ninguna ventana. Si el equipo no tiene PowerPoint, Manna explica cómo guardar la presentación como PDF.
+- **La biblioteca**: a un lado las presentaciones, con su portada; al otro, las diapositivas de la elegida, para empezar por la que haga falta. En el celular se ve una cosa cada vez.
+- **Al aire**: «Siguiente» y «Anterior» recorren las diapositivas. El panel dice por cuál va ("Diapositiva 3 de 24"), cuántas quedan y **muestra la que sigue**. Una diapositiva se acerca y se desplaza como una imagen, y la siguiente vuelve a verse entera.
+- **En el orden del culto**, una presentación es un elemento con una diapositiva por paso, con sus miniaturas (ligeras: no cargan la imagen grande); tras la última, «Siguiente» pasa al elemento que sigue.
+- **Lo que no se conserva**: animaciones, transiciones y videos incrustados. Cada diapositiva queda como una imagen fija.
+- En el celular, la barra de abajo muestra cuatro módulos y **«Más»**, que abre Diapositivas y Ajustes.
+- Corregido: al terminar de subir algo a Medios, a veces no quedaba elegido lo recién subido.
+- El aviso de que falta un programa ya no sale por uno que es opcional (PowerPoint): el módulo lo explica cuando hace falta.
+
 ## 1.7.0 — 2026-10-05
 
 - **YouTube en Medios**, en su propia pestaña. Se **pega el enlace** de un video (desde el equipo principal o desde un celular) y Manna lo descarga una sola vez, a 1080p como mucho, con su título, su imagen y su duración. Queda guardado en la biblioteca: se proyecta **sin anuncios, sin cortes y sin internet**.

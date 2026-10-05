@@ -1,11 +1,12 @@
-// Un orden del culto de ejemplo para demostraciones y auditorías. Incluye elementos de tipos
-// que todavía no existen (himno, diapositivas) y títulos largos, para ver cómo se comporta
+// Un orden del culto de ejemplo para demostraciones y auditorías. Incluye elementos de un tipo
+// que todavía no existe (himno) y títulos largos, para ver cómo se comporta
 // la interfaz con ellos. Esos elementos se ven, pero no se pueden proyectar.
 // La imagen de prueba sí existe (lleva `data: {}`, que es todo lo que necesita), y también las
 // imágenes: se crean dos carteles de ejemplo en la biblioteca de Medios. Con ffmpeg en el equipo se
 // crean además un video, un audio y un video "de YouTube" de verdad (cortos y a bajo volumen; el de
 // YouTube se fabrica aquí, no se descarga); sin él, quedan sus fichas con archivos vacíos, que
 // sirven para ver la pantalla pero no se reproducen.
+// Y una presentación de doce diapositivas en la biblioteca de Diapositivas, como queda una ya convertida.
 import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -15,7 +16,7 @@ import { examplePoster } from './png.mjs';
 // Escribe el ejemplo en dataDir (orden.json, medios.json y las imágenes) y devuelve los id de los
 // elementos del orden que sí se pueden proyectar:
 //   { live: un pasaje, testcard: la imagen de prueba, image: una imagen de la biblioteca, video: un video,
-//     youtube: un video de YouTube con subtítulos en dos idiomas }
+//     youtube: un video de YouTube con subtítulos en dos idiomas, slides: una presentación }
 export function seedExample(dataDir) {
   const id = () => crypto.randomUUID();
   const verses = (title, book, chapter, a, b) => ({ id: id(), kind: 'verses', title, subtitle: 'Reina-Valera 1909', steps: b - a + 1, data: { versionId: 'reina-valera-1909', ref: { book, chapter, verseStart: a, verseEnd: b } } });
@@ -69,6 +70,13 @@ export function seedExample(dataDir) {
   ];
   fs.writeFileSync(path.join(dataDir, 'medios.json'), JSON.stringify({ images, clips }));
   const video = { id: id(), kind: 'video', title: clips[0].name, subtitle: 'Video · 0:24', steps: 1, data: { id: clips[0].id } };
+  // Una presentación ya convertida: doce diapositivas (sin miniaturas: se usa la propia imagen).
+  const SLIDE_COLORS = [[[29, 78, 216], [147, 51, 234]], [[15, 118, 110], [202, 138, 4]], [[190, 18, 60], [234, 88, 12]], [[30, 41, 59], [71, 85, 105]]];
+  const deck = { id: 'ejemplo-informe', name: 'Informe de tesorería y presupuesto aprobado del tercer trimestre de 2026 (versión final)', source: 'pdf', pages: 12, ext: 'png', thumbs: false, width: 640, height: 360, added: Date.now() - 3000, status: 'ready', error: null };
+  fs.mkdirSync(path.join(media, 'diapositivas', deck.id), { recursive: true });
+  for (let n = 1; n <= deck.pages; n += 1) fs.writeFileSync(path.join(media, 'diapositivas', deck.id, `${n}.png`), examplePoster(deck.width, deck.height, SLIDE_COLORS[(n - 1) % SLIDE_COLORS.length]));
+  fs.writeFileSync(path.join(dataDir, 'diapositivas.json'), JSON.stringify({ decks: [deck] }));
+  const slides = { id: id(), kind: 'slides', title: deck.name, subtitle: 'PDF', steps: deck.pages, data: { id: deck.id } };
   const youtube = { id: id(), kind: 'youtube', title: clips[3].name, subtitle: 'YouTube · 0:16', steps: 1, data: { id: clips[3].id } };
   const image = { id: id(), kind: 'image', title: images[0].name, subtitle: 'Imagen · 1600 × 900', steps: 1, data: { id: images[0].id, fit: 'contain' } };
   const items = [
@@ -78,10 +86,10 @@ export function seedExample(dataDir) {
     section('Mensaje'), live, verses('Romanos 8:28', 45, 8, 28, 28),
     video,
     youtube,
-    other('slides', 'Informe de tesorería y presupuesto aprobado del tercer trimestre de 2026 (versión final).pdf', 'PDF', 12),
+    slides,
     section('Cierre'), other('song', 'Cuán grande es Él', 'Himnario n.º 69', 4), testcard,
   ];
   fs.mkdirSync(dataDir, { recursive: true });
   fs.writeFileSync(path.join(dataDir, 'orden.json'), JSON.stringify({ items }));
-  return { live: live.id, testcard: testcard.id, image: image.id, video: video.id, youtube: youtube.id };
+  return { live: live.id, testcard: testcard.id, image: image.id, video: video.id, youtube: youtube.id, slides: slides.id };
 }

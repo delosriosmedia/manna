@@ -31,6 +31,8 @@ Lo que habla con un equipo de la red (un televisor) se prueba contra uno de ment
 
 Lo que descarga de internet (YouTube) se prueba con un programa de mentira: `scripts/lib/yt-dlp-falso.mjs` escribe un yt-dlp que dice el título y el avance, fabrica el video con ffmpeg y deja subtítulos "automáticos" como los de YouTube; falla como un video privado si el identificador empieza por `privado`. Se pone en `data/herramientas/` del servidor de prueba, que arranca con `MANNA_FALTA=yt-dlp` para que el yt-dlp de verdad del equipo no se use nunca. Lo usan `test/youtube.test.js` y la prueba en Chrome. **Una descarga real de YouTube no forma parte de ninguna prueba.**
 
+Los PDF que necesita una prueba se fabrican en el momento con `scripts/lib/pdf.mjs` (`makePdf`), y el Chrome de la prueba los convierte de verdad con pdf.js. PowerPoint se sustituye por un guion (`scripts/lib/powerpoint-falso.mjs`, con `MANNA_POWERPOINT_PRUEBA`) que deja las imágenes como las dejaría el de verdad; ninguna prueba abre el PowerPoint del equipo.
+
 Los videos y audios que necesita una prueba se fabrican en el momento con ffmpeg (un patrón de colores con un tono bajo, de pocos segundos). Donde no hay ffmpeg, esas pruebas se saltan diciéndolo, y lo que Manna hace sin ffmpeg se prueba siempre (con `MANNA_FALTA=ffmpeg`).
 
 Las imágenes que necesita una prueba se fabrican en el momento con `scripts/lib/png.mjs` (`makePng`, `examplePoster`): no se guardan imágenes en el repositorio ni se usan las de ninguna iglesia. Los datos de ejemplo (`scripts/lib/ejemplo.mjs`) se escriben **antes** de arrancar el servidor, que los lee al abrirse.
@@ -46,6 +48,8 @@ Además de sus comprobaciones, `scripts/probar-chrome.mjs` vigila toda la sesió
 - algún botón responde con un **aviso de error que no se esperaba** (un error dentro de `guard()` no rompe la página: solo sale un aviso, y por eso pasó inadvertido). Un error provocado a propósito se declara antes con `expectError('trozo del texto')`;
 - hay un **error de JavaScript** en cualquier pantalla;
 - queda alguna **orden o dirección del servidor que la interfaz no usó pulsando** (solo en la prueba completa). Lo que de verdad no se puede pulsar ahí va en `UNTOUCHED`, con su motivo.
+
+**Una comprobación no puede pasar en vacío.** "Todas las miniaturas cargaron la imagen pequeña" es cierto también cuando aún no hay ninguna miniatura (se ve el esqueleto de carga): antes de un `every()` se comprueba cuántos elementos hay. Así pasó inadvertido, el 2026-10-05, que las miniaturas del orden pedían la imagen grande.
 
 **Regla**: una orden o un botón nuevos no están hechos hasta que la prueba en Chrome los pulsa. Probar la ruta por HTTP no basta: el fallo del fondo estaba en la pantalla, no en el servidor.
 

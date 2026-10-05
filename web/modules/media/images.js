@@ -45,14 +45,19 @@ export function createImagesPanel(ctx) {
     }) }, icon('plus', 16), 'Añadir al orden'),
     h('button', { class: 'btn primary', onclick: () => project() }, icon('play', 16), 'Proyectar', h('kbd', {}, '↵')));
 
+  // Lo recién subido puede no haber llegado aún con el estado (la respuesta de la subida se
+  // adelanta al aviso del servidor): se recuerda, y queda elegido en cuanto aparece.
+  let awaited = null;
   function select(id) {
     selected = id;
+    awaited = id && !current() ? id : null;
     render();
   }
 
   function render() {
     const list = images();
-    if (selected && !current()) selected = null;
+    if (current()) awaited = null;
+    else if (selected !== awaited) selected = null;
     const onAir = state.projection?.mode === 'live' && state.projection.item?.kind === 'image' ? state.projection.item.url : null;
 
     if (!list.length) {
