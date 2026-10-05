@@ -18,7 +18,8 @@ import { splitTabs } from './tabs.js';
 //   needs   programas del equipo principal que necesita (ver core/needs.js). Si falta alguno,
 //           al abrir el módulo se avisa de qué no funcionará y se ofrece instalarlo
 //   mount   dibuja el módulo en el y puede devolver { onShow(), keys(evento) -> true si lo atendió }
-// ctx (lo que recibe cada módulo): { role, isLocal, canEdit, go(id), setPreview(elemento | null) }
+// ctx (lo que recibe cada módulo): { role, isLocal, canEdit, go(id), setPreview(elemento | null), setPart(id) }
+//   setPart  un módulo con pestañas dice en cuál está, para avisar solo de lo que le falta a esa
 export function createShell({ role, isLocal, modules, extras = [], createDock }) {
   const canEdit = role === 'control';
   const usable = modules.filter((m) => !m.soon);
@@ -71,15 +72,18 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
 
   // ---- Aviso de lo que le falta al módulo abierto ----
   // Nada impide usar el módulo: solo se dice qué parte no funcionará y cómo resolverlo.
-  const dismissed = new Set(); // módulos cuyo aviso se cerró en esta visita
+  const dismissed = new Set(); // avisos cerrados en esta visita: módulo y programas que faltaban
+  const parts = new Map();     // id del módulo -> la parte (pestaña) que tiene abierta
   function renderNotice() {
     const module = usable.find((m) => m.id === current?.id);
-    const missing = module ? missingFor(module, state.tools?.list || []).filter((m) => !m.soon) : [];
-    if (!missing.length || dismissed.has(module.id)) {
+    const missing = module ? missingFor(module, state.tools?.list || [], parts.get(module.id)).filter((m) => !m.soon) : [];
+    const tools = toolsOf(missing);
+    // Cerrar un aviso vale para ese módulo y esos programas: el de otra pestaña a la que le falta otra cosa sí sale.
+    const key = `${module?.id}:${tools.map((t) => t.id).join()}`;
+    if (!missing.length || dismissed.has(key)) {
       notice.hidden = true;
       return;
     }
-    const tools = toolsOf(missing);
     notice.replaceChildren(...[
       icon('warning', 18),
       h('p', {}, h('strong', {}, `${tools.length > 1 ? 'Faltan' : 'Falta'} ${joinNames(tools.map((t) => t.name))}. `),
@@ -87,7 +91,7 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
       ...tools.filter((t) => t.installable && isLocal).map((t) => h('button', { class: 'btn', disabled: t.installing, onclick: guard(() => action('tools.install', { id: t.id })) },
         icon('download-simple', 15), t.installing ? `Instalando ${t.name}…` : `Instalar ${t.name}`)),
       h('button', { class: 'btn', onclick: () => go('/requisitos') }, 'Cómo instalarlo'),
-      h('button', { class: 'icon-btn sm', 'aria-label': 'Cerrar el aviso', onclick: () => { dismissed.add(module.id); renderNotice(); } }, icon('x', 14)),
+      h('button', { class: 'icon-btn sm', 'aria-label': 'Cerrar el aviso', onclick: () => { dismissed.add(key); renderNotice(); } }, icon('x', 14)),
     ]);
     notice.hidden = false;
   }
@@ -130,7 +134,11 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
     if (!mounted.has(module.id)) {
       const el = h('section', { class: 'ws', dataset: { module: module.id } });
       work.append(el);
-      mounted.set(module.id, { el, api: module.mount(el, ctx) || {} });
+      const setPart = (part) => {
+        parts.set(module.id, part);
+        if (current?.id === module.id) renderNotice();
+      };
+      mounted.set(module.id, { el, api: module.mount(el, { ...ctx, setPart }) || {} });
     }
     for (const [mid, m] of mounted) m.el.hidden = mid !== module.id;
     current = { id: module.id, api: mounted.get(module.id).api };

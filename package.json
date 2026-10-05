@@ -1,6 +1,6 @@
 {
   "name": "manna",
-  "version": "1.6.2",
+  "version": "1.7.0",
   "description": "Manna - Church projection app",
   "type": "module",
   "private": true,

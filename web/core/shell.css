@@ -34,7 +34,7 @@ body.app { display: flex; flex-direction: column; height: 100dvh; overflow: hidd
 .ws-head .search { flex: 1; min-width: 0; }
 
 /* Aviso de lo que le falta al módulo abierto (un programa del equipo principal). No bloquea. */
-.ws-notice { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px 8px 16px; background: var(--accent-soft); border-bottom: 1px solid var(--line); color: var(--ink-2); flex-shrink: 0; }
+.ws-notice { position: relative; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px 8px 16px; background: var(--accent-soft); border-bottom: 1px solid var(--line); color: var(--ink-2); flex-shrink: 0; }
 .ws-notice > .ic { color: var(--accent); }
 /* Aviso de que Manna se actualizó estando abierto: igual que el anterior, pero en todas las pantallas. */
 .update-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px 8px 16px; background: var(--accent-soft); border-bottom: 1px solid var(--accent); color: var(--ink-2); flex-shrink: 0; }
@@ -127,6 +127,14 @@ body.app { display: flex; flex-direction: column; height: 100dvh; overflow: hidd
   .tabbar button { flex: 1; min-height: 54px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--ink-3); font-size: 11px; font-weight: 500; }
   .tabbar button.on { color: var(--ink); }
   .tabbar button.on .ic { color: var(--accent); }
+}
+
+/* Celular en vertical: el aviso de un módulo ocupa lo justo. Cerrar va en la esquina, no en una fila aparte. */
+@media (max-width: 559px) {
+  .ws-notice { gap: 8px; padding: 8px 12px; }
+  .ws-notice > .ic { display: none; }
+  .ws-notice p { flex: 1 1 100%; padding-right: 40px; }
+  .ws-notice > .icon-btn { position: absolute; top: 2px; right: 2px; }
 }
 
 /* Celular en horizontal: sobra ancho y falta altura. Las pestañas pasan al lado izquierdo

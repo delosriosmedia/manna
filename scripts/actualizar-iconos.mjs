@@ -23,7 +23,7 @@ const ICONS = [
   'television-simple', 'house', 'keyboard', 'speaker-low', 'speaker-high', 'upload-simple', 'images',
   'magnifying-glass-plus', 'magnifying-glass-minus', 'arrows-out', 'squares-four',
   // reproducción
-  'speaker-x', 'closed-captioning', 'waveform', 'folder-simple',
+  'speaker-x', 'closed-captioning', 'waveform', 'folder-simple', 'youtube-logo', 'link-simple',
 ];
 
 const base = `https://unpkg.com/@phosphor-icons/core@${VERSION}`;

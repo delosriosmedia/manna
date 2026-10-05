@@ -29,11 +29,15 @@ Usar siempre un servidor de prueba con `MANNA_DATA` temporal, `PORT=8123`, `MANN
 
 Lo que habla con un equipo de la red (un televisor) se prueba contra uno de mentira: `scripts/lib/tv-falso.mjs` responde como un Samsung y apunta lo que recibe. Lo usan `test/tv.test.js` y los dos guiones de Chrome. Nunca se deja que una prueba salga a la red de verdad.
 
+Lo que descarga de internet (YouTube) se prueba con un programa de mentira: `scripts/lib/yt-dlp-falso.mjs` escribe un yt-dlp que dice el título y el avance, fabrica el video con ffmpeg y deja subtítulos "automáticos" como los de YouTube; falla como un video privado si el identificador empieza por `privado`. Se pone en `data/herramientas/` del servidor de prueba, que arranca con `MANNA_FALTA=yt-dlp` para que el yt-dlp de verdad del equipo no se use nunca. Lo usan `test/youtube.test.js` y la prueba en Chrome. **Una descarga real de YouTube no forma parte de ninguna prueba.**
+
 Los videos y audios que necesita una prueba se fabrican en el momento con ffmpeg (un patrón de colores con un tono bajo, de pocos segundos). Donde no hay ffmpeg, esas pruebas se saltan diciéndolo, y lo que Manna hace sin ffmpeg se prueba siempre (con `MANNA_FALTA=ffmpeg`).
 
 Las imágenes que necesita una prueba se fabrican en el momento con `scripts/lib/png.mjs` (`makePng`, `examplePoster`): no se guardan imágenes en el repositorio ni se usan las de ninguna iglesia. Los datos de ejemplo (`scripts/lib/ejemplo.mjs`) se escriben **antes** de arrancar el servidor, que los lee al abrirse.
 
 Una prueba nueva de interfaz se añade a `scripts/probar-chrome.mjs`; un tamaño o una pantalla nuevos, a `scripts/auditar-responsive.mjs`.
+
+Lo que un guion lanza (el Chrome sin ventana, los servidores de prueba) se registra con `killOnExit()` de `scripts/lib/chrome.mjs`, para que se cierre con el guion aunque lo corten a medias. El 2026-10-05 se encontraron tres Chrome sin ventana de pruebas interrumpidas, y como el puerto de control era fijo, las pruebas siguientes se enganchaban al más antiguo; ahora cada Chrome usa un puerto libre.
 
 ## Lo que vigila la prueba en Chrome
 

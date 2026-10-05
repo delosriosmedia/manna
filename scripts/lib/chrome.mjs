@@ -3,13 +3,37 @@
 // Necesita Node 22 o superior, por el WebSocket integrado.
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { findBrowser } from '../../server/core/tools.js';
 
 export const sleep = (ms) => new Promise((r) => { setTimeout(r, ms); });
 
-let runs = 0;
+// Lo que un guion lanza (el Chrome, los servidores de prueba) se cierra con él, también si lo
+// cortan a medias. Sin esto quedaba un Chrome sin ventana abierto, y como el puerto de control era
+// fijo, la prueba siguiente se enganchaba a ese Chrome viejo, con sus páginas aún conectadas.
+const children = new Set();
+let guarded = false;
+export function killOnExit(child) {
+  children.add(child);
+  child.once('exit', () => children.delete(child));
+  if (guarded) return child;
+  guarded = true;
+  process.on('exit', () => { for (const one of children) one.kill(); });
+  for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(signal, () => process.exit(130));
+  return child;
+}
+
+// Un puerto que nadie usa ahora mismo.
+const freePort = () => new Promise((resolve, reject) => {
+  const probe = net.createServer();
+  probe.once('error', reject);
+  probe.listen(0, '127.0.0.1', () => {
+    const { port } = probe.address();
+    probe.close(() => resolve(port));
+  });
+});
 
 // Devuelve { send, evaluate, events, close, acceptDialogs }.
 //   send(method, params)  orden del protocolo DevTools
@@ -17,12 +41,11 @@ let runs = 0;
 //   events                eventos recibidos (por ejemplo, cuadros de diálogo)
 //   acceptDialogs         si es true, acepta solo el aviso "¿Salir del sitio?"; sin ello,
 //                         una navegación se queda esperando a que alguien responda
-export async function startChrome({ port = 9333 } = {}) {
-  runs += 1;
-  const debugPort = port + runs;
+export async function startChrome() {
+  const debugPort = await freePort();
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-chrome-'));
-  const child = spawn(findBrowser(), ['--headless=new', `--remote-debugging-port=${debugPort}`, `--user-data-dir=${profile}`,
-    '--no-first-run', '--window-size=1280,800', 'about:blank'], { stdio: 'ignore' });
+  const child = killOnExit(spawn(findBrowser(), ['--headless=new', `--remote-debugging-port=${debugPort}`, `--user-data-dir=${profile}`,
+    '--no-first-run', '--window-size=1280,800', 'about:blank'], { stdio: 'ignore' }));
 
   let target;
   for (let i = 0; i < 50 && !target; i += 1) {

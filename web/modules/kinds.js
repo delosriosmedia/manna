@@ -12,7 +12,6 @@ import './media/clip.js';
 // el suyo, su entrada de aquí deja de usarse y se borra.
 const PLANNED = {
   song: { icon: 'music-notes', label: 'Himno', unit: null },
-  youtube: { icon: 'video', label: 'YouTube', unit: null },
   slides: { icon: 'presentation-chart', label: 'Diapositivas', unit: ['diapositiva', 'diapositivas'] },
 };
 for (const [name, def] of Object.entries(PLANNED)) if (!kindOf(name)) registerKind(name, def);

@@ -58,11 +58,10 @@ function mount(el, ctx) {
     menu(anchor, [
       { label: 'Pasaje bíblico', icon: 'book-open-text', onclick: () => ctx.go('biblia') },
       { label: 'Comparación de versiones', icon: 'columns', onclick: () => ctx.go('comparador') },
-      { label: 'Imagen', icon: 'image', onclick: () => ctx.go('medios') },
+      { label: 'Imagen, video o audio', icon: 'image', note: 'Medios', onclick: () => ctx.go('medios') },
       { label: 'Sección', icon: 'rows', onclick: () => askTitle({ title: 'Nueva sección', onSave: (title) => run('order.addSection', { title }) }) },
       '-',
       { label: 'Himno', icon: 'music-notes', note: 'Próximamente', disabled: true },
-      { label: 'Video', icon: 'video', note: 'Próximamente', disabled: true },
       { label: 'Diapositivas', icon: 'presentation-chart', note: 'Próximamente', disabled: true },
     ]);
   }

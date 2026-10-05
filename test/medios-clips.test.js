@@ -123,10 +123,16 @@ test('un video habitual se usa tal cual: se sube, se le saca imagen, se proyecta
     const withCaptions = await s.put(`/api/media/clips/${up.id}/subtitles`, '1\n00:00:00,500 --> 00:00:01,500\nBienvenidos\n', 'text/plain');
     assert.equal(withCaptions.subtitles, true);
     const item = (await s.send('projection.show', { kind: 'video', data: { id: up.id } })).result;
-    assert.match(item.subtitles, /^\/media\/subtitulos\/.+\.vtt\?v=\d+$/);
-    assert.equal(await (await s.request(item.subtitles)).text(), 'WEBVTT\n\n00:00:00.500 --> 00:00:01.500\nBienvenidos\n');
+    assert.deepEqual(item.subtitles.map((t) => [t.lang, t.label]), [['sub', 'Subtítulos']]);
+    assert.match(item.subtitles[0].url, /^\/media\/subtitulos\/.+\.vtt\?v=\d+$/);
+    assert.equal(await (await s.request(item.subtitles[0].url)).text(), 'WEBVTT\n\n00:00:00.500 --> 00:00:01.500\nBienvenidos\n');
+    // "Mostrar subtítulos" sin decir cuáles pone los primeros; pedir unos que no tiene, ninguno.
     assert.equal((await s.send('projection.control', { subtitles: true })).http, 200);
-    assert.equal((await s.state()).live.state.subtitles, true);
+    assert.equal((await s.state()).live.state.subtitles, 'sub');
+    await s.send('projection.control', { subtitles: 'fr' });
+    assert.equal((await s.state()).live.state.subtitles, false);
+    await s.send('projection.control', { subtitles: 'sub', position: 1 });
+    assert.equal((await s.state()).live.state.subtitles, 'sub', 'otra orden no los quita');
     assert.equal((await s.send('media.subtitlesRemove', { id: up.id })).http, 200);
     assert.equal((await s.state()).media.videos[0].subtitles, false);
 

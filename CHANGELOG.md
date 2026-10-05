@@ -4,6 +4,18 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.7.0 — 2026-10-05
+
+- **YouTube en Medios**, en su propia pestaña. Se **pega el enlace** de un video (desde el equipo principal o desde un celular) y Manna lo descarga una sola vez, a 1080p como mucho, con su título, su imagen y su duración. Queda guardado en la biblioteca: se proyecta **sin anuncios, sin cortes y sin internet**.
+- **La descarga no detiene nada.** El avance se ve en la tarjeta del video y en el panel "Al aire"; mientras tanto se sigue usando Manna. Si YouTube no deja descargarlo (es privado, se quitó, no hay internet), la tarjeta dice por qué y ofrece **Reintentar**.
+- **Subtítulos de YouTube**: Manna trae los que tenga el video en español y en inglés (los del autor o, si no hay, los automáticos, ya sin las líneas repetidas con que llegan). Al aire, el botón **Subtítulos** los muestra y una lista deja **elegir el idioma**.
+- Un video de YouTube se **añade al orden del culto** como elemento propio, se renombra y se elimina como cualquier otro video, con los mismos mandos (pausa, saltos, barra, volumen). Pegar dos veces el mismo enlace no lo descarga dos veces.
+- Solo se aceptan enlaces de YouTube. Pensado para los videos de la iglesia o los que se tenga permiso para proyectar.
+- **Actualizar yt-dlp desde Ajustes**: en "Programas del equipo principal", el botón **Actualizar** vuelve a descargarlo. YouTube cambia a menudo; si las descargas empiezan a fallar, es lo primero que hay que probar.
+- Para YouTube hacen falta **yt-dlp y ffmpeg** en el equipo principal (la revisión del equipo ofrece instalarlos) e internet solo en el momento de descargar.
+- Los avisos de que falta un programa, en Medios, salen **solo en la pestaña a la que afectan** (el de yt-dlp, en YouTube; el de ffmpeg, en Videos y Audios). En el celular ocupan menos.
+- En el orden del culto, **Añadir → Imagen, video o audio** lleva a Medios.
+
 ## 1.6.2 — 2026-10-04
 
 - **Un video recién agregado se puede usar al instante.** Si hay que convertirlo (un 4K en HEVC, un MKV…), el equipo principal comprueba solo, en unos segundos, si su navegador lo reproduce tal cual. Si puede, la tarjeta dice **«Ya se puede proyectar desde el equipo principal»** y se proyecta con el archivo original, sin esperar.

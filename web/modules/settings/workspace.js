@@ -1,5 +1,5 @@
 import { action, disconnect, subscribe } from '../../core/api.js';
-import { h, allowLeaving, dialog, go, guard } from '../../core/dom.js';
+import { h, allowLeaving, dialog, go, guard, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { createDisplayToggle, createStylePanel, createTestCardButton, describeDisplay } from '../projection/controls.js';
 import { openDevicesDialog } from '../system/devices.js';
@@ -50,10 +50,15 @@ function mount(el, ctx) {
       : `${d.text}.`;
   });
   subscribe('tools', ({ list }) => {
-    tools.replaceChildren(...list.map((t) => h('div', { class: `tool${t.found ? '' : ' missing'}` },
+    tools.replaceChildren(...list.map((t) => h('div', { class: `tool${t.found ? '' : ' missing'}`, dataset: { id: t.id } },
       icon(t.found ? 'check-circle' : 'warning-circle', 18),
       h('span', { class: 'item-text' }, h('strong', {}, t.name),
-        h('small', {}, t.found ? [t.detail !== t.name && t.detail, t.version && `versión ${t.version}`].filter(Boolean).join(' · ') || 'Instalado' : t.level === 'optional' ? 'No está (opcional)' : 'Falta')))));
+        h('small', {}, t.found ? [t.detail !== t.name && t.detail, t.version && `versión ${t.version}`].filter(Boolean).join(' · ') || 'Instalado' : t.level === 'optional' ? 'No está (opcional)' : 'Falta')),
+      // Un programa que conviene tener al día (yt-dlp) se actualiza desde aquí, en el equipo principal.
+      t.found && t.update && ctx.isLocal && h('button', { class: 'btn', title: t.update, disabled: t.installing, onclick: guard(async () => {
+        await action('tools.install', { id: t.id });
+        toast(`Actualizando ${t.name}. El avance está en el panel «Al aire».`);
+      }) }, icon('arrow-clockwise', 15), t.installing ? 'Actualizando…' : 'Actualizar'))));
   });
   subscribe('conexiones', ({ porRol = {} }) => {
     const n = (role) => porRol[role] || 0;

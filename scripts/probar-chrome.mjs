@@ -5,9 +5,10 @@
 //      uno mostrando el avance y no bloquea la app; dentro, el módulo afectado también avisa.
 //      La descarga sale de un servidor de mentira en este mismo equipo.
 //   1. La interfaz: Biblia (búsqueda por niveles), comparador de versiones, orden del culto (con
-//      nombres propios), medios (subir imágenes, ajuste, encuadre al aire en dos pantallas),
-//      televisores (con uno de mentira), mandos en vivo que van a la par en dos
-//      pantallas, ajustes y la función "Control del orden". También que Manna atiende por https.
+//      nombres propios), medios (subir imágenes, ajuste, encuadre al aire en dos pantallas; videos
+//      y audios que van a la par; YouTube, con un yt-dlp de mentira), televisores (con uno de
+//      mentira), mandos en vivo que van a la par en dos pantallas, ajustes y la función "Control
+//      del orden". También que Manna atiende por https.
 //   2. Al entrar por la dirección numérica, la página pasa sola a la dirección con nombre.
 //   3. El navegador pide confirmación al salir de la pestaña de control.
 //   4. Con un dispositivo conectado por el nombre, el equipo principal "cambia de IP" y el
@@ -32,8 +33,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { lanInterfaces } from '../server/modules/system/network.js';
-import { sleep, startChrome } from './lib/chrome.mjs';
+import { killOnExit, sleep, startChrome } from './lib/chrome.mjs';
 import { startFakeTv } from './lib/tv-falso.mjs';
+import { writeFakeYtDlp } from './lib/yt-dlp-falso.mjs';
 import { examplePoster } from './lib/png.mjs';
 import { checkContract, sourceFiles } from './lib/codigo.mjs';
 
@@ -97,15 +99,24 @@ if (!HAS_FFMPEG) {
   }
 }
 
+// YouTube se prueba con un yt-dlp de mentira (un guion que hace el video con ffmpeg), puesto donde
+// Manna guarda los programas que instala: nada sale a internet. El yt-dlp de verdad del equipo,
+// si lo hay, no se usa nunca (MANNA_FALTA, más abajo).
+const CAN_YOUTUBE = HAS_FFMPEG && process.platform !== 'win32';
+const ytAsked = path.join(tmp, 'yt-dlp-pedido.json');
+if (CAN_YOUTUBE) writeFakeYtDlp(path.join(tmp, 'data', 'herramientas'), { title: 'Saludo de la iglesia hermana', seconds: 6, log: ytAsked, pause: 600 });
+else UNTOUCHED['media.youtube'] = 'el yt-dlp de mentira necesita ffmpeg y un sistema que ejecute guiones; se prueba en test/youtube.test.js';
+
 // ---- Servidor de prueba ----
 // Los televisores de la prueba son uno de mentira en este equipo: nada sale a la red.
 const fakeTv = await startFakeTv();
 function startServer(host, extra = {}) {
   // MANNA_SIN_VENTANA: la prueba no abre su proyección en el proyector de verdad, si lo hay.
   // MANNA_CONVERSION_LENTA: cada conversión tarda en empezar, para poder ver qué pasa mientras tanto.
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), ...extra };
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp', MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), ...extra };
   if (host) env.MANNA_HOST = host;
-  return spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env });
+  // killOnExit: si la prueba se corta a medias, el servidor no se queda abierto ocupando el puerto.
+  return killOnExit(spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env }));
 }
 const stopServer = (child) => new Promise((resolve) => {
   if (child.exitCode !== null || child.signalCode) { resolve(); return; }
@@ -199,11 +210,11 @@ const modalButton = (label) => click(`[...document.querySelectorAll('.modal .btn
 // de mentira es de consola Unix.
 async function reviewSection() {
   console.log('\n0. Revisión del equipo');
-  const program = Buffer.from(`#!/bin/sh\necho 2026.01.01\n${'#'.repeat(60_000)}\n`);
-  const sums = `${crypto.createHash('sha256').update(program).digest('hex')}  yt-dlp-prueba\n`;
+  const build = (version) => Buffer.from(`#!/bin/sh\necho ${version}\n${'#'.repeat(60_000)}\n`);
+  let program = build('2026.01.01'); // lo que entrega el sitio de descargas; luego "sale" una versión nueva
   let failNext = true; // la primera descarga falla, para ver cómo se dice y cómo se quita el aviso
   const downloads = http.createServer(async (req, res) => {
-    if (req.url === '/SUMAS') return res.end(sums);
+    if (req.url === '/SUMAS') return res.end(`${crypto.createHash('sha256').update(program).digest('hex')}  yt-dlp-prueba\n`);
     if (failNext) {
       failNext = false;
       res.writeHead(500);
@@ -266,6 +277,14 @@ async function reviewSection() {
     await goModule('biblia');
     await goModule('ajustes');
     check('el aviso se puede cerrar y no vuelve a salir en esa visita', await run(`return ${notice}.hidden`));
+    // YouTube cambia a menudo y yt-dlp se queda atrás: Ajustes deja ponerlo al día con un botón.
+    program = build('2026.02.02');
+    const toolRow = `document.querySelector('.settings .tool[data-id="yt-dlp"]')`;
+    check('Ajustes ofrece actualizar yt-dlp, y solo ese programa', await run(`return document.querySelectorAll('.settings .tool .btn').length === 1 && ${toolRow}.querySelector('.btn').textContent === 'Actualizar' && ${toolRow}.textContent.includes('2026.01.01')`));
+    await click(`${toolRow}.querySelector('.btn')`);
+    await sleep(900);
+    check('"Actualizar" lo descarga de nuevo, a la vista y sin detener la app', await run(`const b = ${toolRow}.querySelector('.btn'); return b.disabled && b.textContent === 'Actualizando…' && [...document.querySelectorAll('.dock .job strong')].some(s => s.textContent === 'Descargando yt-dlp')`) && (await text('#toast')).includes('Actualizando yt-dlp'));
+    check('y queda la versión nueva', await until(`${toolRow}.textContent.includes('2026.02.02') && !${toolRow}.querySelector('.btn').disabled`, 40), await run(`return ${toolRow}.textContent`));
     check('sin errores de JavaScript en la revisión', !chrome.events.some((e) => e.method === 'Runtime.exceptionThrown'));
   } finally {
     await stopServer(review);
@@ -642,7 +661,7 @@ try {
     await control('Pausar');
     await control('Subtítulos');
     both = await screens();
-    check('y se muestran con su mando mientras el video está al aire', (await air()).live.subtitles === true && both.there.subtitles === 'showing');
+    check('y se muestran con su mando mientras el video está al aire', (await air()).live.subtitles === 'sub' && both.there.subtitles === 'showing' && await run(`return !${controls}.querySelector('select')`));
     await cardMenu(mainCard, 'Quitar los subtítulos');
     check('los subtítulos se pueden quitar', (await videosNow()).find((v) => v.id === main.id).subtitles === false && await run(`return !${mainCard}.querySelector('.media-cc')`));
     // «Negro» y «Solo fondo» también pausan; "Reproducir" lo vuelve a mostrar.
@@ -712,6 +731,76 @@ try {
     check('al proyectarlo suena, y la pantalla muestra su nombre sobre el fondo', on.item.kind === 'audio' && on.live.clock.playing === true && await run(`const m = document.querySelector('.dock .monitor'); return m.querySelector('.clip-audio .stage-ref').textContent === 'pista de piano' && !m.querySelector('audio').paused && m.querySelector('.stage').dataset.fill === 'text'`));
     await control('Pausar');
     check('y se gobierna con los mismos mandos', (await air()).live.clock.playing === false && await run(`return ${controls}.querySelectorAll('button').length >= 5 && document.querySelector('.dock .monitor audio').paused`));
+
+    console.log('\n1. Interfaz · Medios (YouTube)');
+    if (!CAN_YOUTUBE) console.log('  (en este sistema no se puede usar el yt-dlp de mentira: esta parte se salta)');
+    else {
+      await tab('youtube');
+      const tube = `document.querySelector('.media-body[data-panel=youtube]')`;
+      const tubeBar = `document.querySelector('.media-bar[data-panel=youtube]')`;
+      const linkBox = `document.querySelector('.yt-add input')`;
+      const tubeCard = `${tube}.querySelector('.media-card[data-status=ready], .media-card[data-status=downloading]')`;
+      const tubesNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).media.youtube)`).then(JSON.parse);
+      const paste = async (value) => { await run(`const i = ${linkBox}; i.focus(); i.value = ${JSON.stringify(value)}; i.dispatchEvent(new Event('input'));`); await click(`document.querySelector('.yt-add .btn')`); await sleep(500); };
+      check('la pestaña YouTube pide el enlace en vez de un archivo, y explica para qué sirve', await run(`const head = document.querySelector('.ws[data-module=medios] .ws-head'); return ${tube}.querySelector('.empty').textContent.includes('Aún no hay videos de YouTube') && ${tube}.querySelector('.empty').textContent.includes('sin internet') && Boolean(${linkBox}) && ![...head.querySelectorAll('.btn')].some(b => b.textContent.includes('Subir') && getComputedStyle(b).display !== 'none') && document.querySelector('.ws-notice').hidden`));
+      expectError('no es un enlace de un video de YouTube');
+      await paste('https://vimeo.com/123456789');
+      check('lo que no es un enlace de YouTube se rechaza, y lo dice', (await text('#toast')).includes('no es un enlace de un video de YouTube') && (await tubesNow()).length === 0, await text('#toast'));
+      await paste('https://youtu.be/pruebaManna?si=compartido');
+      check('al pegar un enlace empieza a descargarse y lo muestra con su avance, sin detener la app', await until(`${tubeCard}?.dataset.status === 'downloading' && ${tubeCard}.querySelector('.media-status .bar')`, 10)
+        && (await text('#toast')).includes('Descargando') && await run(`return ${linkBox}.value === '' && ${tubeBar}.querySelector('.btn.primary').disabled`));
+      check('el título llega antes que el video, y el avance se mueve (también en las tareas del panel)', await until(`${tubeCard}.querySelector('strong').textContent === 'Saludo de la iglesia hermana' && Number(${tubeCard}.querySelector('.bar')?.getAttribute('aria-valuenow')) > 0 && [...document.querySelectorAll('.dock .job strong')].some(s => s.textContent === 'Descargando «Saludo de la iglesia hermana»')`, 20),
+        await run(`return ${tubeCard}.querySelector('strong').textContent + ' · ' + ${tubeCard}.querySelector('.media-status small')?.textContent`));
+      check('queda listo, con su imagen, su duración y sus subtítulos', await until(`${tubeCard}.dataset.status === 'ready' && ${tubeCard}.querySelector('.media-thumb img')?.naturalWidth > 0 && ${tubeCard}.querySelector('.media-duration')?.textContent === '0:06' && ${tubeCard}.querySelector('.media-cc')`, 60));
+      const saved = (await tubesNow())[0];
+      const asked = JSON.parse(fs.readFileSync(ytAsked, 'utf8'));
+      check('a yt-dlp solo le llega la dirección que escribe Manna, con el identificador del video', asked.at(-1) === 'https://www.youtube.com/watch?v=pruebaManna' && asked.at(-2) === '--' && !asked.some((a) => a.includes('compartido')), asked.slice(-2).join(' '));
+      check('el video queda guardado en el equipo: después ya no hace falta internet', saved.url === `/media/youtube/${saved.id}.mp4` && await run(`return (await fetch(${JSON.stringify(saved.url)}, { headers: { Range: 'bytes=0-9' } })).status === 206`), saved.url);
+      await paste('https://www.youtube.com/watch?v=pruebaManna&t=30s');
+      check('el mismo video no se descarga dos veces', (await text('#toast')).includes('ya está en la biblioteca') && (await tubesNow()).length === 1);
+
+      // Al aire, como cualquier video.
+      await click(`${tubeCard}.querySelector('.media-pick')`);
+      await sleep(300);
+      await click(`${tubeBar}.querySelector('.btn.primary')`);
+      await sleep(1800);
+      const tubeView = () => run(`const v = document.querySelector('.dock .monitor video'); return JSON.stringify({ src: v.getAttribute('src'), paused: v.paused, t: v.currentTime, tracks: [...v.textTracks].map(t => t.language + ':' + t.mode) })`).then(JSON.parse);
+      let onTube = await air();
+      let viewed = await tubeView();
+      check('se proyecta como un video más, reproduciéndose desde el equipo', onTube.item.kind === 'youtube' && onTube.item.title === 'Saludo de la iglesia hermana' && onTube.live.clock.playing === true
+        && viewed.src === saved.url && !viewed.paused && viewed.t > 0.3 && await run(`return Boolean(${tubeCard}.querySelector('.badge.live'))`), JSON.stringify(viewed));
+      await control('Pausar');
+      check('trae sus subtítulos en español y en inglés, y los mandos dejan elegir el idioma', onTube.item.subtitles.map((t) => t.lang).join() === 'es,en' && await run(`return [...${controls}.querySelectorAll('select option')].map(o => o.textContent).join() === 'Español,Inglés'`));
+      await control('Subtítulos');
+      onTube = await air();
+      viewed = await tubeView();
+      check('"Subtítulos" muestra los del primer idioma', onTube.live.subtitles === 'es' && viewed.tracks.join() === 'es:showing,en:hidden', viewed.tracks.join());
+      await run(`const s = ${controls}.querySelector('select'); s.value = 'en'; s.dispatchEvent(new Event('change'));`);
+      await sleep(700);
+      onTube = await air();
+      viewed = await tubeView();
+      check('y al cambiar de idioma cambian en pantalla', onTube.live.subtitles === 'en' && viewed.tracks.join() === 'es:hidden,en:showing', viewed.tracks.join());
+      const vtt = await run(`return await (await fetch(${JSON.stringify(onTube.item.subtitles[0].url)})).text()`);
+      check('los subtítulos automáticos de YouTube llegan limpios: cada línea, una sola vez', vtt.split('texto de prueba').length === 2 && !vtt.includes('<c>') && !vtt.includes('align:'), vtt.replace(/\n+/g, ' / ').slice(0, 110));
+      await control('Subtítulos');
+      check('y se pueden quitar', (await air()).live.subtitles === false);
+      await click(`[...${tubeBar}.querySelectorAll('.btn')].find(b => b.textContent.includes('Añadir'))`);
+      await sleep(600);
+      const tubeInOrder = (await air()).order.find((i) => i.kind === 'youtube');
+      check('se añade al orden del culto como elemento propio', Boolean(tubeInOrder) && tubeInOrder.title === 'Saludo de la iglesia hermana' && tubeInOrder.subtitle === 'YouTube · 0:06');
+
+      // Un video que YouTube no deja bajar.
+      await paste('https://www.youtube.com/watch?v=privado0001');
+      const failedCard = `${tube}.querySelector('.media-card[data-status=error]')`;
+      check('si YouTube no deja descargarlo, la ficha dice por qué y ofrece reintentar', await until(`${failedCard}?.querySelector('.media-status small')?.textContent.includes('privado o se quitó')`, 30)
+        && await run(`return [...${failedCard}.querySelectorAll('.media-status .btn')].map(b => b.textContent).join() === 'Reintentar' && document.querySelectorAll('.dock .job.error').length === 1`));
+      await click(`${failedCard}.querySelector('.media-status .btn')`);
+      check('"Reintentar" lo descarga de nuevo', await until(`${tube}.querySelectorAll('.media-card[data-status=downloading]').length === 1`, 10) && await until(`${failedCard}`, 30));
+      await cardMenu(failedCard, 'Eliminar');
+      await modalButton('Eliminar');
+      await sleep(700);
+      check('y al eliminarlo no queda ningún aviso suyo', (await tubesNow()).length === 1 && await run(`return !document.querySelector('.dock .job.error')`));
+    }
   }
 
   console.log('\n1. Interfaz · Televisores');
@@ -945,7 +1034,7 @@ try {
   // Un Manna que "arrancó con el código de antes" (huella fingida): debe notarlo y decirlo.
   await stopServer(server);
   // De paso, sin ffmpeg: para ver cómo se comporta Medios en un equipo que no lo tiene.
-  server = startServer(null, { MANNA_HUELLA: 'de-antes', MANNA_REVISAR_CODIGO_MS: '300', MANNA_FALTA: 'ffmpeg' });
+  server = startServer(null, { MANNA_HUELLA: 'de-antes', MANNA_REVISAR_CODIGO_MS: '300', MANNA_FALTA: 'ffmpeg,yt-dlp' });
   await sleep(3000);
   await chrome.send('Page.navigate', { url: `${local}/control?fin=${Date.now()}#orden` });
   await sleep(2500);

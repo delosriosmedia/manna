@@ -53,10 +53,11 @@ export function createJobs({ store, now = Date.now }) {
     return {
       id,
       get state() { return job.view.state; },
-      // update({ progress, detail }): cualquiera de los dos.
-      update({ progress, detail: text } = {}) {
+      // update({ progress, detail, title }): cualquiera de ellos.
+      update({ progress, detail: text, title: name } = {}) {
         if (job.view.state !== 'running') return;
         if (text !== undefined) change({ detail: text });
+        if (name) change({ title: String(name) });
         if (Number.isFinite(progress)) {
           const p = Math.min(1, Math.max(0, progress));
           const t = now();

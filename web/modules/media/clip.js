@@ -78,8 +78,10 @@ function drawClip(host, { build, make, onItem }) {
       }
       player.load(source);
       player.apply(state.clock, { volume, sound });
-      const track = media.textTracks?.[0];
-      if (track) track.mode = state.subtitles ? 'showing' : 'hidden';
+      // Se muestran los subtítulos del idioma elegido (state.subtitles), o ninguno.
+      [...(media.textTracks || [])].forEach((track, i) => {
+        track.mode = state.subtitles && item.subtitles?.[i]?.lang === state.subtitles ? 'showing' : 'hidden';
+      });
     },
     stop: () => player.stop(),
     destroy: () => player.release(),
@@ -93,7 +95,7 @@ function clipControls(host, { send }) {
   const sender = createSender(send, { onIdle: () => apply() });
   let clock = null;
   let item = null;
-  let subtitles = false;
+  let subtitles = false; // idioma de los subtítulos que se muestran, o false
   let dragging = false;
   let latest = null; // lo último que dijo el servidor
 
@@ -102,8 +104,11 @@ function clipControls(host, { send }) {
   const bar = h('input', { type: 'range', min: 0, max: 1, step: 0.1, value: 0, 'aria-label': 'Avance' });
   const now = h('span', { class: 'clip-time' }, '0:00');
   const total = h('span', { class: 'clip-time' }, '');
-  const captions = h('button', { class: 'btn', onclick: () => sender.push({ subtitles: !subtitles }) }, icon('closed-captioning', 16), 'Subtítulos');
-  const captionsRow = h('div', { class: 'transport' }); // solo lleva el botón si el video tiene subtítulos
+  const captions = h('button', { class: 'btn grow', onclick: () => sender.push({ subtitles: subtitles ? false : language.value || true }) }, icon('closed-captioning', 16), 'Subtítulos');
+  // Con subtítulos en más de un idioma (los de YouTube), se elige cuál.
+  const language = h('select', { class: 'select', 'aria-label': 'Idioma de los subtítulos', onchange: () => sender.push({ subtitles: language.value }) });
+  const captionsRow = h('div', { class: 'transport' }); // solo lleva sus mandos si el video tiene subtítulos
+  let offered = ''; // qué subtítulos se están ofreciendo ahora
   const volume = createVolume();
   host.replaceChildren(
     h('div', { class: 'transport' },
@@ -137,7 +142,7 @@ function clipControls(host, { send }) {
   function apply() {
     if (latest && (!clock || !(sender.busy || dragging))) {
       clock = latest.clock;
-      subtitles = Boolean(latest.subtitles);
+      subtitles = latest.subtitles || false;
     }
     render();
   }
@@ -148,9 +153,16 @@ function clipControls(host, { send }) {
     bar.disabled = !known;
     bar.max = known ? clock.duration : 1;
     total.textContent = known ? formatTime(clock.duration) : '';
-    if (Boolean(item?.subtitles) !== captions.isConnected) captionsRow.replaceChildren(...(item?.subtitles ? [captions] : []));
-    captions.classList.toggle('on', subtitles);
-    captions.setAttribute('aria-pressed', subtitles);
+    const tracks = item?.subtitles || [];
+    const signature = tracks.map((track) => track.lang).join();
+    if (signature !== offered) {
+      offered = signature;
+      language.replaceChildren(...tracks.map((track) => h('option', { value: track.lang }, track.label)));
+      captionsRow.replaceChildren(...(tracks.length ? [captions, tracks.length > 1 && language].filter(Boolean) : []));
+    }
+    if (subtitles) language.value = subtitles;
+    captions.classList.toggle('on', Boolean(subtitles));
+    captions.setAttribute('aria-pressed', Boolean(subtitles));
     paint();
     if (playing) frames.start(); else frames.stop();
   }
@@ -168,7 +180,8 @@ function clipControls(host, { send }) {
   };
 }
 
-registerKind('video', {
+// Un video: de la biblioteca o de YouTube. Se reproducen igual; cambian el icono y el nombre.
+const video = {
   icon: 'video',
   label: 'Video',
   unit: null,
@@ -179,17 +192,22 @@ registerKind('video', {
     const poster = h('img', { class: 'clip-poster', alt: '', hidden: true });
     return drawClip(host, {
       build: () => [poster],
-      make: () => h('video', { class: 'clip-video' }, h('track', { kind: 'subtitles', srclang: 'es', label: 'Subtítulos' })),
-      onItem(item, video) {
+      make: () => h('video', { class: 'clip-video' }),
+      onItem(item, media) {
         poster.hidden = !item.poster;
         if (item.poster && poster.getAttribute('src') !== item.poster) poster.src = item.poster;
-        const track = video.querySelector('track');
-        if (item.subtitles && track.getAttribute('src') !== item.subtitles) track.src = item.subtitles;
+        // Una pista por cada subtítulo que tenga, en su orden.
+        const wanted = (item.subtitles || []).map((track) => track.url).join();
+        if (media.dataset.tracks === wanted) return;
+        media.dataset.tracks = wanted;
+        media.replaceChildren(...(item.subtitles || []).map((track) => h('track', { kind: 'subtitles', srclang: track.lang === 'sub' ? 'es' : track.lang, label: track.label, src: track.url })));
       },
     });
   },
   controls: clipControls,
-});
+};
+registerKind('video', video);
+registerKind('youtube', { ...video, icon: 'youtube-logo', label: 'YouTube' });
 
 registerKind('audio', {
   icon: 'waveform',

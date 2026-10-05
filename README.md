@@ -14,11 +14,12 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Medios**: la biblioteca de la iglesia, en pestañas.
   - **Imágenes** (anuncios, carteles, fotos): se suben desde el equipo principal o desde la galería del celular, con el nombre que quieras; se elige si la imagen se ve completa o llenando la pantalla; y, mientras está al aire, se acerca y se desplaza desde el panel.
   - **Videos y audios**: se suben o se copian a `Contenido/Medios/`. Lo habitual se usa tal cual y lo demás se convierte solo, en segundo plano. Al aire: pausa, saltos, barra de avance, subtítulos y el volumen de Manna. Todas las pantallas van a la par y suena una sola.
+  - **YouTube**: se pega el enlace de un video y Manna lo descarga una vez, con su título, su imagen y sus subtítulos en español e inglés. Queda en la biblioteca y se proyecta sin anuncios, sin cortes y sin internet, con los mismos mandos que cualquier video.
 - **Fondos**: seis colores y las imágenes que subas, que quedan guardadas junto a ellos en Ajustes.
 - **Televisores** (en pausa y fuera de la barra, ver `docs/ESTADO.md`): un televisor Samsung de la misma red muestra la proyección desde su navegador, sin cables. Manna lo encuentra, le abre el navegador y le sirve de control remoto (teclas, puntero y texto); la primera vez le escribe la dirección por ti.
 - **Mandos en vivo**: lo que está al aire trae sus propios mandos en el panel y en el orden del culto. Hoy los estrena la **imagen de prueba** (Ajustes → Proyector de este equipo), que sirve para encuadrar el proyector o un televisor y comprobar, con su cronómetro, que todas las pantallas van a la par.
 - **Revisión del equipo**: al abrirse, Manna comprueba que el equipo principal tiene los programas que necesita. Si falta alguno, dice qué módulos se ven afectados y lo instala con un botón. Nunca impide abrir la app.
-- **Preparado para crecer**: himnario, YouTube y presentaciones ya tienen su sitio en la interfaz. Cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
+- **Preparado para crecer**: himnario y presentaciones ya tienen su sitio en la interfaz. Cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
 - **Funciones por dispositivo**: cada dispositivo elige al entrar.
   - **Control completo**: todos los módulos. Pide PIN.
   - **Control del orden**: solo proyecta lo que ya está en el orden del culto. Pensado para el celular. Pide PIN.
@@ -40,7 +41,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 
 Solo Node.js se instala antes. Lo demás lo comprueba Manna cada vez que se abre: si falta algo, en vez del control muestra la **revisión del equipo**, que dice qué módulos funcionarán completos y cuáles no, para qué sirve cada programa, y ofrece **Abrir Manna** de todos modos e **Instalar por mí** (descarga ffmpeg y yt-dlp de sus sitios oficiales a la carpeta `data/herramientas/`, sin tocar el sistema) o los pasos para hacerlo a mano. La misma revisión está en **Ajustes → Programas del equipo principal**, y cada módulo avisa al abrirlo si le falta algo. Los demás dispositivos no instalan nada.
 
-ffmpeg ya lo usa Medios, para convertir los videos y audios que el navegador no reproduce; sin él, los MP4 y MP3 habituales funcionan igual. yt-dlp y PowerPoint los usarán YouTube y las diapositivas, que están en construcción (ver `docs/PLAN.md`).
+ffmpeg lo usa Medios para convertir los videos y audios que el navegador no reproduce; sin él, los MP4 y MP3 habituales funcionan igual. yt-dlp (con ffmpeg) descarga los videos de YouTube; como YouTube cambia a menudo, en **Ajustes → Programas del equipo principal** hay un botón **Actualizar** para ponerlo al día. PowerPoint lo usarán las diapositivas, que están en construcción (ver `docs/PLAN.md`).
 
 ## Instalación (una sola vez por equipo)
 
@@ -123,6 +124,16 @@ Las imágenes se guardan en la carpeta `data/media/imagenes/` del equipo princip
 
 El sonido sale siempre por el equipo principal, por el dispositivo de audio que tenga elegido: por su ventana de proyección o, si no hay proyector conectado, por su página de control. Nunca se corta de golpe: al pausar, al poner «Negro» o «Solo fondo» y al cambiar lo que hay en pantalla, se desvanece en un instante. «Negro» y «Solo fondo» también pausan lo que suena, y al terminar un video la pantalla pasa sola a «Solo fondo».
 
+### Videos de YouTube
+
+1. En **Medios**, pestaña **YouTube**, pega el enlace del video (el de «Compartir», en YouTube) y pulsa **Añadir**. Se puede hacer desde el equipo principal o desde un celular; quien descarga es el equipo principal, que necesita internet en ese momento.
+2. La tarjeta muestra el avance. Mientras tanto puedes seguir usando Manna. Al terminar queda con su título, su imagen y su duración.
+3. Desde ahí es un video más: **Proyectar**, **Añadir al orden**, cambiarle el nombre o eliminarlo. Ya no necesita internet.
+4. Si el video tiene subtítulos en español o en inglés (los del autor o los automáticos de YouTube), Manna los trae. Con el video al aire, **Subtítulos** los muestra y la lista de al lado elige el idioma.
+5. Si la tarjeta dice que no se pudo descargar, explica por qué (es privado, se quitó, no hay internet) y ofrece **Reintentar**. Si falla con todos los videos, actualiza yt-dlp en **Ajustes → Programas del equipo principal → Actualizar**.
+
+Los videos se guardan en `data/media/youtube/` del equipo principal, a 1080p como mucho. Descargar de YouTube solo está permitido con videos propios o con permiso de su autor: úsalo con los de tu iglesia.
+
 ### Un televisor como pantalla
 
 > **En pausa.** En la primera prueba con un televisor real, Manna le abrió el navegador pero el televisor no llegó a mostrar la proyección. El módulo no aparece en la barra; lo que sigue describe cómo está pensado y se retomará más adelante.
@@ -175,7 +186,8 @@ server/
                         imagen de prueba
     order/              orden del culto: elementos, secciones y pasos
     media/              biblioteca de imágenes, videos y audios: subir, reconocer, convertir con ffmpeg,
-                        subtítulos, y la reproducción a la par en todas las pantallas
+                        subtítulos, descargar de YouTube con yt-dlp (youtube.js), y la reproducción
+                        a la par en todas las pantallas
     tv/                 televisores de la red como pantalla: buscarlos, vincularlos, abrirles
                         el navegador y hacerles de control remoto (samsung.js es lo propio de la marca)
 web/

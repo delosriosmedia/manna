@@ -8,11 +8,14 @@ import { applyClock, createClock, freezeClock } from '../../core/playback.js';
 import { AUDIO_EXTENSIONS, SUBTITLE_EXTENSIONS, VIDEO_EXTENSIONS, clipKind, clock, originalMayPlay, planFor, playsAsIs, toVtt } from './clips.js';
 import { createConverter } from './convert.js';
 import { cleanName } from './images.js';
+import { cleanVtt, createDownloader, findSubtitles, youtubeId } from './youtube.js';
 
-// Videos y audios de Medios. Llegan de dos sitios:
+// Videos y audios de Medios. Llegan de tres sitios:
 //   - subidos desde la app: el archivo queda en data/media/videos o data/media/audios;
 //   - copiados a mano en Contenido/Medios/ del equipo principal: aparecen solos (para archivos
-//     grandes es lo más cómodo).
+//     grandes es lo más cómodo);
+//   - de YouTube (kind 'youtube'): se descargan una vez con yt-dlp a data/media/youtube y desde
+//     entonces son un video más, que no necesita internet (ver youtube.js).
 // Lo que cualquier navegador reproduce tal cual se usa como está. Lo demás se convierte una sola
 // vez, en segundo plano, y el resultado (una copia ligera, en MP4 y a 1080p como mucho) se guarda
 // en data/media/convertidos.
@@ -24,19 +27,23 @@ import { cleanName } from './images.js';
 //
 // Ficha de cada uno (en data/medios.json):
 //   { id, kind, name, source: 'upload' | 'folder', file, bytes, added, duration, width, height,
-//     status: 'ready' | 'converting' | 'needs-ffmpeg' | 'error', direct, converted, poster, subtitles, error }
+//     status: 'ready' | 'downloading' | 'converting' | 'needs-ffmpeg' | 'error', direct, converted, poster,
+//     subtitles (los que se le añaden a mano), tracks (los que trae de YouTube: [{ lang, label, file }]), error }
 //   file       subido: ruta dentro de data/media. De carpeta: nombre del archivo en Contenido/Medios
 //   direct     cualquier navegador reproduce el propio archivo
 //   converted  ruta de la copia ligera dentro de data/media
 //   original   ¿reproduce el equipo principal el archivo tal cual? true, false, o null si aún no se
 //              sabe. 'no' si ni se intenta (su sonido no lo entendería). originalBy: qué pantalla lo dijo
 
-const FOLDERS = { video: 'videos', audio: 'audios' };
+const FOLDERS = { video: 'videos', audio: 'audios', youtube: 'youtube' };
 const LIMITS = { video: 8 * 1024 ** 3, audio: 1024 ** 3 };
 const THUMB_LIMIT = 600 * 1024;
 const SUBTITLE_LIMIT = 2 * 1024 * 1024;
 const MAX_DURATION = 24 * 3600;
-const LABELS = { video: 'Video', audio: 'Audio' };
+const LABELS = { video: 'Video', audio: 'Audio', youtube: 'YouTube' };
+// Un video de YouTube es, para todo lo demás, un video.
+const visual = (clip) => clip.kind !== 'audio';
+const formOf = (clip) => (visual(clip) ? 'video' : 'audio');
 
 const stripExtension = (name) => name.replace(/\.[^.]+$/, '');
 const nameFromFile = (name) => cleanName(stripExtension(name).replace(/[_]+/g, ' ')) || 'Sin nombre';
@@ -47,6 +54,7 @@ export function registerClips(app, { saved, commit }) {
   const folder = app.mediaDir || null;
   // MANNA_CONVERSION_LENTA (solo para pruebas): milisegundos que espera cada conversión antes de empezar.
   const converter = createConverter(app, { delay: Number(process.env.MANNA_CONVERSION_LENTA) || 0 });
+  const downloader = createDownloader(app);
   saved.data.clips ||= [];
   const clips = () => saved.data.clips;
 
@@ -62,10 +70,15 @@ export function registerClips(app, { saved, commit }) {
   const usable = (clip) => clip.status === 'ready' || Boolean(localUrl(clip));
   // El sello al final hace que el navegador pida la imagen o los subtítulos de nuevo si cambian.
   const stamped = (file, at) => (file ? `/media/${file}?v=${at || 0}` : null);
+  // Subtítulos de un video: el que se le añadió a mano y los que trajo de YouTube.
+  const subtitlesOf = (clip) => [
+    clip.subtitles && { lang: 'sub', label: 'Subtítulos', url: stamped(clip.subtitles, clip.subtitlesAt) },
+    ...(clip.tracks || []).map((track) => ({ lang: track.lang, label: track.label, url: stamped(track.file, clip.added) })),
+  ].filter(Boolean);
   const view = (clip) => ({
     id: clip.id, kind: clip.kind, name: clip.name, source: clip.source, url: urlOf(clip), poster: stamped(clip.poster, clip.posterAt),
     duration: clip.duration ?? null, width: clip.width || 0, height: clip.height || 0, bytes: clip.bytes || 0, added: clip.added,
-    status: clip.status, error: clip.error || null, subtitles: Boolean(clip.subtitles), converted: Boolean(clip.converted),
+    status: clip.status, error: clip.error || null, subtitles: subtitlesOf(clip).length > 0, converted: Boolean(clip.converted),
     // usable: ya se puede proyectar (aunque la copia para las demás pantallas esté en camino).
     // original: solo en lo que hay que convertir. playable = lo dicho por el equipo principal
     // (null: aún no lo ha comprobado), by = qué pantalla suya lo comprobó.
@@ -85,11 +98,13 @@ export function registerClips(app, { saved, commit }) {
       removeFile(clip[key]);
       clip[key] = null;
     }
+    for (const track of clip.tracks || []) removeFile(track.file);
+    clip.tracks = [];
   }
 
   // ---- Qué hacer con un archivo ----
   async function ensurePoster(clip) {
-    if (clip.kind !== 'video' || clip.poster) return;
+    if (!visual(clip) || clip.poster) return;
     const file = `miniaturas/${clip.id}.jpg`;
     fs.mkdirSync(path.join(base, 'miniaturas'), { recursive: true });
     const source = clip.converted ? path.join(base, clip.converted) : inputOf(clip);
@@ -108,24 +123,24 @@ export function registerClips(app, { saved, commit }) {
         : { status: 'needs-ffmpeg', error: 'Este formato hay que convertirlo, y para eso hace falta ffmpeg en el equipo principal.' });
       return true;
     }
-    if (!info || (clip.kind === 'audio' && !info.audio)) return false;
+    if (!info || (clip.kind === 'audio' && !info.audio) || (clip.kind === 'youtube' && !info.video)) return false;
     if (clip.kind === 'video' && !info.video) clip.kind = 'audio'; // un "video" que solo trae sonido
     Object.assign(clip, { duration: info.duration ?? clip.duration ?? null, width: info.video?.width || 0, height: info.video?.height || 0 });
-    const plan = planFor(info, clip.kind);
+    const plan = planFor(info, formOf(clip));
     if (plan.action === 'direct') {
       Object.assign(clip, { direct: true, status: 'ready', error: null });
       await ensurePoster(clip);
       return true;
     }
     // Hay que hacerle una copia. Entre tanto, quizá el equipo principal pueda con el original.
-    if (!originalMayPlay(info, clip.kind)) clip.original = 'no';
+    if (!originalMayPlay(info, formOf(clip))) clip.original = 'no';
     else if (clip.original === 'no') clip.original = null;
     await ensurePoster(clip);
-    const converted = `convertidos/${clip.id}${clip.kind === 'audio' ? '.m4a' : '.mp4'}`;
+    const converted = `convertidos/${clip.id}${visual(clip) ? '.mp4' : '.m4a'}`;
     fs.mkdirSync(path.join(base, 'convertidos'), { recursive: true });
     Object.assign(clip, { direct: false, status: 'converting', error: null });
     converter.enqueue({
-      id: clip.id, name: clip.name, input, output: path.join(base, converted), kind: clip.kind, plan, duration: clip.duration, width: clip.width,
+      id: clip.id, name: clip.name, input, output: path.join(base, converted), kind: formOf(clip), plan, duration: clip.duration, width: clip.width,
       async onDone(result) {
         // Pudo eliminarse mientras se convertía.
         if (!clips().includes(clip)) { removeFile(converted); return; }
@@ -202,8 +217,14 @@ export function registerClips(app, { saved, commit }) {
 
   // Lo que quedó a medias al apagar, y lo que esperaba a que hubiera ffmpeg.
   async function resume() {
-    saved.data.clips = clips().filter((clip) => clip.source === 'folder' || fs.existsSync(path.join(base, clip.file)));
+    saved.data.clips = clips().filter((clip) => clip.source === 'folder' || fs.existsSync(path.join(base, clip.file))
+      || (clip.source === 'youtube' && clip.status !== 'ready'));
     for (const clip of clips()) {
+      // Una descarga que se quedó a medias al apagar no se retoma sola (haría falta internet): se dice.
+      if (clip.status === 'downloading' && !downloader.busy(clip.id)) {
+        Object.assign(clip, { status: 'error', error: 'La descarga se interrumpió. Pulsa «Reintentar» para bajarlo de nuevo.' });
+        continue;
+      }
       const lost = clip.status === 'ready' && clip.converted && !fs.existsSync(path.join(base, clip.converted));
       const waiting = clip.status === 'needs-ffmpeg' && app.tools.has('ffmpeg');
       if ((clip.status === 'converting' && !converter.busy(clip.id)) || lost || waiting) {
@@ -239,6 +260,7 @@ export function registerClips(app, { saved, commit }) {
   app.onClose(() => {
     stopWatching();
     converter.close();
+    downloader.close();
   });
 
   // ---- Tipos de contenido: video y audio ----
@@ -252,14 +274,21 @@ export function registerClips(app, { saved, commit }) {
     const shared = { id: clip.id, title: clip.name, poster: stamped(clip.poster, clip.posterAt), duration: clip.duration ?? null };
     if (!usable(clip)) {
       // Existe, pero aún no se puede poner en pantalla: la proyección lo dice en vez de fallar.
-      return { ...shared, unavailable: clip.status === 'converting' ? `«${clip.name}» aún se está convirtiendo. Estará listo en un momento.` : clip.error || 'Este archivo no se puede reproducir.' };
+      return { ...shared, unavailable: clip.status === 'converting' ? `«${clip.name}» aún se está convirtiendo. Estará listo en un momento.` : clip.status === 'downloading' ? `«${clip.name}» aún se está descargando de YouTube.` : clip.error || 'Este archivo no se puede reproducir.' };
     }
     return {
-      ...shared, url: urlOf(clip), local: localUrl(clip), subtitles: stamped(clip.subtitles, clip.subtitlesAt),
+      ...shared, url: urlOf(clip), local: localUrl(clip), subtitles: subtitlesOf(clip),
       waiting: clip.status === 'ready' ? null : clip.status === 'converting' ? 'Este video se verá aquí cuando termine de prepararse para este dispositivo.' : 'Este video solo se ve en la pantalla del equipo principal.',
     };
   };
-  for (const kind of ['video', 'audio']) {
+  // Qué subtítulos se muestran: ninguno (false) o los de un idioma de los que tiene el video.
+  const chosen = (wanted, item, now) => {
+    if (wanted === undefined) return now || false;
+    const list = item.subtitles || [];
+    if (wanted === true) return list[0]?.lang || false;
+    return list.some((track) => track.lang === wanted) ? wanted : false;
+  };
+  for (const kind of ['video', 'audio', 'youtube']) {
     app.kind(kind, {
       label: LABELS[kind],
       describe(data) {
@@ -273,7 +302,7 @@ export function registerClips(app, { saved, commit }) {
       live(item, previous) {
         const before = previous?.state;
         // Tras un reinicio del servidor queda en pausa donde iba; al proyectarlo, empieza a reproducirse.
-        if (before?.clock) return { clock: freezeClock({ ...before.clock, duration: item.duration ?? before.clock.duration ?? null }, previous.at), subtitles: Boolean(before.subtitles) };
+        if (before?.clock) return { clock: freezeClock({ ...before.clock, duration: item.duration ?? before.clock.duration ?? null }, previous.at), subtitles: chosen(before.subtitles || false, item, false) };
         return { clock: { ...createClock({ duration: item.duration }), playing: true }, subtitles: false };
       },
       control(state, patch, { content: item, now }) {
@@ -287,7 +316,7 @@ export function registerClips(app, { saved, commit }) {
             commit();
           }
         }
-        return { clock: applyClock(time, patch, now), subtitles: patch.subtitles === undefined ? Boolean(state.subtitles) : Boolean(patch.subtitles) };
+        return { clock: applyClock(time, patch, now), subtitles: chosen(patch.subtitles, item, state.subtitles) };
       },
       // Al ponerse la pantalla en negro o en solo fondo, deja de sonar: queda en pausa donde iba.
       hide: (state, { now }) => ({ ...state, clock: applyClock(state.clock, { playing: false }, now) }),
@@ -340,12 +369,76 @@ export function registerClips(app, { saved, commit }) {
   app.route('POST', '/api/media/clips/:id/subtitles', async (ctx) => {
     ctx.require('media.edit');
     const clip = find(ctx.params.id);
-    if (clip.kind !== 'video') throw new HttpError(400, 'Los subtítulos son para los videos.');
+    if (!visual(clip)) throw new HttpError(400, 'Los subtítulos son para los videos.');
     const text = (await ctx.raw(SUBTITLE_LIMIT)).toString('utf8');
     if (!saveSubtitles(clip, text)) throw new HttpError(415, 'Ese archivo no tiene subtítulos que Manna entienda. Usa un archivo .srt o .vtt.');
     commit();
     return view(clip);
   });
+
+  // ---- YouTube ----
+  // Descarga el video a una carpeta de paso y, al terminar, lo deja en la biblioteca con su
+  // imagen y sus subtítulos. Desde entonces se trata como cualquier otro video.
+  function startDownload(clip) {
+    const dir = path.join(app.tmpDir, `youtube-${clip.id}`);
+    Object.assign(clip, { status: 'downloading', error: null });
+    downloader.download({
+      id: clip.id, videoId: clip.videoId, name: clip.name, dir,
+      // El título y la duración llegan antes que el video.
+      onInfo({ title, duration }) {
+        if (!clips().includes(clip)) return null;
+        if (title && !clip.named) clip.name = cleanName(title) || clip.name;
+        if (duration) clip.duration = duration;
+        commit();
+        return clip.name;
+      },
+      async onDone(result) {
+        const still = clips().includes(clip);
+        if (result.ok && still) {
+          const place = (from, to) => {
+            fs.mkdirSync(path.dirname(path.join(base, to)), { recursive: true });
+            fs.renameSync(from, path.join(base, to));
+          };
+          place(path.join(dir, 'video.mp4'), clip.file);
+          clip.bytes = fs.statSync(path.join(base, clip.file)).size;
+          if (fs.existsSync(path.join(dir, 'video.jpg'))) {
+            place(path.join(dir, 'video.jpg'), `miniaturas/${clip.id}.jpg`);
+            Object.assign(clip, { poster: `miniaturas/${clip.id}.jpg`, posterAt: Date.now() });
+          }
+          clip.tracks = findSubtitles(dir).map(({ lang, label, file }) => {
+            const to = `subtitulos/${clip.id}.${lang}.vtt`;
+            fs.mkdirSync(path.join(base, 'subtitulos'), { recursive: true });
+            fs.writeFileSync(path.join(base, to), cleanVtt(fs.readFileSync(file, 'utf8')));
+            return { lang, label, file: to };
+          });
+          if (!(await analyze(clip))) Object.assign(clip, { status: 'error', error: 'Lo que se descargó no es un video que Manna pueda reproducir.' });
+        } else if (still && !result.cancelled) {
+          Object.assign(clip, { status: 'error', error: result.error });
+        }
+        fs.rmSync(dir, { recursive: true, force: true });
+        if (still) commit();
+      },
+    });
+  }
+
+  function addYoutube(link) {
+    const videoId = youtubeId(link);
+    if (!videoId) throw new HttpError(400, 'Eso no es un enlace de un video de YouTube. Cópialo desde «Compartir», en YouTube.');
+    const already = clips().find((c) => c.videoId === videoId);
+    if (already) return { id: already.id, already: true };
+    for (const tool of ['yt-dlp', 'ffmpeg']) {
+      if (!app.tools.has(tool)) throw new HttpError(409, `Falta ${tool} en el equipo principal: hace falta para descargar de YouTube. Se instala desde Ajustes, en «Programas del equipo principal».`);
+    }
+    const id = crypto.randomBytes(6).toString('hex');
+    const clip = {
+      id, kind: 'youtube', name: 'Video de YouTube', source: 'youtube', videoId, file: `${FOLDERS.youtube}/${id}.mp4`, bytes: 0, added: Date.now(),
+      duration: null, width: 0, height: 0, status: 'downloading', direct: false, converted: null, poster: null, subtitles: null, tracks: [], error: null,
+    };
+    clips().push(clip);
+    startDownload(clip);
+    commit();
+    return { id, already: false };
+  }
 
   // El equipo principal dice si su navegador reproduce el archivo original tal cual. Lo comprueba
   // su pantalla de proyección o, si no hay, su control; lo que diga la de proyección manda, porque
@@ -364,14 +457,18 @@ export function registerClips(app, { saved, commit }) {
   return {
     views: (kind) => clips().filter((c) => c.kind === kind).sort((a, b) => b.added - a.added).map(view),
     has: (id) => clips().some((c) => c.id === id),
+    addYoutube,
     rename(id, name) {
       const clip = find(id);
       clip.name = name;
+      clip.named = true; // el título que llegue de YouTube ya no lo cambia
       commit();
     },
     remove(id) {
       const clip = find(id);
       if (clip.source === 'folder') throw new HttpError(409, 'Este archivo está en la carpeta Contenido/Medios del equipo principal. Para quitarlo, bórralo de esa carpeta.');
+      downloader.cancel(clip.id);
+      downloader.forget(clip.id);
       dropDerived(clip);
       removeFile(clip.file);
       saved.data.clips = clips().filter((c) => c.id !== id);
@@ -387,6 +484,12 @@ export function registerClips(app, { saved, commit }) {
     async retry(id) {
       const clip = find(id);
       if (!['error', 'needs-ffmpeg'].includes(clip.status)) return;
+      // Un video de YouTube que no llegó a bajar: se descarga de nuevo.
+      if (clip.source === 'youtube' && !fs.existsSync(path.join(base, clip.file))) {
+        startDownload(clip);
+        commit();
+        return;
+      }
       if (!(await analyze(clip))) Object.assign(clip, { status: 'error', error: 'Manna no puede reproducir este archivo.' });
       commit();
     },

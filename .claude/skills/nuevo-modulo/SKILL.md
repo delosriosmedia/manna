@@ -74,7 +74,7 @@ Lee `.claude/rules/arquitectura.md` y `DESIGN.md`, y la fase correspondiente de 
    };
    ```
 
-   Con `needs`, la revisión del equipo y la franja de aviso del módulo salen solas. Si el módulo llega por partes (Medios: primero imágenes, luego videos), lo que pedirán las partes que faltan se marca con `soon: true`. Dentro del módulo, lo que dependa de un programa que falta se muestra deshabilitado con su explicación (`state.tools`), nunca oculto ni roto.
+   Con `needs`, la revisión del equipo y la franja de aviso del módulo salen solas. Si el módulo llega por partes (Medios: primero imágenes, luego videos), lo que pedirán las partes que faltan se marca con `soon: true`. Si el módulo tiene pestañas y un programa solo hace falta en algunas, se dice con `parts: ['id-de-la-pestaña']` y el módulo llama a `ctx.setPart(id)` al cambiar de pestaña: el aviso sale solo ahí. Dentro del módulo, lo que dependa de un programa que falta se muestra deshabilitado con su explicación (`state.tools`), nunca oculto ni roto.
 
    Regístrala en `web/modules/registry.js` (sustituyendo la entrada `soon` si ya estaba prevista) y enlaza su `.css` en `web/control.html`.
 

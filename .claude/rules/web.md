@@ -26,9 +26,9 @@ paths:
 - `web/core/shell.js` monta las tres zonas: barra de módulos, espacio de trabajo y panel "Al aire" (`web/modules/projection/dock.js`). También pone los atajos globales (← → B C), el aviso de conexión y la confirmación al cerrar.
 - Un **módulo** es `web/modules/<id>/workspace.js`, que exporta `{ id, name, icon, place?, needs?, mount(el, ctx) }`, y una línea en `web/modules/registry.js`.
   - `hidden: true` (en `registry.js`) deja un módulo en pausa: no sale en la barra, pero existe y se abre por su dirección (`#id`). Así se puede seguir probando.
-  - `needs` lista los programas del equipo principal que necesita: `[{ tools: ['ffmpeg'], feature: 'convertir videos' }]`, donde `feature` completa la frase "no se podrá…". Con `soon: true` se marca lo que pedirá una parte del módulo que aún no existe: la revisión del equipo lo cuenta, pero el módulo no avisa por ello. Con eso la barra superior del módulo avisa si falta alguno (`web/core/shell.js`) y la revisión del equipo lo cuenta. Nunca se impide abrir un módulo por esto.
+  - `needs` lista los programas del equipo principal que necesita: `[{ tools: ['ffmpeg'], feature: 'convertir videos' }]`, donde `feature` completa la frase "no se podrá…". Con `parts: ['youtube']` el aviso sale solo en esas partes (pestañas) del módulo, que dice en cuál está con `ctx.setPart(id)`; la revisión del equipo las cuenta todas. Con `soon: true` se marca lo que pedirá una parte del módulo que aún no existe: la revisión del equipo lo cuenta, pero el módulo no avisa por ello. Con eso la barra superior del módulo avisa si falta alguno (`web/core/shell.js`) y la revisión del equipo lo cuenta. Nunca se impide abrir un módulo por esto.
   - `mount` dibuja el módulo dentro de `el`, se suscribe al estado y puede devolver `{ onShow(), keys(evento) }`. `keys` devuelve `true` si atendió la tecla.
-  - `ctx`: `{ role, isLocal, canEdit, go(id), setPreview(elemento | null) }`. `setPreview` muestra en el panel lo que se proyectaría.
+  - `ctx`: `{ role, isLocal, canEdit, go(id), setPreview(elemento | null), setPart(id) }`. `setPreview` muestra en el panel lo que se proyectaría; `setPart`, en un módulo con pestañas, dice cuál está abierta.
   - El espacio de trabajo empieza con `.ws-head` (título y buscador o acción de entrada) y pone su acción principal abajo a la derecha.
 - Un módulo puede usar piezas de interfaz de `projection` (`stage.js` para dibujar miniaturas, `controls.js`) y de `system` (`devices.js`). Fuera de eso, no importa archivos de otros módulos.
 - Una página por función: `web/<rol>.html` + `web/roles/<rol>.js`, que empieza con `await ensureRole('<rol>')` y llama a `createShell()` con los módulos de esa función. Aparte está `web/requisitos.html`, la revisión del equipo: no es una función, se abre sin PIN, solo deja actuar desde el equipo principal y nunca bloquea el paso a la app.
@@ -47,6 +47,8 @@ paths:
 - Un mando que se arrastra envía con `createSender()` de `web/core/sender.js`: junta las órdenes, las manda de una en una y avisa (`onIdle`) cuando ya salió todo, que es el momento de volver a pintar lo que dice el servidor.
 - El volumen general se muestra con `createVolume()` de `web/modules/projection/volume.js`, dentro de los mandos de todo lo que suene.
 - Las tareas en curso se muestran con `createJobsList()` o `jobRow()` de `web/core/jobs.js`.
+- Dos tipos que se dibujan igual comparten su definición: `youtube` es el objeto de `video` con otro icono y otro nombre (`web/modules/media/clip.js`). Los subtítulos de un video son una pista (`<track>`) por cada entrada de `item.subtitles`, y se muestra la del idioma que diga el mando.
+- Una pestaña de Medios puede poner en la cabecera algo propio en lugar del botón de subir (`entry`, en la pieza que devuelve `createClipsPanel`): YouTube pone el campo del enlace.
 
 ## Pantallas táctiles y tamaños
 

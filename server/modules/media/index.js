@@ -34,6 +34,7 @@ export default function setup(app) {
     images: [...saved.data.images].sort((a, b) => b.added - a.added).map(view),
     videos: library?.views('video') || [],
     audios: library?.views('audio') || [],
+    youtube: library?.views('youtube') || [],
   });
   const find = (id) => {
     const image = saved.data.images.find((i) => i.id === id);
@@ -48,7 +49,7 @@ export default function setup(app) {
     app.services.projection?.refresh();
   };
 
-  store.register('media', { images: [], videos: [], audios: [] });
+  store.register('media', { images: [], videos: [], audios: [], youtube: [] });
   library = registerClips(app, { saved, commit });
   app.services.media = { rescan: library.rescan };
   publish();
@@ -129,6 +130,9 @@ export default function setup(app) {
     image.fit = fit;
     commit();
   });
+
+  // Añade un video de YouTube a la biblioteca: lo descarga en segundo plano. Devuelve su id.
+  app.action('media.youtube', { permission: 'media.edit' }, ({ link }) => library.addYoutube(link));
 
   app.action('media.retry', { permission: 'media.edit' }, ({ id }) => library.retry(id));
   app.action('media.subtitlesRemove', { permission: 'media.edit' }, ({ id }) => library.removeSubtitles(id));

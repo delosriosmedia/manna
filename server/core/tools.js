@@ -169,6 +169,8 @@ const CATALOG = [
     name: 'yt-dlp',
     level: 'feature',
     purpose: 'Descarga los videos de YouTube para proyectarlos sin anuncios ni cortes.',
+    // YouTube cambia a menudo y yt-dlp se queda atrás: conviene poder ponerlo al día con un botón.
+    update: 'Si las descargas de YouTube empiezan a fallar, actualízalo.',
     link: 'https://github.com/yt-dlp/yt-dlp#installation',
     binaries: ['yt-dlp'],
     version: { args: ['--version'], pattern: /^\s*(\S+)/ },
@@ -237,6 +239,8 @@ export function setupTools(app) {
         detail: hit?.detail || (hit?.own ? 'Instalado por Manna' : null),
         manual: tool.manual[PLATFORM] || tool.manual.other || null,
         installable: Boolean(download),
+        // Se puede poner al día desde Manna (vuelve a descargarlo a su carpeta), y por qué convendría.
+        update: download && tool.update ? tool.update : null,
         downloadSize: download?.size || null,
         installing: installing.has(tool.id),
       };

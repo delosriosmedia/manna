@@ -1,6 +1,6 @@
 # Plan de trabajo: versión 2
 
-Estado: **aprobado por el dueño el 2026-10-04. En curso: fases 0, 1 y 2 terminadas; las fases 3 y 4 se trabajan a la vez.**
+Estado: **aprobado por el dueño el 2026-10-04. En curso: hechas las fases 0, 1, 2, 4, 6 y 7; sigue la 8 (diapositivas). La 3 (televisores) está en pausa y la 5 (himnario), pospuesta.**
 Parte de la versión 1.0.0 y termina en la 2.0.0.
 
 Este documento es el plan y, al terminar, la base de la auditoría (sección 8). Se actualiza al cerrar cada fase: la sección 9 lleva el avance, la 10 cada cambio que se le hizo al plan y por qué, y la 11 los cambios que se le sugieren al dueño y aún no ha decidido.
@@ -15,7 +15,7 @@ Este documento es el plan y, al terminar, la base de la auditoría (sección 8).
 | D | Imágenes: subir, nombrar, ajustar a pantalla, zoom y desplazamiento en vivo | Fase 4 |
 | E | Himnario: 613 videos, dos vistas, buscador con letra, volumen, barra de avance, **cantado o pista** | Fase 5 |
 | F | Videos y audios locales en cualquier formato, con **conversión en segundo plano y avance a la vista** | Fase 6 |
-| G | YouTube: descargar al añadir el enlace, proyectar sin anuncios, **con subtítulos opcionales** | Fase 7 |
+| G | YouTube: descargar al añadir el enlace, proyectar sin anuncios, **con subtítulos opcionales** | Fase 7 (hecho) |
 | H | Diapositivas: PDF y PowerPoint, con vista de la siguiente, cuántas faltan y zoom | Fase 8 |
 | I | Imágenes y medios en un solo módulo | Decidido: sí (3.1) |
 | J | Que la **revisión inicial del equipo** compruebe lo necesario y avise de qué módulos funcionarán y cuáles no, **sin bloquear**; y que cada módulo avise al abrirlo si le falta algo | Fases 0 y 1 (hecho) |
@@ -74,7 +74,7 @@ Datos medidos en el proyecto, no supuestos.
 | `image` | Medios | Uno | Ajuste, zoom, desplazamiento | Hecho (1.5) |
 | `song` | Himnario | Uno (el video) | Pausa, reinicio, avance; cantado o pista | Fase 5 |
 | `video`, `audio` | Medios | Uno | Pausa, reinicio, saltos, barra de avance; subtítulos; volumen general | Hecho (1.6) |
-| `youtube` | Medios | Uno | Los mismos | Fase 7 |
+| `youtube` | Medios | Uno | Los mismos, con elección del idioma de los subtítulos | Hecho (1.7) |
 | `slides` | Diapositivas | Una diapositiva por paso | Zoom, desplazamiento, vista de la siguiente | Fase 8 |
 
 "Cantado o pista" se elige **antes** de proyectar o de añadir al orden (queda guardado en el elemento) y también se puede cambiar al aire.
@@ -127,12 +127,14 @@ De menor a mayor riesgo; cada fase deja algo usable y **se publica al cerrarla**
 | 3 | Pantalla para televisores | M | 1.4 |
 | 4 | Medios: imágenes | M | 1.5 |
 | 6 | Medios: videos y audios locales, con la reproducción | L | 1.6 |
-| 5 | Himnario | M | 1.7 |
-| 7 | Medios: YouTube | M | 1.8 |
-| 8 | Diapositivas | L | 1.9 |
+| 7 | Medios: YouTube | M | 1.7 |
+| 8 | Diapositivas | L | 1.8 |
+| 5 | Himnario | M | 1.9 |
 | 9 | Auditoría del proyecto completo | M | 2.0 |
 
 **Orden cambiado el 2026-10-04 (decisión 20)**: la fase 6 va antes que la 5, mientras el dueño revisa las letras de los himnos. La reproducción (pausa, avance, volumen, una sola pantalla que suena), que iba a estrenarse con el himnario, se construye con los videos.
+
+**Y el 2026-10-05 (decisión 28)**: tras la fase 7 se hace la 8 (diapositivas); ahí se detiene el trabajo para que el dueño pruebe, y después se revisa el himnario.
 
 Por qué este orden: búsqueda y comparador usan datos que ya existen; los televisores dependen de pruebas del dueño, que conviene empezar pronto; las imágenes estrenan biblioteca y subidas sin la complejidad del sonido; el himnario estrena la reproducción con archivos que ya son compatibles; YouTube y diapositivas, los que dependen de programas de terceros, al final.
 
@@ -222,14 +224,14 @@ Reproducción (para todo lo que suena): reloj compartido (hecho), pausa, reinici
 - Subtítulos de un archivo `.srt` o `.vtt` con el mismo nombre que el video, con el mismo mando que YouTube.
 - Audios: se proyecta el fondo con el nombre, y suenan con los mismos mandos.
 
-### Fase 7 · Medios: YouTube
+### Fase 7 · Medios: YouTube — hecha (1.7.0)
 
-- Se pega el enlace (desde el equipo principal o desde un celular); Manna lo descarga con yt-dlp a 1080p como máximo en `data/tmp/`, como tarea con avance. Se pide imagen H.264 y sonido AAC, que solo hay que unir.
-- **Subtítulos**: viable. yt-dlp baja los que tenga el video (los del autor y, si no hay, los automáticos) en formato WebVTT, que lleva los tiempos; el navegador los muestra sincronizados por sí solo. Un mando en vivo los **activa o desactiva** y elige el idioma. Se dibujan con el estilo de la proyección. Los automáticos de YouTube son menos fiables y traen líneas repetidas que hay que limpiar.
-- Los archivos se borran al cerrar Manna. Si el elemento sigue en el orden al volver a abrir, se descarga de nuevo cuando se necesite.
-- Solo se aceptan enlaces de YouTube, y nunca se pasa texto del usuario a una línea de órdenes.
+- Se pega el enlace (desde el equipo principal o desde un celular); Manna lo descarga con yt-dlp a 1080p como máximo, como tarea con avance. Se pide imagen H.264 y sonido AAC, que solo hay que unir.
+- **Subtítulos**: yt-dlp baja los que tenga el video en español y en inglés (los del autor y, si no hay, los automáticos) en formato WebVTT, que lleva los tiempos; el navegador los muestra sincronizados por sí solo. Un mando en vivo los **activa o desactiva** y elige el idioma. Los automáticos de YouTube traen líneas repetidas, que Manna limpia.
+- **Los videos se conservan en la biblioteca** (`data/media/youtube/`), como cualquier otro video. *El plan decía borrarlos al cerrar Manna y volver a descargarlos al necesitarlos; se cambió (sección 10): así un video preparado el jueves se proyecta el sábado aunque ese día no haya internet o YouTube no deje descargar.* La descarga sí pasa por `data/tmp/` y solo se guarda si termina bien.
+- Solo se aceptan enlaces de YouTube, y nunca se pasa texto del usuario a una línea de órdenes: del enlace se toma solo el identificador del video.
 
-**Límites**: hace falta internet al añadir el enlace, no al proyectar. yt-dlp deja de funcionar cada cierto tiempo cuando YouTube cambia algo: Ajustes tendrá un botón para actualizarlo. Descargar de YouTube va contra sus condiciones salvo contenido propio o con permiso: úsalo con los videos de la iglesia.
+**Límites**: hace falta internet al añadir el enlace, no al proyectar. yt-dlp deja de funcionar cada cierto tiempo cuando YouTube cambia algo: Ajustes tiene un botón para actualizarlo. Descargar de YouTube va contra sus condiciones salvo contenido propio o con permiso: úsalo con los videos de la iglesia.
 
 ### Fase 8 · Diapositivas
 
@@ -282,6 +284,7 @@ Tomadas el 2026-10-04.
 | 24 | «Negro» y «Solo fondo» con algo sonando (S16) | **Lo pausan.** Y todo lo que detenga el sonido (pausa, negro, cambiar de contenido) lo hace con un **desvanecido rápido**, sin corte; la interfaz reacciona al instante |
 | 25 | Al terminar un video (S17) | **Pasar a «Solo fondo»** con un desvanecido rápido |
 | 26 | Botón para hacer sonar (S18) | **No.** Se quita también el aviso «Toca aquí para que suene». El sonido va solo al dispositivo de audio configurado en el equipo principal |
+| 28 | Orden tras la fase 7 (2026-10-05) | **Pasar de una vez a la fase 8 (diapositivas) y ahí detenerse** para hacer pruebas, antes de revisar la fase del himnario |
 | 27 | La espera al convertir un video pesado (S19, S20, S21) | **Convertir más rápido y poder usar el video de inmediato**; la conversión para los dispositivos remotos, de fondo. **No** medir el equipo desde la revisión |
 | 19 | Televisor, tras la primera prueba | **En pausa.** Remotamente solo se abrió el navegador y el puntero se movió un poco; escribiendo la dirección a mano tampoco carga. Se retoma cuando estén hechas las demás modificaciones |
 
@@ -300,7 +303,8 @@ Tomadas el 2026-10-04.
 | "Instalar por mí" no se ha probado en Windows | Probado en Mac con descargas simuladas y con el camino del `.zip`; siempre quedan los pasos a mano. Primera prueba pendiente en el equipo de la iglesia |
 | Los sitios de descarga cambian de dirección | Las direcciones están en un solo lugar (`server/core/tools.js`); el error dice que se instale a mano |
 | Navegadores de televisor muy antiguos | Página aparte solo si hace falta; alternativas sin navegador documentadas |
-| yt-dlp deja de funcionar | Botón de actualizar; mensaje claro; el resto de Manna no depende de él |
+| yt-dlp deja de funcionar | Botón «Actualizar» en Ajustes (hecho); el fallo se dice con palabras de quien usa Manna y sugiere actualizar; lo ya descargado sigue en la biblioteca; el resto de Manna no depende de él |
+| YouTube exige iniciar sesión o bloquea las descargas desde la red de la iglesia | No hay arreglo desde Manna: se dice que se intente más tarde. Alternativa de siempre: descargar el video por otro medio y subirlo a la pestaña Videos |
 | Conversión lenta de videos largos | Se hace al añadir, no al proyectar; en segundo plano con avance; se guarda el resultado |
 | Sonido con retraso o doble | Una sola salida de sonido; las demás pantallas en silencio |
 | Memoria con 14 versiones cargadas | Índice en segundo plano y opción de limitar versiones |
@@ -365,9 +369,9 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 3 Televisores | **En pausa** (decisión 19) · construida el 2026-10-04 | 1.4.0 | Ver abajo. El televisor del dueño no carga la proyección, ni a mano. Se retoma al final |
 | 4 Imágenes | **Hecha** · 2026-10-04 | 1.5.0 / 1.5.1 | Ver abajo. Incluye «Más» en la barra del celular. La 1.5.1 corrige dos fallos que encontró el dueño |
 | 6 Videos y audios | **Hecha** · 2026-10-04 | 1.6.0 | Ver abajo. Fue antes que el himnario (decisión 20) y estrenó la reproducción |
-| 5 Himnario | Pospuesta | 1.7 | Videos y letras ya están en `Contenido/Himnario/`. El dueño revisa las letras |
-| 7 YouTube | Pendiente | 1.8 | |
-| 8 Diapositivas | Pendiente | 1.9 | PowerPoint oculto: solo se puede probar en Windows |
+| 7 YouTube | **Hecha** · 2026-10-05 | 1.7.0 | Ver abajo. Los videos se conservan en la biblioteca (cambio al plan). Probado con un yt-dlp de mentira: **falta la primera descarga real** |
+| 8 Diapositivas | **Sigue** (decisión 28) | 1.8 | PowerPoint oculto: solo se puede probar en Windows. Al terminarla se detiene el trabajo para las pruebas del dueño |
+| 5 Himnario | Pospuesta | 1.9 | Videos y letras ya están en `Contenido/Himnario/`. El dueño revisa las letras. Se revisa después de la fase 8 |
 | 9 Auditoría | Pendiente | 2.0 | |
 
 ### Fase 0 · resultados
@@ -471,6 +475,18 @@ Lo que se añadió para que esta clase de fallos no vuelva:
 - Probado con el video real del dueño: proyectable a los 3,3 s; copia en 26 s en vez de 59.
 - **Sin probar**: en Windows.
 
+### Fase 7 · resultados
+
+- **Pestaña YouTube** en Medios: se pega el enlace y el video queda en la biblioteca con su título, su imagen, su duración y sus subtítulos. Tipo de contenido `youtube`, que se reproduce como `video`.
+- **Del enlace solo se usa el identificador** del video (11 letras o cifras, de un dominio de YouTube); la dirección que recibe yt-dlp la escribe Manna. Probado con 12 formas válidas de enlace y 20 que deben rechazarse (otros sitios, dominios parecidos, listas, texto con órdenes añadidas).
+- **Descarga**: imagen H.264 y sonido AAC hasta 1080p, unidos con ffmpeg; si el video no lo ofrece así, lo mejor que haya, y entonces pasa por la conversión de la fase 6. Una a la vez, como tarea con avance y con el título del video en cuanto se conoce.
+- **Subtítulos**: español e inglés, del autor o automáticos, en una segunda llamada que puede fallar sin estropear el video. Los automáticos se limpian (cada línea una sola vez). Mando en vivo para mostrarlos y elegir idioma; los subtítulos de un video pasan a ser una lista con su idioma.
+- **Fallos dichos con claridad** (privado o retirado, sin internet, en directo, restricción de edad, YouTube pide iniciar sesión, y "actualiza yt-dlp" para lo demás), con «Reintentar».
+- **«Actualizar» yt-dlp** en Ajustes.
+- **De paso**: los avisos de que falta un programa salen solo en la pestaña a la que afectan (`parts` en `needs`, `ctx.setPart`); una tarea puede cambiar de título; y las pruebas ya no dejan abierto un Chrome sin ventana si se cortan a medias (se encontraron tres, y las pruebas siguientes se enganchaban al más viejo).
+- **Pruebas automáticas**: de 122 a 129. **Chrome real**: de 175 a 196 comprobaciones. **Pantallas**: 9 tamaños, 23 pantallas en cada uno, con la pestaña YouTube y los mandos de un video con subtítulos en dos idiomas.
+- **Sin probar**: **una descarga real de YouTube**. Todo lo anterior se probó con un yt-dlp de mentira, porque las pruebas no salen a internet; con el de verdad solo se comprobó, sin descargar, que YouTube acepta la orden y elige el formato esperado. Tampoco en Windows.
+
 ## 10. Cambios al plan
 
 Cada modificación del plan aprobado, con su motivo. Es parte de la base de la auditoría.
@@ -530,6 +546,12 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-04 | Fase 6: un video que hay que convertir ya no espera a la conversión si el equipo principal reproduce el original; la copia ligera queda para las demás pantallas | Decisión 27 (eran S19 y S20). El plan decía que el elemento quedaba listo "al terminar" la conversión |
 | 2026-10-04 | Fase 6: la conversión se detiene mientras algo se reproduce | Para que usar un video recién agregado no compita con su propia conversión en un equipo modesto |
 | 2026-10-04 | No se añade la medición del equipo a la revisión (S21) | Decisión 27 |
+| 2026-10-05 | **Fase 7: los videos de YouTube se conservan en la biblioteca**; no se borran al cerrar Manna ni se vuelven a descargar al necesitarlos | Un video preparado con tiempo debe poder proyectarse el día del culto aunque ese día no haya internet, YouTube pida iniciar sesión o yt-dlp haya dejado de funcionar. Es además lo que ya hacen los demás videos. A cambio ocupan disco hasta que se eliminan |
+| 2026-10-05 | Fase 7: los subtítulos se piden solo en español e inglés | Pedir "todos" trae decenas de traducciones automáticas por video. Añadir un idioma es una línea (`SUBTITLE_LANGS`) |
+| 2026-10-05 | Fase 7: los subtítulos se dibujan como los del navegador, no con el estilo de la proyección | Es lo que ya hacía la fase 6 con los `.srt`; se ven igual en todas las pantallas. Darles el estilo de la proyección queda como sugerencia (S23) |
+| 2026-10-05 | Fase 7: no se estudió enviar el video a la aplicación de YouTube del televisor (S10) | Televisores está en pausa (decisión 19) |
+| 2026-10-05 | Las versiones se renumeran: YouTube es la 1.7, diapositivas la 1.8 y el himnario la 1.9 | El orden real de las fases (decisiones 20 y 28) |
+| 2026-10-05 | Un módulo con pestañas avisa de un programa que falta solo en la pestaña afectada | Con YouTube ya en uso, el aviso de yt-dlp salía también en Imágenes, donde no hace falta, y en un celular quitaba sitio |
 | 2026-10-04 | **Fase 3 en pausa**; se retoma al terminar las demás fases | Decisión 19: el televisor no cargó la proyección ni con Manna ni a mano |
 | 2026-10-04 | Fase 4: la miniatura la hace el dispositivo que sube, junto con la reducción | El servidor no tiene con qué encoger imágenes sin añadir dependencias |
 | 2026-10-04 | Fase 4: el ajuste se recuerda por imagen (además de ir en el elemento del orden) | Quien proyecta el mismo cartel cada semana no debería elegirlo cada vez |
@@ -549,5 +571,8 @@ Las sugerencias S8 a S11 son del televisor: esperan a que se retome la fase 3 (d
 | S9 | Encender y apagar el televisor desde Manna | Su control por red lo permite (encendido por red y tecla de apagado). No se incluyó para no apagar un televisor por error ni probarlo sin el dueño delante | Dos botones en la tarjeta del televisor. Pequeño; se haría tras la prueba del dueño |
 | S10 | Fase 7: enviar un video de YouTube directamente al televisor | El televisor anuncia su aplicación de YouTube en la red (se vio al explorarlo). Serviría para que el video lo reproduzca el propio televisor, sin pasar por su navegador | Se estudiaría en la fase 7; no cambia el plan todavía |
 | S11 | Otras marcas de televisor | El módulo está hecho para añadirlas. Los LG (webOS) sí aceptan que se les indique la dirección por la red | Solo si alguna iglesia lo necesita; hace falta un televisor de esa marca para probar |
+| S22 | Que el dueño haga la **primera descarga real de YouTube** antes de usarlo en un culto | Es lo único de la fase 7 que no se pudo probar sin salir a internet. Si YouTube pide iniciar sesión desde la red de la iglesia, conviene saberlo con tiempo | Nada en el plan. Si falla, se vería qué dice yt-dlp y se ajustaría |
+| S23 | Subtítulos con el estilo de la proyección (tipografía, tamaño y sombra de Ajustes) | Hoy los dibuja el navegador con su estilo: letra blanca sobre una caja oscura. Se leen bien, pero no se parecen al resto de la proyección ni se puede cambiar su tamaño | Dibujarlos Manna en vez del navegador. Mediano; vale para YouTube, videos e himnos |
+| S24 | Aviso de espacio en disco en Ajustes | Los videos de YouTube y las copias convertidas se acumulan en `data/media/`. El plan ya lo preveía como riesgo ("tamaño visible en Ajustes") y aún no existe | Una línea en Ajustes con lo que ocupa cada biblioteca. Pequeño; encaja en la auditoría (fase 9) |
 | S7 | Que el dueño revise los 15 himnos cuya letra parece incompleta (lista en `docs/ESTADO.md`) | Al copiar las letras se perdieron líneas en algunas partes. **En curso: el dueño las está revisando** | Nada en el plan; se corrigen los archivos `.md` y Manna los vuelve a leer solo |
 

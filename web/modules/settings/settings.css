@@ -19,6 +19,8 @@
 .tool { display: flex; align-items: center; gap: 10px; min-height: 36px; color: var(--ok); }
 .tool.missing { color: var(--accent); }
 .tool .item-text strong { color: var(--ink); font-weight: 500; }
+.tool .item-text { flex: 1; min-width: 0; }
+.tool .btn { color: var(--ink-2); }
 
 .goodbye { margin: auto; padding: 24px; text-align: center; min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: 8px; }
 .about { align-items: flex-start; text-align: left; }

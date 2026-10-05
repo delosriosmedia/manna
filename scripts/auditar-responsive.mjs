@@ -13,6 +13,8 @@
 //   - la tarjeta de un televisor y su control remoto caben, con teclas para el dedo
 //   - la biblioteca de imágenes deja a la vista su acción principal, y los mandos de una imagen
 //     al aire caben en el panel
+//   - en YouTube, el campo del enlace cabe en la cabecera y los mandos de un video con subtítulos
+//     en dos idiomas (botón y lista) caben en el panel
 //
 // Uso:  node scripts/auditar-responsive.mjs             resumen en la terminal
 //       node scripts/auditar-responsive.mjs capturas    además guarda una imagen de cada pantalla
@@ -22,7 +24,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { sleep, startChrome } from './lib/chrome.mjs';
+import { killOnExit, sleep, startChrome } from './lib/chrome.mjs';
 import { seedExample } from './lib/ejemplo.mjs';
 import { startFakeTv } from './lib/tv-falso.mjs';
 
@@ -65,6 +67,10 @@ const SCREENS = [
     prepare: `(() => { document.querySelector('.media-tabs [data-tab=videos]').click(); document.querySelector('.media-body[data-panel=videos] .media-card .media-pick').click(); })()` },
   { name: 'Medios: audios', url: '/control#medios', content: '.media-body[data-panel=audios]', settle: 500,
     prepare: `document.querySelector('.media-tabs [data-tab=audios]').click()` },
+  // El equipo de la auditoría "no tiene" yt-dlp: las pestañas de Medios llevan su aviso encima.
+  { name: 'Medios: YouTube', url: '/control#medios', content: '.media-body[data-panel=youtube]', primary: '.media-bar[data-panel=youtube] .btn.primary', inside: '.yt-add', settle: 700,
+    prepare: `(() => { document.querySelector('.media-tabs [data-tab=youtube]').click(); document.querySelector('.media-body[data-panel=youtube] .media-card[data-status=ready] .media-pick').click(); })()` },
+  { name: 'Al aire con un video de YouTube', url: '/control#orden', show: 'youtube', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
   { name: 'Al aire con un video', url: '/control#orden', show: 'video', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
   { name: 'Orden con un video al aire', url: '/control#orden', show: 'video', controls: '.odetail .live-controls' },
   { name: 'Al aire con una imagen', url: '/control#medios', show: 'image', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
@@ -111,7 +117,7 @@ const MEASURE = (screen, touch) => `(() => {
   ${screen.content ? `{ const c = [...document.querySelectorAll(${JSON.stringify(screen.content)})].find(shown); out.espacioContenido = c ? Math.round(Math.min(box(c).bottom, vh) - Math.max(box(c).top, 0)) : 0; }` : ''}
   ${screen.longTitles ? `{ const t = [...document.querySelectorAll('.orow .item-text strong')].find((e) => e.textContent.length > 60); out.tituloLargo = Boolean(t) && t.scrollHeight <= t.clientHeight + 1; }` : ''}
   ${screen.inside ? `{ const e = q(${JSON.stringify(screen.inside)}); const r = box(e); out.dentro = shown(e) && r.left >= -1 && r.right <= vw + 1 && r.top >= -1 && r.bottom <= vh + 1 && [...e.querySelectorAll('button')].every((b) => !shown(b) || (box(b).left >= r.left - 1 && box(b).right <= r.right + 1)); }` : ''}
-  ${screen.controls ? `{ const c = q(${JSON.stringify(screen.controls)}); const r = box(c); out.mandos = shown(c) && r.left >= -1 && r.right <= vw + 1 && [...c.querySelectorAll('button')].every((b) => { const x = box(b); return shown(b) && x.left >= r.left - 1 && x.right <= r.right + 1; }); }` : ''}
+  ${screen.controls ? `{ const c = q(${JSON.stringify(screen.controls)}); const r = box(c); out.mandos = shown(c) && r.left >= -1 && r.right <= vw + 1 && [...c.querySelectorAll('button, select')].every((b) => { const x = box(b); return shown(b) && x.left >= r.left - 1 && x.right <= r.right + 1; }); }` : ''}
   return out;
 })()`;
 
@@ -137,10 +143,10 @@ fs.writeFileSync(path.join(tmp, 'data', 'televisores.json'), JSON.stringify({
 }));
 // El ejemplo se escribe antes de arrancar: el servidor lee el orden y la biblioteca al abrirse.
 const example = seedExample(path.join(tmp, 'data'));
-const server = spawn(process.execPath, ['server/index.js'], {
+const server = killOnExit(spawn(process.execPath, ['server/index.js'], {
   cwd: ROOT, stdio: 'ignore',
   env: { ...process.env, MANNA_NAME: 'manna-auditoria', MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_DATA: path.join(tmp, 'data'), PORT: String(PORT), MANNA_FALTA: 'navegador,yt-dlp', MANNA_TV_PRUEBA: JSON.stringify(fakeTv.endpoints) },
-});
+}));
 const showInOrder = (id) => chrome.evaluate(`fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'order.show',payload:{id:${JSON.stringify(id)}}})}).then((r) => r.status)`);
 await sleep(3000);
 const chrome = await startChrome();
