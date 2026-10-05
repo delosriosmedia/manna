@@ -43,6 +43,16 @@ Datos medidos en el proyecto, no supuestos.
   - **Confirmado con una foto del dueño**: al escribir `http://192.168.1.14`, el navegador del televisor lo convierte en `https://192.168.1.14/` y dice "No se encontró el servidor". Pide una página segura que Manna no ofrece.
   - Falta saber si hace lo mismo con una dirección que lleva puerto (`http://192.168.1.14:8000`). Desde la versión 1.3 Manna atiende también en el 8000 para poder probarlo.
 - **Video en el navegador.** Chrome reproduce MP4, M4V y MOV con H.264, y WebM. No reproduce AVI, MPEG ni WMV.
+- **Un video real del dueño** (2026-10-04): MP4 de 483 MB, 2:24, **4K, HEVC de 10 bits** a 26 Mb/s, con sonido AAC. Es el formato que exportan muchos editores y cámaras recientes. Medido en el Mac de desarrollo (M3 Pro):
+
+  | Qué se hace | Tiempo para este video |
+  | --- | --- |
+  | Convertir como lo hace Manna 1.6 (el chip codifica; la lectura del 4K, por programa) | 59 s |
+  | Lo mismo, leyendo también con el chip (`-hwaccel auto`) | 28 s |
+  | Sin chip y con dos hilos, como un equipo modesto | 2 min 10 s |
+  | **Reproducirlo tal cual en Chrome**, sin convertir | 0 s: lo admite, con el chip, 304 cuadros en 10 s y ninguno perdido; salta sin problema |
+
+  Bajar la calidad o el tamaño del resultado casi no ahorra tiempo: lo que cuesta es leer el 4K. En Windows, Chrome y Edge reproducen HEVC solo si la tarjeta gráfica lo decodifica (en general, equipos de 2017 en adelante); en uno más antiguo hay que convertir, y ahí tardaría varios minutos.
 - **Herramientas.** En el Mac de desarrollo están ffmpeg 8.1, yt-dlp y PowerPoint. En el equipo Windows de la iglesia lo comprobará la revisión del equipo.
 - **Las categorías del himnario** en nuevohimnario.com se cargan con un programa de la página; su estructura se revisará en la fase 5.
 
@@ -267,6 +277,9 @@ Tomadas el 2026-10-04.
 | 21 | Televisores en la barra (S12) | **Fuera de la barra** mientras esté en pausa |
 | 22 | ¿Fondo desde la biblioteca de Medios? (S14) | **No.** El fondo se elige en Ajustes, porque se usa poco. Las imágenes subidas como fondo deben **conservarse**, salir **junto a los colores** y poder **eliminarse** |
 | 23 | ¿Álbumes en la biblioteca? (S15) | **No agrupar.** De la más reciente a la más antigua, con la hora en que se agregó |
+| 24 | «Negro» y «Solo fondo» con algo sonando (S16) | **Lo pausan.** Y todo lo que detenga el sonido (pausa, negro, cambiar de contenido) lo hace con un **desvanecido rápido**, sin corte; la interfaz reacciona al instante |
+| 25 | Al terminar un video (S17) | **Pasar a «Solo fondo»** con un desvanecido rápido |
+| 26 | Botón para hacer sonar (S18) | **No.** Se quita también el aviso «Toca aquí para que suene». El sonido va solo al dispositivo de audio configurado en el equipo principal |
 | 19 | Televisor, tras la primera prueba | **En pausa.** Remotamente solo se abrió el navegador y el puntero se movió un poco; escribiendo la dirección a mano tampoco carga. Se retoma cuando estén hechas las demás modificaciones |
 
 **Decisión 5 · Letras.** El dueño pidió incluirlas: las iglesias donde se usará Manna tienen la licencia de las letras y de toda la música oficial de la Iglesia Adventista del Séptimo Día. Cómo se resuelve:
@@ -439,6 +452,14 @@ Lo que se añadió para que esta clase de fallos no vuelva:
 - **Sin probar**: videos reales de la iglesia (los de las pruebas duran segundos), archivos de varios gigas, la conversión y el chip de video en Windows, subir desde un celular, y oír el sonido por el proyector.
 - **Límites conocidos**: "Negro" no detiene el sonido; al acabar un video no avanza solo; el HEVC siempre se convierte.
 
+### Fase 6 · ajustes tras la prueba del dueño (1.6.1)
+
+- **Fallo**: en la pantalla de proyección se quedaba el aviso «Toca aquí para que suene» aunque ya sonara. Era un aviso pensado para pestañas corrientes; se quitó entero (decisión 26).
+- **Quién suena** pasa a ser: la proyección del equipo principal y, si no hay, su página de control. Siempre el equipo principal.
+- **Desvanecidos** de 0,3 s al pausar, ocultar y cambiar de contenido (decisión 24); **«Negro» y «Solo fondo» pausan**; **al terminar, «Solo fondo»** (decisión 25).
+- Para lo último, un tipo de contenido puede decir qué hacer al ocultarse (`hide`) y cuándo termina (`endsAt`); la proyección hace el resto.
+- **Conversión de video**: el dueño probó un MP4 de 4K (HEVC de 10 bits, 483 MB, 2:24) y le preocupó la espera. Medido y con alternativas en la sección 11 (S19 a S21): pendiente de su decisión.
+
 ## 10. Cambios al plan
 
 Cada modificación del plan aprobado, con su motivo. Es parte de la base de la auditoría.
@@ -493,6 +514,8 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-04 | Fase 6: la duración y la imagen de un video también las puede dar el navegador (quien lo sube o quien lo reproduce) | Para que Medios funcione en un equipo sin ffmpeg, como pide la regla de que nada bloquea |
 | 2026-10-04 | Fase 6: "usar el chip de video si lo tiene" se resuelve probando: primero el chip, y si falla, libx264 | ffmpeg puede listar un codificador que ese equipo no tiene |
 | 2026-10-04 | Las pruebas y la demostración nunca abren su proyección en el proyector (`MANNA_SIN_VENTANA`) | Una prueba se proyectó y sonó en la segunda pantalla del equipo de desarrollo |
+| 2026-10-04 | «Negro» y «Solo fondo» pausan lo que suena; todo corte de sonido es un desvanecido; al terminar un video se pasa a «Solo fondo» | Decisiones 24 y 25 (eran S16 y S17) |
+| 2026-10-04 | Sin avisos ni botones para hacer sonar: suena el equipo principal, por su proyección o por su control | Decisión 26 (en lugar de S18) |
 | 2026-10-04 | **Fase 3 en pausa**; se retoma al terminar las demás fases | Decisión 19: el televisor no cargó la proyección ni con Manna ni a mano |
 | 2026-10-04 | Fase 4: la miniatura la hace el dispositivo que sube, junto con la reducción | El servidor no tiene con qué encoger imágenes sin añadir dependencias |
 | 2026-10-04 | Fase 4: el ajuste se recuerda por imagen (además de ir en el elemento del orden) | Quien proyecta el mismo cartel cada semana no debería elegirlo cada vez |
@@ -508,9 +531,9 @@ Las sugerencias S8 a S11 son del televisor: esperan a que se retome la fase 3 (d
 
 | # | Sugerencia | Por qué | Qué cambiaría |
 | --- | --- | --- | --- |
-| S16 | Que «Negro» y «Solo fondo» también pausen lo que suena | Hoy ocultan el video pero sigue sonando; quien pulsa "Negro" suele querer silencio | Un cambio pequeño en la proyección. Habría que decidir si al quitar el negro se reanuda solo |
-| S17 | Qué hacer al terminar un video: quedarse (como hoy), pasar al siguiente del orden, o repetir | Un video de fondo o una cuenta atrás piden cosas distintas | Una opción por elemento, elegida antes de proyectar, como el ajuste de las imágenes |
-| S18 | Un botón "Sonar en este equipo" para oír sin proyector | Sin la ventana de proyección no suena nada; hoy hay que abrir `localhost/proyeccion` a mano | Pequeño: un botón en el aviso de "no suena en ningún sitio", solo en el equipo principal |
+| S19 | Al convertir, leer el video con el chip del equipo | Medido con el video de 4K del dueño: de 59 s a 28 s en el Mac. Si el equipo no tiene chip que sirva, se hace como hoy | Pequeño y sin riesgo: una opción más en la orden de ffmpeg, con vuelta atrás si falla |
+| S20 | No esperar a la conversión: en el equipo principal, usar el archivo original si su navegador lo reproduce, y hacer la copia ligera al fondo para las demás pantallas | Medido: el mismo video se reproduce tal cual en Chrome, sin perder cuadros. El video quedaría listo al subirlo. La copia ligera (1080p) sigue haciendo falta para celulares y pantallas remotas: no conviene mandarles 26 Mb/s por wifi | Mediano: cada pantalla elige qué archivo usar; el equipo principal comprueba solo si puede con el original. En un equipo que no pueda, se espera a la conversión como hoy |
+| S21 | Medir el equipo de la iglesia desde la revisión del equipo | No se sabe qué puede el equipo Windows: si reproduce HEVC y a qué velocidad convierte. Una prueba de unos segundos lo diría antes del primer culto | Pequeño: un botón "Probar este equipo con video" en la revisión, que dice si los videos de 4K se usarán tal cual o cuánto tardará en convertirlos |
 | S8 | Fijar en el router la dirección del equipo principal y la del televisor | La página de inicio del televisor guarda la dirección numérica de Manna; si el router la cambia, hay que volver a escribirla | Nada en Manna: es un ajuste del router. Se documentaría con capturas |
 | S9 | Encender y apagar el televisor desde Manna | Su control por red lo permite (encendido por red y tecla de apagado). No se incluyó para no apagar un televisor por error ni probarlo sin el dueño delante | Dos botones en la tarjeta del televisor. Pequeño; se haría tras la prueba del dueño |
 | S10 | Fase 7: enviar un video de YouTube directamente al televisor | El televisor anuncia su aplicación de YouTube en la red (se vio al explorarlo). Serviría para que el video lo reproduzca el propio televisor, sin pasar por su navegador | Se estudiaría en la fase 7; no cambia el plan todavía |

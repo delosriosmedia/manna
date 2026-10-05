@@ -1,4 +1,4 @@
-import { action } from '../../core/api.js';
+import { action, reportSound } from '../../core/api.js';
 import { h } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { registerKind } from '../../core/kinds.js';
@@ -11,35 +11,43 @@ import { createPlayer } from './player.js';
 // (reproduciendo o en pausa, y en qué segundo) y cada pantalla lleva su reproductor a ese punto.
 // Suena una sola pantalla; las demás van en silencio.
 
-// Lo que dibuja la pantalla. `media` es el <video> o el <audio>; `extra`, lo propio de cada tipo.
-function drawClip(host, media, { build, onItem }) {
+// Lo que dibuja la pantalla. make() crea el <video> o el <audio>; se hace uno nuevo para cada
+// contenido, porque el anterior termina de desvanecerse por su cuenta (ver player.js).
+function drawClip(host, { build, make, onItem }) {
   const notice = h('div', { class: 'clip-notice', hidden: true });
-  const unblock = h('button', { class: 'clip-unblock', hidden: true }, icon('speaker-high', 20), 'Toca aquí para que suene');
-  const box = h('div', { class: 'clip-view' }, ...build(media), notice, unblock);
+  const box = h('div', { class: 'clip-view' }, ...build(), notice);
   host.replaceChildren(box);
   let item = null;
+  let media = null;
+  let player = null;
   let told = false; // la duración se dice una sola vez
-  const player = createPlayer(media, {
-    onBlocked(resume) {
-      unblock.hidden = !resume;
-      unblock.onclick = resume;
-    },
-    // En un equipo sin ffmpeg el servidor no sabe cuánto dura: se lo dice la primera pantalla
-    // que lo reproduce (si esta función no puede dar órdenes, otra lo hará).
-    onDuration(seconds) {
-      if (!item || item.duration != null || told) return;
-      told = true;
-      action('projection.control', { duration: seconds }).catch(() => {});
-    },
-  });
+
+  function fresh() {
+    player?.release();
+    told = false;
+    media = make();
+    box.prepend(media);
+    player = createPlayer(media, {
+      onAudible: reportSound,
+      // En un equipo sin ffmpeg el servidor no sabe cuánto dura: se lo dice la primera pantalla
+      // que lo reproduce (si esta función no puede dar órdenes, otra lo hará).
+      onDuration(seconds) {
+        if (!item || item.duration != null || told) return;
+        told = true;
+        action('projection.control', { duration: seconds }).catch(() => {});
+      },
+    });
+  }
+  fresh();
 
   return {
     update(next) {
-      if (item?.url !== next.url) told = false;
+      // Otro contenido: reproductor nuevo. El de antes se desvanece y se va solo.
+      if (item?.url && item.url !== next.url) fresh();
       item = next;
       notice.textContent = next.unavailable || '';
       notice.hidden = !next.unavailable;
-      onItem(next);
+      onItem(next, media);
     },
     // state null: esto es una vista previa o una miniatura, no lo que está al aire. No se carga nada.
     live(state, { volume = 1, sound = false } = {}) {
@@ -54,7 +62,7 @@ function drawClip(host, media, { build, onItem }) {
       if (track) track.mode = state.subtitles ? 'showing' : 'hidden';
     },
     stop: () => player.stop(),
-    destroy: () => player.destroy(),
+    destroy: () => player.release(),
   };
 }
 
@@ -149,13 +157,13 @@ registerKind('video', {
   background: false,
   draw(host) {
     const poster = h('img', { class: 'clip-poster', alt: '', hidden: true });
-    const track = h('track', { kind: 'subtitles', srclang: 'es', label: 'Subtítulos' });
-    const video = h('video', { class: 'clip-video' }, track);
-    return drawClip(host, video, {
-      build: () => [poster, video],
-      onItem(item) {
+    return drawClip(host, {
+      build: () => [poster],
+      make: () => h('video', { class: 'clip-video' }, h('track', { kind: 'subtitles', srclang: 'es', label: 'Subtítulos' })),
+      onItem(item, video) {
         poster.hidden = !item.poster;
         if (item.poster && poster.getAttribute('src') !== item.poster) poster.src = item.poster;
+        const track = video.querySelector('track');
         if (item.subtitles && track.getAttribute('src') !== item.subtitles) track.src = item.subtitles;
       },
     });
@@ -172,9 +180,9 @@ registerKind('audio', {
   // Se ve el fondo de la proyección, con el nombre de lo que suena.
   draw(host) {
     const title = h('div', { class: 'stage-ref' });
-    const audio = h('audio', {});
-    return drawClip(host, audio, {
-      build: () => [h('div', { class: 'stage-inner clip-audio' }, icon('waveform', 64), title), audio],
+    return drawClip(host, {
+      build: () => [h('div', { class: 'stage-inner clip-audio' }, icon('waveform', 64), title)],
+      make: () => h('audio', {}),
       onItem(item) { title.textContent = item.title; },
     });
   },

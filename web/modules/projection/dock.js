@@ -1,4 +1,4 @@
-import { action, state, subscribe } from '../../core/api.js';
+import { action, connectionId, state, subscribe } from '../../core/api.js';
 import { h, guard } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { createJobsList } from '../../core/jobs.js';
@@ -106,6 +106,9 @@ export function createDock(container, ctx) {
   });
   subscribe('order', renderNext);
   subscribe('live', (live) => programStage.setLive(live));
+  // Si el servidor elige esta página para sonar (es la del equipo principal y no hay ventana de
+  // proyección abierta), suena el monitor "Al aire". Las vistas previas nunca suenan.
+  subscribe('conexiones', ({ sonido }) => programStage.setSound(Boolean(sonido) && sonido === connectionId()));
 
   return {
     toggleMode,

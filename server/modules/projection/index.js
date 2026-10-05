@@ -115,6 +115,7 @@ export default function setup(app) {
     // su estado en vivo ya está ahí.
     store.set('live', { uid, state: def.live?.(content, previous) ?? null });
     setLive({ item, mode });
+    scheduleEnd();
     return item;
   }
   services.projection = { present };
@@ -144,14 +145,54 @@ export default function setup(app) {
     return next ? present({ kind, ...next }) : null;
   });
 
+  // Cambia el modo. Al dejar de verse el contenido ("Negro", "Solo fondo"), el tipo puede reaccionar
+  // con su hide(): lo que suena se pausa, para que no siga sonando a oscuras.
+  function setMode(mode) {
+    const { item } = get();
+    const next = mode === 'live' && !item ? 'clear' : mode;
+    const def = item && app.kinds.get(item.kind);
+    const live = store.get('live');
+    if (next !== 'live' && def?.hide && live.uid === item.uid && live.state) {
+      store.set('live', { state: def.hide(live.state, { content: item, now: Date.now() }) });
+    }
+    setLive({ mode: next });
+    scheduleEnd();
+  }
+
+  // Lo que se reproduce y tiene final (un video, un audio): al llegar a él, la proyección pasa a
+  // "Solo fondo" (las pantallas lo hacen con un desvanecido). Cuándo termina lo dice el tipo, con endsAt().
+  let endTimer = null;
+  function scheduleEnd() {
+    clearTimeout(endTimer);
+    endTimer = null;
+    const { item, mode } = get();
+    const def = item && app.kinds.get(item.kind);
+    const live = store.get('live');
+    if (mode !== 'live' || !def?.endsAt || live.uid !== item.uid || !live.state) return;
+    const at = def.endsAt(live.state);
+    if (!Number.isFinite(at)) return;
+    const { uid: current } = item;
+    endTimer = setTimeout(() => {
+      endTimer = null;
+      if (get().item?.uid !== current || get().mode !== 'live') return;
+      const until = def.endsAt(store.get('live').state);
+      // Pudo pausarse o saltar atrás mientras tanto: entonces aún no ha terminado.
+      if (Number.isFinite(until) && until <= Date.now() + 50) setMode('clear');
+      else scheduleEnd();
+    }, Math.max(0, at - Date.now()) + 60);
+    endTimer.unref();
+  }
+  app.onClose(() => clearTimeout(endTimer));
+
   app.action('projection.mode', { permission: 'projection.control' }, ({ mode }) => {
     if (!['live', 'clear', 'black'].includes(mode)) throw new HttpError(400, 'Modo no válido.');
-    setLive({ mode: mode === 'live' && !get().item ? 'clear' : mode });
+    setMode(mode);
   });
 
   app.action('projection.clear', { permission: 'projection.control' }, () => {
     store.set('live', { uid: 0, state: null });
     setLive({ item: null, mode: 'clear' });
+    scheduleEnd();
   });
 
   // ---- Mandos en vivo ----
@@ -164,7 +205,10 @@ export default function setup(app) {
     if (!def?.control || live.uid !== item.uid || !live.state) throw new HttpError(409, 'Lo que está en pantalla no tiene mandos.');
     const clean = patch && typeof patch === 'object' && !Array.isArray(patch) ? patch : {};
     store.set('live', { state: def.control(live.state, clean, { content: item, now: Date.now() }) });
-    touchLive();
+    // Pedir que se reproduzca algo que estaba oculto ("Negro", "Solo fondo") lo vuelve a mostrar.
+    if (clean.playing === true && get().mode !== 'live') setLive({ mode: 'live' });
+    else touchLive();
+    scheduleEnd();
   });
 
   // Volumen general de Manna. No toca el volumen del equipo.

@@ -18,6 +18,20 @@ ejemplo_biblia.xmm
 # Datos locales del servidor (ajustes, PIN, orden del culto, fondos)
 data/
 
+# Videos, audios e imágenes sueltos en la raíz: son archivos de prueba del dueño, no del programa.
+/*.mp4
+/*.mov
+/*.m4v
+/*.mkv
+/*.avi
+/*.webm
+/*.mp3
+/*.m4a
+/*.wav
+/*.jpg
+/*.jpeg
+/*.png
+
 node_modules/
 .DS_Store
 *.log

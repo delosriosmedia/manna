@@ -102,6 +102,8 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null }) {
     //   live?(content, previous)  -> estado inicial de sus mandos en vivo (zoom, reproducción), o null si no tiene.
     //                                previous = { state, at } cuando se recupera tras un reinicio del servidor
     //   control?(state, patch, { content, now }) -> estado nuevo tras una orden; valida el patch
+    //   hide?(state, { content, now })  -> estado nuevo cuando deja de verse ("Negro", "Solo fondo"): lo que suena se pausa
+    //   endsAt?(state)            -> en qué instante (ms) termina lo que se reproduce, o null. Al llegar, pasa a "Solo fondo"
     kinds,
     kind(name, def) { kinds.set(name, def); },
     shutdown: null, // lo asigna server/app.js: apagado ordenado de todo el programa

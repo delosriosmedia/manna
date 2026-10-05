@@ -39,6 +39,7 @@ Todo lo que se proyecta es de un **tipo de contenido** (`kind`). Hoy existen `ve
 - `resolve(data, step)` → lo que se proyecta. `step` `null` es el elemento entero; `0..n-1`, uno de sus pasos.
 - `neighbor(data, step, delta)` (opcional) → qué sigue al avanzar fuera del orden del culto.
 - `live(content, previous)` y `control(state, patch, { content, now })` (opcionales) → sus mandos en vivo. Ver abajo.
+- `hide(state, { content, now })` (opcional) → estado nuevo cuando deja de verse ("Negro", "Solo fondo"): lo que suena se pausa. `endsAt(state)` (opcional) → instante en que termina lo que se reproduce; al llegar, la proyección pasa sola a "Solo fondo". Pedir `playing: true` con la pantalla oculta la vuelve a mostrar.
 
 `data` es lo mínimo para localizar el contenido (para `verses`: `{ versionId, ref }`; para `image`: `{ id, fit }`), nunca el contenido mismo. Lo que se elige antes de proyectar y debe recordarse en el orden del culto (el ajuste de una imagen, la disposición del comparador) va en `data`; lo que se mueve al aire, en los mandos en vivo.
 
@@ -50,7 +51,7 @@ Todo lo que se proyecta es de un **tipo de contenido** (`kind`). Hoy existen `ve
 - El estado inicial lo da `live()` del tipo. `previous = { state, at }` llega al recuperar lo proyectado tras un reinicio.
 - Las órdenes van por la acción `projection.control`, que entrega el patch al `control()` del tipo: este **valida** y devuelve el estado nuevo.
 - `volume` es el volumen general de Manna (acción `projection.volume`; su mando es `web/modules/projection/volume.js`).
-- **Suena una sola pantalla**, y la elige el servidor: la primera de proyección conectada desde el propio equipo principal (`conexiones.sonido`, en `server/core/realtime.js`). Cada conexión sabe quién es por el evento `hello`; el escenario recibe si le toca sonar (`stage.setSound`) y se lo pasa al tipo en `live(state, { volume, sound })`.
+- **Suena una sola pantalla, siempre del equipo principal**, y la elige el servidor: su primera pantalla de proyección y, si no hay, su página de control (`conexiones.sonido`, en `server/core/realtime.js`). En la pantalla de proyección no hay avisos ni botones para hacer sonar: una página a la que el navegador no deja sonar (una pestaña que nadie ha tocado) lo dice con `POST /api/events/sound` y el servidor elige otra; si ninguna puede, `sonido` es `null` y lo avisan los mandos, en el control. Cada conexión sabe quién es por el evento `hello`; el escenario recibe si le toca sonar (`stage.setSound`) y se lo pasa al tipo en `live(state, { volume, sound })`.
 - **Lo que se reproduce** (video, audio, y luego himnos) guarda en sus mandos un reloj `{ playing, position, at, duration }`. El servidor no reproduce nada; cada pantalla lleva su reproductor a ese punto (`web/modules/media/player.js`) y corrige el desfase sola.
 - Un contenido que existe pero aún no se puede mostrar (un video que se está convirtiendo) lo dice su `resolve()` con `{ unavailable: 'por qué' }`: la proyección responde con ese mensaje en vez de ponerlo en pantalla, y en el orden del culto se ve como está.
 

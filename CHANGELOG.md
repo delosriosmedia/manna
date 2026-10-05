@@ -4,6 +4,14 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.6.1 — 2026-10-04
+
+- **Quitado el aviso «Toca aquí para que suene»**, que se quedaba en la pantalla de proyección aunque ya estuviera sonando.
+- **El sonido sale siempre por el equipo principal**, por el dispositivo de audio que tenga elegido, sin tocar nada: por su ventana de proyección y, si no hay proyector conectado, por su página de control.
+- **El sonido ya no se corta de golpe.** Al pausar, al poner «Negro» o «Solo fondo» y al cambiar lo que está en pantalla, se desvanece en un instante. La pantalla y los mandos reaccionan enseguida, sin esperar.
+- **«Negro» y «Solo fondo» pausan lo que suena.** Al quitarlos queda en pausa; «Reproducir» lo vuelve a mostrar y sigue.
+- **Al terminar un video o un audio**, la proyección pasa sola a «Solo fondo», con un desvanecido.
+
 ## 1.6.0 — 2026-10-04
 
 - **Videos y audios en Medios**, cada uno en su pestaña. Se suben desde el equipo principal o desde el celular (varios a la vez, con nombre propuesto y avance), o se **copian a la carpeta `Contenido/Medios/`** del equipo principal y aparecen solos: para archivos grandes es lo más rápido.

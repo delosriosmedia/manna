@@ -16,10 +16,18 @@ export function createRealtime({ store, router }) {
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   }
 
-  // Una sola pantalla suena, para que no haya eco ni desfases: la primera pantalla de proyección
-  // abierta en el propio equipo principal (la del proyector). Si se cierra, pasa a la siguiente.
-  // Cada conexión sabe quién es por el evento 'hello' y se compara con `sonido`.
-  const soundClient = () => [...clients].find((c) => c.role === 'proyeccion' && c.local)?.id || null;
+  // Una sola pantalla suena, para que no haya eco ni desfases, y siempre es del equipo principal:
+  // así el sonido sale por el dispositivo de audio que ese equipo tenga elegido. La primera
+  // pantalla de proyección abierta en él (la del proyector); si no hay ninguna, su página de
+  // control. Si se cierra, pasa a la siguiente. Cada conexión sabe quién es por el evento
+  // 'hello' y se compara con `sonido`.
+  // Una pestaña corriente no puede sonar hasta que alguien la toca (regla del navegador; la
+  // ventana del proyector sí puede): la que lo descubre lo dice (POST /api/events/sound) y se
+  // elige a otra. Sin ninguna que pueda, `sonido` es null y los controles lo avisan.
+  const soundClient = () => {
+    const local = [...clients].filter((c) => c.local && c.able);
+    return (local.find((c) => c.role === 'proyeccion') || local.find((c) => c.role === 'control' || c.role === 'orden'))?.id || null;
+  };
 
   function publishCounts() {
     const counts = {};
@@ -41,7 +49,7 @@ export function createRealtime({ store, router }) {
     });
     res.write('retry: 1500\n\n');
     serial += 1;
-    const client = { res, id: `c${serial}`, local: ctx.isLocal, role: (ctx.query.get('rol') || 'otro').slice(0, 20), ip: String(ctx.ip || '').replace(/^::ffff:/, '') };
+    const client = { res, id: `c${serial}`, able: true, local: ctx.isLocal, role: (ctx.query.get('rol') || 'otro').slice(0, 20), ip: String(ctx.ip || '').replace(/^::ffff:/, '') };
     clients.add(client);
     send(res, 'hello', { id: client.id });
     send(res, 'state', store.snapshot());
@@ -51,6 +59,18 @@ export function createRealtime({ store, router }) {
       clients.delete(client);
       publishCounts();
     });
+  });
+
+  // Una pantalla dice si puede sonar o no. Solo vale para su propia conexión.
+  router.route('POST', '/api/events/sound', async (ctx) => {
+    const { id, able } = await ctx.json();
+    const ip = String(ctx.ip || '').replace(/^::ffff:/, '');
+    const client = [...clients].find((c) => c.id === id && c.ip === ip);
+    if (client && client.able !== Boolean(able)) {
+      client.able = Boolean(able);
+      publishCounts();
+    }
+    return { sonido: soundClient() };
   });
 
   // Latido: permite al cliente detectar una conexión que sigue abierta pero ya no recibe nada

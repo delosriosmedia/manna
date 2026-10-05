@@ -262,7 +262,7 @@ test('sin ffmpeg: lo habitual funciona, lo demás espera, y la duración la dice
   }
 });
 
-test('una sola pantalla suena: la primera de proyección abierta en el equipo principal', async () => {
+test('suena una sola pantalla, siempre del equipo principal: su proyección y, si no la hay, su control', async () => {
   const s = await start('sonido');
   const open = async (role) => {
     const controller = new AbortController();
@@ -275,19 +275,84 @@ test('una sola pantalla suena: la primera de proyección abierta en el equipo pr
   };
   const sound = async () => { await sleep(60); return (await s.state()).conexiones.sonido; };
   try {
-    assert.equal((await s.state()).conexiones.sonido ?? null, null);
+    assert.equal((await s.state()).conexiones.sonido ?? null, null, 'sin nada abierto en el equipo, no suena en ningún sitio');
     const control = await open('control');
-    assert.equal(await sound(), null, 'un control no suena');
+    assert.equal(await sound(), control.id, 'sin ventana de proyección, suena el control del equipo');
     const first = await open('proyeccion');
-    assert.equal(await sound(), first.id);
+    assert.equal(await sound(), first.id, 'en cuanto hay proyección, suena ella');
     const second = await open('proyeccion');
     assert.notEqual(second.id, first.id);
     assert.equal(await sound(), first.id, 'la segunda pantalla va en silencio');
     first.close();
     assert.equal(await sound(), second.id, 'si la primera se cierra, suena la siguiente');
     second.close();
-    assert.equal(await sound(), null);
+    assert.equal(await sound(), control.id, 'y sin proyección, otra vez el control');
+    // Una pestaña a la que el navegador no deja sonar lo dice, y se elige a otra que pueda.
+    const other = await open('control');
+    const tell = (id, able) => s.put('/api/events/sound', JSON.stringify({ id, able }), 'application/json');
+    assert.equal((await tell(control.id, false)).sonido, other.id);
+    assert.equal(await sound(), other.id);
+    assert.equal((await tell(other.id, false)).sonido, null, 'si ninguna puede, no suena en ningún sitio');
+    assert.equal((await tell(control.id, true)).sonido, control.id);
+    assert.equal((await tell('c999', false)).sonido, control.id, 'una conexión que no existe no cambia nada');
+    other.close();
     control.close();
+    assert.equal(await sound(), null);
+  } finally {
+    await s.stop();
+  }
+});
+
+test('«Negro» y «Solo fondo» pausan lo que suena; pedir que se reproduzca lo vuelve a mostrar; al terminar pasa a fondo', async () => {
+  // Sin ffmpeg para no depender de él: un MP3 de mentira con la duración que dice quien lo sube.
+  const s = await start('ocultar', { MANNA_FALTA: 'ffmpeg' });
+  try {
+    const clip = await s.put('/api/media/clips?name=Pista&ext=.mp3&duration=1.2', Buffer.alloc(800, 1));
+    const show = () => s.send('projection.show', { kind: 'audio', data: { id: clip.id } });
+    const now = async () => { const st = await s.state(); return { mode: st.projection.mode, playing: st.live.state.clock.playing, position: st.live.state.clock.position }; };
+
+    await show();
+    assert.deepEqual([(await now()).mode, (await now()).playing], ['live', true]);
+    await sleep(250);
+    assert.equal((await s.send('projection.mode', { mode: 'black' })).http, 200);
+    let state = await now();
+    assert.deepEqual([state.mode, state.playing], ['black', false]);
+    assert.ok(state.position >= 0.2 && state.position < 0.7, `queda en pausa donde iba (${state.position})`);
+    // Quitar el negro no lo reanuda solo: no debe sonar nada por sorpresa.
+    await s.send('projection.mode', { mode: 'live' });
+    assert.deepEqual([(await now()).mode, (await now()).playing], ['live', false]);
+    await s.send('projection.mode', { mode: 'clear' });
+    assert.equal((await now()).mode, 'clear');
+    // "Reproducir" con la pantalla oculta la vuelve a mostrar.
+    assert.equal((await s.send('projection.control', { playing: true })).http, 200);
+    assert.deepEqual([(await now()).mode, (await now()).playing], ['live', true]);
+    // Una orden que no es reproducir no cambia el modo.
+    await s.send('projection.mode', { mode: 'black' });
+    await s.send('projection.control', { position: 0.1 });
+    assert.equal((await now()).mode, 'black');
+
+    // Al llegar al final, la proyección pasa sola a "Solo fondo".
+    await show();
+    await sleep(700);
+    assert.equal((await now()).mode, 'live', 'a medio camino sigue al aire');
+    await sleep(900);
+    state = await now();
+    assert.deepEqual([state.mode, state.playing, state.position], ['clear', false, 1.2]);
+    // Y "Reproducir" lo pone otra vez desde el principio.
+    await s.send('projection.control', { playing: true });
+    state = await now();
+    assert.deepEqual([state.mode, state.playing, state.position], ['live', true, 0]);
+
+    // Pausado no termina; y si se salta atrás poco antes del final, tampoco.
+    await s.send('projection.control', { playing: false });
+    await sleep(1500);
+    assert.equal((await now()).mode, 'live');
+    await s.send('projection.control', { playing: true, position: 0.9 });
+    await sleep(150);
+    await s.send('projection.control', { position: 0.1 });
+    await sleep(400);
+    assert.equal((await now()).mode, 'live', 'el salto atrás aplaza el final');
+    await s.send('projection.clear');
   } finally {
     await s.stop();
   }

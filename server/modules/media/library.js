@@ -252,6 +252,10 @@ export function registerClips(app, { saved, commit }) {
         }
         return { clock: applyClock(time, patch, now), subtitles: patch.subtitles === undefined ? Boolean(state.subtitles) : Boolean(patch.subtitles) };
       },
+      // Al ponerse la pantalla en negro o en solo fondo, deja de sonar: queda en pausa donde iba.
+      hide: (state, { now }) => ({ ...state, clock: applyClock(state.clock, { playing: false }, now) }),
+      // Al terminar, la proyección pasa sola a "Solo fondo".
+      endsAt: ({ clock: time }) => (time.playing && time.duration != null ? time.at + (time.duration - time.position) * 1000 : null),
     });
   }
 

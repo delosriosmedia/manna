@@ -121,7 +121,7 @@ Las imágenes se guardan en la carpeta `data/media/imagenes/` del equipo princip
 4. En el panel **Al aire** están sus mandos: volver al principio, pausar, −10 y +10 segundos, la barra de avance, el **volumen de Manna** y, si el video los tiene, **Subtítulos**.
 5. Para ponerle subtítulos a un video: en su menú (⋯), **Añadir subtítulos**, y elige un archivo `.srt` o `.vtt`. En la carpeta, basta un archivo con el mismo nombre que el video.
 
-El sonido sale por una sola pantalla: la de proyección abierta en el equipo principal (la del proyector). Si no hay ninguna, el control avisa de que no suena en ningún sitio; para oírlo sin proyector, abre `localhost/proyeccion` en una pestaña del equipo principal.
+El sonido sale siempre por el equipo principal, por el dispositivo de audio que tenga elegido: por su ventana de proyección o, si no hay proyector conectado, por su página de control. Nunca se corta de golpe: al pausar, al poner «Negro» o «Solo fondo» y al cambiar lo que hay en pantalla, se desvanece en un instante. «Negro» y «Solo fondo» también pausan lo que suena, y al terminar un video la pantalla pasa sola a «Solo fondo».
 
 ### Un televisor como pantalla
 

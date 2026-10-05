@@ -111,6 +111,11 @@ let knownBuild; // huella del servidor al que se conectó esta página (undefine
 // (state.conexiones.sonido): ver server/core/realtime.js.
 let clientId = null;
 export const connectionId = () => clientId;
+// Esta pantalla avisa de si el navegador la deja sonar. Si no puede, el servidor elige a otra.
+export function reportSound(able) {
+  if (!clientId) return;
+  fetch('/api/events/sound', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: clientId, able }) }).catch(() => {});
+}
 
 // El servidor envía un latido cada 10 s. Si pasan 25 s sin recibir nada, la conexión
 // está "muerta aunque abierta" (wifi caída, router reiniciado, equipo dormido) y se rehace.

@@ -16,7 +16,7 @@ export function createVolume() {
     if (now > 0) before = now;
     set(now > 0 ? 0 : before || 1);
   } });
-  const nobody = h('p', { class: 'muted vol-nobody', hidden: true }, 'Ahora mismo no suena en ningún sitio: el sonido sale por la pantalla de proyección abierta en el equipo principal.');
+  const nobody = h('p', { class: 'muted vol-nobody', hidden: true }, 'Ahora mismo no suena en ningún sitio. El sonido sale por el equipo principal: abre ahí la proyección o el control y, si ya está abierto, haz un clic en su página.');
   const el = h('div', { class: 'volume' }, h('div', { class: 'transport' }, mute, slider, amount), nobody);
 
   function paint(volume) {

@@ -80,6 +80,7 @@ const UNTOUCHED = {
   'projection.display': 'necesita una segunda pantalla de verdad',
   'GET /api/state': 'para diagnóstico y pruebas: la interfaz recibe el estado por /api/events',
   'POST /api/action': 'es la puerta de todas las órdenes, que se cuentan una a una',
+  'POST /api/events/sound': 'solo lo usa una página a la que el navegador no deja sonar, y aquí no se puede forzar; se prueba en test/medios-clips.test.js',
 };
 
 // Los videos y audios de la prueba se fabrican con ffmpeg. En un equipo sin él esa parte se salta,
@@ -568,25 +569,29 @@ try {
     // Otra pantalla de proyección en este mismo equipo: es la que suena.
     await run(`const f = document.createElement('iframe'); f.id = 'pantalla'; f.src = '/proyeccion'; f.style.cssText = 'position:fixed;left:0;bottom:0;width:320px;height:180px;z-index:99;border:0'; document.body.append(f);`);
     await sleep(2500);
+    // La ventana del proyector puede sonar sin que nadie la toque; una pestaña corriente, como esta
+    // de la prueba, necesita un toque. Se le da antes de empezar.
+    const tap = JSON.parse(await run(`const f = document.querySelector('#pantalla').getBoundingClientRect(); return JSON.stringify({ x: f.left + f.width / 2, y: f.top + f.height / 2 })`));
+    for (const kind of ['mousePressed', 'mouseReleased']) await chrome.send('Input.dispatchMouseEvent', { type: kind, x: tap.x, y: tap.y, button: 'left', buttons: kind === 'mouseReleased' ? 0 : 1, clickCount: 1 });
     await click(`${vbar}.querySelector('.btn.primary')`);
     await sleep(1800);
-    const screens = () => run(`const a = document.querySelector('.dock .monitor video'); const d = document.querySelector('#pantalla').contentDocument; const b = d.querySelector('video'); const u = d.querySelector('.clip-unblock'); return JSON.stringify({ here: { t: a.currentTime, paused: a.paused, muted: a.muted }, there: { t: b.currentTime, paused: b.paused, muted: b.muted, volume: b.volume, subtitles: b.textTracks[0]?.mode }, blocked: Boolean(u && !u.hidden) })`).then(JSON.parse);
+    const far = `document.querySelector('#pantalla').contentDocument`;
+    const screens = () => run(`const a = document.querySelector('.dock .monitor video'); const b = ${far}.querySelector('.clip-view video'); return JSON.stringify({ here: { t: a.currentTime, paused: a.paused, muted: a.muted }, there: { t: b.currentTime, paused: b.paused, muted: b.muted, volume: b.volume, subtitles: b.textTracks[0]?.mode }, notice: ${far}.body.textContent.includes('Toca aquí') })`).then(JSON.parse);
+    // Apunta, cada pocos milisegundos, cómo va el sonido de un reproductor: para ver que se desvanece.
+    const listen = (js) => run(`const v = ${js}; window.__oido = []; clearInterval(window.__reloj); window.__reloj = setInterval(() => window.__oido.push([v.paused, Math.round(v.volume * 1000) / 1000]), 15);`);
+    const heard = async () => { const list = JSON.parse(await run(`clearInterval(window.__reloj); return JSON.stringify(window.__oido)`)); const playing = list.filter(([paused]) => !paused).map(([, volume]) => volume); return { steps: new Set(playing).size, min: Math.min(...playing), max: Math.max(...playing), ends: list.at(-1)?.[0] === true }; };
     let on = await air();
     let both = await screens();
-    if (both.blocked) {
-      // Una pestaña corriente no puede sonar hasta que alguien la toca: lo pide, y con un toque suena.
-      const spot = JSON.parse(await run(`const f = document.querySelector('#pantalla').getBoundingClientRect(); const u = document.querySelector('#pantalla').contentDocument.querySelector('.clip-unblock').getBoundingClientRect(); return JSON.stringify({ x: f.left + u.left + u.width / 2, y: f.top + u.top + u.height / 2 })`));
-      for (const kind of ['mousePressed', 'mouseReleased']) await chrome.send('Input.dispatchMouseEvent', { type: kind, x: spot.x, y: spot.y, button: 'left', buttons: kind === 'mouseReleased' ? 0 : 1, clickCount: 1 });
-      await sleep(900);
-      both = await screens();
-    }
     check('"Proyectar" pone el video al aire reproduciéndose', on.item.kind === 'video' && on.live.clock.playing === true && !both.here.paused && !both.there.paused && both.here.t > 0.3);
-    check('suena una sola pantalla: la de proyección del equipo. El monitor del control va en silencio', Boolean(on.sound) && both.there.muted === false && both.here.muted === true && !both.blocked);
+    check('suena una sola pantalla: la de proyección del equipo. El monitor del control va en silencio, y nada pide tocar la pantalla', Boolean(on.sound) && both.there.muted === false && both.here.muted === true && !both.notice);
     check('las dos pantallas van a la par', Math.abs(both.here.t - both.there.t) < 0.5, `${both.here.t.toFixed(2)} s y ${both.there.t.toFixed(2)} s`);
+    await listen(`${far}.querySelector('.clip-view video')`);
     await control('Pausar');
+    let sound = await heard();
     both = await screens();
     on = await air();
-    check('"Pausar" detiene las dos pantallas en el mismo punto', on.live.clock.playing === false && both.here.paused && both.there.paused && Math.abs(both.here.t - on.live.clock.position) < 0.3 && Math.abs(both.there.t - on.live.clock.position) < 0.3, `${both.here.t.toFixed(2)}, ${both.there.t.toFixed(2)} y ${on.live.clock.position.toFixed(2)} s`);
+    check('"Pausar" detiene las dos pantallas en el mismo punto', on.live.clock.playing === false && both.here.paused && both.there.paused && Math.abs(both.here.t - on.live.clock.position) < 0.3 && Math.abs(both.there.t - on.live.clock.position) < 0.45, `${both.here.t.toFixed(2)}, ${both.there.t.toFixed(2)} y ${on.live.clock.position.toFixed(2)} s`);
+    check('al pausar, el sonido no se corta de golpe: se desvanece en un instante', sound.ends && sound.steps >= 4 && sound.max > 0.9 && sound.min < 0.3, `${sound.steps} pasos de volumen, de ${sound.max} a ${sound.min}`);
     await run(`const b = ${controls}.querySelector('.clip-seek input'); b.value = 5; b.dispatchEvent(new Event('input')); b.dispatchEvent(new Event('change'));`);
     await sleep(900);
     both = await screens();
@@ -614,9 +619,43 @@ try {
     check('y se muestran con su mando mientras el video está al aire', (await air()).live.subtitles === true && both.there.subtitles === 'showing');
     await cardMenu(mainCard, 'Quitar los subtítulos');
     check('los subtítulos se pueden quitar', (await videosNow()).find((v) => v.id === main.id).subtitles === false && await run(`return !${mainCard}.querySelector('.media-cc')`));
+    // «Negro» y «Solo fondo» también pausan; "Reproducir" lo vuelve a mostrar.
+    await control('Reproducir');
+    await sleep(500);
+    await listen(`${far}.querySelector('.clip-view video')`);
+    await click(`[...document.querySelectorAll('.dock .transport .btn')].find(b => b.textContent.startsWith('Negro'))`);
+    await sleep(700);
+    sound = await heard();
+    on = await run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ mode: s.projection.mode, playing: s.live.state.clock.playing })`).then(JSON.parse);
+    check('«Negro» pausa lo que suena, también con un desvanecido', on.mode === 'black' && on.playing === false && sound.ends && sound.steps >= 4, `${sound.steps} pasos de volumen`);
+    await control('Reproducir');
+    on = await run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ mode: s.projection.mode, playing: s.live.state.clock.playing })`).then(JSON.parse);
+    check('"Reproducir" con la pantalla en negro la vuelve a mostrar', on.mode === 'live' && on.playing === true);
+    // Al terminar, la proyección pasa sola a "Solo fondo".
+    await run(`const b = ${controls}.querySelector('.clip-seek input'); b.value = Number(b.max) - 1.2; b.dispatchEvent(new Event('input')); b.dispatchEvent(new Event('change'));`);
+    const ended = await until(`document.querySelector('.dock-head strong').textContent === 'Solo fondo'`, 12);
+    on = await run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ mode: s.projection.mode, playing: s.live.state.clock.playing, far: ${far}.querySelector('.stage').dataset.mode })`).then(JSON.parse);
+    check('al terminar el video, la proyección pasa sola a «Solo fondo»', ended && on.mode === 'clear' && on.playing === false && on.far === 'clear', JSON.stringify(on));
+    // Cambiar lo que hay en pantalla: lo nuevo sale al instante y el sonido de lo anterior se desvanece.
+    await control('Otra vez');
+    await sleep(900);
+    await run(`window.__anterior = ${far}.querySelector('.clip-view video');`);
+    await listen('window.__anterior');
+    await run(`await ${post('projection.show', { kind: 'testcard', data: {} })}`);
+    const swapped = await run(`return ${far}.querySelector('.stage .tc') !== null && !${far}.querySelector('.clip-view')`);
+    await sleep(700);
+    sound = await heard();
+    check('al cambiar lo que está en pantalla, lo nuevo sale enseguida y el sonido anterior se desvanece', swapped && sound.ends && sound.steps >= 4 && sound.min < 0.3, `${sound.steps} pasos de volumen`);
+    await click(`${vbar}.querySelector('.btn.primary')`);
+    await sleep(1500);
+    await control('Pausar');
     await run(`document.querySelector('#pantalla').remove()`);
-    await sleep(300);
-    check('sin pantalla de proyección en el equipo, el control avisa de que no suena en ningún sitio', await until(`!${controls}.querySelector('.vol-nobody').hidden`) && (await air()).sound === null);
+    await control('Reproducir');
+    await sleep(900);
+    both = JSON.parse(await run(`const a = document.querySelector('.dock .monitor video'); const api = await import('/core/api.js'); return JSON.stringify({ paused: a.paused, muted: a.muted, yo: api.connectionId(), suena: api.state.conexiones.sonido, tocada: navigator.userActivation.hasBeenActive })`));
+    on = await air();
+    check('sin ventana de proyección, el sonido sale por el control del equipo principal, sin tocar nada', Boolean(on.sound) && !both.paused && both.muted === false && await run(`return ${controls}.querySelector('.vol-nobody').hidden`), JSON.stringify(both));
+    await control('Pausar');
 
     await click(`[...${vbar}.querySelectorAll('.btn')].find(b => b.textContent.includes('Añadir'))`);
     await sleep(600);
