@@ -24,7 +24,7 @@
 // Necesita Node 22 o superior (WebSocket integrado) y Chrome o Edge. No toca los datos reales:
 // usa los puertos 8123 y 8125, el nombre "manna-prueba.local" y carpetas temporales de datos y de
 // biblias (la Reina-Valera 1909 del repositorio y una versión de prueba de dos versículos).
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
@@ -77,17 +77,31 @@ for (const port of [PORT, 8125]) {
 const UNTOUCHED = {
   'bible.rescan': 'no tiene botón: la carpeta de biblias se vigila sola',
   'projection.clear': 'no tiene botón: "Solo fondo" y "Negro" cubren su uso',
-  'projection.volume': 'aún no tiene mando: llega con los videos y audios (fase 6)',
   'projection.display': 'necesita una segunda pantalla de verdad',
   'GET /api/state': 'para diagnóstico y pruebas: la interfaz recibe el estado por /api/events',
   'POST /api/action': 'es la puerta de todas las órdenes, que se cuentan una a una',
 };
 
+// Los videos y audios de la prueba se fabrican con ffmpeg. En un equipo sin él esa parte se salta,
+// y lo que solo ella pulsa se declara como no probado.
+const HAS_FFMPEG = spawnSync('ffmpeg', ['-version']).status === 0;
+const sample = (name, args) => {
+  const file = path.join(tmp, name);
+  spawnSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args, file]);
+  return file;
+};
+if (!HAS_FFMPEG) {
+  for (const name of ['media.retry', 'media.subtitlesRemove', 'projection.volume', 'POST /api/media/clips', 'POST /api/media/clips/:id/thumb', 'POST /api/media/clips/:id/subtitles']) {
+    UNTOUCHED[name] = 'este equipo no tiene ffmpeg para fabricar los videos de la prueba';
+  }
+}
+
 // ---- Servidor de prueba ----
 // Los televisores de la prueba son uno de mentira en este equipo: nada sale a la red.
 const fakeTv = await startFakeTv();
 function startServer(host, extra = {}) {
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), ...extra };
+  // MANNA_SIN_VENTANA: la prueba no abre su proyección en el proyector de verdad, si lo hay.
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), ...extra };
   if (host) env.MANNA_HOST = host;
   return spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env });
 }
@@ -507,6 +521,134 @@ try {
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(400);
 
+  console.log('\n1. Interfaz · Medios (videos y audios)');
+  if (!HAS_FFMPEG) console.log('  (este equipo no tiene ffmpeg: no se pueden fabricar los videos de ejemplo y esta parte se salta)');
+  else {
+    const quiet = (frequency, seconds) => ['-f', 'lavfi', '-i', `sine=frequency=${frequency}:duration=${seconds}`, '-af', 'volume=0.05'];
+    const welcome = sample('video_de-bienvenida.mp4', ['-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=25:duration=8', ...quiet(330, 8), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest']);
+    const oldVideo = sample('testimonio.avi', ['-f', 'lavfi', '-i', 'testsrc=size=320x240:rate=15:duration=4', ...quiet(220, 4), '-c:v', 'mpeg4', '-c:a', 'libmp3lame', '-shortest']);
+    const track = sample('pista de piano.mp3', [...quiet(440, 5), '-c:a', 'libmp3lame']);
+    const notVideo = path.join(tmp, 'falso.mp4');
+    const captions = path.join(tmp, 'bienvenida.srt');
+    fs.writeFileSync(notVideo, 'esto no es un video '.repeat(200));
+    fs.writeFileSync(captions, '1\n00:00:00,000 --> 00:00:08,000\nBienvenidos\n');
+    const tab = async (id) => { await click(`document.querySelector('.media-tabs [data-tab=${id}]')`); await sleep(400); };
+    const vids = `document.querySelector('.media-body[data-panel=videos]')`;
+    const vbar = `document.querySelector('.media-bar[data-panel=videos]')`;
+    const controls = `document.querySelector('.dock .live-controls')`;
+    const control = async (label) => { await click(`[...${controls}.querySelectorAll('button')].find(b => (b.textContent + ' ' + (b.getAttribute('aria-label') || '')).includes(${JSON.stringify(label)}))`); await sleep(700); };
+    const videosNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).media.videos)`).then(JSON.parse);
+    const air = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ item: s.projection.item, live: s.live.state, volume: s.live.volume, sound: s.conexiones.sonido, order: s.order.items })`).then(JSON.parse);
+
+    await click(`document.querySelector('.rail-item[data-id=medios]')`);
+    await sleep(400);
+    await tab('videos');
+    check('la pestaña Videos empieza vacía y dice de dónde salen los videos', await run(`return ${vids}.querySelector('.empty').textContent.includes('Contenido/Medios') && document.querySelector('.ws[data-module=medios] .ws-head .btn').textContent === 'Subir videos'`));
+    await chooseFiles('.media-body[data-panel=videos] input[type=file]', [notVideo]);
+    await sleep(500);
+    await modalButton('Subir');
+    check('un archivo que no es un video se rechaza, y lo dice', await until(`${modal}.querySelector('.up-row.error small')?.textContent.includes('no contiene un video')`), await run(`return ${modal}.querySelector('.up-row small')?.textContent`));
+    await modalButton('Cancelar');
+    await chooseFiles('.media-body[data-panel=videos] input[type=file]', [welcome, oldVideo]);
+    await sleep(500);
+    check('propone un nombre para cada video', await run(`return ${modal}.querySelector('h2').textContent === 'Subir 2 videos' && [...${modal}.querySelectorAll('.up-row input')].map(i => i.value).join('|') === 'video de bienvenida|testimonio'`));
+    await modalButton('Subir');
+    check('sube los videos y cierra la ventana', await until(`!${modal} && ${vids}.querySelectorAll('.media-card').length === 2`, 80));
+    check('el que el navegador no reproduce se convierte solo y queda listo', await until(`${vids}.querySelectorAll('.media-card[data-status=ready]').length === 2`, 100));
+    let videos = await videosNow();
+    const main = videos.find((v) => v.name === 'video de bienvenida');
+    const converted = videos.find((v) => v.name === 'testimonio');
+    check('lo habitual se usa tal cual y lo demás queda convertido; los dos con su imagen y su duración', Boolean(main && converted) && !main.converted && converted.converted && converted.url.endsWith('.mp4')
+      && Math.round(main.duration) === 8 && await run(`return [...${vids}.querySelectorAll('.media-card')].every(c => c.querySelector('.media-thumb img')?.naturalWidth > 0 && /^0:0\\d$/.test(c.querySelector('.media-duration').textContent))`));
+    const mainCard = `${vids}.querySelector('.media-card[data-id="${main?.id}"]')`;
+    await click(`${mainCard}.querySelector('.media-pick')`);
+    await sleep(500);
+    check('al elegir un video se ve su imagen en la vista previa y aparecen sus acciones', await run(`const m = document.querySelectorAll('.dock .monitor')[1]; return !${vbar}.hidden && m.querySelector('.clip-poster').getAttribute('src') === ${JSON.stringify(main?.poster)} && !m.querySelector('.clip-view').classList.contains('on-air')`));
+
+    // Otra pantalla de proyección en este mismo equipo: es la que suena.
+    await run(`const f = document.createElement('iframe'); f.id = 'pantalla'; f.src = '/proyeccion'; f.style.cssText = 'position:fixed;left:0;bottom:0;width:320px;height:180px;z-index:99;border:0'; document.body.append(f);`);
+    await sleep(2500);
+    await click(`${vbar}.querySelector('.btn.primary')`);
+    await sleep(1800);
+    const screens = () => run(`const a = document.querySelector('.dock .monitor video'); const d = document.querySelector('#pantalla').contentDocument; const b = d.querySelector('video'); const u = d.querySelector('.clip-unblock'); return JSON.stringify({ here: { t: a.currentTime, paused: a.paused, muted: a.muted }, there: { t: b.currentTime, paused: b.paused, muted: b.muted, volume: b.volume, subtitles: b.textTracks[0]?.mode }, blocked: Boolean(u && !u.hidden) })`).then(JSON.parse);
+    let on = await air();
+    let both = await screens();
+    if (both.blocked) {
+      // Una pestaña corriente no puede sonar hasta que alguien la toca: lo pide, y con un toque suena.
+      const spot = JSON.parse(await run(`const f = document.querySelector('#pantalla').getBoundingClientRect(); const u = document.querySelector('#pantalla').contentDocument.querySelector('.clip-unblock').getBoundingClientRect(); return JSON.stringify({ x: f.left + u.left + u.width / 2, y: f.top + u.top + u.height / 2 })`));
+      for (const kind of ['mousePressed', 'mouseReleased']) await chrome.send('Input.dispatchMouseEvent', { type: kind, x: spot.x, y: spot.y, button: 'left', buttons: kind === 'mouseReleased' ? 0 : 1, clickCount: 1 });
+      await sleep(900);
+      both = await screens();
+    }
+    check('"Proyectar" pone el video al aire reproduciéndose', on.item.kind === 'video' && on.live.clock.playing === true && !both.here.paused && !both.there.paused && both.here.t > 0.3);
+    check('suena una sola pantalla: la de proyección del equipo. El monitor del control va en silencio', Boolean(on.sound) && both.there.muted === false && both.here.muted === true && !both.blocked);
+    check('las dos pantallas van a la par', Math.abs(both.here.t - both.there.t) < 0.5, `${both.here.t.toFixed(2)} s y ${both.there.t.toFixed(2)} s`);
+    await control('Pausar');
+    both = await screens();
+    on = await air();
+    check('"Pausar" detiene las dos pantallas en el mismo punto', on.live.clock.playing === false && both.here.paused && both.there.paused && Math.abs(both.here.t - on.live.clock.position) < 0.3 && Math.abs(both.there.t - on.live.clock.position) < 0.3, `${both.here.t.toFixed(2)}, ${both.there.t.toFixed(2)} y ${on.live.clock.position.toFixed(2)} s`);
+    await run(`const b = ${controls}.querySelector('.clip-seek input'); b.value = 5; b.dispatchEvent(new Event('input')); b.dispatchEvent(new Event('change'));`);
+    await sleep(900);
+    both = await screens();
+    on = await air();
+    check('la barra de avance lleva las dos pantallas a ese punto', on.live.clock.position === 5 && Math.abs(both.here.t - 5) < 0.3 && Math.abs(both.there.t - 5) < 0.3 && (await run(`return ${controls}.querySelector('.clip-time').textContent`)) === '0:05');
+    await control('−10');
+    check('"−10" retrocede sin pasarse del principio', (await air()).live.clock.position === 0 && (await run(`return ${controls}.querySelector('.clip-time').textContent`)) === '0:00');
+    await run(`const v = ${controls}.querySelector('.volume input'); v.value = 40; v.dispatchEvent(new Event('input'));`);
+    await sleep(700);
+    both = await screens();
+    check('el volumen de Manna es uno solo y lo sigue la pantalla que suena', (await air()).volume === 0.4 && Math.abs(both.there.volume - 0.4) < 0.01 && (await run(`return ${controls}.querySelector('.vol-amount').textContent`)) === '40 %');
+    await control('Silenciar');
+    check('se puede silenciar y volver al volumen que había', (await air()).volume === 0 && await (async () => { await control('Quitar el silencio'); return (await air()).volume === 0.4; })());
+
+    // Subtítulos: un archivo .srt junto al video.
+    const cardMenu = async (cardJs, label) => { await click(`${cardJs}.querySelector('.media-more')`); await sleep(300); await menuItem(label); await sleep(400); };
+    await cardMenu(mainCard, 'Añadir subtítulos');
+    await chooseFiles('.media-body[data-panel=videos] input[accept*=".srt"]', [captions]);
+    check('se le añaden subtítulos desde un archivo .srt', await until(`${mainCard}.querySelector('.media-cc')`) && (await videosNow()).find((v) => v.id === main.id).subtitles === true);
+    await click(`${vbar}.querySelector('.btn.primary')`);
+    await sleep(1500);
+    await control('Pausar');
+    await control('Subtítulos');
+    both = await screens();
+    check('y se muestran con su mando mientras el video está al aire', (await air()).live.subtitles === true && both.there.subtitles === 'showing');
+    await cardMenu(mainCard, 'Quitar los subtítulos');
+    check('los subtítulos se pueden quitar', (await videosNow()).find((v) => v.id === main.id).subtitles === false && await run(`return !${mainCard}.querySelector('.media-cc')`));
+    await run(`document.querySelector('#pantalla').remove()`);
+    await sleep(300);
+    check('sin pantalla de proyección en el equipo, el control avisa de que no suena en ningún sitio', await until(`!${controls}.querySelector('.vol-nobody').hidden`) && (await air()).sound === null);
+
+    await click(`[...${vbar}.querySelectorAll('.btn')].find(b => b.textContent.includes('Añadir'))`);
+    await sleep(600);
+    const videoInOrder = (await air()).order.find((i) => i.kind === 'video');
+    check('el video se añade al orden del culto como elemento propio, con su duración', Boolean(videoInOrder) && videoInOrder.title === 'video de bienvenida' && videoInOrder.subtitle === 'Video · 0:08');
+    await cardMenu(mainCard, 'Cambiar el nombre');
+    await run(`${modal}.querySelector('input').value = 'Bienvenida';`);
+    await modalButton('Guardar');
+    await sleep(600);
+    const oldCard = `${vids}.querySelector('.media-card[data-id="${converted?.id}"]')`;
+    await cardMenu(oldCard, 'Eliminar');
+    await modalButton('Eliminar');
+    await sleep(700);
+    videos = await videosNow();
+    check('un video se renombra y se elimina', videos.length === 1 && videos[0].name === 'Bienvenida' && await run(`return (await fetch(${JSON.stringify(converted?.url || '/x')})).status === 404`));
+
+    await tab('audios');
+    const auds = `document.querySelector('.media-body[data-panel=audios]')`;
+    await chooseFiles('.media-body[data-panel=audios] input[type=file]', [track]);
+    await sleep(500);
+    await modalButton('Subir');
+    check('un audio se sube igual, desde su pestaña', await until(`!${modal} && ${auds}.querySelector('.media-card[data-status=ready]')`, 60) && await run(`return ${auds}.querySelector('.media-card strong').textContent === 'pista de piano' && ${auds}.querySelector('.media-duration').textContent === '0:05'`));
+    await click(`${auds}.querySelector('.media-card .media-pick')`);
+    await sleep(300);
+    await click(`document.querySelector('.media-bar[data-panel=audios] .btn.primary')`);
+    await sleep(1200);
+    on = await air();
+    check('al proyectarlo suena, y la pantalla muestra su nombre sobre el fondo', on.item.kind === 'audio' && on.live.clock.playing === true && await run(`const m = document.querySelector('.dock .monitor'); return m.querySelector('.clip-audio .stage-ref').textContent === 'pista de piano' && !m.querySelector('audio').paused && m.querySelector('.stage').dataset.fill === 'text'`));
+    await control('Pausar');
+    check('y se gobierna con los mismos mandos', (await air()).live.clock.playing === false && await run(`return ${controls}.querySelectorAll('button').length >= 5 && document.querySelector('.dock .monitor audio').paused`));
+  }
+
   console.log('\n1. Interfaz · Televisores');
   // El módulo está en pausa: no sale en la barra, pero sigue ahí y se entra por su dirección.
   check('Televisores, en pausa, no aparece en la barra de módulos', await run(`return !document.querySelector('.rail-item[data-id=televisores]') && !document.querySelector('.tabbar [data-id=televisores]')`));
@@ -737,7 +879,8 @@ try {
   // ================= 5. Lo que cierra la sesión =================
   // Un Manna que "arrancó con el código de antes" (huella fingida): debe notarlo y decirlo.
   await stopServer(server);
-  server = startServer(null, { MANNA_HUELLA: 'de-antes', MANNA_REVISAR_CODIGO_MS: '300' });
+  // De paso, sin ffmpeg: para ver cómo se comporta Medios en un equipo que no lo tiene.
+  server = startServer(null, { MANNA_HUELLA: 'de-antes', MANNA_REVISAR_CODIGO_MS: '300', MANNA_FALTA: 'ffmpeg' });
   await sleep(3000);
   await chrome.send('Page.navigate', { url: `${local}/control?fin=${Date.now()}#orden` });
   await sleep(2500);
@@ -773,6 +916,33 @@ try {
   await modalButton('Vaciar');
   await sleep(600);
   check('"Vaciar el orden" lo deja vacío tras confirmar', (await orderRows()) === 0 && await run(`return ${ord}.querySelector('.empty').textContent.includes('está vacío') && (await (await fetch('/api/state')).json()).order.items.length === 0`));
+
+  if (HAS_FFMPEG) {
+    console.log('\n5. Medios en un equipo sin ffmpeg');
+    await click(`document.querySelector('.rail-item[data-id=medios]')`);
+    await sleep(400);
+    await click(`document.querySelector('.media-tabs [data-tab=videos]')`);
+    await sleep(400);
+    const vids = `document.querySelector('.media-body[data-panel=videos]')`;
+    const notice = `document.querySelector('.ws-notice')`;
+    check('el módulo avisa de que sin ffmpeg no podrá convertir', await run(`return !${notice}.hidden && ${notice}.textContent.includes('Falta ffmpeg') && ${notice}.textContent.includes('convertir')`));
+    const before = await run(`return ${vids}.querySelectorAll('.media-card').length`);
+    const dummy = path.join(tmp, 'grabacion antigua.avi');
+    fs.writeFileSync(dummy, Buffer.alloc(4000, 3));
+    await chooseFiles('.media-body[data-panel=videos] input[type=file]', [path.join(tmp, 'video_de-bienvenida.mp4'), dummy]);
+    await sleep(500);
+    await modalButton('Subir');
+    check('lo habitual se sube y queda listo, con la imagen y la duración que saca el propio navegador', await until(`!${modal} && ${vids}.querySelectorAll('.media-card').length === ${before} + 2`, 60)
+      && await until(`[...${vids}.querySelectorAll('.media-card[data-status=ready]')].some(c => c.querySelector('strong').textContent === 'video de bienvenida' && c.querySelector('.media-thumb img')?.naturalWidth > 0 && c.querySelector('.media-duration')?.textContent === '0:08')`, 20));
+    const waiting = `${vids}.querySelector('.media-card[data-status=needs-ffmpeg]')`;
+    check('lo que hay que convertir queda a la espera, y dice que hace falta ffmpeg y cómo instalarlo', await run(`const c = ${waiting}; return Boolean(c) && c.querySelector('strong').textContent === 'grabacion antigua' && c.querySelector('.media-status small').textContent.includes('ffmpeg') && [...c.querySelectorAll('.media-status .btn')].map(b => b.textContent).join('|') === 'Reintentar|Instalar ffmpeg'`));
+    await click(`${waiting}.querySelector('.media-pick')`);
+    await sleep(300);
+    check('y no se puede proyectar mientras tanto', await run(`return document.querySelector('.media-bar[data-panel=videos] .btn.primary').disabled`));
+    await click(`[...${waiting}.querySelectorAll('.media-status .btn')].find(b => b.textContent === 'Reintentar')`);
+    await sleep(700);
+    check('"Reintentar" lo vuelve a mirar (sin ffmpeg, sigue esperando)', await run(`return Boolean(${waiting})`));
+  }
 
   console.log('\n5. Actualización con Manna abierto, reinicio y apagado');
   const bar = `document.querySelector('.update-bar')`;

@@ -16,7 +16,8 @@ Repositorio: https://github.com/delosriosmedia/manna
 - Como lo abre el usuario: icono **Manna**, creado por `Instalar Manna en Windows.bat` / `Instalar Manna en Mac.command`. Arranca con `--segundo-plano` (sin ventana, registro en `data/manna.log`) y se apaga con el botón "Apagar" del control
 - Pruebas: `npm test` (incluye la revisión del código sin ejecutarlo: imports que no existen, nombres que tapan algo importado y órdenes que el servidor no tiene)
 - Servidor de prueba sin abrir navegador ni tocar los datos reales:
-  `MANNA_NAME=manna-prueba MANNA_NO_OPEN=1 MANNA_DATA="$TMPDIR/manna-prueba" PORT=8123 node server/index.js`
+  `MANNA_NAME=manna-prueba MANNA_NO_OPEN=1 MANNA_SIN_VENTANA=1 MANNA_DATA="$TMPDIR/manna-prueba" PORT=8123 node server/index.js`
+  (`MANNA_SIN_VENTANA=1` es obligatorio en pruebas: sin él, si hay un proyector conectado, la prueba se proyecta y suena en él)
 - Pruebas de extremo a extremo en un Chrome real: `node scripts/probar-chrome.mjs` (completas, 3 min) o `node scripts/probar-chrome.mjs rapido` (revisión del equipo e interfaz, 1 min). Usa los puertos 8123 y 8125: cierra antes la demostración
 - Auditoría de adaptación a pantallas (celular, tableta, escritorio): `node scripts/auditar-responsive.mjs`
 - Demostración con un orden del culto de ejemplo y datos temporales: `node scripts/demo.mjs` (puerto 8123). Con ella, `/vista-previa` muestra la app en el marco de un celular o una tableta
@@ -28,7 +29,7 @@ Repositorio: https://github.com/delosriosmedia/manna
 - Web: HTML, CSS y JavaScript puro con módulos ES. **Sin framework ni paso de compilación.** Tipografía (Geist) e iconos (Phosphor) incluidos en `web/vendor/`.
 - Tiempo real: Server-Sent Events (`GET /api/events`). Órdenes: `POST /api/action`.
 - Red: puerto 80 (8000 si está ocupado) y nombre `manna.local` anunciado por mDNS, hecho a mano en `server/modules/system/mdns.js`. Cada puerto atiende `http` y `https` a la vez (certificado propio, hecho a mano en `server/core/cert.js`); con el 80 se abren además el 8000 y el 443.
-- Datos locales en `data/` (JSON, medios subidos, programas instalados por Manna y temporales). Lo que pone cada iglesia, en `Contenido/`: `Biblias/`, `Himnario/videos/` y `Himnario/letras/` (ver `Contenido/LEEME.txt`).
+- Datos locales en `data/` (JSON, medios subidos, programas instalados por Manna y temporales). Lo que pone cada iglesia, en `Contenido/`: `Biblias/`, `Himnario/videos/`, `Himnario/letras/` y `Medios/` (ver `Contenido/LEEME.txt`).
 
 ## Límites fijados por el dueño del proyecto
 

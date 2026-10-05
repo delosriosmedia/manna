@@ -22,6 +22,8 @@ const ICONS = [
   // televisores y medios
   'television-simple', 'house', 'keyboard', 'speaker-low', 'speaker-high', 'upload-simple', 'images',
   'magnifying-glass-plus', 'magnifying-glass-minus', 'arrows-out', 'squares-four',
+  // reproducción
+  'speaker-x', 'closed-captioning', 'waveform', 'folder-simple',
 ];
 
 const base = `https://unpkg.com/@phosphor-icons/core@${VERSION}`;

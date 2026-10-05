@@ -107,6 +107,8 @@ export default function setup(app) {
     const def = app.kinds.get(kind);
     const content = def?.resolve(data, step);
     if (!content) throw new HttpError(404, 'Ese contenido ya no está disponible.');
+    // Existe, pero aún no se puede mostrar (un video que se está convirtiendo): el tipo dice por qué.
+    if (content.unavailable) throw new HttpError(409, content.unavailable);
     uid += 1;
     const item = { kind, ...content, uid, source: { kind, data, step, orderId } };
     // Primero los mandos y después el contenido: cuando una pantalla recibe lo nuevo,
@@ -273,10 +275,14 @@ export default function setup(app) {
     child = mine;
   }
 
+  // Solo para pruebas y demostraciones: MANNA_SIN_VENTANA=1 hace como si no hubiera segunda
+  // pantalla, para que un Manna de prueba no abra su proyección (ni suene) en el proyector de verdad.
+  const windowless = Boolean(process.env.MANNA_SIN_VENTANA);
+
   // Deja la ventana en el estado correcto: abierta solo si está encendida Y hay segunda pantalla.
   async function reconcile() {
     const { supported, screens } = await listScreens();
-    const target = secondScreen(screens);
+    const target = windowless ? null : secondScreen(screens);
     const want = get().display.on && Boolean(target);
     if (want && !child) openWindow(target);
     else if (!want && child) closeWindow();
@@ -287,7 +293,7 @@ export default function setup(app) {
 
   app.action('projection.display', { permission: 'system.display' }, async ({ on }) => {
     const { screens } = await listScreens();
-    if (on && !secondScreen(screens)) {
+    if (on && (windowless || !secondScreen(screens))) {
       throw new HttpError(409, 'No hay una segunda pantalla conectada al equipo principal.');
     }
     saved.data.displayOn = Boolean(on);

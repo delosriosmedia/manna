@@ -74,6 +74,7 @@ async function run() {
     rootDir: ROOT,
     dataDir: DATA,
     biblesDir: process.env.MANNA_BIBLIAS || path.join(CONTENT, 'Biblias'),
+    mediaDir: process.env.MANNA_MEDIOS || path.join(CONTENT, 'Medios'),
   };
   let app = createApp(options);
 

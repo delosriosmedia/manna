@@ -1,12 +1,14 @@
 // Canal en tiempo real (Server-Sent Events): el servidor empuja cada cambio de estado
 // a todos los dispositivos conectados. Las órdenes viajan aparte, por POST /api/action.
-// Eventos: 'state' (todo, al conectar), 'patch' (un espacio que cambió) y 'ping' (latido).
+// Eventos: 'hello' (quién es esta conexión), 'state' (todo, al conectar), 'patch' (un espacio que
+// cambió) y 'ping' (latido).
 // El latido lleva la hora del servidor: con ella cada pantalla ajusta su reloj y la
 // reproducción va a la par en todas (ver web/core/playback.js).
 const PING_MS = 10_000;
 
 export function createRealtime({ store, router }) {
   const clients = new Set();
+  let serial = 0;
 
   store.register('conexiones', {});
 
@@ -14,10 +16,15 @@ export function createRealtime({ store, router }) {
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   }
 
+  // Una sola pantalla suena, para que no haya eco ni desfases: la primera pantalla de proyección
+  // abierta en el propio equipo principal (la del proyector). Si se cierra, pasa a la siguiente.
+  // Cada conexión sabe quién es por el evento 'hello' y se compara con `sonido`.
+  const soundClient = () => [...clients].find((c) => c.role === 'proyeccion' && c.local)?.id || null;
+
   function publishCounts() {
     const counts = {};
     for (const c of clients) counts[c.role] = (counts[c.role] || 0) + 1;
-    store.set('conexiones', { porRol: counts });
+    store.set('conexiones', { porRol: counts, sonido: soundClient() });
   }
 
   store.on('change', (ns, state) => {
@@ -33,8 +40,10 @@ export function createRealtime({ store, router }) {
       'X-Accel-Buffering': 'no',
     });
     res.write('retry: 1500\n\n');
-    const client = { res, role: (ctx.query.get('rol') || 'otro').slice(0, 20), ip: String(ctx.ip || '').replace(/^::ffff:/, '') };
+    serial += 1;
+    const client = { res, id: `c${serial}`, local: ctx.isLocal, role: (ctx.query.get('rol') || 'otro').slice(0, 20), ip: String(ctx.ip || '').replace(/^::ffff:/, '') };
     clients.add(client);
+    send(res, 'hello', { id: client.id });
     send(res, 'state', store.snapshot());
     send(res, 'ping', { t: Date.now() });
     publishCounts();

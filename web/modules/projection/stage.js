@@ -9,8 +9,9 @@ import '../kinds.js';
 // El escenario pone el fondo y decide qué se ve según el modo (al aire, solo fondo, negro).
 // El contenido lo dibuja el tipo de cada elemento (ver web/core/kinds.js).
 //
-// sound: esta pantalla es la que suena (la ventana de proyección del equipo principal).
-export function createStage(container, { sound = false } = {}) {
+// sound: esta pantalla es la que suena. Lo decide el servidor y puede cambiar (setSound).
+export function createStage(container, { sound: initialSound = false } = {}) {
+  let sound = initialSound;
   const bg = h('div', { class: 'stage-bg' });
   const overlay = h('div', { class: 'stage-overlay' });
   const content = h('div', { class: 'stage-content' });
@@ -25,7 +26,7 @@ export function createStage(container, { sound = false } = {}) {
   function applyLive() {
     if (!drawn?.view.live || !current) return;
     const mine = live && live.uid === current.uid ? live.state : null;
-    drawn.view.live(mine, { volume: live?.volume ?? 1 });
+    drawn.view.live(mine, { volume: live?.volume ?? 1, sound });
   }
 
   function render({ mode, item, styles }) {
@@ -64,6 +65,11 @@ export function createStage(container, { sound = false } = {}) {
     // Estado en vivo de lo que está al aire (espacio "live" del servidor).
     setLive(next) {
       live = next;
+      applyLive();
+    },
+    setSound(value) {
+      if (sound === Boolean(value)) return;
+      sound = Boolean(value);
       applyLive();
     },
   };

@@ -9,9 +9,10 @@
 //     key(item),              identidad de lo dibujado: si no cambia, es lo mismo en pantalla
 //     background,             false si ocupa toda la pantalla (imagen, video); por defecto se dibuja
 //                             sobre el fondo elegido en Ajustes (texto)
-//     draw(host, { stage, sound }) -> { update(item, { mode, styles }), live?(state, { volume }), stop?(), destroy?() }
-//                             dibuja el contenido dentro de host. `stage` es el escenario entero;
-//                             `sound` dice si esta pantalla es la que suena
+//     draw(host, { stage }) -> { update(item, { mode, styles }), live?(state, { volume, sound }), stop?(), destroy?() }
+//                             dibuja el contenido dentro de host. `stage` es el escenario entero.
+//                             live() recibe el estado de los mandos (null si lo dibujado no está al
+//                             aire: una vista previa), el volumen general y si esta pantalla suena
 //     controls?(host, { send }) -> { update(state, item), destroy?() }
 //                             mandos en vivo. send(patch) ejecuta projection.control
 //   });

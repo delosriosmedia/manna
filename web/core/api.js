@@ -107,6 +107,11 @@ let whenUpdated = () => location.reload();
 export const onServerUpdate = (fn) => { whenUpdated = fn; };
 let knownBuild; // huella del servidor al que se conectó esta página (undefined = aún no se sabe)
 
+// Quién es esta conexión para el servidor. Sirve para saber si esta pantalla es la que suena
+// (state.conexiones.sonido): ver server/core/realtime.js.
+let clientId = null;
+export const connectionId = () => clientId;
+
 // El servidor envía un latido cada 10 s. Si pasan 25 s sin recibir nada, la conexión
 // está "muerta aunque abierta" (wifi caída, router reiniciado, equipo dormido) y se rehace.
 const STALE_MS = 25_000;
@@ -132,6 +137,10 @@ export function connect(role) {
     source?.close();
     seen();
     source = new EventSource(`/api/events?rol=${encodeURIComponent(role)}`);
+    source.addEventListener('hello', (e) => {
+      seen();
+      try { clientId = JSON.parse(e.data).id; } catch { clientId = null; }
+    });
     source.addEventListener('state', (e) => {
       seen();
       Object.assign(state, JSON.parse(e.data));

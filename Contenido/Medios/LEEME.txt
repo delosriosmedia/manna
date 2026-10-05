@@ -1,0 +1,26 @@
+VIDEOS Y AUDIOS
+
+Copia aquí los videos y audios que quieras proyectar. Aparecen solos en Manna, en el módulo
+Medios (pestañas Videos y Audios), con el nombre del archivo. No hace falta reiniciar.
+
+También puedes subirlos desde la propia app, con el botón "Subir". Para archivos grandes,
+copiarlos a esta carpeta es lo más rápido.
+
+Formatos
+  Videos   .mp4 .m4v .mov .webm .mkv .avi .mpg .mpeg .wmv .flv .3gp .ts .mts .m2ts
+  Audios   .mp3 .m4a .aac .wav .ogg .opus .flac .wma .aif .aiff .amr
+
+  Lo habitual (un MP4 de una cámara, un celular o una edición; un MP3) se usa tal cual.
+  Lo demás Manna lo convierte una sola vez, en segundo plano, y avisa cuando está listo.
+  Para convertir hace falta el programa ffmpeg; Manna lo revisa al abrirse y ayuda a instalarlo.
+  El archivo original no se toca.
+
+Subtítulos
+  Pon junto al video un archivo con el mismo nombre y la extensión .srt o .vtt:
+      Testimonio.mp4
+      Testimonio.srt
+  En Manna aparecerá el mando para mostrarlos mientras el video está en pantalla.
+
+Para quitar algo de la biblioteca, bórralo de esta carpeta.
+
+Lo que pongas aquí se queda en tu equipo: no se publica.

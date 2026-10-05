@@ -1,7 +1,9 @@
 /* Módulo Medios: biblioteca de imágenes en rejilla, con la acción abajo. */
 .media-tabs { display: flex; gap: 6px; }
 .media-tabs .chip:disabled { opacity: 0.45; cursor: default; }
+.media-panels { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .media-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px 24px; }
+.media-bar.off { display: none; }
 .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
 .ws[data-module='medios'].dropping .media-body { outline: 2px dashed var(--accent); outline-offset: -8px; background: var(--accent-soft); }
 
@@ -18,6 +20,20 @@
 .media-card .item-text small { color: var(--ink-3); font-size: 12px; }
 .media-more { position: absolute; right: 6px; bottom: 9px; }
 html.touch .media-more { width: 40px; height: 40px; right: 2px; bottom: 3px; }
+
+/* Videos y audios: la miniatura lleva la duración; debajo, el estado si aún no está listo. */
+.media-thumb.blank { display: grid; place-items: center; background: var(--s2); color: var(--ink-3); }
+.media-duration { position: absolute; right: 6px; bottom: 6px; padding: 1px 6px; border-radius: var(--r-sm); background: rgba(0, 0, 0, 0.75); color: #fff; font: 500 11px var(--mono); }
+.media-cc { position: absolute; left: 6px; bottom: 6px; display: grid; place-items: center; padding: 2px 4px; border-radius: var(--r-sm); background: rgba(0, 0, 0, 0.75); color: #fff; }
+.media-card.pending .media-thumb { opacity: 0.55; }
+.media-status { display: grid; gap: 6px; padding: 0 10px 10px; }
+.media-status small { color: var(--ink-3); font-size: 12px; }
+.media-status.error small { color: var(--live-ink); }
+.media-status .row { flex-wrap: wrap; }
+.media-status .bar { margin: 0; }
+.media-grid.audios { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.media-grid.audios .media-thumb { aspect-ratio: 3 / 1; }
+.up-row.plain { grid-template-columns: minmax(0, 1fr); }
 
 /* Ajuste a la pantalla: se elige sobre dos miniaturas de la propia imagen. */
 .media-bar .sel-ref { min-width: 0; overflow: hidden; text-overflow: ellipsis; }

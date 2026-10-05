@@ -6,6 +6,7 @@ Manna lee lo que encuentra y lo muestra solo: no hace falta importar nada ni rei
   Biblias/            Las versiones de la Biblia, en formato .xmm o .xml
   Himnario/videos/    Los himnos en video, uno por archivo: "001 Cantad alegres al Señor.mp4"
   Himnario/letras/    Las letras de los himnos, en archivos de texto .md
+  Medios/             Videos y audios para proyectar (también se pueden subir desde la app)
 
 Cada carpeta tiene su propio LEEME.txt con el formato exacto.
 

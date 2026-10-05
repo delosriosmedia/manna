@@ -36,7 +36,7 @@ const LOOPBACK = new Set(['127.0.0.1', '::1']);
 const MAX_ARRIVALS = 200;
 
 // El "app" es lo que recibe cada módulo: estado compartido, rutas, acciones y almacenamiento.
-export function createApp({ rootDir, dataDir, biblesDir }) {
+export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null }) {
   fs.mkdirSync(dataDir, { recursive: true });
   fs.mkdirSync(biblesDir, { recursive: true });
 
@@ -67,7 +67,8 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
   router.mount('/media/', uploadsDir);
 
   const app = {
-    rootDir, dataDir, biblesDir, uploadsDir, tmpDir,
+    // mediaDir: carpeta donde la iglesia copia a mano sus videos y audios (Contenido/Medios), o null.
+    rootDir, dataDir, biblesDir, mediaDir, uploadsDir, tmpDir,
     store, storage, settings, sessions, realtime, jobs,
     services: {},
     // Huella del código con el que arrancó este servidor (ver core/build.js).

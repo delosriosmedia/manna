@@ -10,5 +10,6 @@ import { seedExample } from './lib/ejemplo.mjs';
 
 const data = path.join(os.tmpdir(), 'manna-demo');
 seedExample(data);
-Object.assign(process.env, { MANNA_DATA: data, MANNA_NAME: 'manna-demo', MANNA_NO_OPEN: '1', PORT: process.env.PORT || '8123' });
+// MANNA_SIN_VENTANA: la demostración no abre su proyección en el proyector de verdad, si lo hay.
+Object.assign(process.env, { MANNA_DATA: data, MANNA_NAME: 'manna-demo', MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', PORT: process.env.PORT || '8123' });
 await import('../server/index.js');

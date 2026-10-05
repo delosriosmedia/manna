@@ -19,7 +19,7 @@ Lo que tiene interfaz se prueba en el navegador antes de darlo por hecho. Proced
 - El cambio se refleja en otro dispositivo (abrir `/proyeccion` en otra pestaña).
 - Permisos: un rol sin permiso recibe error y no ve el control.
 
-Usar siempre un servidor de prueba con `MANNA_DATA` temporal, `PORT=8123` y `MANNA_NAME=manna-prueba`, para no tocar el PIN, el orden del culto ni los ajustes reales, ni chocar con un Manna en uso.
+Usar siempre un servidor de prueba con `MANNA_DATA` temporal, `PORT=8123`, `MANNA_NAME=manna-prueba` y **`MANNA_SIN_VENTANA=1`** (si no, con un proyector conectado la prueba se proyecta y suena en él: pasó el 2026-10-04), para no tocar el PIN, el orden del culto ni los ajustes reales, ni chocar con un Manna en uso.
 
 ## En un Chrome real
 
@@ -28,6 +28,8 @@ Usar siempre un servidor de prueba con `MANNA_DATA` temporal, `PORT=8123` y `MAN
 - `node scripts/auditar-responsive.mjs` abre la app en nueve tamaños (celular, tableta, escritorio) y verifica las garantías de `DESIGN.md`. Ejecutarlo al tocar cualquier disposición.
 
 Lo que habla con un equipo de la red (un televisor) se prueba contra uno de mentira: `scripts/lib/tv-falso.mjs` responde como un Samsung y apunta lo que recibe. Lo usan `test/tv.test.js` y los dos guiones de Chrome. Nunca se deja que una prueba salga a la red de verdad.
+
+Los videos y audios que necesita una prueba se fabrican en el momento con ffmpeg (un patrón de colores con un tono bajo, de pocos segundos). Donde no hay ffmpeg, esas pruebas se saltan diciéndolo, y lo que Manna hace sin ffmpeg se prueba siempre (con `MANNA_FALTA=ffmpeg`).
 
 Las imágenes que necesita una prueba se fabrican en el momento con `scripts/lib/png.mjs` (`makePng`, `examplePoster`): no se guardan imágenes en el repositorio ni se usan las de ninguna iglesia. Los datos de ejemplo (`scripts/lib/ejemplo.mjs`) se escriben **antes** de arrancar el servidor, que los lee al abrirse.
 

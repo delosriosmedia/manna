@@ -18,10 +18,10 @@ Si fallan, arréglalas antes de seguir.
 Puerto y datos aparte, para no tocar el PIN, el orden del culto ni los ajustes reales. Ejecútalo en segundo plano:
 
 ```bash
-MANNA_NAME=manna-prueba MANNA_NO_OPEN=1 MANNA_DATA="$TMPDIR/manna-prueba" PORT=8123 node server/index.js
+MANNA_NAME=manna-prueba MANNA_NO_OPEN=1 MANNA_SIN_VENTANA=1 MANNA_DATA="$TMPDIR/manna-prueba" PORT=8123 node server/index.js
 ```
 
-`MANNA_NAME` evita anunciar `manna.local` y chocar con un Manna real de la misma red.
+`MANNA_NAME` evita anunciar `manna.local` y chocar con un Manna real de la misma red. `MANNA_SIN_VENTANA` evita que la prueba abra su proyección (y suene) en el proyector, si hay uno conectado: no lo quites.
 
 El PIN de prueba aparece en la salida del servidor.
 
@@ -44,7 +44,7 @@ Después, a mano, lo que el cambio tenga de nuevo. Abre `http://localhost:8123/c
 - **Consola** sin errores.
 - **Lo nuevo**: cada camino del cambio, incluidos los casos de error (datos vacíos, sin conexión, sin permiso).
 - **Tiempo real**: con `/proyeccion` abierto en otra pestaña, el cambio aparece al instante.
-- **Revisión del equipo**: para ver cómo se comporta un equipo al que le falta un programa, arranca el servidor de prueba con `MANNA_FALTA=ffmpeg,yt-dlp` (o `navegador`, que bloquea la app) y abre `/requisitos`. No pulses "Instalar por mí" sin permiso del dueño: descarga programas de internet.
+- **Revisión del equipo**: para ver cómo se comporta un equipo al que le falta un programa, arranca el servidor de prueba con `MANNA_FALTA=ffmpeg,yt-dlp` (o `navegador`) y abre `/requisitos`. No pulses "Instalar por mí" sin permiso del dueño: descarga programas de internet.
 - **Celular y tableta**: `http://localhost:8123/vista-previa` muestra la app real dentro del marco de un celular (vertical y horizontal) y de una tableta.
 - **Permisos** (desde la IP de red, no desde localhost, para que pida PIN):
 

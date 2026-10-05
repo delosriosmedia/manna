@@ -34,7 +34,7 @@ function launch() {
   const child = spawn(process.execPath, ['server/index.js'], {
     cwd: copy, stdio: 'ignore',
     env: {
-      ...process.env, PORT: String(PORT), MANNA_NO_OPEN: '1', MANNA_SIN_HTTPS: '1', MANNA_NAME: 'manna-prueba-arranque', MANNA_HOST: '127.0.0.1',
+      ...process.env, PORT: String(PORT), MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_SIN_HTTPS: '1', MANNA_NAME: 'manna-prueba-arranque', MANNA_HOST: '127.0.0.1',
       MANNA_DATA: path.join(tmp, 'datos'), MANNA_BIBLIAS: path.join(tmp, 'biblias'), MANNA_REVISAR_CODIGO_MS: '150', MANNA_FALTA: 'navegador,ffmpeg,yt-dlp',
     },
   });

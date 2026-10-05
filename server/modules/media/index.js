@@ -4,9 +4,10 @@ import path from 'node:path';
 import { HttpError } from '../../core/router.js';
 import { EXTENSIONS, IMAGE_TYPES, readImageInfo } from '../../core/images.js';
 import { applyView, cleanName, initialView, validFit } from './images.js';
+import { registerClips } from './library.js';
 
-// Módulo Medios: la biblioteca de lo que la iglesia sube para proyectar. Hoy, imágenes;
-// los videos, audios y YouTube llegan en sus fases (docs/PLAN.md).
+// Módulo Medios: la biblioteca de lo que la iglesia proyecta. Imágenes (aquí), videos y audios
+// (library.js); YouTube llega en su fase (docs/PLAN.md).
 //
 // Cada imagen es un archivo en data/media/imagenes/ más una ficha (nombre, medidas, ajuste).
 // La miniatura la hace y la envía el dispositivo que sube: el servidor no sabe encoger imágenes.
@@ -27,8 +28,13 @@ export default function setup(app) {
     id: image.id, name: image.name, url: url(image.file), thumb: image.thumb ? url(image.thumb) : null,
     width: image.width, height: image.height, bytes: image.bytes, fit: validFit(image.fit), added: image.added,
   });
+  let library = null; // videos y audios: se crea más abajo
   // Las más recientes, primero.
-  const publish = () => store.set('media', { images: [...saved.data.images].sort((a, b) => b.added - a.added).map(view) });
+  const publish = () => store.set('media', {
+    images: [...saved.data.images].sort((a, b) => b.added - a.added).map(view),
+    videos: library?.views('video') || [],
+    audios: library?.views('audio') || [],
+  });
   const find = (id) => {
     const image = saved.data.images.find((i) => i.id === id);
     if (!image) throw new HttpError(404, 'Esa imagen ya no está en la biblioteca.');
@@ -39,7 +45,9 @@ export default function setup(app) {
     publish();
   };
 
-  store.register('media', { images: [] });
+  store.register('media', { images: [], videos: [], audios: [] });
+  library = registerClips(app, { saved, commit });
+  app.services.media = { rescan: library.rescan };
   publish();
 
   // ---- Tipo de contenido ----
@@ -102,11 +110,12 @@ export default function setup(app) {
   });
 
   // ---- Órdenes ----
+  // Cambiar el nombre y eliminar valen para todo lo de la biblioteca: imágenes, videos y audios.
   app.action('media.rename', { permission: 'media.edit' }, ({ id, name }) => {
-    const image = find(id);
     const clean = cleanName(name);
-    if (!clean) throw new HttpError(400, 'Escribe un nombre para la imagen.');
-    image.name = clean;
+    if (!clean) throw new HttpError(400, 'Escribe un nombre.');
+    if (library.has(id)) { library.rename(id, clean); return; }
+    find(id).name = clean;
     commit();
   });
 
@@ -118,7 +127,11 @@ export default function setup(app) {
     commit();
   });
 
+  app.action('media.retry', { permission: 'media.edit' }, ({ id }) => library.retry(id));
+  app.action('media.subtitlesRemove', { permission: 'media.edit' }, ({ id }) => library.removeSubtitles(id));
+
   app.action('media.remove', { permission: 'media.edit' }, ({ id }) => {
+    if (library.has(id)) { library.remove(id); return; }
     const image = find(id);
     for (const file of [image.file, image.thumb].filter(Boolean)) fs.rmSync(path.join(app.uploadsDir, file), { force: true });
     saved.data.images = saved.data.images.filter((i) => i.id !== id);

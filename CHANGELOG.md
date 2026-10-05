@@ -4,6 +4,19 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.6.0 — 2026-10-04
+
+- **Videos y audios en Medios**, cada uno en su pestaña. Se suben desde el equipo principal o desde el celular (varios a la vez, con nombre propuesto y avance), o se **copian a la carpeta `Contenido/Medios/`** del equipo principal y aparecen solos: para archivos grandes es lo más rápido.
+- **Lo habitual se usa tal cual** (un MP4 de una cámara, un celular o una edición; un MP3). **Lo demás se convierte solo**, una sola vez y en segundo plano: AVI, MKV, WMV, el video de "alta eficiencia" de un iPhone… El avance se ve en la tarjeta y en el panel "Al aire". El archivo original no se toca. (Para convertir hace falta ffmpeg; sin él, lo habitual funciona igual.)
+- **Reproducción**: al proyectar un video o un audio empieza a reproducirse. En el panel "Al aire" y en el orden del culto están sus mandos: **pausa, volver al principio, saltos de 10 segundos y barra de avance**. Todas las pantallas van a la par.
+- **Volumen de Manna**: un deslizador grande con silencio, uno solo para todo lo que suene. No toca el volumen del equipo.
+- **Suena una sola pantalla**: la de proyección abierta en el equipo principal. Las demás van en silencio, sin eco. Si ninguna puede sonar, el control lo avisa.
+- **Subtítulos**: un archivo `.srt` o `.vtt` con el mismo nombre que el video (en la carpeta) o añadido desde su menú; se muestran con un botón mientras el video está al aire.
+- Un video o audio se **añade al orden del culto** con su duración. Mientras se convierte ya se puede añadir; se proyecta cuando está listo.
+- Cada tarjeta muestra la imagen del video, lo que dura, cuándo se agregó y lo que pesa.
+- La demostración trae un video y un audio de ejemplo (si el equipo tiene ffmpeg).
+- Las pruebas y la demostración ya no abren su proyección en el proyector de verdad cuando hay uno conectado.
+
 ## 1.5.1 — 2026-10-04
 
 - **Corregido: no se podía subir una imagen de fondo** ("upload is not a function"). Estaba roto desde la versión 1.1.

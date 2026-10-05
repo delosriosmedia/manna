@@ -243,3 +243,17 @@
 .img-view { position: absolute; inset: 0; overflow: hidden; background: #000; }
 .img-view img { position: absolute; top: 0; left: 0; max-width: none; transform-origin: 0 0; will-change: transform; user-select: none; }
 .img-view.ready img { transition: transform 0.14s linear; }
+
+/* Video y audio (tipos "video" y "audio"). Los lleva web/modules/media/clip.js. */
+.clip-view { position: absolute; inset: 0; display: grid; place-items: center; }
+.stage[data-fill='full'] .clip-view { background: #000; }
+.clip-poster, .clip-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.clip-video { background: transparent; }
+/* Fuera del aire (una miniatura) solo se ve la imagen del video. */
+.clip-view:not(.on-air) .clip-video { display: none; }
+.clip-view.on-air .clip-poster { display: none; }
+.clip-audio .ic { width: 16cqh; height: 16cqh; opacity: 0.85; }
+.clip-audio .stage-ref { font-size: 6cqh; text-wrap: balance; }
+.clip-notice { position: absolute; left: 6cqw; right: 6cqw; bottom: 8cqh; padding: 2.5cqh 3cqw; border-radius: 1.5cqh; background: rgba(0, 0, 0, 0.72); color: #fff; font: 600 3.4cqh/1.35 system-ui, sans-serif; text-align: center; }
+.clip-unblock { position: absolute; left: 50%; bottom: 10%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 99px; background: #eda93a; color: #1a1205; font: 600 18px system-ui, sans-serif; cursor: pointer; border: 0; }
+video::cue { font-size: 5.2cqh; line-height: 1.3; background: rgba(0, 0, 0, 0.65); }

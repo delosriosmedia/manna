@@ -9,10 +9,10 @@ Contenido/Himnario/letras/*
 !Contenido/Himnario/letras/LEEME.txt
 Contenido/Medios/*
 !Contenido/Medios/LEEME.txt
-# Por si quedan las carpetas de versiones anteriores
-Biblias/
-Himnario/
-Medios/
+# Por si quedan las carpetas de versiones anteriores (solo en la raíz)
+/Biblias/
+/Himnario/
+/Medios/
 ejemplo_biblia.xmm
 
 # Datos locales del servidor (ajustes, PIN, orden del culto, fondos)

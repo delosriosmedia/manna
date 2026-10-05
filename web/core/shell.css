@@ -62,6 +62,13 @@ body.app { display: flex; flex-direction: column; height: 100dvh; overflow: hidd
 .live-controls .btn.grow { flex: 1 1 0; min-width: 0; padding: 0 6px; overflow: hidden; text-overflow: ellipsis; }
 .live-controls p { font-size: 12px; }
 .tc-clock { min-width: 64px; font: 600 15px var(--mono); }
+/* Mandos de lo que suena: avance y volumen. */
+.clip-seek input, .volume input { flex: 1; min-width: 0; }
+.clip-time { min-width: 38px; font: 500 12px var(--mono); color: var(--ink-2); text-align: center; }
+.clip-jump { font: 600 12px var(--mono); padding: 0 8px; }
+.vol-amount { min-width: 44px; text-align: right; font: 600 12px var(--mono); color: var(--ink-2); }
+.vol-nobody { color: var(--accent); }
+.live-controls .transport:empty { display: none; }
 /* Mandos de una imagen al aire: la imagen entera y, marcado, lo que se ve en pantalla. */
 .nav { display: grid; place-items: center; height: 124px; background: #000; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
 .nav:active { cursor: grabbing; }

@@ -59,8 +59,14 @@ const SCREENS = [
   { name: 'Control del orden', url: '/orden', content: '.olist', longTitles: true },
   { name: 'Orden con mandos en vivo', url: '/control#orden', show: 'testcard', controls: '.odetail .live-controls' },
   { name: 'Al aire con mandos en vivo', url: '/control#ajustes', show: 'testcard', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
-  { name: 'Medios', url: '/control#medios', content: '.media-body', primary: '.media-bar .btn.primary', inside: '.media-bar',
-    prepare: `document.querySelector('.media-card .media-pick').click()` },
+  { name: 'Medios: imágenes', url: '/control#medios', content: '.media-body[data-panel=imagenes]', primary: '.media-bar[data-panel=imagenes] .btn.primary', inside: '.media-bar[data-panel=imagenes]', settle: 600,
+    prepare: `(() => { document.querySelector('.media-tabs [data-tab=imagenes]').click(); document.querySelector('.media-body[data-panel=imagenes] .media-card .media-pick').click(); })()` },
+  { name: 'Medios: videos', url: '/control#medios', content: '.media-body[data-panel=videos]', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.media-bar[data-panel=videos]', settle: 700,
+    prepare: `(() => { document.querySelector('.media-tabs [data-tab=videos]').click(); document.querySelector('.media-body[data-panel=videos] .media-card .media-pick').click(); })()` },
+  { name: 'Medios: audios', url: '/control#medios', content: '.media-body[data-panel=audios]', settle: 500,
+    prepare: `document.querySelector('.media-tabs [data-tab=audios]').click()` },
+  { name: 'Al aire con un video', url: '/control#orden', show: 'video', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
+  { name: 'Orden con un video al aire', url: '/control#orden', show: 'video', controls: '.odetail .live-controls' },
   { name: 'Al aire con una imagen', url: '/control#medios', show: 'image', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
   { name: 'Televisores', url: '/control#televisores', content: '.tvs', inside: '.tv' },
   { name: 'Televisores: control remoto', url: '/control#televisores', inside: '.modal', settle: 700,
@@ -133,7 +139,7 @@ fs.writeFileSync(path.join(tmp, 'data', 'televisores.json'), JSON.stringify({
 const example = seedExample(path.join(tmp, 'data'));
 const server = spawn(process.execPath, ['server/index.js'], {
   cwd: ROOT, stdio: 'ignore',
-  env: { ...process.env, MANNA_NAME: 'manna-auditoria', MANNA_NO_OPEN: '1', MANNA_DATA: path.join(tmp, 'data'), PORT: String(PORT), MANNA_FALTA: 'navegador,yt-dlp', MANNA_TV_PRUEBA: JSON.stringify(fakeTv.endpoints) },
+  env: { ...process.env, MANNA_NAME: 'manna-auditoria', MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_DATA: path.join(tmp, 'data'), PORT: String(PORT), MANNA_FALTA: 'navegador,yt-dlp', MANNA_TV_PRUEBA: JSON.stringify(fakeTv.endpoints) },
 });
 const showInOrder = (id) => chrome.evaluate(`fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'order.show',payload:{id:${JSON.stringify(id)}}})}).then((r) => r.status)`);
 await sleep(3000);

@@ -11,12 +11,14 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Búsqueda**: por cita (`Juan 3:16-18`, `1 co 13 4`, `sal 23`) o por texto, mientras escribes. El texto se busca en la Reina-Valera 1960 (o en la versión elegida, si no está instalada) y el resultado se abre en la versión que tengas elegida. Los resultados salen por niveles (frase exacta, todas las palabras, parecidas), con lo encontrado resaltado, y se pueden limitar al Antiguo o al Nuevo Testamento.
 - **Comparador**: el mismo pasaje en dos versiones, lado a lado o una sobre otra, cada una con su sigla. Se elige igual que en Biblia, se proyecta, se añade al orden como elemento propio, y la disposición se puede cambiar mientras está al aire.
 - **Orden del culto**: la lista ordenada de todo lo que se va a proyectar, con secciones (Apertura, Mensaje…). Cada elemento muestra su tipo y sus pasos; "Siguiente" recorre los pasos y luego pasa al elemento que sigue. A cualquier elemento se le puede poner un nombre propio ("Lectura bíblica"). Se comparte entre todos los dispositivos.
-- **Medios**: la biblioteca de imágenes de la iglesia (anuncios, carteles, fotos). Se suben desde el equipo principal o desde la galería del celular, con el nombre que quieras; se elige si la imagen se ve completa o llenando la pantalla; y, mientras está al aire, se acerca y se desplaza desde el panel.
+- **Medios**: la biblioteca de la iglesia, en pestañas.
+  - **Imágenes** (anuncios, carteles, fotos): se suben desde el equipo principal o desde la galería del celular, con el nombre que quieras; se elige si la imagen se ve completa o llenando la pantalla; y, mientras está al aire, se acerca y se desplaza desde el panel.
+  - **Videos y audios**: se suben o se copian a `Contenido/Medios/`. Lo habitual se usa tal cual y lo demás se convierte solo, en segundo plano. Al aire: pausa, saltos, barra de avance, subtítulos y el volumen de Manna. Todas las pantallas van a la par y suena una sola.
 - **Fondos**: seis colores y las imágenes que subas, que quedan guardadas junto a ellos en Ajustes.
 - **Televisores** (en pausa y fuera de la barra, ver `docs/ESTADO.md`): un televisor Samsung de la misma red muestra la proyección desde su navegador, sin cables. Manna lo encuentra, le abre el navegador y le sirve de control remoto (teclas, puntero y texto); la primera vez le escribe la dirección por ti.
 - **Mandos en vivo**: lo que está al aire trae sus propios mandos en el panel y en el orden del culto. Hoy los estrena la **imagen de prueba** (Ajustes → Proyector de este equipo), que sirve para encuadrar el proyector o un televisor y comprobar, con su cronómetro, que todas las pantallas van a la par.
 - **Revisión del equipo**: al abrirse, Manna comprueba que el equipo principal tiene los programas que necesita. Si falta alguno, dice qué módulos se ven afectados y lo instala con un botón. Nunca impide abrir la app.
-- **Preparado para crecer**: himnario, más medios (videos, audios y YouTube) y presentaciones ya tienen su sitio en la interfaz. Cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
+- **Preparado para crecer**: himnario, YouTube y presentaciones ya tienen su sitio en la interfaz. Cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
 - **Funciones por dispositivo**: cada dispositivo elige al entrar.
   - **Control completo**: todos los módulos. Pide PIN.
   - **Control del orden**: solo proyecta lo que ya está en el orden del culto. Pensado para el celular. Pide PIN.
@@ -38,7 +40,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 
 Solo Node.js se instala antes. Lo demás lo comprueba Manna cada vez que se abre: si falta algo, en vez del control muestra la **revisión del equipo**, que dice qué módulos funcionarán completos y cuáles no, para qué sirve cada programa, y ofrece **Abrir Manna** de todos modos e **Instalar por mí** (descarga ffmpeg y yt-dlp de sus sitios oficiales a la carpeta `data/herramientas/`, sin tocar el sistema) o los pasos para hacerlo a mano. La misma revisión está en **Ajustes → Programas del equipo principal**, y cada módulo avisa al abrirlo si le falta algo. Los demás dispositivos no instalan nada.
 
-ffmpeg, yt-dlp y PowerPoint los usarán los módulos de himnario, medios y diapositivas, que están en construcción (ver `docs/PLAN.md`).
+ffmpeg ya lo usa Medios, para convertir los videos y audios que el navegador no reproduce; sin él, los MP4 y MP3 habituales funcionan igual. yt-dlp y PowerPoint los usarán YouTube y las diapositivas, que están en construcción (ver `docs/PLAN.md`).
 
 ## Instalación (una sola vez por equipo)
 
@@ -64,6 +66,7 @@ Todo lo que pone cada iglesia va en una sola carpeta, `Contenido/`. Manna lee lo
 | `Contenido/Biblias/` | Las versiones de la Biblia, en `.xmm` o `.xml` |
 | `Contenido/Himnario/videos/` | Los himnos en video, uno por archivo: `001 Cantad alegres al Señor.mp4` |
 | `Contenido/Himnario/letras/` | Las letras de los himnos, en archivos de texto `.md` |
+| `Contenido/Medios/` | Videos y audios para proyectar. También se pueden subir desde la app; para archivos grandes, copiarlos aquí es lo más rápido |
 
 Al actualizar Manna, conserva `Contenido/` y `data/`; lo demás se reemplaza. Nada de `Contenido/` se publica en GitHub, salvo las instrucciones y la Reina-Valera 1909. (El himnario se está construyendo: ver `docs/PLAN.md`.)
 
@@ -109,6 +112,16 @@ Reconecta solo; no hay que recargar la página. Si el aviso rojo no desaparece:
 5. Con la imagen al aire, el panel muestra la imagen entera y un recuadro con lo que se ve. Arrástralo para moverlo; acerca con la rueda del ratón, con dos dedos o con el deslizador. **Vista completa** vuelve al principio.
 
 Las imágenes se guardan en la carpeta `data/media/imagenes/` del equipo principal.
+
+### Videos y audios
+
+1. En **Medios**, pestaña **Videos** o **Audios**, pulsa **Subir**. O copia los archivos a la carpeta `Contenido/Medios/` del equipo principal: aparecen solos.
+2. Si el formato no es de los habituales, la tarjeta dice **Convirtiendo** con su avance. No hay que esperar mirando: se puede seguir usando Manna y añadirlo ya al orden del culto.
+3. Elige uno y pulsa **Proyectar**: empieza a reproducirse en todas las pantallas a la vez.
+4. En el panel **Al aire** están sus mandos: volver al principio, pausar, −10 y +10 segundos, la barra de avance, el **volumen de Manna** y, si el video los tiene, **Subtítulos**.
+5. Para ponerle subtítulos a un video: en su menú (⋯), **Añadir subtítulos**, y elige un archivo `.srt` o `.vtt`. En la carpeta, basta un archivo con el mismo nombre que el video.
+
+El sonido sale por una sola pantalla: la de proyección abierta en el equipo principal (la del proyector). Si no hay ninguna, el control avisa de que no suena en ningún sitio; para oírlo sin proyector, abre `localhost/proyeccion` en una pestaña del equipo principal.
 
 ### Un televisor como pantalla
 
@@ -161,7 +174,8 @@ server/
     projection/         contenido en vivo, mandos en vivo, volumen, estilos, segunda pantalla,
                         imagen de prueba
     order/              orden del culto: elementos, secciones y pasos
-    media/              biblioteca de imágenes: subir, reconocer, nombrar, ajuste y encuadre al aire
+    media/              biblioteca de imágenes, videos y audios: subir, reconocer, convertir con ffmpeg,
+                        subtítulos, y la reproducción a la par en todas las pantallas
     tv/                 televisores de la red como pantalla: buscarlos, vincularlos, abrirles
                         el navegador y hacerles de control remoto (samsung.js es lo propio de la marca)
 web/

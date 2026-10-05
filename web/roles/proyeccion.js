@@ -1,4 +1,4 @@
-import { connect, session, subscribe } from '../core/api.js';
+import { connect, connectionId, session, subscribe } from '../core/api.js';
 import { $ } from '../core/dom.js';
 import { createStage } from '../modules/projection/stage.js';
 import { preferStableAddress } from '../core/upgrade.js';
@@ -6,11 +6,12 @@ import { preferStableAddress } from '../core/upgrade.js';
 // Pantalla de proyección: solo muestra. La usan la ventana de la segunda pantalla
 // y cualquier dispositivo que elija esta función.
 const me = await session.get().catch(() => null);
-// Una sola salida de sonido: suena la pantalla de proyección del equipo principal.
-// Las demás reproducen en silencio, para que no haya eco ni desfases.
-const stage = createStage($('#stage'), { sound: Boolean(me?.isLocal) });
+// Una sola salida de sonido: el servidor elige qué pantalla suena (la primera de proyección
+// abierta en el equipo principal). Las demás reproducen en silencio, sin eco ni desfases.
+const stage = createStage($('#stage'));
 subscribe('projection', (p) => stage.render(p));
 subscribe('live', (live) => stage.setLive(live));
+subscribe('conexiones', ({ sonido }) => stage.setSound(Boolean(sonido) && sonido === connectionId()));
 connect('proyeccion');
 // Una pantalla remota que entró por la IP pasa a la dirección con nombre si puede.
 if (me) preferStableAddress(me);

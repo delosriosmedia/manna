@@ -35,6 +35,7 @@ const MIME = {
   '.aac': 'audio/aac',
   '.wav': 'audio/wav',
   '.ogg': 'audio/ogg',
+  '.oga': 'audio/ogg',
   '.opus': 'audio/ogg',
   '.flac': 'audio/flac',
 };

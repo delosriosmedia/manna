@@ -42,6 +42,9 @@ paths:
 - Un mando que se arrastra (el encuadre de una imagen, el panel táctil de un televisor) junta las órdenes y las envía de una en una, con un mínimo entre envíos; mientras la persona lo mueve, pinta lo que ella hace y no lo que llega del servidor, que es más viejo.
 - Los **mandos en vivo** de un tipo (`controls` en su `registerKind`) se muestran con `createLiveControls(contenedor)` de `projection/live.js`. Se crea **una vez** por pantalla y se recoloca; no se crea en cada redibujado, porque se suscribe al estado.
 - Lo que depende del tiempo (un cronómetro, el avance de un video) se calcula con `positionAt(reloj)` de `web/core/playback.js`, nunca contando segundos en el navegador.
+- Un `<video>` o `<audio>` al aire lo lleva `createPlayer()` de `web/modules/media/player.js`: lo pone en el punto que marca el reloj, corrige el desfase, aplica el volumen general y solo deja sonar a la pantalla elegida. `live(null)` significa que eso es una vista previa o una miniatura: no se carga el archivo, solo su imagen.
+- Un mando que se arrastra envía con `createSender()` de `web/core/sender.js`: junta las órdenes, las manda de una en una y avisa (`onIdle`) cuando ya salió todo, que es el momento de volver a pintar lo que dice el servidor.
+- El volumen general se muestra con `createVolume()` de `web/modules/projection/volume.js`, dentro de los mandos de todo lo que suene.
 - Las tareas en curso se muestran con `createJobsList()` o `jobRow()` de `web/core/jobs.js`.
 
 ## Pantallas táctiles y tamaños

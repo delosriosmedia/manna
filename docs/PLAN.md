@@ -61,7 +61,8 @@ Datos medidos en el proyecto, no supuestos.
 | `compare` | Biblia (pantalla Comparador) | Un versículo por paso | Disposición: lado a lado o una sobre otra | Hecho (1.3) |
 | `image` | Medios | Uno | Ajuste, zoom, desplazamiento | Hecho (1.5) |
 | `song` | Himnario | Uno (el video) | Pausa, reinicio, avance; cantado o pista | Fase 5 |
-| `video`, `audio`, `youtube` | Medios | Uno | Pausa, reinicio, avance; subtítulos | Fases 6 y 7 |
+| `video`, `audio` | Medios | Uno | Pausa, reinicio, saltos, barra de avance; subtítulos; volumen general | Hecho (1.6) |
+| `youtube` | Medios | Uno | Los mismos | Fase 7 |
 | `slides` | Diapositivas | Una diapositiva por paso | Zoom, desplazamiento, vista de la siguiente | Fase 8 |
 
 "Cantado o pista" se elige **antes** de proyectar o de añadir al orden (queda guardado en el elemento) y también se puede cambiar al aire.
@@ -75,7 +76,7 @@ Lo que varias fases necesitan, construido una sola vez. Dónde quedó cada pieza
 | 1 | Cómo se dibuja cada tipo (también en miniatura) | Hecho | `web/core/kinds.js`, `web/modules/kinds.js`, `web/modules/<id>/kind.js`, `web/modules/projection/stage.js` |
 | 2 | Mandos en vivo por tipo | Hecho | Espacio `live` del estado y acción `projection.control` (`server/modules/projection/index.js`); `web/modules/projection/live.js` |
 | 3 | Reloj de reproducción compartido | Hecho | `server/core/playback.js`, `web/core/playback.js`; la hora del servidor viaja en el latido |
-| 4 | Una sola salida de sonido | Base hecha | La pantalla de proyección del equipo principal es la que suena (`sound` en `createStage`). El volumen general está en `live.volume` (acción `projection.volume`). El mando se construye en la fase 5 |
+| 4 | Una sola salida de sonido | Hecho (fase 6) | El servidor elige la pantalla que suena (`conexiones.sonido`, `server/core/realtime.js`). El volumen general está en `live.volume` y su mando en `web/modules/projection/volume.js` |
 | 5 | Archivos grandes | Hecho | Trozos (Range) y subida directa a disco en `server/core/router.js`; `upload()` con avance en `web/core/api.js` |
 | 6 | Carpetas de contenido | Base hecha | Todo lo de la iglesia en `Contenido/` (decisión 13). `server/core/folders.js` (vigilar y listar), `app.mount()` para servirlas, `data/tmp/` que se vacía al abrir y al cerrar. El himnario y los medios se conectan con su módulo (fases 5 y 6) |
 | 7 | Programas externos | Hecho | `server/core/tools.js` e `install.js`; página `/requisitos`; sección en Ajustes; aviso por módulo (`needs`, `web/core/needs.js`) |
@@ -199,7 +200,7 @@ Himnario:
 
 **Categorías.** Los mismos grupos y nombres que usa nuevohimnario.com/Himnario (decisión 14): solo el nombre de cada categoría y qué números de himno le corresponden.
 
-### Fase 6 · Medios: videos y audios locales, con la reproducción — sigue
+### Fase 6 · Medios: videos y audios locales, con la reproducción — hecha (1.6.0)
 
 Reproducción (para todo lo que suena): reloj compartido (hecho), pausa, reinicio, avance, y un **control de volumen grande** en el panel "Al aire" y en el orden mientras haya algo con sonido. Es el **volumen general de Manna**: uno solo para todo, sin tocar el del equipo (decisión 6).
 
@@ -347,7 +348,7 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 2 Comparador | **Hecha** · 2026-10-04 | 1.3.0 | Ver abajo. Incluye la carpeta `Contenido/`, la búsqueda solo en RVR1960 y el segundo puerto |
 | 3 Televisores | **En pausa** (decisión 19) · construida el 2026-10-04 | 1.4.0 | Ver abajo. El televisor del dueño no carga la proyección, ni a mano. Se retoma al final |
 | 4 Imágenes | **Hecha** · 2026-10-04 | 1.5.0 / 1.5.1 | Ver abajo. Incluye «Más» en la barra del celular. La 1.5.1 corrige dos fallos que encontró el dueño |
-| 6 Videos y audios | **Sigue** | 1.6 | Va antes que el himnario (decisión 20). Estrena la reproducción |
+| 6 Videos y audios | **Hecha** · 2026-10-04 | 1.6.0 | Ver abajo. Fue antes que el himnario (decisión 20) y estrenó la reproducción |
 | 5 Himnario | Pospuesta | 1.7 | Videos y letras ya están en `Contenido/Himnario/`. El dueño revisa las letras |
 | 7 YouTube | Pendiente | 1.8 | |
 | 8 Diapositivas | Pendiente | 1.9 | PowerPoint oculto: solo se puede probar en Windows |
@@ -426,6 +427,18 @@ Lo que se añadió para que esta clase de fallos no vuelva:
 - **Manna nota que se actualizó estando abierto**, lo avisa, se reinicia solo desde un botón, las páginas se recargan, y pulsar el icono releva a la copia anterior. Probado con procesos de verdad.
 - De paso: el menú "Añadir" del orden aún decía "Imagen · Próximamente".
 
+### Fase 6 · resultados
+
+- **Biblioteca de videos y audios** en Medios: pestañas propias, subida con nombre y avance, y la carpeta `Contenido/Medios/` vigilada.
+- **Qué se convierte**, decidido mirando dentro del archivo con ffprobe: nada (lo habitual), solo el envoltorio, o conversión completa a MP4 con H.264 y AAC. Una conversión a la vez, como tarea con avance y tiempo restante; el resultado se guarda y el original no se toca. Se prueba primero el chip de video del equipo y, si falla, libx264.
+- **Reproducción compartida** (la parte que venía de la fase 5): reloj en el servidor, reproductor en cada pantalla que se pone en ese punto y corrige el desfase, mandos de pausa, reinicio, saltos y barra.
+- **Volumen general con mando**, y **una sola pantalla que suena**, elegida por el servidor.
+- **Subtítulos** `.srt` y `.vtt`.
+- **Sin ffmpeg** sigue funcionando: lo habitual se acepta por su extensión, y la duración y la imagen las saca el navegador de quien lo sube (o la primera pantalla que lo reproduce).
+- **Pruebas automáticas**: de 104 a 117, con conversiones reales. **Chrome real**: de 138 a 167 comprobaciones. **Pantallas**: 9 tamaños, con las pestañas de videos y audios y los mandos de un video al aire.
+- **Sin probar**: videos reales de la iglesia (los de las pruebas duran segundos), archivos de varios gigas, la conversión y el chip de video en Windows, subir desde un celular, y oír el sonido por el proyector.
+- **Límites conocidos**: "Negro" no detiene el sonido; al acabar un video no avanza solo; el HEVC siempre se convierte.
+
 ## 10. Cambios al plan
 
 Cada modificación del plan aprobado, con su motivo. Es parte de la base de la auditoría.
@@ -475,6 +488,11 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-04 | Fondos de la proyección: galería guardada en Ajustes, junto a los colores, con eliminar. No se elige el fondo desde Medios | Decisión 22 (en lugar de S14) |
 | 2026-10-04 | Biblioteca de imágenes: sin álbumes; por fecha, con la hora en que se agregó | Decisión 23 (en lugar de S15) |
 | 2026-10-04 | Nuevo, fuera de fase: revisión del código en `npm test`, vigilancia de toda la prueba en Chrome, y aviso y reinicio cuando Manna se actualiza estando abierto | Los dos fallos de la 1.5 (ver "Fase 4 · lo que encontró el dueño") |
+| 2026-10-04 | Fase 6: la carpeta es `Contenido/Medios/`, no `Medios/` en la raíz | Decisión 13: todo lo de la iglesia va en `Contenido/` |
+| 2026-10-04 | Fase 6: quién suena lo decide el servidor (antes: "la proyección abierta en el equipo principal", que podían ser dos) | Con dos ventanas de proyección en el equipo sonaban las dos |
+| 2026-10-04 | Fase 6: la duración y la imagen de un video también las puede dar el navegador (quien lo sube o quien lo reproduce) | Para que Medios funcione en un equipo sin ffmpeg, como pide la regla de que nada bloquea |
+| 2026-10-04 | Fase 6: "usar el chip de video si lo tiene" se resuelve probando: primero el chip, y si falla, libx264 | ffmpeg puede listar un codificador que ese equipo no tiene |
+| 2026-10-04 | Las pruebas y la demostración nunca abren su proyección en el proyector (`MANNA_SIN_VENTANA`) | Una prueba se proyectó y sonó en la segunda pantalla del equipo de desarrollo |
 | 2026-10-04 | **Fase 3 en pausa**; se retoma al terminar las demás fases | Decisión 19: el televisor no cargó la proyección ni con Manna ni a mano |
 | 2026-10-04 | Fase 4: la miniatura la hace el dispositivo que sube, junto con la reducción | El servidor no tiene con qué encoger imágenes sin añadir dependencias |
 | 2026-10-04 | Fase 4: el ajuste se recuerda por imagen (además de ir en el elemento del orden) | Quien proyecta el mismo cartel cada semana no debería elegirlo cada vez |
@@ -490,6 +508,9 @@ Las sugerencias S8 a S11 son del televisor: esperan a que se retome la fase 3 (d
 
 | # | Sugerencia | Por qué | Qué cambiaría |
 | --- | --- | --- | --- |
+| S16 | Que «Negro» y «Solo fondo» también pausen lo que suena | Hoy ocultan el video pero sigue sonando; quien pulsa "Negro" suele querer silencio | Un cambio pequeño en la proyección. Habría que decidir si al quitar el negro se reanuda solo |
+| S17 | Qué hacer al terminar un video: quedarse (como hoy), pasar al siguiente del orden, o repetir | Un video de fondo o una cuenta atrás piden cosas distintas | Una opción por elemento, elegida antes de proyectar, como el ajuste de las imágenes |
+| S18 | Un botón "Sonar en este equipo" para oír sin proyector | Sin la ventana de proyección no suena nada; hoy hay que abrir `localhost/proyeccion` a mano | Pequeño: un botón en el aviso de "no suena en ningún sitio", solo en el equipo principal |
 | S8 | Fijar en el router la dirección del equipo principal y la del televisor | La página de inicio del televisor guarda la dirección numérica de Manna; si el router la cambia, hay que volver a escribirla | Nada en Manna: es un ajuste del router. Se documentaría con capturas |
 | S9 | Encender y apagar el televisor desde Manna | Su control por red lo permite (encendido por red y tecla de apagado). No se incluyó para no apagar un televisor por error ni probarlo sin el dueño delante | Dos botones en la tarjeta del televisor. Pequeño; se haría tras la prueba del dueño |
 | S10 | Fase 7: enviar un video de YouTube directamente al televisor | El televisor anuncia su aplicación de YouTube en la red (se vio al explorarlo). Serviría para que el video lo reproduzca el propio televisor, sin pasar por su navegador | Se estudiaría en la fase 7; no cambia el plan todavía |
