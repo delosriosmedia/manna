@@ -60,18 +60,22 @@ export function createClipsPanel(ctx, kind) {
     render();
   }
 
-  // Lo que hay que saber de un archivo que aún no se puede proyectar.
+  // Lo que hay que saber de un archivo cuya copia para todas las pantallas aún no está.
   function statusOf(clip) {
     if (clip.status === 'ready') return null;
     const job = jobOf(clip.id);
+    const checking = clip.original && clip.original.playable == null;
     if (clip.status === 'converting') {
-      return h('div', { class: 'media-status' },
-        h('div', { class: `bar${job?.progress == null ? ' busy' : ''}`, role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': Math.round((job?.progress || 0) * 100) },
-          h('span', { style: `width: ${Math.round((job?.progress || 0) * 100)}%;` })),
-        h('small', {}, job ? describeJob(job) : 'Convirtiendo…'));
+      const progress = Math.round((job?.progress || 0) * 100);
+      return h('div', { class: `media-status${clip.usable ? ' usable' : ''}` },
+        clip.usable && h('strong', {}, 'Ya se puede proyectar desde el equipo principal.'),
+        h('div', { class: `bar${job?.progress == null ? ' busy' : ''}`, role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': progress },
+          h('span', { style: `width: ${progress}%;` })),
+        h('small', {}, [clip.usable ? 'Preparando la copia para celulares y pantallas remotas' : checking ? 'Comprobando si este equipo lo reproduce tal cual' : 'Convirtiendo', job && describeJob(job)].filter(Boolean).join(' · ')));
     }
-    return h('div', { class: 'media-status error' },
-      h('small', {}, clip.error || 'No se puede reproducir.'),
+    return h('div', { class: `media-status ${clip.usable ? 'usable' : 'error'}` },
+      clip.usable && h('strong', {}, 'Se puede proyectar desde el equipo principal.'),
+      h('small', {}, clip.usable ? `No hay copia para celulares y pantallas remotas: ${(clip.error || 'no se pudo convertir').replace(/\.$/, '')}.` : clip.error || 'No se puede reproducir.'),
       ctx.canEdit && h('div', { class: 'row' },
         h('button', { class: 'btn', onclick: guard(() => action('media.retry', { id: clip.id })) }, 'Reintentar'),
         clip.status === 'needs-ffmpeg' && h('button', { class: 'btn', onclick: () => go('/requisitos') }, 'Instalar ffmpeg')));
@@ -101,8 +105,8 @@ export function createClipsPanel(ctx, kind) {
       if (!grid.isConnected) el.replaceChildren(grid, picker, captions);
       grid.replaceChildren(...list.map((clip) => {
         const facts = [whenLabel(clip.added), clip.duration && formatTime(clip.duration), megabytes(clip.bytes), clip.source === 'folder' && 'carpeta'].filter(Boolean).join(' · ');
-        return h('div', { class: `media-card${clip.id === selected ? ' selected' : ''}${clip.id === onAir ? ' live' : ''}${clip.status === 'ready' ? '' : ' pending'}`, dataset: { id: clip.id, status: clip.status } },
-          h('button', { class: 'media-pick', 'aria-pressed': clip.id === selected, onclick: () => select(clip.id), ondblclick: () => { select(clip.id); if (clip.status === 'ready') project(); } },
+        return h('div', { class: `media-card${clip.id === selected ? ' selected' : ''}${clip.id === onAir ? ' live' : ''}${clip.usable ? '' : ' pending'}`, dataset: { id: clip.id, status: clip.status, usable: String(clip.usable) } },
+          h('button', { class: 'media-pick', 'aria-pressed': clip.id === selected, onclick: () => select(clip.id), ondblclick: () => { select(clip.id); if (clip.usable) project(); } },
             h('span', { class: `media-thumb${kind === 'audio' || !clip.poster ? ' blank' : ''}` },
               kind === 'video' && clip.poster ? h('img', { src: clip.poster, alt: '', loading: 'lazy' }) : icon(words.icon, 30),
               clip.duration && h('span', { class: 'media-duration' }, formatTime(clip.duration)),
@@ -118,9 +122,9 @@ export function createClipsPanel(ctx, kind) {
     bar.hidden = !clip;
     if (clip) {
       name.textContent = clip.name;
-      show.disabled = clip.status !== 'ready';
+      show.disabled = !clip.usable;
     }
-    if (el.isConnected && !el.hidden) ctx.setPreview(clip && clip.status === 'ready' ? { kind, title: clip.name, url: clip.url, poster: clip.poster, duration: clip.duration } : null);
+    if (el.isConnected && !el.hidden) ctx.setPreview(clip?.usable ? { kind, id: clip.id, title: clip.name, url: clip.url, poster: clip.poster, duration: clip.duration } : null);
   }
   subscribe('media', render);
   subscribe('projection', render);
@@ -133,7 +137,7 @@ export function createClipsPanel(ctx, kind) {
     upload: startUpload,
     onShow: render,
     keys(e) {
-      if (e.key !== 'Enter' || current()?.status !== 'ready') return false;
+      if (e.key !== 'Enter' || !current()?.usable) return false;
       project();
       return true;
     },

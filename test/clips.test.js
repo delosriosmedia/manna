@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { clipKind, clock, encodersFor, ffmpegArgs, planFor, playsAsIs, readProbe, readProgress, toVtt } from '../server/modules/media/clips.js';
+import { attemptsFor, clipKind, clock, encodersFor, ffmpegArgs, originalMayPlay, planFor, playsAsIs, readProbe, readProgress, toVtt } from '../server/modules/media/clips.js';
 
 const probe = (format, streams, duration = '63.5') => readProbe({ format: { format_name: format, duration }, streams });
 const h264 = { codec_type: 'video', codec_name: 'h264', width: 1920, height: 1080, pix_fmt: 'yuv420p' };
@@ -74,6 +74,28 @@ test('ffmpegArgs arma la orden como una lista, sin mezclar nombres de archivo co
   assert.ok(small.includes('-c:v libx264 -preset veryfast -crf 21'));
   assert.ok(small.includes('scale=trunc(iw/2)*2:trunc(ih/2)*2'));
   assert.ok(ffmpegArgs({ audio: 'encode' }, { input: 'a.wma', output: 'b.m4a', kind: 'audio' }).join(' ').endsWith('-vn -c:a aac -b:a 192k -f mp4 b.m4a'));
+});
+
+test('al convertir se lee con el chip de video, y si en ese equipo falla, por programa', () => {
+  assert.deepEqual(attemptsFor(['h264_qsv', 'libx264']), [
+    { encoder: 'h264_qsv', hwaccel: true }, { encoder: 'h264_qsv', hwaccel: false },
+    { encoder: 'libx264', hwaccel: true }, { encoder: 'libx264', hwaccel: false },
+  ]);
+  const full = { video: 'encode', audio: 'copy' };
+  const fast = ffmpegArgs(full, { input: 'a.mp4', output: 'b.mp4', kind: 'video', hwaccel: true });
+  assert.deepEqual(fast.slice(fast.indexOf('-hwaccel'), fast.indexOf('-i') + 2), ['-hwaccel', 'auto', '-i', 'a.mp4'], 'antes del archivo de entrada');
+  assert.equal(ffmpegArgs(full, { input: 'a.mp4', output: 'b.mp4', kind: 'video' }).includes('-hwaccel'), false);
+  // Si la imagen no se recodifica, o es un audio, no hay nada que leer con el chip.
+  assert.equal(ffmpegArgs({ video: 'copy', audio: 'encode' }, { input: 'a.mkv', output: 'b.mp4', kind: 'video', hwaccel: true }).includes('-hwaccel'), false);
+  assert.equal(ffmpegArgs({ audio: 'encode' }, { input: 'a.wma', output: 'b.m4a', kind: 'audio', hwaccel: true }).includes('-hwaccel'), false);
+});
+
+test('originalMayPlay: el original solo se ofrece al equipo principal si su sonido lo entiende cualquier navegador', () => {
+  const mp4 = 'mov,mp4,m4a,3gp,3g2,mj2';
+  assert.equal(originalMayPlay(probe(mp4, [{ ...h264, codec_name: 'hevc', pix_fmt: 'yuv420p10le' }, aac]), 'video'), true, 'el 4K de 10 bits con sonido AAC');
+  assert.equal(originalMayPlay(probe('matroska,webm', [h264]), 'video'), true, 'sin sonido');
+  assert.equal(originalMayPlay(probe('matroska,webm', [h264, { codec_type: 'audio', codec_name: 'ac3' }]), 'video'), false);
+  assert.equal(originalMayPlay(probe('asf', [{ codec_type: 'audio', codec_name: 'wmav2' }]), 'audio'), false);
 });
 
 test('readProgress lee por dónde va la conversión', () => {

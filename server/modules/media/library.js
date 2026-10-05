@@ -5,7 +5,7 @@ import { HttpError } from '../../core/router.js';
 import { readImageInfo } from '../../core/images.js';
 import { listFiles, watchFolder } from '../../core/folders.js';
 import { applyClock, createClock, freezeClock } from '../../core/playback.js';
-import { AUDIO_EXTENSIONS, SUBTITLE_EXTENSIONS, VIDEO_EXTENSIONS, clipKind, clock, planFor, playsAsIs, toVtt } from './clips.js';
+import { AUDIO_EXTENSIONS, SUBTITLE_EXTENSIONS, VIDEO_EXTENSIONS, clipKind, clock, originalMayPlay, planFor, playsAsIs, toVtt } from './clips.js';
 import { createConverter } from './convert.js';
 import { cleanName } from './images.js';
 
@@ -13,14 +13,23 @@ import { cleanName } from './images.js';
 //   - subidos desde la app: el archivo queda en data/media/videos o data/media/audios;
 //   - copiados a mano en Contenido/Medios/ del equipo principal: aparecen solos (para archivos
 //     grandes es lo más cómodo).
-// Lo que el navegador reproduce tal cual se usa como está. Lo demás se convierte una sola vez,
-// en segundo plano, y el resultado se guarda en data/media/convertidos.
+// Lo que cualquier navegador reproduce tal cual se usa como está. Lo demás se convierte una sola
+// vez, en segundo plano, y el resultado (una copia ligera, en MP4 y a 1080p como mucho) se guarda
+// en data/media/convertidos.
+//
+// Mientras tanto no hay que esperar: si el navegador del equipo principal reproduce el archivo
+// original (lo comprueba él mismo, ver web/modules/media/probe.js), las pantallas de ese equipo lo
+// usan directamente, desde el primer momento y también después. La copia ligera es para las demás
+// pantallas (celulares, equipos remotos), que la usan en cuanto está.
 //
 // Ficha de cada uno (en data/medios.json):
 //   { id, kind, name, source: 'upload' | 'folder', file, bytes, added, duration, width, height,
 //     status: 'ready' | 'converting' | 'needs-ffmpeg' | 'error', direct, converted, poster, subtitles, error }
 //   file       subido: ruta dentro de data/media. De carpeta: nombre del archivo en Contenido/Medios
-//   direct     se reproduce el propio archivo;  converted  ruta del convertido dentro de data/media
+//   direct     cualquier navegador reproduce el propio archivo
+//   converted  ruta de la copia ligera dentro de data/media
+//   original   ¿reproduce el equipo principal el archivo tal cual? true, false, o null si aún no se
+//              sabe. 'no' si ni se intenta (su sonido no lo entendería). originalBy: qué pantalla lo dijo
 
 const FOLDERS = { video: 'videos', audio: 'audios' };
 const LIMITS = { video: 8 * 1024 ** 3, audio: 1024 ** 3 };
@@ -36,22 +45,32 @@ export function registerClips(app, { saved, commit }) {
   const { store } = app;
   const base = app.uploadsDir;
   const folder = app.mediaDir || null;
-  const converter = createConverter(app);
+  // MANNA_CONVERSION_LENTA (solo para pruebas): milisegundos que espera cada conversión antes de empezar.
+  const converter = createConverter(app, { delay: Number(process.env.MANNA_CONVERSION_LENTA) || 0 });
   saved.data.clips ||= [];
   const clips = () => saved.data.clips;
 
   const inputOf = (clip) => (clip.source === 'folder' ? path.join(folder, clip.file) : path.join(base, clip.file));
+  const sourceUrl = (clip) => (clip.source === 'folder' ? `/medios/${encodeURIComponent(clip.file)}` : `/media/${clip.file}`);
+  // Lo que reproduce cualquier pantalla: la copia ligera o, si no hizo falta, el propio archivo.
   const urlOf = (clip) => {
     if (clip.status !== 'ready') return null;
-    if (clip.converted) return `/media/${clip.converted}`;
-    return clip.source === 'folder' ? `/medios/${encodeURIComponent(clip.file)}` : `/media/${clip.file}`;
+    return clip.converted ? `/media/${clip.converted}` : sourceUrl(clip);
   };
+  // Lo que reproducen las pantallas del equipo principal cuando su navegador puede con el original.
+  const localUrl = (clip) => (!clip.direct && clip.original === true ? sourceUrl(clip) : null);
+  const usable = (clip) => clip.status === 'ready' || Boolean(localUrl(clip));
   // El sello al final hace que el navegador pida la imagen o los subtítulos de nuevo si cambian.
   const stamped = (file, at) => (file ? `/media/${file}?v=${at || 0}` : null);
   const view = (clip) => ({
     id: clip.id, kind: clip.kind, name: clip.name, source: clip.source, url: urlOf(clip), poster: stamped(clip.poster, clip.posterAt),
     duration: clip.duration ?? null, width: clip.width || 0, height: clip.height || 0, bytes: clip.bytes || 0, added: clip.added,
     status: clip.status, error: clip.error || null, subtitles: Boolean(clip.subtitles), converted: Boolean(clip.converted),
+    // usable: ya se puede proyectar (aunque la copia para las demás pantallas esté en camino).
+    // original: solo en lo que hay que convertir. playable = lo dicho por el equipo principal
+    // (null: aún no lo ha comprobado), by = qué pantalla suya lo comprobó.
+    usable: usable(clip),
+    original: clip.direct || clip.original === 'no' ? null : { url: sourceUrl(clip), playable: clip.original ?? null, by: clip.originalBy || null },
   });
   const find = (id) => {
     const clip = clips().find((c) => c.id === id);
@@ -98,6 +117,10 @@ export function registerClips(app, { saved, commit }) {
       await ensurePoster(clip);
       return true;
     }
+    // Hay que hacerle una copia. Entre tanto, quizá el equipo principal pueda con el original.
+    if (!originalMayPlay(info, clip.kind)) clip.original = 'no';
+    else if (clip.original === 'no') clip.original = null;
+    await ensurePoster(clip);
     const converted = `convertidos/${clip.id}${clip.kind === 'audio' ? '.m4a' : '.mp4'}`;
     fs.mkdirSync(path.join(base, 'convertidos'), { recursive: true });
     Object.assign(clip, { direct: false, status: 'converting', error: null });
@@ -155,8 +178,11 @@ export function registerClips(app, { saved, commit }) {
         let clip = clips().find((c) => c.id === id);
         const same = clip && clip.bytes === file.size && clip.modified === file.modified;
         if (!same) {
-          if (clip) dropDerived(clip);
-          else {
+          // El archivo cambió: lo que se sabía de él (también si se reproduce tal cual) ya no vale.
+          if (clip) {
+            dropDerived(clip);
+            Object.assign(clip, { original: null, originalBy: null });
+          } else {
             clip = { id, kind: clipKind(file.name), name: nameFromFile(file.name), source: 'folder', file: file.name, added: Math.round(file.modified) };
             clips().push(clip);
           }
@@ -192,6 +218,10 @@ export function registerClips(app, { saved, commit }) {
     await scan();
   }
 
+  // Mientras algo se reproduce en pantalla, las conversiones ceden el paso: la proyección es lo primero.
+  const playingNow = () => store.get('projection')?.mode === 'live' && store.get('live')?.state?.clock?.playing === true;
+  store.on('change', (ns) => { if (ns === 'live' || ns === 'projection') converter.hold(playingNow()); });
+
   let stopWatching = () => {};
   if (folder) {
     fs.mkdirSync(folder, { recursive: true });
@@ -214,13 +244,20 @@ export function registerClips(app, { saved, commit }) {
   // ---- Tipos de contenido: video y audio ----
   // data = { id }. Los mandos en vivo son el reloj de reproducción (pausa, salto, reinicio) y los
   // subtítulos. El volumen es el general de Manna (projection.volume), no de cada elemento.
+  // Lo que se proyecta:
+  //   url     lo que reproduce cualquier pantalla (null mientras su copia ligera no esté lista)
+  //   local   lo que reproducen las pantallas del equipo principal, si pueden con el original
+  //   waiting por qué una pantalla sin nada que reproducir todavía solo muestra la imagen
   const content = (clip) => {
-    const shared = { title: clip.name, poster: stamped(clip.poster, clip.posterAt), duration: clip.duration ?? null };
-    if (clip.status !== 'ready') {
+    const shared = { id: clip.id, title: clip.name, poster: stamped(clip.poster, clip.posterAt), duration: clip.duration ?? null };
+    if (!usable(clip)) {
       // Existe, pero aún no se puede poner en pantalla: la proyección lo dice en vez de fallar.
       return { ...shared, unavailable: clip.status === 'converting' ? `«${clip.name}» aún se está convirtiendo. Estará listo en un momento.` : clip.error || 'Este archivo no se puede reproducir.' };
     }
-    return { ...shared, url: urlOf(clip), subtitles: stamped(clip.subtitles, clip.subtitlesAt) };
+    return {
+      ...shared, url: urlOf(clip), local: localUrl(clip), subtitles: stamped(clip.subtitles, clip.subtitlesAt),
+      waiting: clip.status === 'ready' ? null : clip.status === 'converting' ? 'Este video se verá aquí cuando termine de prepararse para este dispositivo.' : 'Este video solo se ve en la pantalla del equipo principal.',
+    };
   };
   for (const kind of ['video', 'audio']) {
     app.kind(kind, {
@@ -306,6 +343,20 @@ export function registerClips(app, { saved, commit }) {
     if (clip.kind !== 'video') throw new HttpError(400, 'Los subtítulos son para los videos.');
     const text = (await ctx.raw(SUBTITLE_LIMIT)).toString('utf8');
     if (!saveSubtitles(clip, text)) throw new HttpError(415, 'Ese archivo no tiene subtítulos que Manna entienda. Usa un archivo .srt o .vtt.');
+    commit();
+    return view(clip);
+  });
+
+  // El equipo principal dice si su navegador reproduce el archivo original tal cual. Lo comprueba
+  // su pantalla de proyección o, si no hay, su control; lo que diga la de proyección manda, porque
+  // es la que ve el público.
+  app.route('POST', '/api/media/clips/:id/original', async (ctx) => {
+    if (!ctx.isLocal) throw new HttpError(403, 'Eso solo lo puede decir el equipo principal.');
+    const clip = find(ctx.params.id);
+    const { ok, by: who } = await ctx.json();
+    const by = who === 'proyeccion' ? 'proyeccion' : 'control';
+    if (clip.direct || clip.original === 'no' || (clip.originalBy === 'proyeccion' && by !== 'proyeccion')) return view(clip);
+    Object.assign(clip, { original: Boolean(ok), originalBy: by });
     commit();
     return view(clip);
   });

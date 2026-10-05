@@ -1,5 +1,6 @@
 import fs from 'node:fs';
-import { encodersFor, ffmpegArgs, readProbe, readProgress } from './clips.js';
+import os from 'node:os';
+import { attemptsFor, encodersFor, ffmpegArgs, readProbe, readProgress } from './clips.js';
 
 // Lo que Medios le pide a ffmpeg: mirar qué hay dentro de un archivo, sacarle una imagen y
 // convertirlo. Las conversiones van de una en una, en segundo plano, como tareas con su avance
@@ -7,12 +8,18 @@ import { encodersFor, ffmpegArgs, readProbe, readProgress } from './clips.js';
 //
 // Sin ffmpeg en el equipo, probe() devuelve undefined y nada más se puede hacer: el módulo
 // sigue funcionando con los archivos que el navegador reproduce tal cual.
-export function createConverter(app) {
+//
+// Una conversión nunca debe estorbar a lo que está sonando en pantalla: corre con prioridad baja
+// y, mientras algo se reproduce (hold(true)), se detiene. En macOS y Linux el proceso se congela
+// y luego sigue por donde iba; Windows no deja congelarlo, así que ahí se corta y se vuelve a
+// empezar después (pause: 'restart').
+export function createConverter(app, { pause = process.platform === 'win32' ? 'restart' : 'freeze', delay = 0 } = {}) {
   const { tools } = app;
   const queue = [];       // { task, job }
-  let running = null;     // { task, job, child }
+  let running = null;     // { task, job, child, cancelled, interrupted }
   let encoders = null;
   let closed = false;
+  let held = false;
 
   // Ejecuta ffmpeg o ffprobe y junta lo que escriben. onOut recibe la salida según llega.
   function run(binary, args, { onOut, onChild } = {}) {
@@ -54,13 +61,18 @@ export function createConverter(app) {
     const partial = `${task.output}.parcial`;
     // Solo al recodificar la imagen hay varios codificadores que probar: el chip de video puede
     // estar en la lista de ffmpeg y aun así no funcionar en este equipo.
-    const tries = task.plan.video === 'encode' ? await candidates() : ['libx264'];
+    const tries = task.plan.video === 'encode' ? attemptsFor(await candidates()) : [{ encoder: 'libx264', hwaccel: false }];
     let last = '';
-    for (const encoder of tries) {
-      if (running?.cancelled || closed) break;
-      const args = ffmpegArgs(task.plan, { input: task.input, output: partial, kind: task.kind, encoder, width: task.width || 0 });
+    for (const { encoder, hwaccel } of tries) {
+      if (running?.cancelled || running?.interrupted || closed) break;
+      const args = ffmpegArgs(task.plan, { input: task.input, output: partial, kind: task.kind, encoder, hwaccel, width: task.width || 0 });
       const result = await run('ffmpeg', args, {
-        onChild: (child) => { running.child = child; },
+        onChild(child) {
+          running.child = child;
+          // Que el equipo atienda primero a todo lo demás (el navegador que proyecta, sobre todo).
+          try { os.setPriority(child.pid, os.constants.priority.PRIORITY_LOW); } catch { /* el sistema no deja: sigue con la normal */ }
+          if (held) freeze();
+        },
         onOut: (text) => {
           const at = readProgress(text);
           if (at != null && task.duration) job.update({ progress: at / task.duration });
@@ -73,16 +85,45 @@ export function createConverter(app) {
       last = result.err.trim().split('\n').pop() || '';
     }
     fs.rmSync(partial, { force: true });
-    return { ok: false, cancelled: Boolean(running?.cancelled) || closed, error: last };
+    return { ok: false, cancelled: Boolean(running?.cancelled) || closed, interrupted: Boolean(running?.interrupted), error: last };
+  }
+
+  const label = (task) => (task.plan.video === 'encode' || task.kind === 'audio' ? 'Convirtiendo' : 'Cambiando el formato');
+  const WAITING = 'En pausa mientras se reproduce';
+  function freeze() {
+    if (!running?.child || running.frozen) return;
+    if (pause === 'freeze') {
+      try { running.child.kill('SIGSTOP'); running.frozen = true; } catch { /* no se pudo: sigue a su ritmo */ }
+    } else {
+      running.interrupted = true;
+      running.child.kill();
+    }
+    running.job.update({ detail: WAITING });
+  }
+  function thaw() {
+    if (!running?.frozen) return;
+    try { running.child.kill('SIGCONT'); } catch { /* ya terminó */ }
+    running.frozen = false;
+    running.job.update({ detail: label(running.task) });
   }
 
   async function next() {
-    if (running || closed || !queue.length) return;
+    if (running || closed || held || !queue.length) return;
     running = queue.shift();
     const { task, job } = running;
-    job.update({ detail: task.plan.video === 'encode' || task.kind === 'audio' ? 'Convirtiendo' : 'Cambiando el formato' });
-    const result = await work(running);
+    if (delay) await new Promise((resolve) => { setTimeout(resolve, delay); });
+    job.update({ detail: label(task) });
+    const current = running;
+    const result = held && !current.cancelled ? { ok: false, interrupted: true } : await work(current);
     running = null;
+    // Se cortó para ceder el paso: vuelve a la cola, la primera, y empezará de nuevo.
+    if (result.interrupted && !result.cancelled && !closed) {
+      job.update({ progress: 0, detail: WAITING });
+      queue.unshift(current);
+      Object.assign(current, { child: null, interrupted: false, frozen: false });
+      next();
+      return;
+    }
     if (result.ok) job.done('Listo');
     else if (result.cancelled) job.done('Cancelado');
     else job.fail('No se pudo convertir este archivo.');
@@ -105,12 +146,29 @@ export function createConverter(app) {
       if (waiting >= 0) queue.splice(waiting, 1)[0].job.done('Cancelado');
       if (running?.task.id === id) {
         running.cancelled = true;
+        if (running.frozen) { try { running.child.kill('SIGCONT'); } catch { /* ya terminó */ } }
         running.child?.kill();
       }
     },
     busy: (id) => running?.task.id === id || queue.some((entry) => entry.task.id === id),
+    // Cede el paso (true) mientras algo se reproduce en pantalla, y sigue (false) cuando deja de hacerlo.
+    hold(value) {
+      if (held === Boolean(value)) return;
+      held = Boolean(value);
+      // Lo que espera su turno también dice por qué espera.
+      for (const entry of queue) entry.job.update({ detail: held ? WAITING : 'En cola' });
+      if (held) {
+        if (running && !running.child) running.job.update({ detail: WAITING });
+        freeze();
+      } else {
+        thaw();
+        next();
+      }
+    },
     close() {
       closed = true;
+      // Un proceso congelado no atiende la orden de terminar: primero se descongela.
+      if (running?.frozen) { try { running.child.kill('SIGCONT'); } catch { /* ya terminó */ } }
       running?.child?.kill();
     },
   };

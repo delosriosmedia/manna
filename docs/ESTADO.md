@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Última actualización: 2026-10-04 · Versión: 1.6.1
+Última actualización: 2026-10-04 · Versión: 1.6.2
 
 Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver `.claude/rules/documentacion.md`). El historial está en `CHANGELOG.md`.
 
@@ -19,6 +19,7 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 - **Orden del culto** (antes "guion"): elementos con tipo y pasos, secciones, reordenar arrastrando o por menú, cita rápida, miniaturas de los pasos que se despliegan y se recogen con un clic, "todo junto" para pasajes cortos, **nombre propio para cualquier elemento** (el original queda a la vista debajo y se recupera dejando el nombre vacío). Al abrir, la lista se coloca en lo que está al aire. El guion de versiones anteriores se convierte solo.
 - **Medios: imágenes** (módulo `media`, tipo `image`): biblioteca con miniaturas; subida desde el equipo, la galería del celular o arrastrando, varias a la vez, con nombre propuesto y avance; reducción en el dispositivo (lado mayor de 2560 px) y miniatura; ajuste a la pantalla elegido sobre dos miniaturas y recordado por imagen; proyección, orden del culto, cambio de nombre y eliminación. Al aire: recuadro de encuadre (arrastrar, rueda, dos dedos, deslizador hasta 5×) que todas las pantallas siguen, y «Vista completa». Las imágenes viven en `data/media/imagenes/`.
 - **Medios: videos y audios** (tipos `video` y `audio`): pestañas propias; subida desde la app (hasta 8 GB un video, 1 GB un audio) o copiando a `Contenido/Medios/`, que se vigila sola. Con ffmpeg, Manna mira dentro de cada archivo: lo habitual (H.264 y AAC o MP3 en MP4/MOV; MP3, M4A, WAV, OGG, FLAC) se usa tal cual; si solo cambia el envoltorio, se rehace en segundos; el resto se convierte a MP4 (con el chip de video del equipo si funciona, y si no con libx264), de uno en uno, como tarea con avance. A cada video se le saca una imagen. Subtítulos `.srt`/`.vtt` (archivo vecino en la carpeta o añadido desde el menú). Sin ffmpeg, lo habitual funciona y lo demás queda "a la espera" hasta instalarlo.
+- **Video usable al instante**: de lo que hay que convertir, el equipo principal comprueba solo si su navegador reproduce el original (lo carga a escondidas y mira que avance sin perder cuadros; lo hace su pantalla de proyección o, si no hay, su control). Si puede, el video se proyecta ya: las pantallas del equipo principal usan siempre el original y las demás esperan la copia ligera (MP4, 1080p como mucho), mostrando entre tanto la imagen del video. La copia se hace de fondo, leyendo con el chip de video, con prioridad baja, y **se detiene mientras algo se reproduce en pantalla**.
 - **Reproducción**: al proyectar empieza a reproducirse; mandos de pausa, volver al principio, ±10 s, barra de avance y subtítulos, en el panel "Al aire" y en el orden. Cada pantalla lleva su reproductor al punto que marca el reloj del servidor y corrige el desfase sola. Tras un reinicio queda en pausa donde iba.
 - **Volumen de Manna**: deslizador con silencio dentro de los mandos de lo que suena. **Suena una sola pantalla, siempre del equipo principal** (así sale por el dispositivo de audio que ese equipo tenga elegido), elegida por el servidor: su ventana de proyección y, si no hay, su página de control. Si en el equipo principal no hay abierta ninguna de las dos, el control lo avisa.
 - **Sin cortes de sonido**: al pausar, ocultar («Negro», «Solo fondo») o cambiar lo que está en pantalla, el sonido se desvanece en 0,3 s; la interfaz no espera. «Negro» y «Solo fondo» pausan lo que suena, y «Reproducir» lo vuelve a mostrar. Al terminar un video o un audio, la proyección pasa sola a «Solo fondo».
@@ -50,7 +51,7 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 | Área | Estado |
 | --- | --- |
-| Interfaz: Biblia, orden del culto (desplegar, recoger, nombre propio), ajustes, dispositivos, versión junto al logo y permisos del rol "Control del orden" | Probado en Chrome real con `scripts/probar-chrome.mjs` (172 comprobaciones en total) |
+| Interfaz: Biblia, orden del culto (desplegar, recoger, nombre propio), ajustes, dispositivos, versión junto al logo y permisos del rol "Control del orden" | Probado en Chrome real con `scripts/probar-chrome.mjs` (175 comprobaciones en total) |
 | Búsqueda en la Biblia: al escribir, niveles, resaltado, teclado, "ver más", cita, sin resultados | Probado en Chrome real, y con pruebas automáticas del orden, de las marcas y de en qué versión se busca |
 | Búsqueda: velocidad y memoria | Con un solo índice (Reina-Valera 1960): unos milisegundos por búsqueda y unos 12 MB. **Sin medir en el equipo Windows de la iglesia** |
 | Comparador: elegir versiones, ver las dos junto a cada versículo, vista previa, disposición antes y al aire, "siguiente", versículo que falta en una versión, añadir al orden | Probado en Chrome real con dos versiones de prueba, y con pruebas automáticas del tipo `compare` |
@@ -64,7 +65,10 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 | Una sola pantalla suena | Probado: suena la de proyección del equipo, el monitor del control va en silencio; sin proyección suena el control del equipo, y nada pide tocar la pantalla. **Sin oírlo de verdad en el proyector** (Chrome sin ventana no tiene altavoz) |
 | Desvanecido al pausar, al poner «Negro» y al cambiar de contenido; «Negro» pausa; «Reproducir» vuelve a mostrar; fin del video → «Solo fondo» | Probado en Chrome real midiendo el volumen del reproductor cada 15 ms (baja en varios pasos antes de detenerse), y con pruebas automáticas del servidor. **Sin oírlo**: que el desvanecido suene bien al oído lo tiene que juzgar el dueño |
 | Medios sin ffmpeg | Probado en Chrome real y en pruebas automáticas: lo habitual queda listo con la imagen y la duración que saca el navegador; lo demás espera y lo dice |
-| Videos **reales** de la iglesia: de cámara, de celular (HEVC de iPhone), de varios gigas; conversión en el **equipo Windows** (chip de video, tiempos) | **Sin probar.** Las muestras de las pruebas duran segundos |
+| Uso inmediato del original y copia de fondo | Probado en Chrome real (un MKV que el navegador reproduce y un AVI que no) y con pruebas automáticas: usable al decirlo el equipo, la conversión cede el paso mientras se reproduce, y la copia llega a lo que está al aire sin interrumpirlo |
+| **El video real del dueño** (4K, HEVC de 10 bits, 483 MB, 2:24), en el Mac de desarrollo | Probado: se pudo proyectar a los **3,3 s** de copiarlo a la carpeta; se reprodujo el original en 4K (183 cuadros en 6 s, 9 perdidos al arrancar); la copia ligera tardó **26 s** (antes, 59 s) y conserva los colores del original |
+| Lo mismo en el **equipo Windows** de la iglesia: si su navegador reproduce HEVC, cuánto tarda la copia, y que al reproducir se corte y reinicie la conversión | **Sin probar.** En Windows la conversión no se puede congelar: se corta y vuelve a empezar al terminar la reproducción |
+| Otros videos reales: de celular (HEVC de iPhone), de varios gigas | **Sin probar** |
 | Subir un video desde un **celular real** | **Sin probar** |
 | Medios desde un **celular real**: elegir de la galería, fotos HEIC de iPhone, acercar con dos dedos | **Sin probar.** El gesto de dos dedos está escrito pero solo se probaron el arrastre, la rueda y el deslizador |
 | «Más» en la barra del celular | Probado en Chrome real con tamaño de celular y en la auditoría de pantallas |
@@ -115,6 +119,9 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 - **Manna abierto desde la carpeta de desarrollo**: mientras se programa, el aviso «Manna se actualizó» sale cada vez que cambia el código del servidor. Es correcto (hay que reiniciar para probar lo nuevo), pero si se reinicia a mitad de un cambio puede no abrir; en ese caso sale la página de error de arranque.
 - **Cuando suena la página de control** (equipo principal sin proyector), el navegador exige que alguien haya hecho clic en esa página alguna vez desde que se abrió; la ventana del proyector no tiene esa limitación. Una página que no puede sonar lo dice al servidor y se elige otra del equipo; si ninguna puede, los mandos avisan de que no suena en ningún sitio y piden un clic en la página de Manna del equipo principal.
 - Al quitar «Negro» o «Solo fondo», lo que sonaba no se reanuda solo: hay que pulsar «Reproducir» (decisión de diseño, para que nada suene por sorpresa).
+- **Una pantalla remota no ve un video recién agregado hasta que su copia ligera está lista** (ve su imagen y un aviso). Si además algo se está reproduciendo, la copia espera. Lo normal es agregar los videos con tiempo.
+- **En Windows, una conversión interrumpida por una reproducción vuelve a empezar de cero** al terminar esta (el sistema no deja congelarla, como sí se hace en Mac).
+- La comprobación de si el equipo principal reproduce un original la hace una página suya **a la vista**: si el control está en una pestaña de fondo y no hay ventana de proyección, se hace al volver a esa pestaña; hasta entonces se espera a la conversión, como antes.
 - Tras pausar, la pantalla que suena queda hasta 0,3 s por delante de las demás (lo que dura el desvanecido); se iguala sola al reanudar.
 - El video de "alta eficiencia" (HEVC) de un iPhone siempre se convierte, aunque algunos equipos podrían reproducirlo tal cual: así funciona en todas las pantallas.
 - Sin ffmpeg no se puede comprobar que un archivo con extensión de video lo sea de verdad: se acepta y, si no lo es, simplemente no se reproduce.
@@ -183,6 +190,7 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 - **2026-10-04 · El sonido nunca se corta de golpe**: todo lo que lo detenga (pausa, negro, solo fondo, cambiar de contenido) lo hace con un desvanecido rápido; la interfaz reacciona al instante.
 - **2026-10-04 · «Negro» y «Solo fondo» pausan lo que suena. Al terminar un video se pasa a «Solo fondo»** con un desvanecido rápido.
 - **2026-10-04 · Sin botón para hacer sonar**: el sonido va solo al dispositivo de audio configurado en el equipo principal.
+- **2026-10-04 · Un video recién agregado debe poder usarse de inmediato**, aunque lo habitual sea agregarlos con tiempo; la conversión para los dispositivos remotos va de fondo. No se añade una prueba del equipo a la revisión: el de la iglesia no es antiguo, aunque tampoco potente.
 - **2026-10-04 · Informe de cada fase**: muestra de nuevo el plan con las fases superadas y las observaciones, y un apartado de cambios sugeridos (`docs/PLAN.md`, sección 11).
 
 ## Decisiones pendientes del dueño
@@ -209,9 +217,8 @@ Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron*
 
 ## Próximos pasos
 
-- **Antes de la fase 7, el dueño decide qué hacer con la espera de la conversión** de videos pesados (4K, HEVC): las mediciones están en `docs/PLAN.md`, sección 2, y las opciones en la sección 11 (S19, S20 y S21).
 - **Lo que sigue lo decide el dueño**: fase 7 (YouTube, versión 1.7) o fase 5 (himnario), según cómo vaya la revisión de las letras. El himnario ya tiene hecha la reproducción. El orden completo está en `docs/PLAN.md`.
-- Que el dueño pruebe la fase 6 con videos de verdad: uno de cámara o edición, uno grabado con el celular, y oír el sonido por el proyector.
+- Que el dueño pruebe en el **equipo Windows** el video de 4K: si la tarjeta dice «Ya se puede proyectar» a los pocos segundos y cuánto tarda la copia. Y oír el sonido y los desvanecidos por el proyector.
 - Que el dueño repita, tras reiniciar Manna, las dos pruebas que fallaron: subir una imagen a Medios y subir una imagen de fondo, desde el equipo principal y desde el celular.
 - **Televisores: al retomarlo**, lo primero es el diagnóstico: con Manna abierto, escribir la dirección en el navegador del televisor y mirar en su tarjeta (módulo Televisores) cómo dice Manna que llegó. Si no llegó de ninguna forma, el problema está antes de Manna (el televisor o la red); si llegó y cortó la conexión segura, es el certificado.
 - Que el dueño pruebe Medios desde su celular: subir fotos de la galería y encuadrar con dos dedos.

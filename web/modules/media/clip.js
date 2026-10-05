@@ -1,4 +1,4 @@
-import { action, reportSound } from '../../core/api.js';
+import { action, connectionIsLocal, reportSound } from '../../core/api.js';
 import { h } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { registerKind } from '../../core/kinds.js';
@@ -6,10 +6,16 @@ import { everyFrame, formatTime, positionAt } from '../../core/playback.js';
 import { createSender } from '../../core/sender.js';
 import { createVolume } from '../projection/volume.js';
 import { createPlayer } from './player.js';
+import { watchOriginals } from './probe.js';
 
 // Tipos de contenido "video" y "audio". Los dos se reproducen igual: el servidor guarda el reloj
 // (reproduciendo o en pausa, y en qué segundo) y cada pantalla lleva su reproductor a ese punto.
 // Suena una sola pantalla; las demás van en silencio.
+
+// Qué archivo reproduce esta pantalla. Las del equipo principal usan el original cuando su
+// navegador puede con él (`local`): sin esperar a la conversión y sin perder calidad. Las demás,
+// la copia que reproduce cualquiera (`url`), que puede no estar lista todavía.
+const sourceOf = (item) => (item ? (connectionIsLocal() && item.local) || item.url || null : null);
 
 // Lo que dibuja la pantalla. make() crea el <video> o el <audio>; se hace uno nuevo para cada
 // contenido, porque el anterior termina de desvanecerse por su cuenta (ver player.js).
@@ -21,12 +27,21 @@ function drawClip(host, { build, make, onItem }) {
   let media = null;
   let player = null;
   let told = false; // la duración se dice una sola vez
+  let failed = null; // el original que este navegador, al final, no pudo reproducir
+  // Esta pantalla usa el original salvo que ya le haya fallado; entonces, la copia.
+  const pick = (entry) => (entry?.local && entry.local === failed ? entry.url || null : sourceOf(entry));
 
   function fresh() {
     player?.release();
     told = false;
     media = make();
     box.prepend(media);
+    // Si el original no se deja reproducir aquí (no debería: se comprobó antes), se pasa a la copia.
+    media.addEventListener('error', () => {
+      if (!item?.local || media.getAttribute('src') !== item.local || failed === item.local) return;
+      failed = item.local;
+      if (item.url) media.src = item.url;
+    });
     player = createPlayer(media, {
       onAudible: reportSound,
       // En un equipo sin ffmpeg el servidor no sabe cuánto dura: se lo dice la primera pantalla
@@ -42,21 +57,26 @@ function drawClip(host, { build, make, onItem }) {
 
   return {
     update(next) {
-      // Otro contenido: reproductor nuevo. El de antes se desvanece y se va solo.
-      if (item?.url && item.url !== next.url) fresh();
+      // Otro contenido: reproductor nuevo. El de antes se desvanece y se va solo. (Que a lo mismo
+      // le llegue su copia para otras pantallas no cambia nada aquí si ya se estaba reproduciendo.)
+      const before = pick(item);
+      if (before && before !== pick(next)) fresh();
       item = next;
-      notice.textContent = next.unavailable || '';
-      notice.hidden = !next.unavailable;
+      // En una pantalla que aún no tiene qué reproducir se ve la imagen del video y por qué.
+      const why = next.unavailable || (pick(next) ? '' : next.waiting || '');
+      notice.textContent = why;
+      notice.hidden = !why;
       onItem(next, media);
     },
     // state null: esto es una vista previa o una miniatura, no lo que está al aire. No se carga nada.
     live(state, { volume = 1, sound = false } = {}) {
-      box.classList.toggle('on-air', Boolean(state && item?.url));
-      if (!state || !item?.url) {
+      const source = pick(item);
+      box.classList.toggle('on-air', Boolean(state && source));
+      if (!state || !source) {
         player.stop();
         return;
       }
-      player.load(item.url);
+      player.load(source);
       player.apply(state.clock, { volume, sound });
       const track = media.textTracks?.[0];
       if (track) track.mode = state.subtitles ? 'showing' : 'hidden';
@@ -153,7 +173,7 @@ registerKind('video', {
   label: 'Video',
   unit: null,
   title: (item) => item.title,
-  key: (item) => item.url || item.title,
+  key: (item) => item.id || item.title,
   background: false,
   draw(host) {
     const poster = h('img', { class: 'clip-poster', alt: '', hidden: true });
@@ -176,7 +196,7 @@ registerKind('audio', {
   label: 'Audio',
   unit: null,
   title: (item) => item.title,
-  key: (item) => item.url || item.title,
+  key: (item) => item.id || item.title,
   // Se ve el fondo de la proyección, con el nombre de lo que suena.
   draw(host) {
     const title = h('div', { class: 'stage-ref' });
@@ -188,3 +208,6 @@ registerKind('audio', {
   },
   controls: clipControls,
 });
+
+// Las pantallas del equipo principal comprueban qué videos pueden reproducir sin convertir.
+watchOriginals();

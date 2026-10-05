@@ -102,7 +102,8 @@ if (!HAS_FFMPEG) {
 const fakeTv = await startFakeTv();
 function startServer(host, extra = {}) {
   // MANNA_SIN_VENTANA: la prueba no abre su proyección en el proyector de verdad, si lo hay.
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), ...extra };
+  // MANNA_CONVERSION_LENTA: cada conversión tarda en empezar, para poder ver qué pasa mientras tanto.
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), ...extra };
   if (host) env.MANNA_HOST = host;
   return spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env });
 }
@@ -561,6 +562,31 @@ try {
     const converted = videos.find((v) => v.name === 'testimonio');
     check('lo habitual se usa tal cual y lo demás queda convertido; los dos con su imagen y su duración', Boolean(main && converted) && !main.converted && converted.converted && converted.url.endsWith('.mp4')
       && Math.round(main.duration) === 8 && await run(`return [...${vids}.querySelectorAll('.media-card')].every(c => c.querySelector('.media-thumb img')?.naturalWidth > 0 && /^0:0\\d$/.test(c.querySelector('.media-duration').textContent))`));
+    // Un video que hay que convertir (viene en otro envoltorio), pero que este equipo reproduce tal
+    // cual: se usa al instante, con el original, mientras se le hace la copia para las demás pantallas.
+    const wrapped = sample('recien llegado.mkv', ['-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=25:duration=8', ...quiet(262, 8), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest']);
+    await chooseFiles('.media-body[data-panel=videos] input[type=file]', [wrapped]);
+    await sleep(500);
+    await modalButton('Subir');
+    const arrived = `[...${vids}.querySelectorAll('.media-card')].find(c => c.querySelector('strong').textContent === 'recien llegado')`;
+    check('un video recién subido que este equipo reproduce tal cual se puede proyectar ya, mientras se le hace la copia', await until(`${arrived}?.dataset.usable === 'true' && ${arrived}.dataset.status === 'converting' && ${arrived}.querySelector('.media-status strong')?.textContent.includes('Ya se puede proyectar')`, 25), await run(`return ${arrived}?.querySelector('.media-status')?.textContent`));
+    await click(`${arrived}.querySelector('.media-pick')`);
+    await sleep(300);
+    await click(`${vbar}.querySelector('.btn.primary')`);
+    await sleep(1500);
+    const instant = () => run(`const s = await (await fetch('/api/state')).json(); const v = document.querySelector('.dock .monitor video'); const c = s.media.videos.find(x => x.name === 'recien llegado'); return JSON.stringify({ local: s.projection.item.local, url: s.projection.item.url, uid: s.projection.item.uid, playing: s.live.state.clock.playing, src: v.getAttribute('src'), paused: v.paused, t: v.currentTime, status: c.status, job: s.jobs.list.find(j => j.ref === c.id)?.detail })`).then(JSON.parse);
+    const early = await instant();
+    check('se reproduce con el archivo original, y la conversión espera a que deje de sonar', Boolean(early.local?.endsWith('.mkv')) && early.url === null && early.src === early.local && !early.paused && early.t > 0.3 && early.status === 'converting' && early.job === 'En pausa mientras se reproduce', JSON.stringify(early));
+    await control('Pausar');
+    const copied = await until(`${arrived}.dataset.status === 'ready'`, 60);
+    const settled = await instant();
+    check('al dejar de reproducirse se termina la copia, y llega a lo que está en pantalla sin interrumpirlo', copied && Boolean(settled.url?.endsWith('.mp4')) && settled.local === early.local && settled.uid === early.uid && settled.src === early.local && Math.abs(settled.t - (await air()).live.clock.position) < 0.5, JSON.stringify(settled));
+    await click(`${arrived}.querySelector('.media-more')`);
+    await sleep(300);
+    await menuItem('Eliminar');
+    await sleep(300);
+    await modalButton('Eliminar');
+    await sleep(600);
     const mainCard = `${vids}.querySelector('.media-card[data-id="${main?.id}"]')`;
     await click(`${mainCard}.querySelector('.media-pick')`);
     await sleep(500);

@@ -50,6 +50,11 @@ const AUDIO_IN_MP4 = new Set(['aac', 'mp3']);
 const AUDIO_FILES = { mp3: /\bmp3\b/, aac: /\b(mp4|mov|m4a|aac)\b/, vorbis: /\bogg\b/, opus: /\b(ogg|webm)\b/, flac: /\bflac\b/, pcm: /\bwav\b/ };
 const MAX_WIDTH = 1920;
 
+// ¿Puede servir el archivo original, tal cual, en un equipo cuyo navegador lo reproduzca? Solo si
+// su sonido es de los que cualquier navegador entiende: la imagen la comprueba la propia pantalla
+// (ver web/modules/media/probe.js), pero un sonido que no se entiende simplemente no suena.
+export const originalMayPlay = (info, kind) => kind === 'video' && Boolean(info.video) && (!info.audio || AUDIO_IN_MP4.has(info.audio.codec));
+
 // Qué hacer con un archivo para que se reproduzca en cualquier pantalla (MP4 con H.264 y AAC,
 // que es lo que entienden todos los navegadores, también los de los celulares):
 //   'direct'     nada: se usa tal cual
@@ -89,10 +94,17 @@ export function encodersFor(platform, listing) {
   return [...wanted.filter((name) => new RegExp(`\\b${name}\\b`).test(String(listing))), 'libx264'];
 }
 
+// Las formas de convertir la imagen, de la más rápida a la más segura. Con cada codificador se
+// prueba primero leyendo también con el chip de video (lo que más tarda de un 4K es leerlo:
+// medido, la mitad de tiempo) y, si eso falla en ese equipo, leyendo por programa.
+export const attemptsFor = (encoders) => encoders.flatMap((encoder) => [{ encoder, hwaccel: true }, { encoder, hwaccel: false }]);
+
 // La orden de ffmpeg para llevar `input` a `output` según el plan. `-progress pipe:1` hace que
 // vaya diciendo por dónde va (ver readProgress).
-export function ffmpegArgs(plan, { input, output, kind, encoder = 'libx264', width = 0 }) {
-  const args = ['-hide_banner', '-nostdin', '-y', '-loglevel', 'error', '-progress', 'pipe:1', '-nostats', '-i', input];
+export function ffmpegArgs(plan, { input, output, kind, encoder = 'libx264', width = 0, hwaccel = false }) {
+  const args = ['-hide_banner', '-nostdin', '-y', '-loglevel', 'error', '-progress', 'pipe:1', '-nostats',
+    // "auto": el chip que haya; si no hay ninguno, ffmpeg sigue leyendo por programa.
+    ...(hwaccel && kind !== 'audio' && plan.video === 'encode' ? ['-hwaccel', 'auto'] : []), '-i', input];
   if (kind === 'audio') return [...args, '-vn', '-c:a', 'aac', '-b:a', '192k', '-f', 'mp4', output];
   args.push('-map', '0:v:0', '-map', '0:a:0?', '-sn', '-dn');
   if (plan.video === 'copy') args.push('-c:v', 'copy');

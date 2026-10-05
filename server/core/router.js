@@ -30,6 +30,9 @@ const MIME = {
   '.m4v': 'video/mp4',
   '.mov': 'video/mp4',
   '.webm': 'video/webm',
+  // Estos no los reproduce cualquier navegador, pero el del equipo principal a veces sí (ver Medios).
+  '.mkv': 'video/x-matroska',
+  '.3gp': 'video/3gpp',
   '.mp3': 'audio/mpeg',
   '.m4a': 'audio/mp4',
   '.aac': 'audio/aac',

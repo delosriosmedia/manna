@@ -110,7 +110,12 @@ let knownBuild; // huella del servidor al que se conectó esta página (undefine
 // Quién es esta conexión para el servidor. Sirve para saber si esta pantalla es la que suena
 // (state.conexiones.sonido): ver server/core/realtime.js.
 let clientId = null;
+let clientLocal = false;
+let clientRole = null;
 export const connectionId = () => clientId;
+// ¿Es esta página del propio equipo principal? ¿Con qué función se conectó?
+export const connectionIsLocal = () => clientLocal;
+export const connectionRole = () => clientRole;
 // Esta pantalla avisa de si el navegador la deja sonar. Si no puede, el servidor elige a otra.
 export function reportSound(able) {
   if (!clientId) return;
@@ -132,6 +137,7 @@ export const disconnect = () => stop();
 // Abre el canal en tiempo real y lo mantiene vivo: reconecta tras cualquier corte
 // y, al volver, recibe el estado completo, así que nunca queda desfasado.
 export function connect(role) {
+  clientRole = role;
   let source = null;
   let lastSeen = Date.now();
   let retry = null;
@@ -144,7 +150,7 @@ export function connect(role) {
     source = new EventSource(`/api/events?rol=${encodeURIComponent(role)}`);
     source.addEventListener('hello', (e) => {
       seen();
-      try { clientId = JSON.parse(e.data).id; } catch { clientId = null; }
+      try { ({ id: clientId, local: clientLocal = false } = JSON.parse(e.data)); } catch { clientId = null; }
     });
     source.addEventListener('state', (e) => {
       seen();

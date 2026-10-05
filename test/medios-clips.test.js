@@ -11,6 +11,8 @@ import system from '../server/modules/system/index.js';
 import projection from '../server/modules/projection/index.js';
 import order from '../server/modules/order/index.js';
 import media from '../server/modules/media/index.js';
+import { createConverter } from '../server/modules/media/convert.js';
+import { planFor, readProbe } from '../server/modules/media/clips.js';
 
 // Videos y audios de Medios contra el servidor de verdad. La mitad de estas pruebas necesita
 // ffmpeg para fabricar archivos de ejemplo y convertirlos: en un equipo sin él se saltan (y se
@@ -192,6 +194,95 @@ test('lo que el navegador no reproduce se convierte en segundo plano, con su ava
     assert.ok(await s.settle(first.id));
     await sleep(300);
     assert.equal(fs.readdirSync(path.join(s.dataDir, 'media', 'convertidos')).some((f) => f.startsWith(second.id)), false);
+  } finally {
+    await s.stop();
+  }
+});
+
+test('un video que hay que convertir se puede usar al instante si el equipo principal lo reproduce tal cual', needs, async () => {
+  const mkv = make('instante.mkv', [...PICTURE, ...TONE, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest']);
+  const strange = make('sonido-raro.mkv', [...PICTURE, ...TONE, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'ac3', '-shortest']);
+  // Las conversiones tardan en empezar, para poder mirar lo que pasa mientras tanto.
+  const s = await start('instante', { MANNA_CONVERSION_LENTA: '700' });
+  const says = (id, ok, by) => s.put(`/api/media/clips/${id}/original`, JSON.stringify({ ok, by }), 'application/json');
+  const clipNow = async (id) => (await s.state()).media.videos.find((v) => v.id === id);
+  try {
+    const up = await s.put('/api/media/clips?name=Instante&ext=.mkv', fs.readFileSync(mkv));
+    assert.deepEqual([up.status, up.usable, up.url, up.original], ['converting', false, null, { url: `/media/videos/${up.id}.mkv`, playable: null, by: null }]);
+    assert.match(up.poster, /miniaturas/, 'la imagen se saca del original, sin esperar a la conversión');
+    assert.equal((await s.send('projection.show', { kind: 'video', data: { id: up.id } })).http, 409, 'aún no se sabe si este equipo puede con él');
+
+    // El control del equipo principal lo comprueba y dice que sí: ya se puede proyectar.
+    const told = await says(up.id, true, 'control');
+    assert.deepEqual([told.status, told.usable, told.original.playable, told.original.by], ['converting', true, true, 'control']);
+    const shown = await s.send('projection.show', { kind: 'video', data: { id: up.id } });
+    assert.equal(shown.http, 200);
+    assert.deepEqual([shown.result.local, shown.result.url, /cuando termine de prepararse/.test(shown.result.waiting)], [`/media/videos/${up.id}.mkv`, null, true]);
+    const { uid } = shown.result;
+
+    // Mientras se reproduce, la conversión cede el paso: no avanza.
+    await sleep(1500);
+    let clip = await clipNow(up.id);
+    assert.equal(clip.status, 'converting');
+    assert.equal((await s.state()).jobs.list.find((j) => j.ref === up.id).detail, 'En pausa mientras se reproduce');
+    assert.equal(fs.existsSync(path.join(s.dataDir, 'media', 'convertidos', `${up.id}.mp4`)), false);
+
+    // Al pausar, sigue, y la copia llega a lo que está al aire sin tocar su reproducción.
+    await s.send('projection.control', { playing: false, position: 0.5 });
+    clip = await s.settle(up.id);
+    assert.deepEqual([clip.status, clip.url, clip.usable], ['ready', `/media/convertidos/${up.id}.mp4`, true]);
+    const after = await s.state();
+    assert.deepEqual([after.projection.item.uid, after.projection.item.url, after.projection.item.local, after.projection.item.waiting],
+      [uid, `/media/convertidos/${up.id}.mp4`, `/media/videos/${up.id}.mkv`, null], 'las demás pantallas ya tienen su copia; las del equipo siguen con el original');
+    assert.deepEqual([after.live.state.clock.playing, after.live.state.clock.position], [false, 0.5]);
+
+    // Lo que diga la pantalla de proyección manda sobre lo que dijo el control.
+    assert.equal((await says(up.id, false, 'proyeccion')).original.playable, false);
+    assert.equal((await says(up.id, true, 'control')).original.playable, false);
+    assert.equal((await s.send('projection.show', { kind: 'video', data: { id: up.id } })).result.local, null, 'ya convertido, todas usan la copia');
+    await s.send('projection.clear');
+
+    // Un original cuyo sonido no entendería el navegador ni se ofrece: se espera a la copia.
+    const odd = await s.put('/api/media/clips?name=Raro&ext=.mkv', fs.readFileSync(strange));
+    assert.deepEqual([odd.status, odd.usable, odd.original], ['converting', false, null]);
+    assert.equal((await says(odd.id, true, 'proyeccion')).usable, false);
+    assert.ok(await s.settle(odd.id));
+    assert.equal((await says('no-existe', true, 'control')).http, 404);
+  } finally {
+    await s.stop();
+  }
+});
+
+test('una conversión cede el paso a lo que se reproduce: se congela y sigue, o se corta y vuelve a empezar', needs, async () => {
+  // Un video que tarde unos segundos en convertirse.
+  const long = make('largo.avi', ['-f', 'lavfi', '-i', 'testsrc2=size=1280x720:rate=30:duration=45', '-c:v', 'mpeg4', '-q:v', '6']);
+  const info = readProbe(String(spawnSync('ffprobe', ['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', long]).stdout));
+  const s = await start('ceder');
+  try {
+    for (const pause of ['freeze', 'restart']) {
+      const converter = createConverter(s.app, { pause });
+      const output = path.join(tmp, `cedido-${pause}.mp4`);
+      const done = new Promise((resolve) => {
+        converter.enqueue({ id: `ceder-${pause}`, name: pause, input: long, output, kind: 'video', plan: planFor(info, 'video'), duration: info.duration, width: 1280, onDone: resolve });
+      });
+      const job = () => s.app.jobs.list().find((j) => j.ref === `ceder-${pause}`);
+      const until = async (check) => { for (let i = 0; i < 300 && !check(); i += 1) await sleep(20); return check(); };
+      assert.ok(await until(() => job()?.progress > 0.02), 'empieza a convertir');
+      converter.hold(true);
+      await sleep(250);
+      const paused = job().progress;
+      await sleep(700);
+      assert.equal(job().detail, 'En pausa mientras se reproduce');
+      assert.equal(job().progress, paused, 'mientras cede el paso no avanza');
+      assert.equal(job().state, 'running');
+      if (pause === 'restart') assert.equal(paused, 0, 'cortada: empezará de nuevo');
+      else assert.ok(paused > 0, 'congelada: seguirá por donde iba');
+      converter.hold(false);
+      assert.deepEqual(await done, { ok: true }, 'al dejar de reproducirse, termina');
+      const check = spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', output]);
+      assert.ok(Math.abs(Number(String(check.stdout)) - 45) < 1, `la copia queda entera (${String(check.stdout).trim()} s)`);
+      converter.close();
+    }
   } finally {
     await s.stop();
   }

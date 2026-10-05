@@ -11,7 +11,8 @@ Formatos
   Audios   .mp3 .m4a .aac .wav .ogg .opus .flac .wma .aif .aiff .amr
 
   Lo habitual (un MP4 de una cámara, un celular o una edición; un MP3) se usa tal cual.
-  Lo demás Manna lo convierte una sola vez, en segundo plano, y avisa cuando está listo.
+  A lo demás Manna le hace una copia, una sola vez y en segundo plano. Si el equipo principal
+  puede reproducir el archivo tal cual, se puede proyectar enseguida, sin esperar a la copia.
   Para convertir hace falta el programa ffmpeg; Manna lo revisa al abrirse y ayuda a instalarlo.
   El archivo original no se toca.
 

@@ -116,7 +116,7 @@ Las imágenes se guardan en la carpeta `data/media/imagenes/` del equipo princip
 ### Videos y audios
 
 1. En **Medios**, pestaña **Videos** o **Audios**, pulsa **Subir**. O copia los archivos a la carpeta `Contenido/Medios/` del equipo principal: aparecen solos.
-2. Si el formato no es de los habituales, la tarjeta dice **Convirtiendo** con su avance. No hay que esperar mirando: se puede seguir usando Manna y añadirlo ya al orden del culto.
+2. Si el formato no es de los habituales (un 4K en HEVC, un MKV, un AVI), Manna le hace una copia que reproduce cualquier pantalla. No hay que esperar: en unos segundos el equipo principal comprueba si puede con el archivo original y, si puede, la tarjeta dice **Ya se puede proyectar desde el equipo principal**. La copia sigue haciéndose de fondo para los celulares y las pantallas remotas, y se detiene sola mientras algo se reproduce. Si el equipo principal no puede con el original, la tarjeta muestra el avance de la conversión y queda listo al terminar.
 3. Elige uno y pulsa **Proyectar**: empieza a reproducirse en todas las pantallas a la vez.
 4. En el panel **Al aire** están sus mandos: volver al principio, pausar, −10 y +10 segundos, la barra de avance, el **volumen de Manna** y, si el video los tiene, **Subtítulos**.
 5. Para ponerle subtítulos a un video: en su menú (⋯), **Añadir subtítulos**, y elige un archivo `.srt` o `.vtt`. En la carpeta, basta un archivo con el mismo nombre que el video.

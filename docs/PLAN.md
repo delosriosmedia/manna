@@ -52,6 +52,8 @@ Datos medidos en el proyecto, no supuestos.
   | Sin chip y con dos hilos, como un equipo modesto | 2 min 10 s |
   | **Reproducirlo tal cual en Chrome**, sin convertir | 0 s: lo admite, con el chip, 304 cuadros en 10 s y ninguno perdido; salta sin problema |
 
+  Con la 1.6.2 (decisión 27), ese video se pudo proyectar a los **3,3 s** de copiarlo, con el original, y su copia ligera tardó **26 s**.
+
   Bajar la calidad o el tamaño del resultado casi no ahorra tiempo: lo que cuesta es leer el 4K. En Windows, Chrome y Edge reproducen HEVC solo si la tarjeta gráfica lo decodifica (en general, equipos de 2017 en adelante); en uno más antiguo hay que convertir, y ahí tardaría varios minutos.
 - **Herramientas.** En el Mac de desarrollo están ffmpeg 8.1, yt-dlp y PowerPoint. En el equipo Windows de la iglesia lo comprobará la revisión del equipo.
 - **Las categorías del himnario** en nuevohimnario.com se cargan con un programa de la página; su estructura se revisará en la fase 5.
@@ -280,6 +282,7 @@ Tomadas el 2026-10-04.
 | 24 | «Negro» y «Solo fondo» con algo sonando (S16) | **Lo pausan.** Y todo lo que detenga el sonido (pausa, negro, cambiar de contenido) lo hace con un **desvanecido rápido**, sin corte; la interfaz reacciona al instante |
 | 25 | Al terminar un video (S17) | **Pasar a «Solo fondo»** con un desvanecido rápido |
 | 26 | Botón para hacer sonar (S18) | **No.** Se quita también el aviso «Toca aquí para que suene». El sonido va solo al dispositivo de audio configurado en el equipo principal |
+| 27 | La espera al convertir un video pesado (S19, S20, S21) | **Convertir más rápido y poder usar el video de inmediato**; la conversión para los dispositivos remotos, de fondo. **No** medir el equipo desde la revisión |
 | 19 | Televisor, tras la primera prueba | **En pausa.** Remotamente solo se abrió el navegador y el puntero se movió un poco; escribiendo la dirección a mano tampoco carga. Se retoma cuando estén hechas las demás modificaciones |
 
 **Decisión 5 · Letras.** El dueño pidió incluirlas: las iglesias donde se usará Manna tienen la licencia de las letras y de toda la música oficial de la Iglesia Adventista del Séptimo Día. Cómo se resuelve:
@@ -460,6 +463,14 @@ Lo que se añadió para que esta clase de fallos no vuelva:
 - Para lo último, un tipo de contenido puede decir qué hacer al ocultarse (`hide`) y cuándo termina (`endsAt`); la proyección hace el resto.
 - **Conversión de video**: el dueño probó un MP4 de 4K (HEVC de 10 bits, 483 MB, 2:24) y le preocupó la espera. Medido y con alternativas en la sección 11 (S19 a S21): pendiente de su decisión.
 
+### Fase 6 · uso inmediato y conversión más rápida (1.6.2)
+
+- **Conversión**: lee también con el chip de video (`-hwaccel auto`), con vuelta atrás si falla; prioridad baja; se detiene mientras algo se reproduce en pantalla.
+- **Uso inmediato**: el equipo principal comprueba solo si su navegador reproduce el original; si puede, el video es proyectable ya. Las pantallas de ese equipo usan el original siempre; las demás, la copia ligera cuando está.
+- Para eso: lo que se proyecta puede llevar dos archivos (`local` y `url`), cada conexión sabe si es del equipo principal, y la proyección puede refrescar lo que está al aire sin tocar su reproducción.
+- Probado con el video real del dueño: proyectable a los 3,3 s; copia en 26 s en vez de 59.
+- **Sin probar**: en Windows.
+
 ## 10. Cambios al plan
 
 Cada modificación del plan aprobado, con su motivo. Es parte de la base de la auditoría.
@@ -516,6 +527,9 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-04 | Las pruebas y la demostración nunca abren su proyección en el proyector (`MANNA_SIN_VENTANA`) | Una prueba se proyectó y sonó en la segunda pantalla del equipo de desarrollo |
 | 2026-10-04 | «Negro» y «Solo fondo» pausan lo que suena; todo corte de sonido es un desvanecido; al terminar un video se pasa a «Solo fondo» | Decisiones 24 y 25 (eran S16 y S17) |
 | 2026-10-04 | Sin avisos ni botones para hacer sonar: suena el equipo principal, por su proyección o por su control | Decisión 26 (en lugar de S18) |
+| 2026-10-04 | Fase 6: un video que hay que convertir ya no espera a la conversión si el equipo principal reproduce el original; la copia ligera queda para las demás pantallas | Decisión 27 (eran S19 y S20). El plan decía que el elemento quedaba listo "al terminar" la conversión |
+| 2026-10-04 | Fase 6: la conversión se detiene mientras algo se reproduce | Para que usar un video recién agregado no compita con su propia conversión en un equipo modesto |
+| 2026-10-04 | No se añade la medición del equipo a la revisión (S21) | Decisión 27 |
 | 2026-10-04 | **Fase 3 en pausa**; se retoma al terminar las demás fases | Decisión 19: el televisor no cargó la proyección ni con Manna ni a mano |
 | 2026-10-04 | Fase 4: la miniatura la hace el dispositivo que sube, junto con la reducción | El servidor no tiene con qué encoger imágenes sin añadir dependencias |
 | 2026-10-04 | Fase 4: el ajuste se recuerda por imagen (además de ir en el elemento del orden) | Quien proyecta el mismo cartel cada semana no debería elegirlo cada vez |
@@ -531,9 +545,6 @@ Las sugerencias S8 a S11 son del televisor: esperan a que se retome la fase 3 (d
 
 | # | Sugerencia | Por qué | Qué cambiaría |
 | --- | --- | --- | --- |
-| S19 | Al convertir, leer el video con el chip del equipo | Medido con el video de 4K del dueño: de 59 s a 28 s en el Mac. Si el equipo no tiene chip que sirva, se hace como hoy | Pequeño y sin riesgo: una opción más en la orden de ffmpeg, con vuelta atrás si falla |
-| S20 | No esperar a la conversión: en el equipo principal, usar el archivo original si su navegador lo reproduce, y hacer la copia ligera al fondo para las demás pantallas | Medido: el mismo video se reproduce tal cual en Chrome, sin perder cuadros. El video quedaría listo al subirlo. La copia ligera (1080p) sigue haciendo falta para celulares y pantallas remotas: no conviene mandarles 26 Mb/s por wifi | Mediano: cada pantalla elige qué archivo usar; el equipo principal comprueba solo si puede con el original. En un equipo que no pueda, se espera a la conversión como hoy |
-| S21 | Medir el equipo de la iglesia desde la revisión del equipo | No se sabe qué puede el equipo Windows: si reproduce HEVC y a qué velocidad convierte. Una prueba de unos segundos lo diría antes del primer culto | Pequeño: un botón "Probar este equipo con video" en la revisión, que dice si los videos de 4K se usarán tal cual o cuánto tardará en convertirlos |
 | S8 | Fijar en el router la dirección del equipo principal y la del televisor | La página de inicio del televisor guarda la dirección numérica de Manna; si el router la cambia, hay que volver a escribirla | Nada en Manna: es un ajuste del router. Se documentaría con capturas |
 | S9 | Encender y apagar el televisor desde Manna | Su control por red lo permite (encendido por red y tecla de apagado). No se incluyó para no apagar un televisor por error ni probarlo sin el dueño delante | Dos botones en la tarjeta del televisor. Pequeño; se haría tras la prueba del dueño |
 | S10 | Fase 7: enviar un video de YouTube directamente al televisor | El televisor anuncia su aplicación de YouTube en la red (se vio al explorarlo). Serviría para que el video lo reproduzca el propio televisor, sin pasar por su navegador | Se estudiaría en la fase 7; no cambia el plan todavía |

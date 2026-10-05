@@ -43,6 +43,9 @@ export default function setup(app) {
   const commit = () => {
     saved.save();
     publish();
+    // Si lo que cambió está al aire (terminó su copia ligera, se le puso otro nombre), las pantallas
+    // lo reciben sin que la reproducción se entere.
+    app.services.projection?.refresh();
   };
 
   store.register('media', { images: [], videos: [], audios: [] });

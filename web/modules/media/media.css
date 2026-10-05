@@ -29,6 +29,7 @@ html.touch .media-more { width: 40px; height: 40px; right: 2px; bottom: 3px; }
 .media-status { display: grid; gap: 6px; padding: 0 10px 10px; }
 .media-status small { color: var(--ink-3); font-size: 12px; }
 .media-status.error small { color: var(--live-ink); }
+.media-status strong { font-size: 12px; font-weight: 600; color: var(--ok); }
 .media-status .row { flex-wrap: wrap; }
 .media-status .bar { margin: 0; }
 .media-grid.audios { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }

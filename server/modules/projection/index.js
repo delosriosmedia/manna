@@ -118,7 +118,16 @@ export default function setup(app) {
     scheduleEnd();
     return item;
   }
-  services.projection = { present };
+  // Vuelve a resolver lo que está al aire sin tocar su reproducción ni sus mandos: para cuando el
+  // contenido cambia por detrás (a un video le llega su copia para las demás pantallas).
+  function refresh() {
+    const { item } = get();
+    const content = item && app.kinds.get(item.kind)?.resolve(item.source.data, item.source.step);
+    if (!content || content.unavailable) return;
+    const next = { kind: item.kind, ...content, uid: item.uid, source: item.source };
+    if (JSON.stringify(next) !== JSON.stringify(item)) store.set('projection', { item: next });
+  }
+  services.projection = { present, refresh };
 
   // Se restaura cuando todos los módulos han registrado sus tipos de contenido.
   store.on('listening', () => {

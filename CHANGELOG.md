@@ -4,6 +4,14 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.6.2 — 2026-10-04
+
+- **Un video recién agregado se puede usar al instante.** Si hay que convertirlo (un 4K en HEVC, un MKV…), el equipo principal comprueba solo, en unos segundos, si su navegador lo reproduce tal cual. Si puede, la tarjeta dice **«Ya se puede proyectar desde el equipo principal»** y se proyecta con el archivo original, sin esperar.
+- **La copia para celulares y pantallas remotas se hace de fondo.** Esas pantallas muestran la imagen del video hasta que su copia está lista, y entonces la usan sin que nadie haga nada. Las pantallas del equipo principal siguen con el original, a toda su calidad.
+- **La conversión es más rápida**: ahora también lee el video con el chip del equipo. Con un video de 4K de 2:24, la copia pasó de 59 a 26 segundos en el equipo de desarrollo.
+- **La conversión nunca estorba a lo que se reproduce**: mientras algo suena en pantalla se detiene, y sigue al terminar. Además corre con prioridad baja.
+- Si el equipo principal no puede con el original, todo es como antes: se espera a la conversión, con su avance a la vista.
+
 ## 1.6.1 — 2026-10-04
 
 - **Quitado el aviso «Toca aquí para que suene»**, que se quedaba en la pantalla de proyección aunque ya estuviera sonando.

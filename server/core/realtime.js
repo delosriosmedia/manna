@@ -51,7 +51,7 @@ export function createRealtime({ store, router }) {
     serial += 1;
     const client = { res, id: `c${serial}`, able: true, local: ctx.isLocal, role: (ctx.query.get('rol') || 'otro').slice(0, 20), ip: String(ctx.ip || '').replace(/^::ffff:/, '') };
     clients.add(client);
-    send(res, 'hello', { id: client.id });
+    send(res, 'hello', { id: client.id, local: client.local });
     send(res, 'state', store.snapshot());
     send(res, 'ping', { t: Date.now() });
     publishCounts();
