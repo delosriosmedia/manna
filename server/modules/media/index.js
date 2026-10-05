@@ -2,7 +2,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { HttpError } from '../../core/router.js';
-import { applyView, cleanName, EXTENSIONS, imageInfo, initialView, validFit } from './images.js';
+import { EXTENSIONS, IMAGE_TYPES, readImageInfo } from '../../core/images.js';
+import { applyView, cleanName, initialView, validFit } from './images.js';
 
 // Módulo Medios: la biblioteca de lo que la iglesia sube para proyectar. Hoy, imágenes;
 // los videos, audios y YouTube llegan en sus fases (docs/PLAN.md).
@@ -10,22 +11,9 @@ import { applyView, cleanName, EXTENSIONS, imageInfo, initialView, validFit } fr
 // Cada imagen es un archivo en data/media/imagenes/ más una ficha (nombre, medidas, ajuste).
 // La miniatura la hace y la envía el dispositivo que sube: el servidor no sabe encoger imágenes.
 
-const TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
 const IMAGE_LIMIT = 30 * 1024 * 1024;
 const THUMB_LIMIT = 600 * 1024;
-const HEADER_BYTES = 1024 * 1024; // un JPG de cámara puede traer mucho antes de sus medidas
 const FOLDER = 'imagenes';
-
-function readHeader(file) {
-  const fd = fs.openSync(file, 'r');
-  try {
-    const buffer = Buffer.alloc(Math.min(HEADER_BYTES, fs.fstatSync(fd).size));
-    fs.readSync(fd, buffer, 0, buffer.length, 0);
-    return buffer;
-  } finally {
-    fs.closeSync(fd);
-  }
-}
 
 export default function setup(app) {
   const { store } = app;
@@ -76,12 +64,12 @@ export default function setup(app) {
   // ---- Subir ----
   app.route('POST', '/api/media/images', async (ctx) => {
     ctx.require('media.edit');
-    const declared = TYPES[(ctx.req.headers['content-type'] || '').split(';')[0].trim()];
+    const declared = IMAGE_TYPES[(ctx.req.headers['content-type'] || '').split(';')[0].trim()];
     if (!declared) throw new HttpError(415, 'Usa una imagen JPG, PNG, WebP o GIF.');
     const id = crypto.randomBytes(6).toString('hex');
     const incoming = path.join(dir, `${id}${declared}`);
     const bytes = await ctx.save(incoming, IMAGE_LIMIT);
-    const info = imageInfo(readHeader(incoming));
+    const info = readImageInfo(incoming);
     if (!info) {
       fs.rmSync(incoming, { force: true });
       throw new HttpError(415, 'Ese archivo no es una imagen que Manna pueda mostrar. Usa JPG, PNG, WebP o GIF.');
@@ -104,7 +92,7 @@ export default function setup(app) {
     const file = `${FOLDER}/${image.id}.mini.jpg`;
     const target = path.join(app.uploadsDir, file);
     await ctx.save(target, THUMB_LIMIT);
-    if (imageInfo(readHeader(target))?.type !== 'jpeg') {
+    if (readImageInfo(target)?.type !== 'jpeg') {
       fs.rmSync(target, { force: true });
       throw new HttpError(415, 'La miniatura debe ser un JPG.');
     }

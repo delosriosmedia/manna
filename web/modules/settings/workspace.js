@@ -28,8 +28,10 @@ function mount(el, ctx) {
         tools, h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => go('/requisitos') }, icon('check-circle', 16), 'Revisar el equipo'))),
       section('Este dispositivo', null,
         h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => go('/') }, icon('arrows-left-right', 16), 'Cambiar de función'))),
-      ctx.isLocal && section('Apagar', 'Manna funciona sin ventana propia. Al apagarlo se cierra la proyección y los demás dispositivos se desconectan.',
-        h('div', { class: 'row' }, h('button', { class: 'btn danger', onclick: askShutdown }, icon('power', 16), 'Apagar Manna'))),
+      ctx.isLocal && section('Apagar o reiniciar', 'Manna funciona sin ventana propia. Al apagarlo se cierra la proyección y los demás dispositivos se desconectan. Reiniciarlo sirve para terminar una actualización: vuelve a abrirse solo.',
+        h('div', { class: 'row', style: 'flex-wrap: wrap;' },
+          h('button', { class: 'btn', onclick: askRestart }, icon('arrow-clockwise', 16), 'Reiniciar Manna'),
+          h('button', { class: 'btn danger', onclick: askShutdown }, icon('power', 16), 'Apagar Manna'))),
       section('Acerca de', null,
         h('div', { class: 'lockup about' },
           h('img', { src: '/marca.svg', alt: '' }),
@@ -58,6 +60,17 @@ function mount(el, ctx) {
     const controls = n('control') + n('orden');
     screens.textContent = `Conectados ahora: ${n('proyeccion')} ${n('proyeccion') === 1 ? 'pantalla' : 'pantallas'} de proyección y ${controls} ${controls === 1 ? 'control' : 'controles'}.`;
   });
+
+  function askRestart() {
+    const box = dialog('Reiniciar Manna',
+      h('p', {}, 'Manna se cerrará y volverá a abrirse solo. La proyección se interrumpe unos segundos y los demás dispositivos se reconectan sin hacer nada.'),
+      h('div', { class: 'row', style: 'justify-content: flex-end;' },
+        h('button', { class: 'btn', onclick: () => box.close() }, 'Cancelar'),
+        h('button', { class: 'btn primary', onclick: guard(async () => {
+          await action('system.restart');
+          box.close();
+        }) }, 'Reiniciar')));
+  }
 
   function askShutdown() {
     const box = dialog('Apagar Manna',

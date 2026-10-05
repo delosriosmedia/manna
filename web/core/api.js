@@ -100,6 +100,13 @@ function setOnline(value) {
   statusListeners.forEach((fn) => fn(online));
 }
 
+// Qué hacer cuando el servidor vuelve con otro código (Manna se actualizó y se reinició): la
+// página que hay abierta es la de antes y debe cargarse de nuevo. Las páginas de control lo
+// cambian para no pedir la confirmación de "salir del sitio".
+let whenUpdated = () => location.reload();
+export const onServerUpdate = (fn) => { whenUpdated = fn; };
+let knownBuild; // huella del servidor al que se conectó esta página (undefined = aún no se sabe)
+
 // El servidor envía un latido cada 10 s. Si pasan 25 s sin recibir nada, la conexión
 // está "muerta aunque abierta" (wifi caída, router reiniciado, equipo dormido) y se rehace.
 const STALE_MS = 25_000;
@@ -128,6 +135,12 @@ export function connect(role) {
     source.addEventListener('state', (e) => {
       seen();
       Object.assign(state, JSON.parse(e.data));
+      const build = state.system?.build ?? null;
+      if (knownBuild === undefined) knownBuild = build;
+      else if (build !== knownBuild) {
+        whenUpdated();
+        return;
+      }
       setOnline(true);
       Object.keys(state).forEach(emit);
     });

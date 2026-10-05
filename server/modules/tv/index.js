@@ -38,7 +38,8 @@ export default function setup(app) {
   const { store } = app;
   const saved = app.storage('televisores', { list: [] });
   const live = new Map(); // id -> { driver, on, browser, pairing, error, askedAt }
-  // Solo para pruebas: a dónde se conecta en lugar del televisor ({ rest, ws }).
+  // Solo para pruebas: a dónde se conecta en lugar del televisor ({ rest, ws }) y qué direcciones
+  // "aparecen" al buscar en la red ({ found }), para no salir a la red de verdad.
   const endpoints = process.env.MANNA_TV_PRUEBA ? JSON.parse(process.env.MANNA_TV_PRUEBA) : null;
 
   store.register('tv', { list: [], found: null, searching: false });
@@ -171,7 +172,9 @@ export default function setup(app) {
     store.set('tv', { searching: true });
     try {
       const known = new Set(saved.data.list.map((tv) => tv.ip));
-      const candidates = (await discover()).filter((ip) => isLocalAddress(ip) && !known.has(ip));
+      // En pruebas no se sale a la red: lo "encontrado" lo dice la propia prueba.
+      const addresses = endpoints ? endpoints.found || [] : await discover();
+      const candidates = addresses.filter((ip) => isLocalAddress(ip) && !known.has(ip));
       const found = (await Promise.all(candidates.map(async (ip) => {
         const info = await createSamsung({ ip, endpoints }).info();
         return info && { ip, name: info.name, model: info.model };
@@ -256,7 +259,8 @@ export default function setup(app) {
     return { url: projectionUrl(find(ctx.params.id)) };
   });
 
-  store.on('listening', () => { if (saved.data.list.length) refresh().catch(() => {}); });
+  // El estado de cada televisor se consulta cuando alguien abre su pantalla (tv.refresh), no al
+  // arrancar: con el módulo en pausa, Manna no sale a buscar ningún televisor por su cuenta.
   app.onClose(() => {
     clearTimeout(pending);
     for (const state of live.values()) state.driver.close();

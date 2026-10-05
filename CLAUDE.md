@@ -14,7 +14,7 @@ Repositorio: https://github.com/delosriosmedia/manna
 
 - Iniciar en desarrollo: `node server/index.js` (mensajes en la terminal; Ctrl+C para apagar)
 - Como lo abre el usuario: icono **Manna**, creado por `Instalar Manna en Windows.bat` / `Instalar Manna en Mac.command`. Arranca con `--segundo-plano` (sin ventana, registro en `data/manna.log`) y se apaga con el botón "Apagar" del control
-- Pruebas: `npm test`
+- Pruebas: `npm test` (incluye la revisión del código sin ejecutarlo: imports que no existen, nombres que tapan algo importado y órdenes que el servidor no tiene)
 - Servidor de prueba sin abrir navegador ni tocar los datos reales:
   `MANNA_NAME=manna-prueba MANNA_NO_OPEN=1 MANNA_DATA="$TMPDIR/manna-prueba" PORT=8123 node server/index.js`
 - Pruebas de extremo a extremo en un Chrome real: `node scripts/probar-chrome.mjs` (completas, 3 min) o `node scripts/probar-chrome.mjs rapido` (revisión del equipo e interfaz, 1 min). Usa los puertos 8123 y 8125: cierra antes la demostración

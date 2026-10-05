@@ -93,6 +93,7 @@ Lee `.claude/rules/arquitectura.md` y `DESIGN.md`, y la fase correspondiente de 
 - [ ] Si busca texto, usa `server/core/search.js`.
 - [ ] Lo que produce se puede añadir al orden del culto.
 - [ ] Sigue `DESIGN.md`: un solo acento, iconos de la familia, acción principal abajo a la derecha, estados vacío y de error.
+- [ ] Cada botón y cada orden nuevos los pulsa `scripts/probar-chrome.mjs` (la prueba completa falla si la interfaz deja alguna orden del servidor sin usar).
 - [ ] `npm test`, `node scripts/probar-chrome.mjs rapido` y `node scripts/auditar-responsive.mjs` pasan.
 - [ ] Un rol sin permiso no puede usarlo.
 - [ ] Documentación al día.

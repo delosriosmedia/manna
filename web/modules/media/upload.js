@@ -1,61 +1,17 @@
 import { upload } from '../../core/api.js';
 import { h, dialog, toast } from '../../core/dom.js';
+import { isImageFile, prepareImage } from '../../core/images.js';
 
-// Subir imágenes a la biblioteca. Cada imagen se reduce en el propio dispositivo antes de
-// enviarla (una foto de celular pesa varias veces lo que hace falta para una pantalla) y se
-// acompaña de su miniatura, porque el servidor no sabe encoger imágenes.
-const MAX_SIDE = 2560;        // lado mayor de lo que se guarda: alcanza para acercar en una pantalla de 1080
-const THUMB_SIDE = 480;
-const PNG_LIMIT = 6 * 1024 * 1024;
-export const ACCEPT = 'image/jpeg,image/png,image/webp,image/gif';
+// Subir imágenes a la biblioteca: se les pone nombre y se envían de una en una, con su avance.
+// Reducirlas y hacerles la miniatura es cosa de web/core/images.js.
 
 // "IMG_2024-anuncios_octubre.jpg" -> "IMG 2024 anuncios octubre"
 export const nameFromFile = (fileName) => fileName.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Imagen';
 
-const toBlob = (canvas, type, quality) => new Promise((resolve) => canvas.toBlob(resolve, type, quality));
-
-function draw(image, side, background) {
-  const scale = Math.min(1, side / Math.max(image.naturalWidth, image.naturalHeight));
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-  const ctx = canvas.getContext('2d');
-  if (background) {
-    ctx.fillStyle = background;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
-  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-  return canvas;
-}
-
-// Deja un archivo listo para subir: { blob, type, thumb, preview }.
-export async function prepare(file) {
-  const image = new Image();
-  const source = URL.createObjectURL(file);
-  try {
-    image.src = source;
-    await image.decode();
-    const thumb = await toBlob(draw(image, THUMB_SIDE, '#000'), 'image/jpeg', 0.8);
-    // Un GIF puede estar animado: se sube tal cual.
-    if (file.type === 'image/gif') return { blob: file, type: file.type, thumb, preview: URL.createObjectURL(thumb) };
-    // El PNG se conserva (puede tener transparencia) salvo que pese demasiado; lo demás, JPG.
-    let type = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-    let blob = await toBlob(draw(image, MAX_SIDE, type === 'image/jpeg' ? '#000' : null), type, 0.9);
-    if (type === 'image/png' && blob.size > PNG_LIMIT) {
-      type = 'image/jpeg';
-      blob = await toBlob(draw(image, MAX_SIDE, '#000'), type, 0.9);
-    }
-    if (!blob || !thumb) throw new Error('Este navegador no pudo preparar la imagen.');
-    return { blob, type, thumb, preview: URL.createObjectURL(thumb) };
-  } finally {
-    URL.revokeObjectURL(source);
-  }
-}
-
 // Ventana para poner nombre a lo elegido y subirlo, con el avance de cada imagen.
 // onDone(ids) recibe las que quedaron en la biblioteca.
 export function openUpload(files, { onDone = () => {} } = {}) {
-  const list = [...files].filter((f) => ACCEPT.split(',').includes(f.type));
+  const list = [...files].filter(isImageFile);
   if (!list.length) {
     toast('Elige imágenes JPG, PNG, WebP o GIF.', 'error');
     return;
@@ -91,7 +47,7 @@ export function openUpload(files, { onDone = () => {} } = {}) {
   (async () => {
     for (const row of rows) {
       try {
-        row.ready = await prepare(row.file);
+        row.ready = await prepareImage(row.file);
         row.picture.replaceChildren(h('img', { src: row.ready.preview, alt: '' }));
         row.status.textContent = `Lista · ${(row.ready.blob.size / 1024 / 1024).toFixed(1).replace('.', ',')} MB`;
       } catch {

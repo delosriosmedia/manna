@@ -10,7 +10,8 @@ import system from '../server/modules/system/index.js';
 import projection from '../server/modules/projection/index.js';
 import order from '../server/modules/order/index.js';
 import media from '../server/modules/media/index.js';
-import { applyView, cleanName, imageInfo, initialView } from '../server/modules/media/images.js';
+import { imageInfo } from '../server/core/images.js';
+import { applyView, cleanName, initialView } from '../server/modules/media/images.js';
 import { makePng } from '../scripts/lib/png.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');

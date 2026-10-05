@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { HttpError } from '../../core/router.js';
+import { EXTENSIONS, IMAGE_TYPES, readImageInfo } from '../../core/images.js';
 import { listScreens, secondScreen } from './display.js';
 import { openKiosk } from './launcher.js';
 import { liveToRestore } from './live.js';
@@ -33,21 +35,36 @@ const STYLE_RULES = {
   textShadow: (v) => ['strong', 'soft', 'outline', 'none'].includes(v),
 };
 
-const IMAGE_TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
 const BACKGROUND_LIMIT = 20 * 1024 * 1024;
+const BACKGROUNDS_FOLDER = 'fondos';
+const MAX_BACKGROUNDS = 30;
 const SCREEN_POLL_MS = 5000;
 
 // Módulo Proyección: qué se muestra (contenido, modo, estilos), sus mandos en vivo y la ventana
 // en la segunda pantalla.
 export default function setup(app) {
   const { store, services } = app;
-  const saved = app.storage('proyeccion', { styles: {}, displayOn: true, volume: 1 });
+  const saved = app.storage('proyeccion', { styles: {}, displayOn: true, volume: 1, backgrounds: [] });
   const mediaDir = app.uploadsDir;
+
+  // Imágenes de fondo subidas: se conservan entre sesiones para elegirlas junto a los colores.
+  // Cada una es { id, file (dentro de data/media), added }.
+  const backgroundUrl = (background) => `/media/${background.file}`;
+  {
+    // Hasta la 1.5 solo había un fondo propio y se borraba al cambiarlo: si hay uno puesto, entra en la galería.
+    const legacy = saved.data.styles?.bgImage?.startsWith('/media/') ? saved.data.styles.bgImage.slice('/media/'.length) : null;
+    if (legacy && !saved.data.backgrounds.some((b) => b.file === legacy)) {
+      saved.data.backgrounds.push({ id: crypto.randomBytes(6).toString('hex'), file: legacy, added: Date.now() });
+    }
+    saved.data.backgrounds = saved.data.backgrounds.filter((b) => fs.existsSync(path.join(mediaDir, b.file)));
+  }
+  const backgroundList = () => saved.data.backgrounds.map((b) => ({ id: b.id, url: backgroundUrl(b) }));
 
   store.register('projection', {
     mode: 'clear', // 'live' = contenido visible, 'clear' = solo fondo, 'black' = negro
     item: null,    // { kind, uid, ...contenido, source: { kind, data, step, orderId } }
     styles: { ...DEFAULT_STYLES, ...saved.data.styles },
+    backgrounds: backgroundList(), // imágenes de fondo guardadas: [{ id, url }]
     display: { supported: true, hasSecond: false, on: saved.data.displayOn, open: false },
   });
   // Lo que cambia mientras algo está al aire va en un espacio aparte, para que mover un mando
@@ -169,27 +186,59 @@ export default function setup(app) {
     store.set('projection', { styles });
   }
 
-  function removeBackgroundFile() {
-    const current = get().styles.bgImage;
-    if (current.startsWith('/media/')) fs.rm(path.join(mediaDir, path.basename(current)), { force: true }, () => {});
-  }
-
+  // Al elegir un color deja de usarse la imagen, pero la imagen sigue en la galería.
   app.action('projection.styles', { permission: 'projection.style' }, (patch) => {
     const leavingImage = patch.backgroundType && patch.backgroundType !== 'image';
-    if (leavingImage) removeBackgroundFile();
     setStyles(patch, leavingImage ? { bgImage: '' } : {});
   });
 
-  // La imagen de fondo se guarda como archivo en data/media, no dentro del estado.
+  // ---- Imágenes de fondo ----
+  const findBackground = (id) => {
+    const background = saved.data.backgrounds.find((b) => b.id === id);
+    if (!background) throw new HttpError(404, 'Esa imagen de fondo ya no está.');
+    return background;
+  };
+  const publishBackgrounds = () => {
+    saved.save();
+    store.set('projection', { backgrounds: backgroundList() });
+  };
+
+  // Sube una imagen de fondo, la guarda en la galería y la pone. Se guarda como archivo en
+  // data/media/fondos, no dentro del estado.
   app.route('POST', '/api/projection/background', async (ctx) => {
     ctx.require('projection.style');
-    const ext = IMAGE_TYPES[(ctx.req.headers['content-type'] || '').split(';')[0]];
-    if (!ext) throw new HttpError(415, 'Usa una imagen JPG, PNG, WebP o GIF.');
-    const name = `fondo-${Date.now()}${ext}`;
-    await ctx.save(path.join(mediaDir, name), BACKGROUND_LIMIT);
-    removeBackgroundFile();
-    setStyles({}, { backgroundType: 'image', bgImage: `/media/${name}` });
-    return { url: `/media/${name}` };
+    const declared = IMAGE_TYPES[(ctx.req.headers['content-type'] || '').split(';')[0].trim()];
+    if (!declared) throw new HttpError(415, 'Usa una imagen JPG, PNG, WebP o GIF.');
+    if (saved.data.backgrounds.length >= MAX_BACKGROUNDS) throw new HttpError(409, `Ya hay ${MAX_BACKGROUNDS} imágenes de fondo guardadas. Elimina alguna antes de subir otra.`);
+    const id = crypto.randomBytes(6).toString('hex');
+    const incoming = path.join(mediaDir, BACKGROUNDS_FOLDER, `${id}${declared}`);
+    await ctx.save(incoming, BACKGROUND_LIMIT);
+    const info = readImageInfo(incoming);
+    if (!info) {
+      fs.rmSync(incoming, { force: true });
+      throw new HttpError(415, 'Ese archivo no es una imagen que Manna pueda mostrar. Usa JPG, PNG, WebP o GIF.');
+    }
+    const background = { id, file: `${BACKGROUNDS_FOLDER}/${id}${EXTENSIONS[info.type]}`, added: Date.now() };
+    if (path.join(mediaDir, background.file) !== incoming) fs.renameSync(incoming, path.join(mediaDir, background.file));
+    saved.data.backgrounds.push(background);
+    publishBackgrounds();
+    setStyles({}, { backgroundType: 'image', bgImage: backgroundUrl(background) });
+    return { id, url: backgroundUrl(background) };
+  });
+
+  // Pone como fondo una imagen ya guardada.
+  app.action('projection.background', { permission: 'projection.style' }, ({ id }) => {
+    setStyles({}, { backgroundType: 'image', bgImage: backgroundUrl(findBackground(id)) });
+  });
+
+  // Elimina una imagen de fondo guardada. Si era la que estaba puesta, se vuelve al color.
+  app.action('projection.backgroundRemove', { permission: 'projection.style' }, ({ id }) => {
+    const background = findBackground(id);
+    const inUse = get().styles.bgImage === backgroundUrl(background);
+    fs.rmSync(path.join(mediaDir, background.file), { force: true });
+    saved.data.backgrounds = saved.data.backgrounds.filter((b) => b.id !== id);
+    publishBackgrounds();
+    if (inUse) setStyles({}, { backgroundType: get().styles.bgGradient ? 'gradient' : 'solid', bgImage: '' });
   });
 
   // ---- Ventana en la segunda pantalla ----

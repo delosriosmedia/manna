@@ -1,5 +1,6 @@
 import { action, state, subscribe, upload } from '../../core/api.js';
-import { h, guard, toast } from '../../core/dom.js';
+import { h, dialog, guard, toast } from '../../core/dom.js';
+import { IMAGE_ACCEPT, prepareImage } from '../../core/images.js';
 import { icon } from '../../core/icons.js';
 import { titleOf } from '../../core/kinds.js';
 
@@ -92,14 +93,62 @@ export function createStylePanel(container) {
   const [size, sizeValue] = range('fontSize', 28, 84, 2, (v) => v, (v) => v, '');
   const [overlay, overlayValue] = range('overlayOpacity', 0, 90, 5, (v) => Math.round(v * 100), (v) => v / 100, ' %');
 
-  const upload = h('input', { class: 'input', type: 'file', accept: 'image/jpeg,image/png,image/webp,image/gif',
-    onchange: guard(async () => {
-      const file = upload.files[0];
-      upload.value = '';
-      if (!file) return;
-      await upload('/api/projection/background', file, { headers: { 'Content-Type': file.type } });
-      toast('Imagen de fondo actualizada');
-    }) });
+  // Fondo: los colores de siempre y, a su lado, las imágenes subidas, que se conservan.
+  const swatches = h('div', { class: 'swatches' });
+  const progress = h('div', { class: 'bar', hidden: true }, h('span', { style: 'width: 0%;' }));
+  const removeCurrent = h('button', { class: 'btn', hidden: true, onclick: () => askRemove() }, icon('trash', 15), 'Eliminar esta imagen');
+  const picker = h('input', { type: 'file', accept: IMAGE_ACCEPT, hidden: true });
+  picker.addEventListener('change', guard(async () => {
+    const file = picker.files[0];
+    picker.value = '';
+    if (!file) return;
+    progress.hidden = false;
+    progress.firstChild.style.width = '0%';
+    try {
+      // Como en Medios: la foto se reduce aquí antes de enviarla.
+      const ready = await prepareImage(file, { thumb: false });
+      await upload('/api/projection/background', ready.blob, {
+        headers: { 'Content-Type': ready.type },
+        onProgress: (fraction) => { progress.firstChild.style.width = `${Math.round(fraction * 100)}%`; },
+      });
+      toast('Imagen de fondo añadida. Queda guardada junto a los colores.');
+    } finally {
+      progress.hidden = true;
+    }
+  }));
+
+  const currentImage = () => {
+    const { styles, backgrounds = [] } = state.projection || {};
+    return styles?.backgroundType === 'image' ? backgrounds.find((b) => b.url === styles.bgImage) || null : null;
+  };
+  function askRemove() {
+    const image = currentImage();
+    if (!image) return;
+    const box = dialog('Eliminar la imagen de fondo',
+      h('p', {}, 'La imagen se borrará de Manna y la proyección volverá al fondo de color.'),
+      h('div', { class: 'row', style: 'justify-content: flex-end;' },
+        h('button', { class: 'btn', onclick: () => box.close() }, 'Cancelar'),
+        h('button', { class: 'btn danger', onclick: guard(async () => {
+          await action('projection.backgroundRemove', { id: image.id });
+          box.close();
+        }) }, 'Eliminar')));
+  }
+  function renderBackgrounds({ styles, backgrounds = [] }) {
+    const onImage = styles.backgroundType === 'image';
+    swatches.replaceChildren(
+      ...BACKGROUNDS.map(([name, patch]) => {
+        const on = !onImage && styles.backgroundType === patch.backgroundType
+          && (patch.backgroundType === 'gradient' ? styles.bgGradient === patch.bgGradient : styles.bgColor === patch.bgColor);
+        return h('button', { class: on ? 'on' : '', title: name, 'aria-label': `Fondo ${name}`, 'aria-pressed': on, style: `background: ${patch.bgGradient || patch.bgColor};`, onclick: () => send(patch) });
+      }),
+      ...backgrounds.map((image, i) => {
+        const on = onImage && styles.bgImage === image.url;
+        return h('button', { class: `swatch-image${on ? ' on' : ''}`, title: `Imagen ${i + 1}`, 'aria-label': `Fondo con la imagen ${i + 1}`, 'aria-pressed': on, dataset: { id: image.id },
+          onclick: guard(() => action('projection.background', { id: image.id })) }, h('img', { src: image.url, alt: '', loading: 'lazy' }));
+      }),
+      h('button', { class: 'swatch-add', title: 'Subir una imagen de fondo', 'aria-label': 'Subir una imagen de fondo', onclick: () => picker.click() }, icon('plus', 18)));
+    removeCurrent.hidden = !currentImage();
+  }
 
   container.replaceChildren(
     field('Tamaño del texto', size, sizeValue),
@@ -108,13 +157,15 @@ export function createStylePanel(container) {
     h('div', { class: 'grid-2' },
       field('Posición de la cita', select('refPosition', [['bottom-center', 'Abajo, centro'], ['bottom-right', 'Abajo, derecha'], ['top-center', 'Arriba, centro']])),
       field('Sombra del texto', select('textShadow', [['strong', 'Fuerte'], ['soft', 'Suave'], ['outline', 'Contorno'], ['none', 'Sin sombra']]))),
-    field('Fondo', h('div', { class: 'swatches' }, ...BACKGROUNDS.map(([name, patch]) =>
-      h('button', { title: name, 'aria-label': `Fondo ${name}`, style: `background: ${patch.bgGradient || patch.bgColor};`, onclick: () => send(patch) })))),
-    field('Imagen de fondo propia', upload),
+    field('Fondo', h('div', {}, swatches, progress, picker,
+      h('p', { class: 'muted swatch-note' }, 'Con + se sube una imagen: queda guardada aquí, junto a los colores.'),
+      removeCurrent)),
     field('Oscurecer el fondo', overlay, overlayValue),
   );
 
-  subscribe('projection', ({ styles }) => {
+  subscribe('projection', (projection) => {
+    const { styles } = projection;
+    renderBackgrounds(projection);
     for (const [key, set] of Object.entries(controls)) {
       // No pisar el control que el usuario está moviendo en este momento.
       if (!container.contains(document.activeElement) || document.activeElement.type !== 'range') set(styles[key]);

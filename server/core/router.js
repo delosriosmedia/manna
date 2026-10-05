@@ -244,7 +244,8 @@ export function createRouter({ webDir, sessions }) {
       }
       const reads = req.method === 'GET' || req.method === 'HEAD';
       if (reads && !url.pathname.startsWith('/api/') && serveStatic(url.pathname, req, res)) return;
-      sendJson(res, 404, { error: 'No encontrado.' });
+      // Una dirección de /api/ que no existe suele ser una interfaz más nueva que el servidor abierto.
+      sendJson(res, 404, { error: url.pathname.startsWith('/api/') ? 'Manna no reconoce esa orden. Si acabas de actualizarlo, reinícialo desde Ajustes.' : 'No encontrado.' });
     } catch (err) {
       if (!(err instanceof HttpError)) console.error(err);
       if (!res.headersSent) sendJson(res, err.status || 500, { error: err.status ? err.message : 'Error interno del servidor.' });

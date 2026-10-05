@@ -84,7 +84,7 @@ const modules = $('#modules');
 
 // Qué funcionará en este equipo, módulo por módulo.
 function renderModules(tools) {
-  modules.replaceChildren(h('h2', {}, 'Qué funcionará en este equipo'), ...MODULES.map((module) => {
+  modules.replaceChildren(h('h2', {}, 'Qué funcionará en este equipo'), ...MODULES.filter((module) => !module.hidden).map((module) => {
     const missing = missingFor(module, tools);
     const name = module.id === 'ajustes' ? 'Proyector de este equipo' : module.name;
     const detail = missing.length

@@ -2,10 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { HttpError } from '../../core/router.js';
 import { networkName } from '../../core/app.js';
+import { codeSignature } from '../../core/build.js';
 import { lanInterfaces, origin } from './network.js';
 import { createResponder } from './mdns.js';
 
 const REFRESH_MS = 10_000;
+const CODE_CHECK_MS = 20_000;
 
 // Módulo de sistema: funciones (roles), sesiones, PIN y cómo se llega a este equipo desde la red.
 export default function setup(app) {
@@ -18,7 +20,9 @@ export default function setup(app) {
   // altPort: segundo puerto en el que Manna también atiende (para televisores), o null.
   // secure: Manna atiende también por https en esos mismos puertos. securePort: el puerto propio
   // de https (443), al que llega un navegador que convierte la dirección por su cuenta, o null.
-  store.register('system', { name: 'Manna', version, addresses: [], port: null, altPort: null, secure: false, securePort: null, hostname: null, nameUrl: null });
+  // build: huella del código con el que arrancó. stale: el código del disco ya es otro (Manna se
+  // actualizó estando abierto) y hay que reiniciarlo para que interfaz y servidor vuelvan a coincidir.
+  store.register('system', { name: 'Manna', version, build: app.build, stale: false, addresses: [], port: null, altPort: null, secure: false, securePort: null, hostname: null, nameUrl: null });
 
   const responder = createResponder({ base: networkName() });
   let announced = null;
@@ -64,13 +68,30 @@ export default function setup(app) {
   }
   app.services.network = { refresh };
 
+  // ¿Sigue siendo este el código que hay en disco? Se mira cada poco; al notar el cambio se avisa
+  // una vez y se deja de mirar. Hacen falta dos lecturas seguidas distintas a la de arranque,
+  // para no avisar a mitad de una copia de archivos.
+  let changes = 0;
+  let codeTimer = null;
+  function checkCode() {
+    const now = codeSignature(app.rootDir);
+    changes = now && now !== app.build ? changes + 1 : 0;
+    if (changes < 2) return;
+    clearInterval(codeTimer);
+    console.log('El código de Manna cambió en disco: hace falta reiniciarlo.');
+    store.set('system', { stale: true });
+  }
+
   let timer = null;
   store.on('listening', () => {
     timer = setInterval(refresh, REFRESH_MS);
     timer.unref();
+    codeTimer = setInterval(checkCode, Number(process.env.MANNA_REVISAR_CODIGO_MS) || CODE_CHECK_MS);
+    codeTimer.unref();
   });
   app.onClose(async () => {
     clearInterval(timer);
+    clearInterval(codeTimer);
     await responder.stop();
   });
 
@@ -101,7 +122,7 @@ export default function setup(app) {
       'Cache-Control': 'no-store',
       'Access-Control-Allow-Origin': '*',
     });
-    ctx.res.end(JSON.stringify({ app: 'manna', id: settings.data.id }));
+    ctx.res.end(JSON.stringify({ app: 'manna', id: settings.data.id, version, build: app.build }));
   });
 
   // El PIN solo se puede ver desde el propio equipo servidor.
@@ -112,6 +133,14 @@ export default function setup(app) {
 
   app.action('system.setPin', { permission: 'system.admin' }, ({ pin }) => {
     sessions.setPin(String(pin ?? ''));
+  });
+
+  // Botón "Reiniciar Manna": cierra y vuelve a abrir con el código que haya en disco. Es lo que
+  // termina una actualización hecha con Manna abierto. Solo desde el propio equipo principal.
+  app.action('system.restart', { permission: 'system.admin' }, (_payload, ctx) => {
+    if (!ctx?.isLocal) throw new HttpError(403, 'Manna solo se puede reiniciar desde el equipo principal.');
+    if (!app.restart) throw new HttpError(409, 'Esta copia de Manna no se puede reiniciar sola. Apágala y vuelve a abrirla.');
+    setTimeout(() => app.restart(), 300);
   });
 
   // Botón "Apagar Manna" del control. Solo desde el propio equipo principal.

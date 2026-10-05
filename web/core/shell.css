@@ -36,6 +36,11 @@ body.app { display: flex; flex-direction: column; height: 100dvh; overflow: hidd
 /* Aviso de lo que le falta al módulo abierto (un programa del equipo principal). No bloquea. */
 .ws-notice { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px 8px 16px; background: var(--accent-soft); border-bottom: 1px solid var(--line); color: var(--ink-2); flex-shrink: 0; }
 .ws-notice > .ic { color: var(--accent); }
+/* Aviso de que Manna se actualizó estando abierto: igual que el anterior, pero en todas las pantallas. */
+.update-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px 8px 16px; background: var(--accent-soft); border-bottom: 1px solid var(--accent); color: var(--ink-2); flex-shrink: 0; }
+.update-bar > .ic { color: var(--accent); }
+.update-bar p { flex: 1 1 240px; min-width: 0; }
+.update-bar strong { color: var(--ink); font-weight: 600; }
 .ws-notice p { flex: 1 1 240px; min-width: 0; }
 .ws-notice strong { color: var(--ink); font-weight: 600; }
 

@@ -11,17 +11,21 @@ paths:
 - JavaScript puro con módulos ES, cargado directo por el navegador. **Sin framework, sin compilación, sin CDN** (la red de la iglesia puede no tener internet). Lo de terceros se copia a `web/vendor/` con su licencia.
 - Rutas siempre absolutas desde la raíz (`/core/api.js`, `/modules/...`).
 - Comunicación con el servidor solo a través de `web/core/api.js`: `api()`, `action()`, `upload()` (subida con avance), `subscribe(ns, fn)` (devuelve cómo cancelarla), `connect(rol)` y `serverNow()`. Siempre con rutas relativas: la misma página puede estar abierta por `localhost`, por la IP o por `manna.local`.
+- **Ninguna variable ni parámetro lleva el nombre de algo importado** en ese archivo (`upload`, `state`, `action`, `icon`…): lo importado deja de existir en ese trozo y el fallo solo aparece al pulsar. Lo comprueba `npm test`. Al campo de elegir archivos se le llama `picker`.
 - Construir el DOM con `h()` de `web/core/dom.js`. **No usar `innerHTML` con datos** (texto bíblico, nombres, lo que venga del servidor). Ojo: `h()` descarta los hijos `false` o `null`, pero `replaceChildren()` y `append()` del navegador no; si hay hijos condicionales fuera de `h()`, filtrarlos con `.filter(Boolean)`.
 - Los manejadores que llaman al servidor se envuelven en `guard()`: muestra el error en pantalla y vuelve al inicio si falta sesión.
 - Ventanas y menús: `dialog()` y `menu()` de `web/core/dom.js`. Nunca `alert()` ni `confirm()`.
 - Iconos: `icon('nombre')` de `web/core/icons.js`. Una sola familia (Phosphor); sin emojis. Para añadir uno, `scripts/actualizar-iconos.mjs`.
 - Estilos: fichas de `web/core/app.css` (`--s1`, `--ink-2`, `--accent`…). No escribir colores ni radios sueltos. Cada módulo trae su propio `.css`.
+- Preparar una imagen antes de subirla (reducirla, hacerle miniatura): `prepareImage()` de `web/core/images.js`. Fechas dichas como las diría una persona ("hoy, 20:34"): `whenLabel()` de `web/core/time.js`.
+- Si el servidor vuelve con otro código, la página se recarga sola (`onServerUpdate` en `web/core/api.js`); un módulo no tiene que hacer nada.
 - Preferencias de este dispositivo (versión elegida, último módulo): `prefs` de `web/core/prefs.js`. Lo compartido vive en el servidor.
 
 ## Estructura de la app
 
 - `web/core/shell.js` monta las tres zonas: barra de módulos, espacio de trabajo y panel "Al aire" (`web/modules/projection/dock.js`). También pone los atajos globales (← → B C), el aviso de conexión y la confirmación al cerrar.
 - Un **módulo** es `web/modules/<id>/workspace.js`, que exporta `{ id, name, icon, place?, needs?, mount(el, ctx) }`, y una línea en `web/modules/registry.js`.
+  - `hidden: true` (en `registry.js`) deja un módulo en pausa: no sale en la barra, pero existe y se abre por su dirección (`#id`). Así se puede seguir probando.
   - `needs` lista los programas del equipo principal que necesita: `[{ tools: ['ffmpeg'], feature: 'convertir videos' }]`, donde `feature` completa la frase "no se podrá…". Con `soon: true` se marca lo que pedirá una parte del módulo que aún no existe: la revisión del equipo lo cuenta, pero el módulo no avisa por ello. Con eso la barra superior del módulo avisa si falta alguno (`web/core/shell.js`) y la revisión del equipo lo cuenta. Nunca se impide abrir un módulo por esto.
   - `mount` dibuja el módulo dentro de `el`, se suscribe al estado y puede devolver `{ onShow(), keys(evento) }`. `keys` devuelve `true` si atendió la tecla.
   - `ctx`: `{ role, isLocal, canEdit, go(id), setPreview(elemento | null) }`. `setPreview` muestra en el panel lo que se proyectaría.

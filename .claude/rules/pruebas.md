@@ -6,7 +6,9 @@
 - Toda lógica pura del servidor lleva prueba en `test/<tema>.test.js`: lectura de formatos, citas, búsquedas, validaciones, cálculos.
 - Lo que pasa por HTTP (rutas, acciones, permisos, archivos) se prueba contra el servidor de verdad en `test/servidor.test.js`: crea la app con datos temporales y la atiende con `app.handle`, sin llamar a `listen()`, así que no abre ventanas ni se anuncia en la red.
 - Las pruebas crean sus datos en carpetas temporales. No dependen de `Contenido/` ni de `data/`, ni de internet (las descargas se prueban contra un servidor en el propio equipo).
-- Un hook corre las pruebas automáticamente al editar `server/` o `test/`.
+- Un hook corre las pruebas automáticamente al editar `server/`, `web/`, `scripts/` o `test/`.
+- **Revisión del código sin ejecutarlo** (`test/codigo.test.js`, con `scripts/lib/codigo.mjs`): falla si un archivo importa algo que el otro no ofrece, si una variable o un parámetro lleva el nombre de algo importado (así se rompió la subida del fondo: un campo `upload` tapaba la función `upload`), o si la interfaz envía una orden o pide una dirección que el servidor no tiene. Un fallo aquí se arregla cambiando el nombre o el código, no aflojando la regla.
+- Lo que solo pasa entre arranques (notar una actualización, relevar a una copia anterior, reiniciar) se prueba con procesos de verdad sobre una copia del programa: `test/arranque.test.js`.
 
 ## En navegador
 
@@ -30,6 +32,16 @@ Lo que habla con un equipo de la red (un televisor) se prueba contra uno de ment
 Las imágenes que necesita una prueba se fabrican en el momento con `scripts/lib/png.mjs` (`makePng`, `examplePoster`): no se guardan imágenes en el repositorio ni se usan las de ninguna iglesia. Los datos de ejemplo (`scripts/lib/ejemplo.mjs`) se escriben **antes** de arrancar el servidor, que los lee al abrirse.
 
 Una prueba nueva de interfaz se añade a `scripts/probar-chrome.mjs`; un tamaño o una pantalla nuevos, a `scripts/auditar-responsive.mjs`.
+
+## Lo que vigila la prueba en Chrome
+
+Además de sus comprobaciones, `scripts/probar-chrome.mjs` vigila toda la sesión y falla si:
+
+- algún botón responde con un **aviso de error que no se esperaba** (un error dentro de `guard()` no rompe la página: solo sale un aviso, y por eso pasó inadvertido). Un error provocado a propósito se declara antes con `expectError('trozo del texto')`;
+- hay un **error de JavaScript** en cualquier pantalla;
+- queda alguna **orden o dirección del servidor que la interfaz no usó pulsando** (solo en la prueba completa). Lo que de verdad no se puede pulsar ahí va en `UNTOUCHED`, con su motivo.
+
+**Regla**: una orden o un botón nuevos no están hechos hasta que la prueba en Chrome los pulsa. Probar la ruta por HTTP no basta: el fallo del fondo estaba en la pantalla, no en el servidor.
 
 ## Honestidad al informar
 

@@ -1,7 +1,9 @@
 import { action, state, subscribe } from '../../core/api.js';
 import { h, dialog, guard, menu, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
-import { ACCEPT, openUpload } from './upload.js';
+import { whenLabel } from '../../core/time.js';
+import { IMAGE_ACCEPT } from '../../core/images.js';
+import { openUpload } from './upload.js';
 
 // Módulo Medios: la biblioteca de la iglesia. Hoy, imágenes; videos, audios y YouTube llegan
 // en sus fases y ya tienen su pestaña.
@@ -13,7 +15,7 @@ function mount(el, ctx) {
   const images = () => state.media?.images || [];
   const current = () => images().find((i) => i.id === selected) || null;
 
-  const picker = h('input', { type: 'file', accept: ACCEPT, multiple: true, hidden: true });
+  const picker = h('input', { type: 'file', accept: IMAGE_ACCEPT, multiple: true, hidden: true });
   const startUpload = (files) => openUpload(files, { onDone: (ids) => select(ids.at(-1)) });
   picker.addEventListener('change', () => {
     if (picker.files.length) startUpload(picker.files);
@@ -98,7 +100,8 @@ function mount(el, ctx) {
         h('button', { class: 'media-pick', 'aria-pressed': image.id === selected, onclick: () => select(image.id), ondblclick: () => { select(image.id); project(); } },
           h('span', { class: 'media-thumb' }, h('img', { src: image.thumb || image.url, alt: '', loading: 'lazy' }),
             image.url === onAir && h('span', { class: 'badge live' }, 'Al aire')),
-          h('span', { class: 'item-text' }, h('strong', {}, image.name), h('small', {}, `${image.width} × ${image.height}`))),
+          h('span', { class: 'item-text' }, h('strong', {}, image.name),
+            h('small', { title: `${image.width} × ${image.height} · agregada el ${new Date(image.added).toLocaleString('es')}` }, `${whenLabel(image.added)} · ${image.width} × ${image.height}`))),
         ctx.canEdit && h('button', { class: 'icon-btn sm media-more', 'aria-label': `Opciones de ${image.name}`, onclick: (e) => menu(e.currentTarget, [
           { label: 'Cambiar el nombre', icon: 'pencil-simple', onclick: () => rename(image) },
           '-',

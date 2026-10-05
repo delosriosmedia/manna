@@ -11,6 +11,7 @@ import { createJobs } from './jobs.js';
 import { setupTools } from './tools.js';
 import { loadCertificate } from './cert.js';
 import { createListener } from './listener.js';
+import { codeSignature } from './build.js';
 import { ROLES } from '../roles.js';
 
 // Puertos a intentar, en orden. Sin puerto fijado se prefiere el 80, que permite entrar sin
@@ -69,6 +70,8 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
     rootDir, dataDir, biblesDir, uploadsDir, tmpDir,
     store, storage, settings, sessions, realtime, jobs,
     services: {},
+    // Huella del código con el que arrancó este servidor (ver core/build.js).
+    build: process.env.MANNA_HUELLA || codeSignature(rootDir),
     port: null,
     altPort: null, // segundo puerto en el que también atiende, o null (ver ALT_PORT)
     secure: false, // ¿atiende también por https? (todos sus puertos sirven para las dos formas)
@@ -101,6 +104,7 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
     kinds,
     kind(name, def) { kinds.set(name, def); },
     shutdown: null, // lo asigna server/app.js: apagado ordenado de todo el programa
+    restart: null,  // lo asigna server/app.js: cierra y vuelve a abrir con el código que haya en disco
     // Atiende una petición HTTP. Lo usa listen(); las pruebas lo montan en su propio servidor.
     handle: router.handle,
     listen,
@@ -113,7 +117,7 @@ export function createApp({ rootDir, dataDir, biblesDir }) {
   router.route('POST', '/api/action', async (ctx) => {
     const { type, payload } = await ctx.json();
     const def = actions.get(type);
-    if (!def) throw new HttpError(404, `Acción desconocida: ${type}`);
+    if (!def) throw new HttpError(404, `Manna no reconoce la orden «${String(type).slice(0, 60)}». Si acabas de actualizarlo, reinícialo desde Ajustes.`);
     ctx.require(def.permission);
     return { result: (await def.handler(payload || {}, ctx)) ?? null };
   });

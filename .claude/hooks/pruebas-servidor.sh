@@ -1,5 +1,5 @@
 #!/bin/bash
-# Hook PostToolUse: al editar archivos del servidor o de pruebas, corre las pruebas.
+# Hook PostToolUse: al editar código (servidor, interfaz, guiones o pruebas), corre las pruebas.
 # Si fallan, devuelve el resultado al asistente (código 2) para que lo corrija de inmediato.
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 command -v node >/dev/null 2>&1 || exit 0
@@ -11,8 +11,11 @@ file=$(node -e '
   });
 ')
 
+# También la interfaz y los guiones: las pruebas revisan su código (test/codigo.test.js) aunque
+# no se ejecute en Node.
 case "$file" in
-  */server/*.js|*/test/*.js) ;;
+  */web/vendor/*) exit 0 ;;
+  */server/*.js|*/test/*.js|*/web/*.js|*/scripts/*.mjs|*/scripts/*.js) ;;
   *) exit 0 ;;
 esac
 

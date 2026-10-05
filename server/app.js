@@ -33,14 +33,15 @@ function openInBrowser(target) {
 
 const localUrl = (port) => `http://localhost${port === 80 ? '' : `:${port}`}`;
 
-// ¿Ya hay un Manna abierto con estos mismos datos? Devuelve su puerto, o null.
+// ¿Ya hay un Manna abierto con estos mismos datos? Devuelve { port, build }, o null.
 // Evita dos copias si se pulsa el icono dos veces: la segunda solo vuelve a mostrar el control.
 async function findRunning(app) {
   const ports = portCandidates(Number(process.env.PORT) || app.settings.data.port);
   const found = await Promise.all(ports.map(async (port) => {
     try {
       const res = await fetch(`http://127.0.0.1:${port}/api/ping`, { signal: AbortSignal.timeout(700) });
-      return (await res.json()).id === app.settings.data.id ? port : null;
+      const ping = await res.json();
+      return ping.id === app.settings.data.id ? { port, build: ping.build || null } : null;
     } catch {
       return null;
     }
@@ -48,21 +49,74 @@ async function findRunning(app) {
   return found.find(Boolean) || null;
 }
 
+// Cierra el Manna que está abierto con un código anterior, como lo haría su botón "Apagar"
+// (desde este mismo equipo no hace falta PIN). Devuelve true cuando ya no responde.
+async function retire(port) {
+  const base = `http://127.0.0.1:${port}`;
+  const json = { 'Content-Type': 'application/json' };
+  try {
+    const login = await fetch(`${base}/api/session`, { method: 'POST', headers: json, body: JSON.stringify({ role: 'control' }), signal: AbortSignal.timeout(3000) });
+    const cookie = (login.headers.get('set-cookie') || '').split(';')[0];
+    await fetch(`${base}/api/action`, { method: 'POST', headers: { ...json, cookie }, body: JSON.stringify({ type: 'system.shutdown' }), signal: AbortSignal.timeout(3000) });
+  } catch {
+    return false;
+  }
+  for (let i = 0; i < 40; i += 1) {
+    await new Promise((resolve) => { setTimeout(resolve, 250); });
+    const alive = await fetch(`${base}/api/ping`, { signal: AbortSignal.timeout(500) }).then(() => true, () => false);
+    if (!alive) return true;
+  }
+  return false;
+}
+
 async function run() {
-  const app = createApp({
+  const options = {
     rootDir: ROOT,
     dataDir: DATA,
     biblesDir: process.env.MANNA_BIBLIAS || path.join(CONTENT, 'Biblias'),
-  });
+  };
+  let app = createApp(options);
 
   const running = await findRunning(app);
-  if (running) {
-    console.log(`Manna ya está abierto. Se muestra el control: ${localUrl(running)}/control`);
-    openInBrowser(`${localUrl(running)}/control`);
+  // El que está abierto arrancó con otro código (Manna se actualizó mientras tanto): se cierra y
+  // se abre el actual. Si no se deja cerrar, se muestra el que hay, como siempre.
+  const outdated = Boolean(running) && running.build !== app.build;
+  if (outdated) console.log('El Manna que estaba abierto es de antes de la última actualización: se cierra para abrir el actual.');
+  if (running && !(outdated && await retire(running.port))) {
+    console.log(`Manna ya está abierto. Se muestra el control: ${localUrl(running.port)}/control`);
+    openInBrowser(`${localUrl(running.port)}/control`);
     process.exit(0);
   }
+  // El anterior guardó sus datos al cerrarse: se leen de nuevo.
+  if (outdated) app = createApp(options);
 
   for (const setup of MODULES) await setup(app);
+
+  // Apagar y reiniciar se dejan listos antes de abrir el puerto: en cuanto Manna responde, sus
+  // botones ya tienen que funcionar.
+  // Apagado ordenado: cierra la ventana de proyección, despide el nombre de red y guarda lo pendiente.
+  let closing = false;
+  app.shutdown = async () => {
+    if (closing) return;
+    closing = true;
+    console.log('Manna se apaga.');
+    await app.close();
+    process.exit(0);
+  };
+  // Reinicio: cierra todo y lanza otra copia, que arranca con el código que haya ahora en disco.
+  // No abre otra pestaña: las que hay se reconectan solas y se recargan.
+  app.restart = async () => {
+    if (closing) return;
+    closing = true;
+    console.log('Manna se reinicia.');
+    await app.close();
+    // (La huella fingida de las pruebas no se hereda: la copia nueva calcula la suya.)
+    const { MANNA_HUELLA: _fake, ...env } = process.env;
+    spawn(process.execPath, process.argv.slice(1), {
+      cwd: process.cwd(), env: { ...env, MANNA_REINICIO: '1' }, detached: true, stdio: 'ignore', windowsHide: true,
+    }).on('error', () => {}).unref();
+    process.exit(0);
+  };
   // Revisión del equipo: si falta algún programa, Manna se abre en la página que dice qué no
   // funcionará y ayuda a instalarlo (web/requisitos.html). No bloquea: desde ahí se continúa.
   const { list } = await app.tools.scan();
@@ -90,17 +144,9 @@ async function run() {
   for (const tool of list.filter((t) => !t.found && t.level !== 'optional')) {
     console.log(`  Falta ${tool.name}: ${tool.purpose}`);
   }
-  openInBrowser(`${localUrl(port)}${entry}`);
+  // Tras un reinicio pedido desde el control ya hay pestañas abiertas: se reconectan solas.
+  if (!process.env.MANNA_REINICIO) openInBrowser(`${localUrl(port)}${entry}`);
 
-  // Apagado ordenado: cierra la ventana de proyección, despide el nombre de red y guarda lo pendiente.
-  let closing = false;
-  app.shutdown = async () => {
-    if (closing) return;
-    closing = true;
-    console.log('Manna se apaga.');
-    await app.close();
-    process.exit(0);
-  };
   process.on('SIGINT', app.shutdown);
   process.on('SIGTERM', app.shutdown);
   process.on('SIGHUP', app.shutdown);

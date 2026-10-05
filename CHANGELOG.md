@@ -4,6 +4,19 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.5.1 — 2026-10-04
+
+- **Corregido: no se podía subir una imagen de fondo** ("upload is not a function"). Estaba roto desde la versión 1.1.
+- **Corregido: "No encontrado" al subir imágenes a Medios.** Pasaba cuando Manna se actualizaba estando abierto: la pantalla era la nueva y el programa que atendía, el de antes. Ahora:
+  - Manna **nota que se actualizó estando abierto** y lo avisa en todas las pantallas de control, con un botón **Reiniciar ahora** en el equipo principal.
+  - **Reiniciar Manna** (también en Ajustes): se cierra y vuelve a abrirse solo; los dispositivos se reconectan y sus páginas se recargan solas.
+  - Al **pulsar el icono** con un Manna anterior abierto, el nuevo lo cierra y ocupa su sitio, en vez de mostrar el viejo.
+  - Si aun así la pantalla pide algo que el programa abierto no conoce, el mensaje lo dice y cómo resolverlo.
+- **Fondos de la proyección**: las imágenes de fondo que subas **quedan guardadas** y aparecen junto a los colores, en Ajustes; se elige entre ellas con un toque y se pueden eliminar. Las fotos grandes se reducen antes de subir. Elegir un color ya no borra la imagen.
+- **Medios**: cada imagen dice **cuándo se agregó** ("hoy, 20:34"). Siguen ordenadas de la más reciente a la más antigua.
+- En el orden del culto, **Añadir → Imagen** lleva a la biblioteca.
+- **Televisores** sale de la barra de módulos mientras está en pausa.
+
 ## 1.5.0 — 2026-10-04
 
 - **Medios**, un módulo nuevo, con su primera pestaña: **Imágenes**. Una biblioteca con miniaturas de los anuncios, carteles y fotos de la iglesia. (Videos, Audios y YouTube ya tienen su pestaña y llegan en las próximas versiones.)

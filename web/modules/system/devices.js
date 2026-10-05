@@ -49,8 +49,7 @@ export async function openDevicesDialog(isLocal) {
       h('summary', {}, '¿Es un televisor?'),
       h('p', { class: 'muted' }, 'En el navegador del televisor escribe la dirección completa, con todo:'),
       h('p', {}, h('code', { style: 'user-select: all;' }, altPort ? `${addresses[0]}:${altPort}/proyeccion` : `${addresses[0]}/proyeccion`)),
-      secure && h('p', { class: 'muted' }, 'Si el televisor muestra un aviso de seguridad, elige «Avanzado» y luego «Continuar»: la página es este equipo, no un sitio de internet.'),
-      h('p', { class: 'muted' }, 'Con un televisor Samsung, Manna puede abrirle el navegador y escribirle la dirección: está en el módulo «Televisores».')));
+      secure && h('p', { class: 'muted' }, 'Si el televisor muestra un aviso de seguridad, elige «Avanzado» y luego «Continuar»: la página es este equipo, no un sitio de internet.')));
 
     if (addresses.length > 1) {
       body.push(h('details', { class: 'alt-addresses' },

@@ -12,6 +12,12 @@
 //   3. El navegador pide confirmación al salir de la pestaña de control.
 //   4. Con un dispositivo conectado por el nombre, el equipo principal "cambia de IP" y el
 //      dispositivo reconecta solo, sin recargar y sin volver a pedir el PIN.
+//   5. Lo que cierra la sesión: secciones, quitar y vaciar el orden; el aviso de que Manna se
+//      actualizó estando abierto, "Reiniciar" y "Apagar".
+//
+// Además vigila toda la prueba: ningún botón puede responder con un aviso de error inesperado,
+// no puede haber errores de JavaScript, y la interfaz tiene que haber usado, pulsando, todas las
+// órdenes y direcciones del servidor (las que no se pueden pulsar aquí están en UNTOUCHED, con su motivo).
 //
 // Uso:  node scripts/probar-chrome.mjs          (unos 3 minutos)
 //       node scripts/probar-chrome.mjs rapido   (pasos 0 y 1, menos de un minuto)
@@ -29,6 +35,7 @@ import { lanInterfaces } from '../server/modules/system/network.js';
 import { sleep, startChrome } from './lib/chrome.mjs';
 import { startFakeTv } from './lib/tv-falso.mjs';
 import { examplePoster } from './lib/png.mjs';
+import { checkContract, sourceFiles } from './lib/codigo.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = 8123;
@@ -65,18 +72,41 @@ for (const port of [PORT, 8125]) {
   }
 }
 
+// Lo que el servidor ofrece y esta prueba no puede usar pulsando, con el motivo. Todo lo demás
+// tiene que usarse (ver "Vigilancia de toda la prueba", al final).
+const UNTOUCHED = {
+  'bible.rescan': 'no tiene botón: la carpeta de biblias se vigila sola',
+  'projection.clear': 'no tiene botón: "Solo fondo" y "Negro" cubren su uso',
+  'projection.volume': 'aún no tiene mando: llega con los videos y audios (fase 6)',
+  'projection.display': 'necesita una segunda pantalla de verdad',
+  'GET /api/state': 'para diagnóstico y pruebas: la interfaz recibe el estado por /api/events',
+  'POST /api/action': 'es la puerta de todas las órdenes, que se cuentan una a una',
+};
+
 // ---- Servidor de prueba ----
 // Los televisores de la prueba son uno de mentira en este equipo: nada sale a la red.
 const fakeTv = await startFakeTv();
 function startServer(host, extra = {}) {
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify(fakeTv.endpoints), ...extra };
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), ...extra };
   if (host) env.MANNA_HOST = host;
   return spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env });
 }
 const stopServer = (child) => new Promise((resolve) => {
+  if (child.exitCode !== null || child.signalCode) { resolve(); return; }
   child.on('exit', resolve);
   child.kill();
 });
+// Cierra lo que quede abierto en el puerto de la prueba, como lo haría el botón "Apagar". Hace
+// falta tras probar "Reiniciar": la copia que Manna lanza al reiniciarse ya no es hija de esta prueba.
+async function shutdownByPort() {
+  try {
+    const json = { 'Content-Type': 'application/json' };
+    const login = await fetch(`http://127.0.0.1:${PORT}/api/session`, { method: 'POST', headers: json, body: JSON.stringify({ role: 'control' }), signal: AbortSignal.timeout(1500) });
+    const cookie = (login.headers.get('set-cookie') || '').split(';')[0];
+    await fetch(`http://127.0.0.1:${PORT}/api/action`, { method: 'POST', headers: { ...json, cookie }, body: JSON.stringify({ type: 'system.shutdown' }), signal: AbortSignal.timeout(1500) });
+    await sleep(800);
+  } catch { /* no había nada abierto */ }
+}
 
 let failed = 0;
 function check(label, ok, detail = '') {
@@ -86,7 +116,45 @@ function check(label, ok, detail = '') {
 
 let chrome;
 const run = (js) => chrome.evaluate(`(async () => { ${js} })()`);
-const post = (type, payload = {}) => `fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(${JSON.stringify({ type, payload })})}).then(r=>r.status)`;
+
+// ---- Vigilancia de toda la prueba ----
+// Tres cosas se apuntan mientras se recorre la interfaz, para juzgarlas al final:
+//   · cada aviso de error que sale en pantalla (un botón que falla avisa así, sin romper la página)
+//   · cada error de JavaScript
+//   · cada orden y dirección del servidor que la interfaz usó de verdad, pulsando
+// Así se rompió la subida del fondo durante cuatro versiones: el botón fallaba con un aviso y
+// ninguna prueba lo pulsaba.
+const watched = { errors: [], exceptions: [], actions: new Set(), requests: new Set() };
+const expectedErrors = [];
+// Se llama antes de provocar un error a propósito, con un trozo de su texto.
+const expectError = (fragment) => expectedErrors.push(fragment);
+async function instrument() {
+  await chrome.send('Network.enable', {});
+  await chrome.send('Runtime.addBinding', { name: 'mannaAviso' });
+  await chrome.send('Page.addScriptToEvaluateOnNewDocument', { source: `new MutationObserver((list) => {
+    for (const m of list) {
+      const el = m.target.nodeType === 1 ? m.target : m.target.parentElement;
+      const toast = el && el.closest && el.closest('#toast');
+      if (toast && toast.classList.contains('show') && toast.dataset.kind === 'error' && toast.textContent && window.mannaAviso) window.mannaAviso(toast.textContent);
+    }
+  }).observe(document, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'data-kind'] });` });
+}
+// Pasa a `watched` lo que Chrome ha ido contando. Se llama antes de vaciar los eventos o cerrar Chrome.
+function harvest() {
+  for (const e of chrome.events) {
+    if (e.method === 'Runtime.bindingCalled' && e.params.name === 'mannaAviso' && watched.errors.at(-1) !== e.params.payload) watched.errors.push(e.params.payload);
+    if (e.method === 'Runtime.exceptionThrown') watched.exceptions.push(e.params.exceptionDetails?.exception?.description || e.params.exceptionDetails?.text || 'error');
+    if (e.method !== 'Network.requestWillBeSent') continue;
+    const { url, method, postData, headers } = e.params.request;
+    const { pathname } = new URL(url);
+    if (!pathname.startsWith('/api/') || headers['X-Prueba']) continue;
+    if (pathname === '/api/action') { try { watched.actions.add(JSON.parse(postData).type); } catch { /* cuerpo no legible */ } }
+    else watched.requests.add(`${method} ${pathname}`);
+  }
+}
+// Las órdenes que la prueba manda por su cuenta, sin pulsar nada, van marcadas: no cuentan como
+// "la interfaz lo usó" (ver el recuento del final).
+const post = (type, payload = {}) => `fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json','X-Prueba':'1'},body:JSON.stringify(${JSON.stringify({ type, payload })})}).then(r=>r.status)`;
 const live = async () => JSON.parse(await run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ mode: s.projection.mode, ref: s.projection.item?.reference, kind: s.projection.item?.kind, order: s.order.items.map(i => i.title), size: s.projection.styles.fontSize, pattern: s.live.state?.pattern, clock: s.live.state?.clock })`));
 // "1:02.5" -> 62.5
 const seconds = (text) => String(text).split(':').reduce((total, part) => total * 60 + Number(part), 0);
@@ -98,6 +166,16 @@ async function press(key) {
 const type = (selector, value) => run(`const i = document.querySelector(${JSON.stringify(selector)}); i.value = ${JSON.stringify(value)}; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));`);
 const click = (js) => run(`${js}.click()`);
 const text = (selector) => run(`return document.querySelector(${JSON.stringify(selector)})?.textContent`);
+// Espera (hasta unos 16 s) a que una condición de la página se cumpla.
+const until = async (js, tries = 40) => { for (let i = 0; i < tries; i += 1) { if (await run(`return Boolean(${js})`)) return true; await sleep(400); } return false; };
+// Elige archivos en un campo de la página, como haría la persona en la ventana del sistema.
+async function chooseFiles(selector, files) {
+  const doc = await chrome.send('DOM.getDocument', {});
+  const input = await chrome.send('DOM.querySelector', { nodeId: doc.result.root.nodeId, selector });
+  await chrome.send('DOM.setFileInputFiles', { nodeId: input.result.nodeId, files });
+}
+const menuItem = (label) => click(`[...document.querySelectorAll('.menu button')].find(b => b.textContent.includes(${JSON.stringify(label)}))`);
+const modalButton = (label) => click(`[...document.querySelectorAll('.modal .btn')].find(b => b.textContent.trim() === ${JSON.stringify(label)})`);
 
 // ================= 0. Revisión del equipo =================
 // Un Manna aparte al que "le faltan" yt-dlp y el navegador, y un sitio de descargas de mentira que
@@ -107,8 +185,14 @@ async function reviewSection() {
   console.log('\n0. Revisión del equipo');
   const program = Buffer.from(`#!/bin/sh\necho 2026.01.01\n${'#'.repeat(60_000)}\n`);
   const sums = `${crypto.createHash('sha256').update(program).digest('hex')}  yt-dlp-prueba\n`;
+  let failNext = true; // la primera descarga falla, para ver cómo se dice y cómo se quita el aviso
   const downloads = http.createServer(async (req, res) => {
     if (req.url === '/SUMAS') return res.end(sums);
+    if (failNext) {
+      failNext = false;
+      res.writeHead(500);
+      return res.end();
+    }
     res.writeHead(200, { 'Content-Length': program.length });
     for (let i = 0; i < program.length; i += 2000) {
       res.write(program.subarray(i, i + 2000));
@@ -132,7 +216,15 @@ async function reviewSection() {
     check('explica para qué sirve y cómo instalarlo a mano', await run(`return ${card}.textContent.includes('YouTube') && Boolean(${card}.querySelector('details code'))`));
     check('dice qué módulos funcionarán completos y cuáles no', await run(`return ${mod('biblia')}.textContent.includes('Completo') && !${mod('biblia')}.classList.contains('limited') && ${mod('medios')}.classList.contains('limited') && ${mod('medios')}.textContent.includes('YouTube: falta yt-dlp') && ${mod('ajustes')}.textContent.includes('falta Google Chrome')`));
     check('no bloquea: Manna se puede abrir aunque falten programas', await run(`const a = document.querySelector('#footer a'); return a.textContent === 'Abrir Manna' && a.getAttribute('href') === '/control' && document.querySelector('#lead').textContent.startsWith('Manna funciona')`));
-    await click(`[...${card}.querySelectorAll('button')].find(b => b.textContent.includes('Instalar por mí'))`);
+    const install = () => click(`[...${card}.querySelectorAll('button')].find(b => b.textContent.includes('Instalar por mí'))`);
+    await install();
+    check('si la descarga falla, la tarjeta lo dice y el programa sigue faltando', await until(`${card}.querySelector('.job.error small')?.textContent.length > 5`) && await run(`return ${card}.classList.contains('missing')`), await run(`return ${card}.querySelector('.job.error small')?.textContent`));
+    await click(`${card}.querySelector('.job.error .icon-btn')`);
+    check('el aviso del fallo se puede quitar', await until(`!${card}.querySelector('.job')`));
+    await click(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('Volver a comprobar'))`);
+    await sleep(900);
+    check('"Volver a comprobar" revisa el equipo de nuevo', (await text('#toast')) === 'Equipo revisado' && await run(`return ${card}.classList.contains('missing')`));
+    await install();
     await sleep(1300);
     const during = JSON.parse(await run(`const j = ${card}.querySelector('.job'); return JSON.stringify({ shown: Boolean(j), now: Number(j?.querySelector('.bar')?.getAttribute('aria-valuenow')), text: j?.querySelector('small')?.textContent, busy: ${card}.querySelector('.btn.primary')?.disabled })`));
     check('"Instalar por mí" muestra el avance sin detener la página', during.shown && during.now > 0 && during.now < 100 && during.text.includes('%') && during.busy, `${during.now} %: ${during.text}`);
@@ -168,6 +260,7 @@ async function reviewSection() {
 let server = startServer();
 await sleep(3000);
 chrome = await startChrome();
+await instrument();
 try {
   chrome.acceptDialogs = true;
   if (process.platform !== 'win32') await reviewSection();
@@ -332,16 +425,13 @@ try {
   await click(`document.querySelector('.rail-item[data-id=medios]')`);
   await sleep(500);
   const med = `document.querySelector('.ws[data-module=medios]')`;
-  const until = async (js, tries = 40) => { for (let i = 0; i < tries; i += 1) { if (await run(`return Boolean(${js})`)) return true; await sleep(400); } return false; };
   check('sin imágenes, invita a subirlas', await run(`return ${med}.querySelector('.empty').textContent.includes('Aún no hay imágenes') && ${med}.querySelector('.media-bar').hidden`));
   // Dos imágenes hechas aquí mismo: una apaisada más grande de lo que se guarda y un cartel vertical.
   const wide = path.join(tmp, 'anuncios_de-octubre.png');
   const tall = path.join(tmp, 'cartel vertical.png');
   fs.writeFileSync(wide, examplePoster(3000, 1000));
   fs.writeFileSync(tall, examplePoster(600, 900, [[15, 118, 110], [202, 138, 4]]));
-  const doc = await chrome.send('DOM.getDocument', {});
-  const input = await chrome.send('DOM.querySelector', { nodeId: doc.result.root.nodeId, selector: '.ws[data-module=medios] input[type=file]' });
-  await chrome.send('DOM.setFileInputFiles', { nodeId: input.result.nodeId, files: [wide, tall] });
+  await chooseFiles('.ws[data-module=medios] input[type=file]', [wide, tall]);
   await sleep(600);
   check('al elegir archivos propone un nombre para cada imagen', await run(`return ${modal}.querySelector('h2').textContent === 'Subir 2 imágenes' && [...${modal}.querySelectorAll('.up-row input')].map(i => i.value).join('|') === 'anuncios de octubre|cartel vertical'`));
   check('prepara cada imagen en el propio dispositivo antes de enviarla', await until(`[...${modal}.querySelectorAll('.up-row small')].every(s => s.textContent.startsWith('Lista')) && !${modal}.querySelector('.btn.primary').disabled`));
@@ -409,21 +499,18 @@ try {
   await click(`${modal}.querySelector('.btn.danger')`);
   await sleep(600);
   check('una imagen se puede eliminar de la biblioteca', await run(`return !${modal} && ${med}.querySelectorAll('.media-card').length === 1 && (await fetch(${JSON.stringify(lib.find((i) => i.id !== ad?.id)?.url || '/x')})).status === 404`));
-  // En el celular los módulos no caben todos en la barra: los cuatro primeros y "Más".
+  // En el celular caben cinco pestañas, y hoy hay cinco módulos: se ven todos, sin "Más"
+  // (el reparto cuando no caben se prueba en test/codigo.test.js).
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await sleep(500);
-  check('en el celular, la barra muestra cuatro módulos y "Más"', await run(`return [...document.querySelectorAll('.tabbar button')].map(b => b.textContent).join('|') === 'Orden|Biblia|Comparador|Medios|Más' && document.querySelector('.tabbar button.on').textContent === 'Medios'`));
-  await click(`document.querySelector('.tabbar .tab-more')`);
-  await sleep(300);
-  const moreItems = await run(`return [...document.querySelectorAll('.menu button')].map(b => b.textContent).join('|')`);
-  await click(`[...document.querySelectorAll('.menu button')].find(b => b.textContent === 'Ajustes')`);
-  await sleep(500);
-  check('"Más" abre los demás módulos y queda marcada cuando se está en uno de ellos', moreItems === 'Televisores|Ajustes' && (await chrome.evaluate('document.title')) === 'Manna · Ajustes' && await run(`return document.querySelector('.tabbar .tab-more').classList.contains('on') && !document.querySelector('.tabbar button[data-id].on')`), moreItems);
+  check('en el celular, la barra muestra los cinco módulos', await run(`return [...document.querySelectorAll('.tabbar button')].map(b => b.textContent).join('|') === 'Orden|Biblia|Comparador|Medios|Ajustes' && document.querySelector('.tabbar button.on').textContent === 'Medios'`), await run(`return [...document.querySelectorAll('.tabbar button')].map(b => b.textContent).join('|')`));
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(400);
 
   console.log('\n1. Interfaz · Televisores');
-  await click(`document.querySelector('.rail-item[data-id=televisores]')`);
+  // El módulo está en pausa: no sale en la barra, pero sigue ahí y se entra por su dirección.
+  check('Televisores, en pausa, no aparece en la barra de módulos', await run(`return !document.querySelector('.rail-item[data-id=televisores]') && !document.querySelector('.tabbar [data-id=televisores]')`));
+  await run(`location.hash = '#televisores'`);
   await sleep(500);
   const tvs = `document.querySelector('.ws[data-module=televisores]')`;
   const toastText = () => text('#toast');
@@ -434,9 +521,13 @@ try {
   check('sin televisores, invita a añadir uno', await run(`return ${tvs}.querySelector('.empty').textContent.includes('Aún no hay televisores')`));
   await click(`${tvs}.querySelector('.ws-head .btn')`);
   await sleep(300);
+  expectError('Escribe la dirección del televisor');
   await addTv('8.8.8.8');
   check('solo admite direcciones de la red local', (await toastText()).includes('dirección del televisor') && await run(`return Boolean(${modal})`));
-  await addTv('192.168.1.50');
+  await click(`[...${modal}.querySelectorAll('.btn')].find(b => b.textContent.includes('Buscar en la red'))`);
+  check('"Buscar en la red" encuentra el televisor y lo ofrece', await until(`${modal}.querySelector('.tv-row')?.textContent.includes('192.168.1.50')`), await run(`return ${modal}.querySelector('.tv-found')?.textContent`));
+  await click(`${modal}.querySelector('.tv-row .btn')`);
+  await sleep(900);
   const tvCard = `${tvs}.querySelector('.tv')`;
   check('añade el televisor con su nombre y modelo, y le pide permiso', await run(`return !${modal} && ${tvCard}.querySelector('strong').textContent === 'Tele "de prueba"' && ${tvCard}.querySelector('small').textContent === 'QN00PRUEBA · 192.168.1.50'`) && fakeTv.lastName === 'Manna');
   await sleep(600);
@@ -468,14 +559,27 @@ try {
   await sleep(700);
   const typedUrl = fakeTv.received.find((p) => p.TypeOfRemote === 'SendInputString');
   check('"Escribe la dirección de Manna" la teclea en el televisor', Boolean(typedUrl) && Buffer.from(typedUrl.Cmd, 'base64').toString().endsWith(`:${PORT}/proyeccion`) && fakeTv.received.at(-1)?.TypeOfRemote === 'SendInputEnd');
+  await run(`const i = ${modal}.querySelector('input.input'); i.value = 'hola'; [...${modal}.querySelectorAll('.btn')].find(b => b.textContent.includes('Escribir')).click();`);
+  await sleep(600);
+  check('el texto escrito en el control llega al televisor', Buffer.from(fakeTv.received.at(-1)?.Cmd || '', 'base64').toString() === 'hola' && fakeTv.received.at(-1)?.TypeOfRemote === 'SendInputString');
   await click(`${modal}.querySelector('.modal-header .icon-btn')`);
+  // Salir del módulo y volver: al mostrarse pregunta al televisor cómo está.
+  await click(`document.querySelector('.rail-item[data-id=orden]')`);
+  await sleep(300);
+  fakeTv.browser = { running: true, visible: false };
+  await run(`location.hash = '#televisores'`);
+  check('al volver a la pantalla se pregunta al televisor por su estado', await until(`${tvCard}.querySelector('.tv-status').textContent === 'Encendido'`), await run(`return ${tvCard}.querySelector('.tv-status').textContent`));
+  const tvMenu = async (label) => { await click(`${tvCard}.querySelector('.icon-btn')`); await sleep(300); await menuItem(label); await sleep(700); };
+  const links = fakeTv.connections;
+  await tvMenu('Vincular de nuevo');
+  check('se puede volver a vincular', fakeTv.connections === links + 1 && await run(`return (await (await fetch('/api/state')).json()).tv.list[0].paired`));
+  fakeTv.browser = { running: true, visible: true };
+  await tvMenu('Cerrar el navegador');
+  check('el navegador del televisor se cierra desde Manna', fakeTv.browser.visible === false);
   check('Manna atiende también por https en el mismo puerto', await run(`const s = await (await fetch('/api/state')).json(); return s.system.secure === true`) && await new Promise((resolve) => {
     import('node:https').then(({ default: https }) => https.get({ host: '127.0.0.1', port: PORT, path: '/api/ping', rejectUnauthorized: false, agent: false }, (res) => resolve(res.statusCode === 200)).on('error', () => resolve(false)));
   }));
-  await click(`${tvCard}.querySelector('.icon-btn')`);
-  await sleep(300);
-  await click(`[...document.querySelectorAll('.menu button')].find(b => b.textContent.includes('Quitar'))`);
-  await sleep(500);
+  await tvMenu('Quitar');
   check('el televisor se puede quitar de la lista', await run(`return !${tvs}.querySelector('.tv') && Boolean(${tvs}.querySelector('.empty'))`));
 
   console.log('\n1. Interfaz · Ajustes, dispositivos y permisos');
@@ -485,6 +589,41 @@ try {
   await sleep(500);
   check('los estilos de proyección se aplican', (await live()).size === 60);
   check('Ajustes lista los programas del equipo principal', await run(`return document.querySelectorAll('.tools .tool').length === 4`));
+
+  console.log('\n1. Interfaz · Ajustes: fondos de la proyección');
+  // Aquí se rompió la subida del fondo durante cuatro versiones sin que ninguna prueba lo pulsara.
+  const sw = `document.querySelector('.settings .swatches')`;
+  const styles = () => run(`const p = (await (await fetch('/api/state')).json()).projection; return JSON.stringify({ type: p.styles.backgroundType, image: p.styles.bgImage, saved: p.backgrounds.map(b => b.url) })`).then(JSON.parse);
+  check('junto a los colores está el botón para subir una imagen de fondo', await run(`return ${sw}.querySelectorAll('button').length === 7 && Boolean(${sw}.querySelector('.swatch-add')) && ${sw}.querySelectorAll('button.on').length === 1`));
+  const bigBackground = path.join(tmp, 'fondo grande.png');
+  const smallBackground = path.join(tmp, 'fondo pequeño.png');
+  fs.writeFileSync(bigBackground, examplePoster(3200, 1800));
+  fs.writeFileSync(smallBackground, examplePoster(640, 360, [[15, 118, 110], [202, 138, 4]]));
+  await chooseFiles('.settings input[type=file]', [bigBackground]);
+  check('subir una imagen de fondo la guarda junto a los colores y la pone', await until(`${sw}.querySelector('.swatch-image.on')`) && (await text('#toast')).includes('Imagen de fondo añadida'), await text('#toast'));
+  let bg = await styles();
+  const firstBackground = bg.image;
+  check('la proyección usa esa imagen, que llegó reducida', bg.type === 'image' && bg.saved.length === 1 && firstBackground.startsWith('/media/fondos/')
+    && await run(`const i = new Image(); i.src = ${JSON.stringify(firstBackground)}; await i.decode(); return i.naturalWidth === 2560 && document.querySelector('.dock .monitor .stage-bg').style.background.includes(${JSON.stringify(firstBackground)})`));
+  await click(`${sw}.querySelector('[aria-label="Fondo Negro"]')`);
+  await sleep(500);
+  bg = await styles();
+  check('al elegir un color la imagen sigue guardada', bg.type === 'solid' && bg.saved.length === 1 && await run(`return ${sw}.querySelectorAll('.swatch-image').length === 1 && !${sw}.querySelector('.swatch-image.on') && ${sw}.querySelector('[aria-label="Fondo Negro"]').classList.contains('on') && [...document.querySelectorAll('.settings .btn')].find(b => b.textContent.includes('Eliminar esta imagen')).hidden`));
+  await chooseFiles('.settings input[type=file]', [smallBackground]);
+  check('se pueden guardar varias', await until(`${sw}.querySelectorAll('.swatch-image').length === 2`) && (await styles()).saved.length === 2);
+  await click(`${sw}.querySelector('.swatch-image')`);
+  await sleep(500);
+  check('una imagen guardada se vuelve a poner con un toque', (await styles()).image === firstBackground && await run(`return ${sw}.querySelector('.swatch-image').classList.contains('on')`));
+  await chrome.send('Page.navigate', { url: `${local}/control?fondos=${Date.now()}#ajustes` });
+  await sleep(2500);
+  check('las imágenes de fondo siguen ahí al volver a abrir el control', await run(`return ${sw}.querySelectorAll('.swatch-image').length === 2 && ${sw}.querySelector('.swatch-image').classList.contains('on')`));
+  await click(`[...document.querySelectorAll('.settings .btn')].find(b => b.textContent.includes('Eliminar esta imagen'))`);
+  await sleep(300);
+  await modalButton('Eliminar');
+  await sleep(700);
+  bg = await styles();
+  check('una imagen de fondo se puede eliminar, y la proyección vuelve al color', bg.type !== 'image' && bg.image === '' && bg.saved.length === 1 && !bg.saved.includes(firstBackground)
+    && await run(`return ${sw}.querySelectorAll('.swatch-image').length === 1 && (await fetch(${JSON.stringify(firstBackground)})).status === 404`));
 
   console.log('\n1. Interfaz · Mandos en vivo (imagen de prueba)');
   await click(`[...document.querySelectorAll('.settings .btn')].find(b => b.textContent.includes('imagen de prueba'))`);
@@ -510,7 +649,7 @@ try {
   await sleep(700);
   check('en pausa el reloj se detiene', (await live()).clock.playing === false && (await text('.dock .tc-time')) === paused);
   await run(`document.querySelector('#otra').remove()`);
-  const card = await run(`const r = await fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'order.add',payload:{kind:'testcard',data:{}}})}); return (await r.json()).result.id`);
+  const card = await run(`const r = await fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json','X-Prueba':'1'},body:JSON.stringify({type:'order.add',payload:{kind:'testcard',data:{}}})}); return (await r.json()).result.id`);
   await run(`await ${post('order.show', { id: 'ID' })}`.replace('"ID"', JSON.stringify(card)));
   await click(`document.querySelector('.rail-item[data-id=orden]')`);
   await sleep(900);
@@ -520,6 +659,11 @@ try {
   await click(`document.querySelector('.rail-item[data-id=dispositivos]')`);
   await sleep(700);
   check('"Dispositivos" muestra un solo QR y el PIN', await run(`return document.querySelectorAll('.modal .qr').length === 1 && document.querySelector('.modal input').value.length >= 4`));
+  await run(`document.querySelector('.modal input').value = '246810';`);
+  await modalButton('Cambiar');
+  await sleep(600);
+  check('el PIN se cambia desde el equipo principal', (await text('#toast')).startsWith('PIN cambiado') && await run(`return (await (await fetch('/api/system/pin')).json()).pin === '246810'`));
+  await click(`document.querySelector('.modal-header .icon-btn')`);
   check('sin errores de JavaScript', !chrome.events.some((e) => e.method === 'Runtime.exceptionThrown'));
   await chrome.send('Page.navigate', { url: `${local}/orden` });
   await sleep(2200);
@@ -545,12 +689,14 @@ try {
     for (const t of ['mousePressed', 'mouseReleased']) await chrome.send('Input.dispatchMouseEvent', { type: t, x: 700, y: 400, button: 'left', clickCount: 1 });
     await sleep(300);
     const asked = () => chrome.events.some((e) => e.method === 'Page.javascriptDialogOpening');
+    harvest();
     chrome.events.length = 0;
     chrome.send('Page.navigate', { url: 'about:blank' });
     await sleep(1000);
     check('pide confirmación al salir tras haber hecho un clic', asked());
     await chrome.send('Page.handleJavaScriptDialog', { accept: false });
     await sleep(500);
+    harvest();
     chrome.events.length = 0;
     await click(`document.querySelector('a.brand-mark')`);
     await sleep(1200);
@@ -561,8 +707,10 @@ try {
     await stopServer(server);
     server = startServer('127.0.0.1');
     // Chrome nuevo: el anterior recordaría durante un minuto la dirección del paso 2.
+    harvest();
     chrome.close();
     chrome = await startChrome();
+    await instrument();
     await sleep(3000);
     await chrome.send('Page.navigate', { url: `${byName}/control#biblia` });
     await sleep(3000);
@@ -585,9 +733,91 @@ try {
     check('recupera lo que estaba en pantalla', /Salmos 23:1/.test(await text('.dock-ref')));
     check('acepta órdenes sin volver a pedir el PIN', (await run(`return await ${post('projection.mode', { mode: 'black' })}`)) === 200);
   }
+
+  // ================= 5. Lo que cierra la sesión =================
+  // Un Manna que "arrancó con el código de antes" (huella fingida): debe notarlo y decirlo.
+  await stopServer(server);
+  server = startServer(null, { MANNA_HUELLA: 'de-antes', MANNA_REVISAR_CODIGO_MS: '300' });
+  await sleep(3000);
+  await chrome.send('Page.navigate', { url: `${local}/control?fin=${Date.now()}#orden` });
+  await sleep(2500);
+
+  console.log('\n5. Orden del culto: secciones, quitar y vaciar');
+  const ord = `document.querySelector('.ws[data-module=orden]')`;
+  const orderRows = () => run(`return ${ord}.querySelectorAll('.orow').length`);
+  await click(`[...${ord}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes('Añadir'))`);
+  await sleep(300);
+  await menuItem('Imagen');
+  await sleep(500);
+  check('desde "Añadir" se llega a la biblioteca de imágenes', (await chrome.evaluate('document.title')) === 'Manna · Medios');
+  await click(`document.querySelector('.rail-item[data-id=orden]')`);
+  await sleep(400);
+  await click(`[...${ord}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes('Añadir'))`);
+  await sleep(300);
+  await menuItem('Sección');
+  await sleep(300);
+  await run(`document.querySelector('.modal input').value = 'Despedida';`);
+  await modalButton('Guardar');
+  await sleep(600);
+  check('se añade una sección', await run(`return [...${ord}.querySelectorAll('.osection span')].some(s => s.textContent === 'Despedida')`));
+  const before = await orderRows();
+  await click(`${ord}.querySelector('.orow .icon-btn[aria-label=Opciones]')`);
+  await sleep(300);
+  await menuItem('Quitar del orden');
+  await sleep(600);
+  check('un elemento se quita del orden', before > 1 && (await orderRows()) === before - 1, `de ${before} a ${await orderRows()}`);
+  await click(`${ord}.querySelector('.ws-head .icon-btn[aria-label="Más opciones"]')`);
+  await sleep(300);
+  await menuItem('Vaciar el orden');
+  await sleep(300);
+  await modalButton('Vaciar');
+  await sleep(600);
+  check('"Vaciar el orden" lo deja vacío tras confirmar', (await orderRows()) === 0 && await run(`return ${ord}.querySelector('.empty').textContent.includes('está vacío') && (await (await fetch('/api/state')).json()).order.items.length === 0`));
+
+  console.log('\n5. Actualización con Manna abierto, reinicio y apagado');
+  const bar = `document.querySelector('.update-bar')`;
+  check('si el programa se actualizó con Manna abierto, todas las pantallas de control lo avisan', await until(`!${bar}.hidden`) && await run(`return ${bar}.textContent.includes('Manna se actualizó mientras estaba abierto') && (await (await fetch('/api/state')).json()).system.stale === true`));
+  await chrome.evaluate('window.__marca = true');
+  await click(`[...${bar}.querySelectorAll('.btn')].find(b => b.textContent.includes('Reiniciar ahora'))`);
+  await sleep(300);
+  await modalButton('Reiniciar ahora');
+  // Manna se cierra y vuelve a abrirse solo; la página nota que el servidor es otro y se carga de nuevo.
+  const back = await until(`window.__marca !== true && document.querySelector('.rail') && !document.body.classList.contains('offline')`, 60);
+  const after = back ? JSON.parse(await run(`const s = (await (await fetch('/api/state')).json()).system; return JSON.stringify({ stale: s.stale, build: s.build })`)) : {};
+  check('"Reiniciar ahora" lo vuelve a abrir con el código nuevo, y la página se recarga sola', back && after.stale === false && after.build !== 'de-antes' && await run(`return ${bar}.hidden`), JSON.stringify(after));
+  await click(`document.querySelector('.rail-item[data-id=ajustes]')`);
+  await sleep(500);
+  check('Ajustes ofrece reiniciar y apagar', await run(`const b = [...document.querySelectorAll('.settings .btn')].map(x => x.textContent); return b.includes('Reiniciar Manna') && b.includes('Apagar Manna')`));
+  await click(`[...document.querySelectorAll('.settings .btn')].find(b => b.textContent === 'Apagar Manna')`);
+  await sleep(300);
+  await modalButton('Apagar Manna');
+  await sleep(1500);
+  const gone = await fetch(`http://127.0.0.1:${PORT}/api/ping`, { signal: AbortSignal.timeout(800) }).then(() => false, () => true);
+  check('"Apagar Manna" lo apaga y lo dice', gone && await run(`return document.querySelector('.goodbye h1')?.textContent === 'Manna está apagado'`));
+
+  // ================= Lo vigilado durante toda la prueba =================
+  console.log('\nVigilancia de toda la prueba');
+  harvest();
+  const surprise = watched.errors.filter((text) => !expectedErrors.some((fragment) => text.includes(fragment)));
+  check('ningún botón respondió con un aviso de error que no se esperaba', surprise.length === 0, surprise.join(' | '));
+  check('sin errores de JavaScript en ninguna pantalla', watched.exceptions.length === 0, watched.exceptions.join(' | ').slice(0, 300));
+  // Todo lo que el servidor ofrece tiene que haberse usado desde la interfaz, pulsando. Lo que no
+  // se puede pulsar en esta prueba se declara aquí, con su motivo: así no queda nada sin mirar.
+  const offered = checkContract(sourceFiles(path.join(ROOT, 'web')), sourceFiles(path.join(ROOT, 'server')), { root: ROOT });
+  const idle = [...offered.actions].filter((name) => !watched.actions.has(name) && !UNTOUCHED[name]).sort();
+  const quiet = offered.endpoints.filter(({ method, path: route }) => route.startsWith('/api/') && !UNTOUCHED[`${method} ${route}`]
+    && ![...watched.requests].some((used) => used.startsWith(`${method} `) && offered.matches(route, used.slice(method.length + 1)))).map((e) => `${e.method} ${e.path}`).sort();
+  const stale = Object.keys(UNTOUCHED).filter((name) => (name.includes(' ') ? !offered.endpoints.some((e) => `${e.method} ${e.path}` === name) : !offered.actions.has(name)));
+  if (QUICK) console.log(`  (modo rápido: quedan para la prueba completa ${[...idle, ...quiet].join(', ') || 'ninguna'})`);
+  else {
+    check('la interfaz usó, pulsando, todas las órdenes del servidor', idle.length === 0, idle.join(', '));
+    check('y todas sus direcciones', quiet.length === 0, quiet.join(', '));
+  }
+  check('la lista de lo que no se puede pulsar aquí está al día', stale.length === 0, stale.join(', '));
 } finally {
   chrome.close();
   await stopServer(server);
+  await shutdownByPort();
   await fakeTv.stop();
   await sleep(800);
   fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5 });

@@ -9,6 +9,7 @@ import { createApp } from '../server/core/app.js';
 import system from '../server/modules/system/index.js';
 import projection from '../server/modules/projection/index.js';
 import order from '../server/modules/order/index.js';
+import { makePng } from '../scripts/lib/png.mjs';
 
 // El servidor de verdad, con sus módulos, atendido por HTTP en este equipo. Usa datos temporales
 // y no anuncia nada en la red ni abre ventanas (no se llama a listen()).
@@ -105,23 +106,61 @@ test('no se puede salir de la carpeta servida', async () => {
 });
 
 test('una subida se guarda en disco, respeta el límite y no deja archivos a medias', async () => {
-  const png = Buffer.alloc(300_000, 7);
+  const png = makePng(320, 180, (x, y) => [Math.round(x * 255), Math.round(y * 255), 90]);
+  const folder = path.join(main.app.uploadsDir, 'fondos');
   const ok = await main.request('/api/projection/background', { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: png });
   assert.equal(ok.status, 200);
-  const { url } = await ok.json();
-  assert.deepEqual(fs.readFileSync(path.join(main.app.uploadsDir, path.basename(url))), png);
+  const { id, url } = await ok.json();
+  assert.equal(url, `/media/fondos/${id}.png`);
+  assert.deepEqual(fs.readFileSync(path.join(folder, `${id}.png`)), png);
   assert.equal((await main.state()).projection.styles.bgImage, url);
 
   const empty = await main.request('/api/projection/background', { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: Buffer.alloc(0) });
   assert.equal(empty.status, 400);
   const wrong = await main.request('/api/projection/background', { method: 'POST', headers: { 'Content-Type': 'text/html' }, body: '<p>' });
   assert.equal(wrong.status, 415);
+  // Dice ser una imagen y no lo es.
+  const fake = await main.request('/api/projection/background', { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: Buffer.alloc(300_000, 7) });
+  assert.equal(fake.status, 415);
   const huge = await main.request('/api/projection/background', { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: Buffer.alloc(21 * 1024 * 1024) })
     .then((res) => res.status, () => 413); // el servidor puede cortar la conexión antes de que termine de enviarse
   assert.equal(huge, 413);
-  assert.deepEqual(fs.readdirSync(main.app.uploadsDir).filter((f) => f.endsWith('.parcial')), []);
+  assert.deepEqual(fs.readdirSync(folder), [`${id}.png`], 'ni archivos a medias ni los rechazados');
   // El fondo anterior sigue siendo el válido.
   assert.equal((await main.state()).projection.styles.bgImage, url);
+});
+
+test('las imágenes de fondo se conservan: se elige entre ellas, junto a los colores, y se eliminan', async () => {
+  const upload = async (color) => (await main.request('/api/projection/background', { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: makePng(16, 9, () => color) })).json();
+  const before = (await main.state()).projection.backgrounds;
+  const first = await upload([200, 30, 30]);
+  const second = await upload([30, 30, 200]);
+  let { styles, backgrounds } = (await main.state()).projection;
+  assert.deepEqual(backgrounds.slice(before.length), [{ id: first.id, url: first.url }, { id: second.id, url: second.url }]);
+  assert.deepEqual([styles.backgroundType, styles.bgImage], ['image', second.url], 'la recién subida queda puesta');
+
+  // Pasar a un color no borra las imágenes.
+  assert.equal((await main.send('projection.styles', { backgroundType: 'solid', bgColor: '#000000' })).status, 200);
+  ({ styles, backgrounds } = (await main.state()).projection);
+  assert.deepEqual([styles.backgroundType, styles.bgImage], ['solid', '']);
+  assert.equal(backgrounds.length, before.length + 2);
+  assert.equal((await main.request(first.url)).status, 200);
+
+  // Volver a una imagen guardada.
+  assert.equal((await main.send('projection.background', { id: first.id })).status, 200);
+  assert.deepEqual((await main.state()).projection.styles.bgImage, first.url);
+  assert.equal((await main.send('projection.background', { id: 'no-existe' })).status, 404);
+
+  // Eliminar una que no está puesta no cambia el fondo; eliminar la puesta vuelve al color.
+  assert.equal((await main.send('projection.backgroundRemove', { id: second.id })).status, 200);
+  assert.equal((await main.request(second.url)).status, 404);
+  assert.equal((await main.state()).projection.styles.bgImage, first.url);
+  assert.equal((await main.send('projection.backgroundRemove', { id: first.id })).status, 200);
+  ({ styles, backgrounds } = (await main.state()).projection);
+  assert.notEqual(styles.backgroundType, 'image');
+  assert.equal(styles.bgImage, '');
+  assert.equal(backgrounds.length, before.length);
+  assert.equal((await main.send('projection.backgroundRemove', { id: first.id })).status, 404);
 });
 
 // ---- Mandos en vivo ----

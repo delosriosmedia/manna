@@ -63,6 +63,7 @@ Todo lo que se proyecta es de un **tipo de contenido** (`kind`). Hoy existen `ve
 - Antes de abrir el navegador, `app.tools.scan()` revisa los programas del equipo. Si falta alguno que no sea opcional, Manna se abre en `/requisitos` (revisión del equipo) en vez de en `/control`. Es solo un aviso: ninguna página se bloquea.
 - Pulsar el icono con Manna ya abierto no crea otra copia: `server/app.js` reconoce su propia instalación por `ajustes.json → id` (el mismo que devuelve `GET /api/ping`) y solo abre el control.
 - Se apaga con la acción `system.shutdown` (botón "Apagar"), que exige estar en el equipo principal (`ctx.isLocal`) y llama a `app.shutdown()`. Cerrar la pestaña del control no apaga nada.
+- **Actualizar con Manna abierto**: la interfaz se lee del disco en cada visita y el servidor vive en memoria; si el programa cambia con Manna abierto, quedan desparejados. El servidor lo nota por la huella de su código (`server/core/build.js`), lo publica en `system.stale` y la interfaz lo avisa (`web/core/shell.js`). `system.restart` reinicia; al volver, cada página ve otra `system.build` y se recarga. Pulsar el icono releva a la copia anterior.
 - Lo que un módulo deba liberar al apagar se registra con `app.onClose()`.
 
 ## Cómo llegan los dispositivos al servidor

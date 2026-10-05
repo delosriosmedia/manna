@@ -1,9 +1,10 @@
-import { action, connect, state, subscribe } from './api.js';
+import { action, connect, onServerUpdate, state, subscribe } from './api.js';
 import { mountConnectionBar } from './connection.js';
-import { h, confirmBeforeClose, go, guard, menu } from './dom.js';
+import { h, allowLeaving, confirmBeforeClose, dialog, go, guard, menu } from './dom.js';
 import { icon } from './icons.js';
 import { joinNames, missingFor, toolsOf } from './needs.js';
 import { prefs } from './prefs.js';
+import { splitTabs } from './tabs.js';
 
 // Estructura de la app: barra de módulos, espacio de trabajo y panel "Al aire".
 // La usan todas las funciones de control; cada una le pasa los módulos que le corresponden.
@@ -11,22 +12,22 @@ import { prefs } from './prefs.js';
 // Un módulo es { id, name, icon, place?, soon?, needs?, mount(el, ctx) }:
 //   place   'bottom' lo coloca al pie de la barra (ajustes)
 // En el celular los módulos son pestañas: caben cinco. Con más, se ven las cuatro primeras y
-// "Más" abre el resto.
+// "Más" abre el resto (core/tabs.js).
 //   soon    módulo previsto pero aún no construido: se muestra atenuado y no se puede abrir
+//   hidden  módulo en pausa: existe y se abre por su dirección (#id), pero no sale en la barra
 //   needs   programas del equipo principal que necesita (ver core/needs.js). Si falta alguno,
 //           al abrir el módulo se avisa de qué no funcionará y se ofrece instalarlo
 //   mount   dibuja el módulo en el y puede devolver { onShow(), keys(evento) -> true si lo atendió }
 // ctx (lo que recibe cada módulo): { role, isLocal, canEdit, go(id), setPreview(elemento | null) }
-const MAX_TABS = 5;
-
 export function createShell({ role, isLocal, modules, extras = [], createDock }) {
   const canEdit = role === 'control';
   const usable = modules.filter((m) => !m.soon);
+  const listed = modules.filter((m) => !m.hidden);
   const mounted = new Map(); // id -> { el, api }
   let current = null;
 
   const notice = h('div', { class: 'ws-notice', role: 'status', hidden: true });
-  const work = h('main', { class: 'work' }, notice);
+  const work = h('main', { class: 'work' });
   const dockEl = h('aside', { class: 'dock', 'aria-label': 'Al aire' });
   const rail = h('nav', { class: 'rail', 'aria-label': 'Módulos' });
   const tabbar = h('nav', { class: 'tabbar', 'aria-label': 'Módulos' });
@@ -44,8 +45,8 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
   const version = h('span', { class: 'rail-version' });
   subscribe('system', (s) => { version.textContent = s.version ? `v${s.version}` : ''; });
 
-  const main = modules.filter((m) => m.place !== 'bottom');
-  const bottom = modules.filter((m) => m.place === 'bottom');
+  const main = listed.filter((m) => m.place !== 'bottom');
+  const bottom = listed.filter((m) => m.place === 'bottom');
   rail.append(...[
     h('a', { class: 'brand-mark', href: '/', title: 'Cambiar la función de este dispositivo' }, h('img', { src: '/logo.svg', alt: 'Manna' })),
     version,
@@ -57,8 +58,7 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
     ...bottom.map(railButton),
   ].filter(Boolean));
 
-  const tabs = usable.length > MAX_TABS ? usable.slice(0, MAX_TABS - 1) : usable;
-  const overflow = usable.slice(tabs.length);
+  const { tabs, overflow } = splitTabs(listed.filter((m) => !m.soon));
   const more = overflow.length ? h('button', {
     class: 'tab-more', 'aria-haspopup': 'menu',
     onclick: (e) => menu(e.currentTarget, overflow.map((m) => ({ label: m.name, icon: m.icon, onclick: () => show(m.id) }))),
@@ -67,7 +67,7 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
     ...tabs.map((m) => h('button', { dataset: { id: m.id }, onclick: () => show(m.id) }, icon(m.icon, 22), h('span', {}, m.name))),
     more,
   ].filter(Boolean));
-  if (usable.length < 2) tabbar.hidden = true;
+  if (tabs.length < 2) tabbar.hidden = true;
 
   // ---- Aviso de lo que le falta al módulo abierto ----
   // Nada impide usar el módulo: solo se dice qué parte no funcionará y cómo resolverlo.
@@ -92,6 +92,37 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
     notice.hidden = false;
   }
   subscribe('tools', renderNotice);
+
+  // ---- Aviso de actualización ----
+  // Manna se actualizó estando abierto: la interfaz es la nueva y el servidor, el de antes. Hasta
+  // reiniciarlo, lo nuevo puede fallar. Se dice en todas las pantallas de control, y el equipo
+  // principal puede reiniciarlo desde el propio aviso.
+  const update = h('div', { class: 'update-bar', role: 'alert', hidden: true });
+  const restart = () => {
+    const box = dialog('Reiniciar Manna',
+      h('p', {}, 'Manna se cerrará y volverá a abrirse solo, ya con la versión nueva. La proyección se interrumpe unos segundos y los demás dispositivos se reconectan sin hacer nada.'),
+      h('div', { class: 'row', style: 'justify-content: flex-end;' },
+        h('button', { class: 'btn', onclick: () => box.close() }, 'Cancelar'),
+        h('button', { class: 'btn primary', onclick: guard(async () => {
+          await action('system.restart');
+          box.close();
+        }) }, 'Reiniciar ahora')));
+  };
+  subscribe('system', ({ stale }) => {
+    update.hidden = !stale;
+    if (!stale || update.childNodes.length) return;
+    update.replaceChildren(...[
+      icon('warning', 18),
+      h('p', {}, h('strong', {}, 'Manna se actualizó mientras estaba abierto. '),
+        isLocal ? 'Reinícialo para terminar la actualización: hasta entonces, lo nuevo puede fallar.' : 'Hay que reiniciarlo desde el equipo principal: hasta entonces, lo nuevo puede fallar.'),
+      isLocal && h('button', { class: 'btn', onclick: restart }, icon('arrow-clockwise', 15), 'Reiniciar ahora'),
+    ].filter(Boolean));
+  });
+  // Tras el reinicio, esta página sigue siendo la de antes: se carga la nueva sin preguntar.
+  onServerUpdate(() => {
+    allowLeaving();
+    location.reload();
+  });
 
   function show(id) {
     const module = usable.find((m) => m.id === id) || usable[0];
@@ -140,6 +171,7 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
   });
 
   document.body.classList.add('app');
+  work.prepend(update, notice);
   document.body.append(h('div', { class: 'shell' }, rail, work, dockEl), tabbar);
   mountConnectionBar();
   confirmBeforeClose();

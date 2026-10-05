@@ -7,6 +7,13 @@
 .swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
 .swatches button { aspect-ratio: 1; border: 1px solid var(--line-2); border-radius: var(--r-sm); transition: border-color 0.15s var(--ease); }
 .swatches button:hover { border-color: var(--ink); }
+.swatches button.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.swatches .swatch-image { padding: 0; overflow: hidden; background: #000; }
+.swatches .swatch-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.swatches .swatch-add { display: grid; place-items: center; background: var(--s2); border-style: dashed; color: var(--ink-3); }
+.swatches .swatch-add:hover { color: var(--ink); }
+.swatch-note { margin: 8px 0 0; font-size: 12px; }
+.set-body .swatch-note + .btn { margin-top: 10px; }
 
 .tools { display: grid; gap: 4px; margin-bottom: 12px; }
 .tool { display: flex; align-items: center; gap: 10px; min-height: 36px; color: var(--ok); }

@@ -12,7 +12,8 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Comparador**: el mismo pasaje en dos versiones, lado a lado o una sobre otra, cada una con su sigla. Se elige igual que en Biblia, se proyecta, se añade al orden como elemento propio, y la disposición se puede cambiar mientras está al aire.
 - **Orden del culto**: la lista ordenada de todo lo que se va a proyectar, con secciones (Apertura, Mensaje…). Cada elemento muestra su tipo y sus pasos; "Siguiente" recorre los pasos y luego pasa al elemento que sigue. A cualquier elemento se le puede poner un nombre propio ("Lectura bíblica"). Se comparte entre todos los dispositivos.
 - **Medios**: la biblioteca de imágenes de la iglesia (anuncios, carteles, fotos). Se suben desde el equipo principal o desde la galería del celular, con el nombre que quieras; se elige si la imagen se ve completa o llenando la pantalla; y, mientras está al aire, se acerca y se desplaza desde el panel.
-- **Televisores** (en pausa, ver `docs/ESTADO.md`): un televisor Samsung de la misma red muestra la proyección desde su navegador, sin cables. Manna lo encuentra, le abre el navegador y le sirve de control remoto (teclas, puntero y texto); la primera vez le escribe la dirección por ti.
+- **Fondos**: seis colores y las imágenes que subas, que quedan guardadas junto a ellos en Ajustes.
+- **Televisores** (en pausa y fuera de la barra, ver `docs/ESTADO.md`): un televisor Samsung de la misma red muestra la proyección desde su navegador, sin cables. Manna lo encuentra, le abre el navegador y le sirve de control remoto (teclas, puntero y texto); la primera vez le escribe la dirección por ti.
 - **Mandos en vivo**: lo que está al aire trae sus propios mandos en el panel y en el orden del culto. Hoy los estrena la **imagen de prueba** (Ajustes → Proyector de este equipo), que sirve para encuadrar el proyector o un televisor y comprobar, con su cronómetro, que todas las pantallas van a la par.
 - **Revisión del equipo**: al abrirse, Manna comprueba que el equipo principal tiene los programas que necesita. Si falta alguno, dice qué módulos se ven afectados y lo instala con un botón. Nunca impide abrir la app.
 - **Preparado para crecer**: himnario, más medios (videos, audios y YouTube) y presentaciones ya tienen su sitio en la interfaz. Cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
@@ -79,6 +80,10 @@ Al cerrar o recargar la pestaña del control, el navegador pide confirmación pa
 
 Si Manna no abre, vuelve a pulsar el icono. Si sigue sin abrir, aparece una página con el motivo; el detalle queda en `data/manna.log`.
 
+### Al actualizar Manna
+
+Si el programa se actualiza con Manna abierto, las pantallas de control muestran el aviso **«Manna se actualizó mientras estaba abierto»**. En el equipo principal, pulsa **Reiniciar ahora**: Manna se cierra y vuelve a abrirse solo, y los demás dispositivos se reconectan sin hacer nada. También vale pulsar otra vez el icono **Manna**, o **Ajustes → Reiniciar Manna**. Hasta reiniciarlo, lo nuevo puede fallar con un mensaje como «Manna no reconoce esa orden».
+
 ### Si un dispositivo pierde la conexión
 
 Reconecta solo; no hay que recargar la página. Si el aviso rojo no desaparece:
@@ -107,7 +112,7 @@ Las imágenes se guardan en la carpeta `data/media/imagenes/` del equipo princip
 
 ### Un televisor como pantalla
 
-> **En pausa.** En la primera prueba con un televisor real, Manna le abrió el navegador pero el televisor no llegó a mostrar la proyección. Lo que sigue describe cómo está pensado; se retomará más adelante.
+> **En pausa.** En la primera prueba con un televisor real, Manna le abrió el navegador pero el televisor no llegó a mostrar la proyección. El módulo no aparece en la barra; lo que sigue describe cómo está pensado y se retomará más adelante.
 
 Sirve para un televisor que está en la misma red y no se puede (o no se quiere) conectar por cable: la salida del equipo principal queda para el proyector.
 
@@ -144,7 +149,8 @@ instalacion/            aviso de que falta Node.js, lanzador de Windows e iconos
 server/
   index.js, app.js      arranque y lista de módulos
   roles.js              funciones que puede elegir un dispositivo y sus permisos
-  core/                 servidor HTTP y https en el mismo puerto (con certificado propio), archivos
+  core/                 servidor HTTP y https en el mismo puerto (con certificado propio), huella del
+                        código (para notar una actualización con Manna abierto), reconocer imágenes, archivos
                         grandes y subidas, cliente WebSocket, estado compartido, tiempo real,
                         sesiones, almacenamiento, reloj de reproducción, tareas con avance,
                         programas del equipo (detección e instalación), carpetas de contenido
