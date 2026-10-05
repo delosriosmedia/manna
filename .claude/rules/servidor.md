@@ -11,6 +11,7 @@ paths:
 - Toda entrada del cliente se valida en el servidor (ver `STYLE_RULES` en `modules/projection/index.js`). No confiar en lo que mande el navegador.
 - Las acciones declaran siempre su permiso. Las rutas que no son de lectura llaman a `ctx.require('permiso')`.
 - Lo que solo debe verse en el equipo principal se protege con `ctx.isLocal` (ejemplo: ver el PIN).
+- Un archivo subido se reconoce por su contenido, no por el tipo que declare quien lo envía (`imageInfo` en `modules/media/images.js` lee la cabecera): lo que no es lo que dice ser se borra y se rechaza, y la extensión con que se guarda sale del contenido. El servidor no encoge ni convierte imágenes: la reducción y la miniatura las hace el dispositivo que sube.
 - Archivos subidos van a `data/media/` (`app.uploadsDir`) y se sirven por `/media/`. En el estado se guarda la URL, nunca el contenido. Se reciben con `ctx.save(archivo, límite)`, que escribe directo a disco; `ctx.raw()` solo para cuerpos pequeños. Todo archivo se sirve con trozos (Range): `app.mount()` para una carpeta, `ctx.file(ruta)` para uno suelto.
 - Archivos de paso (descargas, conversiones al vuelo): `app.tmpDir` (`data/tmp/`), que se vacía al abrir y al cerrar Manna. Carpetas que el usuario llena a mano: `watchFolder` y `listFiles` de `core/folders.js`.
 - Buscar texto (sin tildes, por niveles, con marcas): `core/search.js`. No escribir otra búsqueda por módulo.

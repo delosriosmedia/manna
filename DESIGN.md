@@ -97,6 +97,9 @@ Reglas para un módulo:
 
 - La **acción principal** (Proyectar) va abajo a la derecha de su espacio de trabajo y es el único botón ámbar de la pantalla.
 - Un módulo que gobierna **equipos** (Televisores) muestra una tarjeta por equipo: icono, nombre, modelo y dirección, una línea de estado con su punto (verde cuando ya muestra la proyección, ámbar cuando pide algo a la persona, gris apagado), su acción principal en ámbar y lo demás en un menú. Si hay algo que la persona deba hacer en el equipo, se dice en una franja ámbar suave dentro de la tarjeta, con las palabras que verá en su pantalla.
+- Una **biblioteca** (Medios) es una rejilla de tarjetas: miniatura en 16:9 sobre negro, nombre y un dato debajo, y un menú de tres puntos para lo que no es de todos los días (renombrar, eliminar). La elegida lleva borde ámbar; la que está al aire, borde rojo y la insignia "Al aire". Al elegir una aparece la barra de acciones.
+- Una **elección que se entiende mejor viéndola** (el ajuste de una imagen a la pantalla) se ofrece sobre miniaturas del propio contenido, no con palabras solas: dos botones pequeños con la imagen ya ajustada de cada forma y su nombre debajo.
+- El **encuadre** de una imagen al aire se gobierna sobre la imagen entera, atenuada, con un marco ámbar que señala lo que se ve; debajo, el deslizador de acercar con su valor, y el botón para volver a la vista completa.
 - El **control remoto** de un equipo es una ventana: panel táctil arriba (se desliza para mover el puntero, un toque pulsa), teclas en rejilla de tres por tres con OK al centro, y los pasos de la primera vez plegados al final.
 - Lo que se selecciona se resalta en ámbar suave y aparece como **vista previa** en el panel.
 - Todo lo que un módulo produce puede **añadirse al orden del culto**, que es donde confluyen todos.
@@ -151,7 +154,7 @@ Lo que no puede perderse en ningún tamaño: **ver qué está al aire, avanzar y
 | --- | --- | --- |
 | 1180 px o más | Escritorio, portátil, tableta grande en horizontal | Las tres zonas completas. Biblia en tres columnas. Orden con lista y pasos lado a lado. |
 | 860 – 1179 px | Tableta en horizontal, portátil pequeño | Las tres zonas, más estrechas. En Biblia, libros y capítulos comparten columna. En Orden, los pasos se abren bajo el elemento elegido. |
-| Menos de 860 px | Celular, tableta en vertical | Un módulo a la vez, con **pestañas abajo**. "Al aire" es una **barra compacta** con anterior / siguiente que se despliega a pantalla completa. Biblia avanza por pasos: libro, capítulo, versículos. |
+| Menos de 860 px | Celular, tableta en vertical | Un módulo a la vez, con **pestañas abajo**: hasta cinco; con más módulos, los cuatro primeros y **«Más»**, que abre el resto en un menú y queda marcada cuando se está en uno de ellos. "Al aire" es una **barra compacta** con anterior / siguiente que se despliega a pantalla completa. Biblia avanza por pasos: libro, capítulo, versículos. |
 | Menos de 860 px y menos de 480 px de alto | Celular en horizontal | Las pestañas pasan al lado izquierdo y las cabeceras quedan en una fila, para dejar el alto al contenido. |
 
 Se comprueba con `node scripts/auditar-responsive.mjs`, que abre la app en nueve tamaños y verifica estas garantías. Hay que ejecutarlo al tocar cualquier disposición.

@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Última actualización: 2026-10-04 · Versión: 1.4.0
+Última actualización: 2026-10-04 · Versión: 1.5.0
 
 Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver `.claude/rules/documentacion.md`). El historial está en `CHANGELOG.md`.
 
@@ -8,8 +8,8 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 - Servidor en red local con estado central y tiempo real.
 - **Interfaz en tres zonas** (ver `DESIGN.md`): barra de módulos, espacio de trabajo y panel "Al aire" con monitor y mandos. Adaptada a celular (vertical y horizontal), tableta y escritorio.
-- Módulos: `system`, `bible`, `projection`, `order`, `tv`. En la interfaz: Orden, Biblia, Comparador, Televisores y Ajustes; Himnario, Medios y Diapositivas aparecen atenuados como previstos.
-- **Versión 2 en construcción**, por fases, según `docs/PLAN.md`. Hechas las fases 0 (cimientos), 1 (búsqueda) y 2 (comparador); la 3 (televisores) está construida y espera la prueba del dueño con su televisor.
+- Módulos: `system`, `bible`, `projection`, `order`, `media`, `tv`. En la interfaz: Orden, Biblia, Comparador, Medios, Televisores y Ajustes; Himnario y Diapositivas aparecen atenuados como previstos.
+- **Versión 2 en construcción**, por fases, según `docs/PLAN.md`. Hechas las fases 0 (cimientos), 1 (búsqueda), 2 (comparador) y 4 (imágenes). La 3 (televisores) está construida pero **en pausa por decisión del dueño**: no logró que su televisor mostrara la proyección.
 - **Carpeta de la iglesia**: todo lo que pone cada iglesia va en `Contenido/` (`Biblias/`, `Himnario/videos/`, `Himnario/letras/`), con un `LEEME.txt` por carpeta. Nada de ahí se publica, salvo las instrucciones y la Reina-Valera 1909.
 - Roles por dispositivo: control completo, control del orden (solo operar), pantalla de proyección. PIN para los de control (el equipo principal no lo necesita).
 - **Logo e identidad**: el logo del dueño, en vector, integrado en la interfaz, los iconos del sistema y la pestaña del navegador. La versión se muestra junto al logo y sale de `package.json`.
@@ -17,7 +17,9 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 - **Búsqueda en la Biblia**: mientras se escribe. Una cita ("jn 3 16") lleva al pasaje. Un texto se busca **solo en la Reina-Valera 1960** (en la versión elegida, si no está instalada) y sale por niveles: frase exacta, todas las palabras y parecidas (otras formas de la palabra y sinónimos bíblicos), con lo encontrado resaltado. El resultado se abre en la versión que esté elegida. Se puede limitar al Antiguo o al Nuevo Testamento. Con el teclado: flechas, Enter para ir al versículo y otro Enter para proyectarlo. El índice se prepara solo al arrancar.
 - **Comparador de versiones**: el mismo pasaje en dos versiones, lado a lado o una sobre otra, con la sigla de cada una y el número delante de cada versículo. Se elige como en Biblia, viendo los dos textos junto a cada versículo; se proyecta, se añade al orden como elemento propio (tipo `compare`) y la disposición se cambia también al aire. Si a la segunda versión le falta un versículo, lo dice.
 - **Orden del culto** (antes "guion"): elementos con tipo y pasos, secciones, reordenar arrastrando o por menú, cita rápida, miniaturas de los pasos que se despliegan y se recogen con un clic, "todo junto" para pasajes cortos, **nombre propio para cualquier elemento** (el original queda a la vista debajo y se recupera dejando el nombre vacío). Al abrir, la lista se coloca en lo que está al aire. El guion de versiones anteriores se convierte solo.
-- **Tipos de contenido** (`app.kind`): `verses`, `compare` y `testcard`. "Siguiente" recorre los pasos de un elemento y luego el orden. Cada tipo dice cómo se dibuja (`web/core/kinds.js`) y, si los tiene, qué **mandos en vivo** ofrece mientras está al aire; los mandos salen en el panel "Al aire" y en el detalle del elemento en el orden.
+- **Medios: imágenes** (módulo `media`, tipo `image`): biblioteca con miniaturas; subida desde el equipo, la galería del celular o arrastrando, varias a la vez, con nombre propuesto y avance; reducción en el dispositivo (lado mayor de 2560 px) y miniatura; ajuste a la pantalla elegido sobre dos miniaturas y recordado por imagen; proyección, orden del culto, cambio de nombre y eliminación. Al aire: recuadro de encuadre (arrastrar, rueda, dos dedos, deslizador hasta 5×) que todas las pantallas siguen, y «Vista completa». Las imágenes viven en `data/media/imagenes/`.
+- **«Más» en el celular**: con más de cinco módulos, la barra de abajo muestra los cuatro primeros y «Más» abre el resto.
+- **Tipos de contenido** (`app.kind`): `verses`, `compare`, `image` y `testcard`. "Siguiente" recorre los pasos de un elemento y luego el orden. Cada tipo dice cómo se dibuja (`web/core/kinds.js`) y, si los tiene, qué **mandos en vivo** ofrece mientras está al aire; los mandos salen en el panel "Al aire" y en el detalle del elemento en el orden.
 - **Imagen de prueba** (Ajustes → Proyector de este equipo): encuadre, barras de color o blanco, con un cronómetro que marca lo mismo en todas las pantallas.
 - **Revisión del equipo** (`/requisitos`): al abrirse, Manna comprueba Chrome o Edge, ffmpeg, yt-dlp y PowerPoint. Si falta algo, se abre ahí en vez de en el control y dice qué módulos funcionarán completos y cuáles no; "Instalar por mí" descarga ffmpeg (Windows) y yt-dlp (Windows y Mac) a `data/herramientas/`. **Nada bloquea**: desde ahí se continúa a la app. También está en Ajustes.
 - **Aviso por módulo**: al abrir un módulo al que le falta un programa, una franja dice qué no podrá hacer y ofrece instalarlo o ver cómo. Hoy solo lo usa Ajustes (sin Chrome o Edge no se abre sola la proyección en la segunda pantalla).
@@ -42,14 +44,17 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 | Área | Estado |
 | --- | --- |
-| Interfaz: Biblia, orden del culto (desplegar, recoger, nombre propio), ajustes, dispositivos, versión junto al logo y permisos del rol "Control del orden" | Probado en Chrome real con `scripts/probar-chrome.mjs` (91 comprobaciones en total) |
+| Interfaz: Biblia, orden del culto (desplegar, recoger, nombre propio), ajustes, dispositivos, versión junto al logo y permisos del rol "Control del orden" | Probado en Chrome real con `scripts/probar-chrome.mjs` (108 comprobaciones en total) |
 | Búsqueda en la Biblia: al escribir, niveles, resaltado, teclado, "ver más", cita, sin resultados | Probado en Chrome real, y con pruebas automáticas del orden, de las marcas y de en qué versión se busca |
 | Búsqueda: velocidad y memoria | Con un solo índice (Reina-Valera 1960): unos milisegundos por búsqueda y unos 12 MB. **Sin medir en el equipo Windows de la iglesia** |
 | Comparador: elegir versiones, ver las dos junto a cada versículo, vista previa, disposición antes y al aire, "siguiente", versículo que falta en una versión, añadir al orden | Probado en Chrome real con dos versiones de prueba, y con pruebas automáticas del tipo `compare` |
 | `http` y `https` en los puertos 80, 443 y 8000 | Probado en el Mac de desarrollo, por la dirección de red, con un cliente que exige un certificado válido y con otro que lo rechaza. **Sin probar en Windows** (puertos 80 y 443 con el Firewall) |
+| Medios: subir (dos imágenes, una mayor de lo que se guarda), nombre propuesto, reducción y miniatura, ajuste, proyectar, encuadre al aire con deslizador y arrastre, la misma parte en dos pantallas, vista completa, añadir al orden, renombrar, eliminar | Probado en Chrome real y con pruebas automáticas (reconocer JPG, PNG, WebP y GIF por su contenido, rechazar lo que no es imagen, permisos) |
+| Medios desde un **celular real**: elegir de la galería, fotos HEIC de iPhone, acercar con dos dedos | **Sin probar.** El gesto de dos dedos está escrito pero solo se probaron el arrastre, la rueda y el deslizador |
+| «Más» en la barra del celular | Probado en Chrome real con tamaño de celular y en la auditoría de pantallas |
 | Televisor Samsung real (QN55QN85F): encontrarlo en la red, leer sus datos, vincular, abrir y cerrar el navegador, tecla "Inicio" | **Probado desde Manna con el televisor del dueño** (se comprobó en el propio televisor, por su estado) |
-| Televisor real: puntero, clic y texto | Manna los envía sin error, pero **no se pudo comprobar que el televisor los obedece**: no hay forma de ver su pantalla desde el equipo de desarrollo, y varios intentos a ciegas de entrar a la barra de direcciones no lograron que el televisor llegara a Manna |
-| Televisor real: **abrir la proyección por `https`**, aceptar el certificado, pantalla completa con OK | **Sin probar. Es la prueba del dueño que cierra la fase 3** (pasos en "Próximos pasos") |
+| Televisor real: puntero y texto | El dueño vio que el navegador se abrió y que el puntero **se movió brevemente**; no llegó a la barra de direcciones ni escribió la dirección |
+| Televisor real: **abrir la proyección** | **No funciona.** Ni con las órdenes de Manna ni escribiendo la dirección a mano en el televisor (prueba del dueño, 2026-10-04). Sin diagnosticar: en pausa |
 | Módulo Televisores en la interfaz: añadir, vincular, abrir, control remoto, panel táctil, escribir la dirección, quitar | Probado en Chrome real contra un televisor de mentira (`scripts/lib/tv-falso.mjs`), y con pruebas automáticas del mando y del módulo |
 | Aviso por módulo cuando falta un programa | Probado en Chrome real con el navegador "ausente": aparece en Ajustes, no en Biblia, y se puede cerrar. **El botón de instalar desde el aviso no se probó** (usa la misma orden que la revisión, que sí) |
 | Mandos en vivo (imagen de prueba): cambiar de imagen, cronómetro, pausa; en el panel, en el orden y desde "Control del orden" | Probado en Chrome real. **El cronómetro marca lo mismo en dos pantallas** (diferencia de 0,0 s) y coincide con el servidor. Las dos pantallas estaban en el mismo equipo: **sin probar entre dispositivos distintos** |
@@ -91,7 +96,8 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 - **El logo es cian y el acento de la interfaz es ámbar.** Se mantuvo el ámbar porque es lo que se aprobó en la maqueta; el cian aparece solo en el logo. Unificarlos es cambiar tres valores en `web/core/app.css` (pendiente de que el dueño lo decida).
 - El nombre "MANNA" del logotipo se compone con la tipografía de la app (Geist, peso 700), no con la del arte original, que no se recibió como archivo.
 - Las estelas tenues que el arte original tiene bajo las barras no están en el vector.
-- Los tipos de elemento futuros (himno, imagen, video, diapositivas) tienen icono, color y sitio en la interfaz, pero no existen: no se pueden añadir ni proyectar. Su icono y nombre provisionales están en `web/modules/kinds.js` y se quitan cuando llega cada módulo.
+- **Televisores: en pausa.** El módulo sigue en la barra y hace lo que se comprobó (encontrar, vincular, abrir y cerrar el navegador, teclas), pero **el televisor del dueño no carga la proyección**, tampoco a mano. Falta saber por qué: Manna anota cómo llega cada equipo (`http`, `https` o conexión segura cortada) y la tarjeta del televisor lo muestra; ese dato es el punto de partida al retomarlo. No se trabaja en ello hasta terminar las demás fases.
+- Los tipos de elemento futuros (himno, video, diapositivas) tienen icono, color y sitio en la interfaz, pero no existen: no se pueden añadir ni proyectar. Su icono y nombre provisionales están en `web/modules/kinds.js` y se quitan cuando llega cada módulo.
 - **ffmpeg y yt-dlp se piden ya, aunque todavía ningún módulo los usa** (llegan en las fases 5 a 7). En un equipo sin ellos, la revisión del equipo aparece en cada arranque hasta instalarlos; se continúa con un clic.
 - **Búsqueda sin tildes**: "oró" y "oro", o "creó" y "creo", son la misma palabra para el buscador. Las "parecidas" salen de reglas del español y de una lista de sinónimos (`server/core/search.js`), no de entender el texto: pueden traer alguna palabra que solo se parece. Van siempre al final.
 - **Televisor Samsung: lo que su control por red permite y lo que no** (comprobado en el QN55QN85F, 2026-10-04). Permite leer sus datos, abrir y cerrar aplicaciones (el navegador) y hacer de mando (teclas; puntero y texto, sin confirmar). **No permite decirle al navegador qué dirección abrir**: las órdenes para eso que valían en modelos anteriores, este las ignora. Por eso la primera vez hay que llevar el navegador a la dirección de Manna (con el botón que la escribe) y guardarla como página de inicio.
@@ -147,6 +153,7 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 - **2026-10-04 · La búsqueda de texto se hace solo en la Reina-Valera 1960**, no en todas las versiones. Con filtro por testamento.
 - **2026-10-04 · El televisor tiene que funcionar como pantalla remota por su navegador.** Usarlo como segunda pantalla no vale: esa salida es del proyector.
 - **2026-10-04 · El himnario se queda después de las fases 3 y 4**, mientras el dueño revisa las letras. Las fases 3 (televisores) y 4 (imágenes) se trabajan a la vez.
+- **2026-10-04 · Televisores en pausa.** La prueba remota no pasó de abrir el navegador y mover un poco el puntero, y a mano el televisor tampoco carga la página. Se retoma cuando estén hechas las demás modificaciones.
 - **2026-10-04 · Informe de cada fase**: muestra de nuevo el plan con las fases superadas y las observaciones, y un apartado de cambios sugeridos (`docs/PLAN.md`, sección 11).
 
 ## Decisiones pendientes del dueño
@@ -173,13 +180,9 @@ Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron*
 
 ## Próximos pasos
 
-- **Prueba del dueño con el televisor (cierra la fase 3)**, con Manna abierto desde su icono:
-  1. Módulo **Televisores** → "Añadir televisor" → "Buscar en la red" (o escribir `192.168.1.3`) y aceptar el aviso en el televisor.
-  2. "Abrir la proyección": debe abrirse el navegador del televisor.
-  3. "Control remoto" → "La primera vez": entrar a la barra de direcciones del televisor (con el panel táctil de Manna o con su control) y pulsar "Escribe la dirección de Manna".
-  4. Anotar qué pasa: si abre directamente, si muestra un aviso de seguridad (y si deja continuar), o si no abre. La tarjeta del televisor en Manna dirá cómo llegó.
-  5. Si se ve la proyección: pulsar OK (pantalla completa) y guardar la página como página de inicio del navegador del televisor. Cerrar el navegador desde Manna y volver a "Abrir la proyección": debería salir sola.
-- **Fase 4 (imágenes, versión 1.5).** El orden completo está en `docs/PLAN.md`.
+- **Fase 5 (reproducción e himnario, versión 1.6)**, si el dueño ya revisó las letras; si no, ver la sugerencia S13 de `docs/PLAN.md` (hacer antes los videos y audios). El orden completo está en `docs/PLAN.md`.
+- **Televisores: al retomarlo**, lo primero es el diagnóstico: con Manna abierto, escribir la dirección en el navegador del televisor y mirar en su tarjeta (módulo Televisores) cómo dice Manna que llegó. Si no llegó de ninguna forma, el problema está antes de Manna (el televisor o la red); si llegó y cortó la conexión segura, es el certificado.
+- Que el dueño pruebe Medios desde su celular: subir fotos de la galería y encuadrar con dos dedos.
 - **Probar en el equipo Windows de la iglesia**, en este orden: `Instalar Manna en Windows.bat`, abrir con el icono, **revisión del equipo e "Instalar por mí"**, aviso del Firewall, proyección en la segunda pantalla, imagen de prueba, botón "Apagar", y `manna.local` desde un celular.
 - El dueño revisa las letras de los himnos (15 con partes incompletas, lista arriba) antes de la fase 5.
 - Que el dueño revise la versión para celular y tableta (se hizo sin maqueta previa) y diga qué ajustar.

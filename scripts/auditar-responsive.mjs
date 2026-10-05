@@ -11,6 +11,8 @@
 //   - los mandos en vivo de lo que está al aire caben, en el panel y en el orden
 //   - los resultados de la búsqueda y el aviso de un módulo al que le falta un programa caben
 //   - la tarjeta de un televisor y su control remoto caben, con teclas para el dedo
+//   - la biblioteca de imágenes deja a la vista su acción principal, y los mandos de una imagen
+//     al aire caben en el panel
 //
 // Uso:  node scripts/auditar-responsive.mjs             resumen en la terminal
 //       node scripts/auditar-responsive.mjs capturas    además guarda una imagen de cada pantalla
@@ -43,7 +45,7 @@ const DEVICES = [
 ];
 
 // Pantallas a revisar. prepare: lo que hay que hacer tras cargar. primary: la acción principal.
-// testcard: se revisa con la imagen de prueba al aire, que es un elemento con mandos en vivo.
+// show: se revisa con ese elemento del ejemplo al aire ('testcard' o 'image': los dos tienen mandos en vivo).
 const SCREENS = [
   { name: 'Biblia', url: '/control#biblia', primary: '.abar .btn.primary', content: '.col-verses' },
   { name: 'Biblia: búsqueda', url: '/control#biblia', inside: '.search-pop', settle: 1200,
@@ -55,8 +57,11 @@ const SCREENS = [
   { name: 'Ajustes, con aviso', url: '/control#ajustes', content: '.settings', inside: '.ws-notice' },
   { name: 'Al aire desplegado', url: '/control#orden', narrowOnly: true, prepare: `document.querySelector('.dock-mini-main').click()`, sheet: true },
   { name: 'Control del orden', url: '/orden', content: '.olist', longTitles: true },
-  { name: 'Orden con mandos en vivo', url: '/control#orden', testcard: true, controls: '.odetail .live-controls' },
-  { name: 'Al aire con mandos en vivo', url: '/control#ajustes', testcard: true, controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
+  { name: 'Orden con mandos en vivo', url: '/control#orden', show: 'testcard', controls: '.odetail .live-controls' },
+  { name: 'Al aire con mandos en vivo', url: '/control#ajustes', show: 'testcard', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
+  { name: 'Medios', url: '/control#medios', content: '.media-body', primary: '.media-bar .btn.primary', inside: '.media-bar',
+    prepare: `document.querySelector('.media-card .media-pick').click()` },
+  { name: 'Al aire con una imagen', url: '/control#medios', show: 'image', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
   { name: 'Televisores', url: '/control#televisores', content: '.tvs', inside: '.tv' },
   { name: 'Televisores: control remoto', url: '/control#televisores', inside: '.modal', settle: 700,
     prepare: `[...document.querySelectorAll('.tv-actions .btn')].find((b) => b.textContent === 'Control remoto').click()` },
@@ -124,11 +129,12 @@ fs.mkdirSync(path.join(tmp, 'data'), { recursive: true });
 fs.writeFileSync(path.join(tmp, 'data', 'televisores.json'), JSON.stringify({
   list: [{ id: 'tele', ip: '192.168.1.50', name: 'Televisor del salón de jóvenes', model: 'QN00PRUEBA', token: fakeTv.token }],
 }));
+// El ejemplo se escribe antes de arrancar: el servidor lee el orden y la biblioteca al abrirse.
+const example = seedExample(path.join(tmp, 'data'));
 const server = spawn(process.execPath, ['server/index.js'], {
   cwd: ROOT, stdio: 'ignore',
   env: { ...process.env, MANNA_NAME: 'manna-auditoria', MANNA_NO_OPEN: '1', MANNA_DATA: path.join(tmp, 'data'), PORT: String(PORT), MANNA_FALTA: 'navegador,yt-dlp', MANNA_TV_PRUEBA: JSON.stringify(fakeTv.endpoints) },
 });
-const example = seedExample(path.join(tmp, 'data'));
 const showInOrder = (id) => chrome.evaluate(`fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'order.show',payload:{id:${JSON.stringify(id)}}})}).then((r) => r.status)`);
 await sleep(3000);
 const chrome = await startChrome();
@@ -146,7 +152,7 @@ try {
     console.log(`\n${device.name} (${device.w} × ${device.h})`);
     for (const screen of SCREENS) {
       if (screen.narrowOnly && !narrow) continue;
-      if (screen.testcard) await showInOrder(example.testcard);
+      if (screen.show) await showInOrder(example[screen.show]);
       // La dirección cambia en cada visita para forzar una carga limpia de la página.
       const [pathname, hash = ''] = screen.url.split('#');
       await chrome.send('Page.navigate', { url: `${base}${pathname}?t=${Date.now()}${hash ? `#${hash}` : ''}` });
@@ -164,7 +170,7 @@ try {
         const file = path.join(tmp, `${device.w}x${device.h} ${screen.name.replace(/[:"]/g, '')}.png`);
         fs.writeFileSync(file, Buffer.from(png.result.data, 'base64'));
       }
-      if (screen.testcard) await showInOrder(example.live);
+      if (screen.show) await showInOrder(example.live);
     }
   }
 } finally {

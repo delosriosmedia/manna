@@ -10,9 +10,10 @@ import bible from './modules/bible/index.js';
 import projection from './modules/projection/index.js';
 import order from './modules/order/index.js';
 import tv from './modules/tv/index.js';
+import media from './modules/media/index.js';
 
 // Para añadir un módulo nuevo: crea su carpeta en server/modules y agrégalo aquí.
-const MODULES = [system, bible, projection, order, tv];
+const MODULES = [system, bible, projection, order, media, tv];
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = process.env.MANNA_DATA || path.join(ROOT, 'data');

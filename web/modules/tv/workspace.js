@@ -64,7 +64,7 @@ function touchpad(id) {
   }
 
   pad.addEventListener('pointerdown', (e) => {
-    pad.setPointerCapture(e.pointerId);
+    try { pad.setPointerCapture(e.pointerId); } catch { /* sin captura: el arrastre vale mientras no salga del panel */ }
     last = { x: e.clientX, y: e.clientY };
     travelled = 0;
     startedAt = Date.now();

@@ -11,10 +11,11 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Búsqueda**: por cita (`Juan 3:16-18`, `1 co 13 4`, `sal 23`) o por texto, mientras escribes. El texto se busca en la Reina-Valera 1960 (o en la versión elegida, si no está instalada) y el resultado se abre en la versión que tengas elegida. Los resultados salen por niveles (frase exacta, todas las palabras, parecidas), con lo encontrado resaltado, y se pueden limitar al Antiguo o al Nuevo Testamento.
 - **Comparador**: el mismo pasaje en dos versiones, lado a lado o una sobre otra, cada una con su sigla. Se elige igual que en Biblia, se proyecta, se añade al orden como elemento propio, y la disposición se puede cambiar mientras está al aire.
 - **Orden del culto**: la lista ordenada de todo lo que se va a proyectar, con secciones (Apertura, Mensaje…). Cada elemento muestra su tipo y sus pasos; "Siguiente" recorre los pasos y luego pasa al elemento que sigue. A cualquier elemento se le puede poner un nombre propio ("Lectura bíblica"). Se comparte entre todos los dispositivos.
-- **Televisores**: un televisor Samsung de la misma red muestra la proyección desde su navegador, sin cables. Manna lo encuentra, le abre el navegador y le sirve de control remoto (teclas, puntero y texto); la primera vez le escribe la dirección por ti.
+- **Medios**: la biblioteca de imágenes de la iglesia (anuncios, carteles, fotos). Se suben desde el equipo principal o desde la galería del celular, con el nombre que quieras; se elige si la imagen se ve completa o llenando la pantalla; y, mientras está al aire, se acerca y se desplaza desde el panel.
+- **Televisores** (en pausa, ver `docs/ESTADO.md`): un televisor Samsung de la misma red muestra la proyección desde su navegador, sin cables. Manna lo encuentra, le abre el navegador y le sirve de control remoto (teclas, puntero y texto); la primera vez le escribe la dirección por ti.
 - **Mandos en vivo**: lo que está al aire trae sus propios mandos en el panel y en el orden del culto. Hoy los estrena la **imagen de prueba** (Ajustes → Proyector de este equipo), que sirve para encuadrar el proyector o un televisor y comprobar, con su cronómetro, que todas las pantallas van a la par.
 - **Revisión del equipo**: al abrirse, Manna comprueba que el equipo principal tiene los programas que necesita. Si falta alguno, dice qué módulos se ven afectados y lo instala con un botón. Nunca impide abrir la app.
-- **Preparado para crecer**: himnario, medios (imágenes, videos, audios y YouTube) y presentaciones ya tienen su sitio en la interfaz. Cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
+- **Preparado para crecer**: himnario, más medios (videos, audios y YouTube) y presentaciones ya tienen su sitio en la interfaz. Cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
 - **Funciones por dispositivo**: cada dispositivo elige al entrar.
   - **Control completo**: todos los módulos. Pide PIN.
   - **Control del orden**: solo proyecta lo que ya está en el orden del culto. Pensado para el celular. Pide PIN.
@@ -94,7 +95,19 @@ Reconecta solo; no hay que recargar la página. Si el aviso rojo no desaparece:
 - **En un televisor**: su navegador suele convertir la dirección en una página segura (`https`). Manna atiende de las dos formas; escribe la dirección completa, por ejemplo `192.168.1.14:8000/proyeccion` (está en **Dispositivos → ¿Es un televisor?**). Si el televisor muestra un aviso de seguridad, elige "Avanzado" y "Continuar": la página es tu propio equipo. Para pantalla completa, pulsa OK en su control.
 - Con dos Manna en la misma red, el segundo se llama `manna-2.local`.
 
+### Imágenes
+
+1. En el control, abre **Medios** y pulsa **Subir imágenes** (en el celular se abre la galería). También puedes arrastrar los archivos hasta la pantalla. Admite JPG, PNG, WebP y GIF.
+2. Pon a cada una el nombre con el que quieres verla en el orden del culto y pulsa **Subir**. Las fotos grandes se reducen antes de enviarse.
+3. Elige una imagen. Abajo, sobre dos miniaturas, decide el ajuste: **Completa** (entera, con bandas negras si no tiene la forma de la pantalla) o **Llenar** (sin bandas, recortando lo que sobre).
+4. **Proyectar** (o doble clic), o **Añadir al orden**.
+5. Con la imagen al aire, el panel muestra la imagen entera y un recuadro con lo que se ve. Arrástralo para moverlo; acerca con la rueda del ratón, con dos dedos o con el deslizador. **Vista completa** vuelve al principio.
+
+Las imágenes se guardan en la carpeta `data/media/imagenes/` del equipo principal.
+
 ### Un televisor como pantalla
+
+> **En pausa.** En la primera prueba con un televisor real, Manna le abrió el navegador pero el televisor no llegó a mostrar la proyección. Lo que sigue describe cómo está pensado; se retomará más adelante.
 
 Sirve para un televisor que está en la misma red y no se puede (o no se quiere) conectar por cable: la salida del equipo principal queda para el proyector.
 
@@ -114,7 +127,7 @@ Conviene fijar en el router la dirección del equipo principal y la del televiso
 | B | Pantalla en negro |
 | C | Solo el fondo, sin texto |
 | ↓ ↑ | Mover la selección (versículo en Biblia, elemento en el orden) |
-| Enter | Proyectar lo seleccionado |
+| Enter | Proyectar lo seleccionado (versículo, elemento del orden o imagen) |
 | / | Ir al buscador de la Biblia |
 | ↓ ↑ en el buscador | Recorrer los resultados |
 | Enter en el buscador | Ir al resultado señalado (o al pasaje, si es una cita). Enter otra vez lo proyecta |
@@ -142,6 +155,7 @@ server/
     projection/         contenido en vivo, mandos en vivo, volumen, estilos, segunda pantalla,
                         imagen de prueba
     order/              orden del culto: elementos, secciones y pasos
+    media/              biblioteca de imágenes: subir, reconocer, nombrar, ajuste y encuadre al aire
     tv/                 televisores de la red como pantalla: buscarlos, vincularlos, abrirles
                         el navegador y hacerles de control remoto (samsung.js es lo propio de la marca)
 web/

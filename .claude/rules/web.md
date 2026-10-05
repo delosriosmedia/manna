@@ -22,7 +22,7 @@ paths:
 
 - `web/core/shell.js` monta las tres zonas: barra de módulos, espacio de trabajo y panel "Al aire" (`web/modules/projection/dock.js`). También pone los atajos globales (← → B C), el aviso de conexión y la confirmación al cerrar.
 - Un **módulo** es `web/modules/<id>/workspace.js`, que exporta `{ id, name, icon, place?, needs?, mount(el, ctx) }`, y una línea en `web/modules/registry.js`.
-  - `needs` lista los programas del equipo principal que necesita: `[{ tools: ['ffmpeg'], feature: 'convertir videos' }]`, donde `feature` completa la frase "no se podrá…". Con eso la barra superior del módulo avisa si falta alguno (`web/core/shell.js`) y la revisión del equipo lo cuenta. Nunca se impide abrir un módulo por esto.
+  - `needs` lista los programas del equipo principal que necesita: `[{ tools: ['ffmpeg'], feature: 'convertir videos' }]`, donde `feature` completa la frase "no se podrá…". Con `soon: true` se marca lo que pedirá una parte del módulo que aún no existe: la revisión del equipo lo cuenta, pero el módulo no avisa por ello. Con eso la barra superior del módulo avisa si falta alguno (`web/core/shell.js`) y la revisión del equipo lo cuenta. Nunca se impide abrir un módulo por esto.
   - `mount` dibuja el módulo dentro de `el`, se suscribe al estado y puede devolver `{ onShow(), keys(evento) }`. `keys` devuelve `true` si atendió la tecla.
   - `ctx`: `{ role, isLocal, canEdit, go(id), setPreview(elemento | null) }`. `setPreview` muestra en el panel lo que se proyectaría.
   - El espacio de trabajo empieza con `.ws-head` (título y buscador o acción de entrada) y pone su acción principal abajo a la derecha.
@@ -34,13 +34,16 @@ paths:
 - La página de proyección (`web/roles/proyeccion.js`) entra a pantalla completa con doble clic o F y, pensando en el control de un televisor, con Enter (OK) o un toque del puntero; estas dos solo entran, nunca salen, para que dos pulsaciones seguidas no se anulen.
 - La proyección se dibuja solo con `createStage()` (`web/modules/projection/stage.js`), que usa unidades relativas al contenedor (`cqh`/`cqw`) para que una miniatura y la pantalla real se vean iguales. El escenario pone el fondo y el modo; **el contenido lo dibuja el tipo de cada elemento**.
 - Un **tipo de contenido** es `web/modules/<id>/kind.js`, que llama a `registerKind()` (contrato en `web/core/kinds.js`), y una línea en `web/modules/kinds.js`. Un `kind.js` no importa `stage.js` (se importarían en círculo); lo que comparten los tipos de texto está en `projection/text.js`.
+- Cuando el dibujo de un tipo y sus mandos dependen de la misma cuenta (qué parte de una imagen se ve), esa cuenta vive en un archivo aparte de la carpeta del módulo y la usan los dos (`web/modules/media/view.js`): así el recuadro de los mandos y la pantalla no pueden discrepar.
+- Un mando que se arrastra (el encuadre de una imagen, el panel táctil de un televisor) junta las órdenes y las envía de una en una, con un mínimo entre envíos; mientras la persona lo mueve, pinta lo que ella hace y no lo que llega del servidor, que es más viejo.
 - Los **mandos en vivo** de un tipo (`controls` en su `registerKind`) se muestran con `createLiveControls(contenedor)` de `projection/live.js`. Se crea **una vez** por pantalla y se recoloca; no se crea en cada redibujado, porque se suscribe al estado.
 - Lo que depende del tiempo (un cronómetro, el avance de un video) se calcula con `positionAt(reloj)` de `web/core/playback.js`, nunca contando segundos en el navegador.
 - Las tareas en curso se muestran con `createJobsList()` o `jobRow()` de `web/core/jobs.js`.
 
 ## Pantallas táctiles y tamaños
 
-- Tres disposiciones por ancho: 1180 px o más, 860-1179 px y menos de 860 px (ver `DESIGN.md`, sección 12). Los cortes están en `web/core/shell.css` y en el `.css` de cada módulo.
+- Tres disposiciones por ancho: 1180 px o más, 860-1179 px y menos de 860 px (ver `DESIGN.md`, sección 12).
+- En el celular los módulos son pestañas y caben cinco: con más, `shell.js` muestra los cuatro primeros de `registry.js` y «Más» abre el resto. El orden de `registry.js` decide cuáles quedan a la vista. Los cortes están en `web/core/shell.css` y en el `.css` de cada módulo.
 - Lo táctil se detecta con la clase `touch` en `<html>` (la pone un script mínimo en la cabecera de cada página). Los controles usan `var(--control)`, que vale 34 px con ratón y 44 px con dedo. Nada pulsable por debajo de 40 px en táctil.
 - Garantías en cualquier tamaño: ver qué está al aire, avanzar y retroceder, y llegar a la acción principal sin desplazarse.
 - **Al tocar cualquier disposición, ejecutar `node scripts/auditar-responsive.mjs`.**

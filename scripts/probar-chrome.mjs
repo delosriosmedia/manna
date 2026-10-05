@@ -5,7 +5,8 @@
 //      uno mostrando el avance y no bloquea la app; dentro, el módulo afectado también avisa.
 //      La descarga sale de un servidor de mentira en este mismo equipo.
 //   1. La interfaz: Biblia (búsqueda por niveles), comparador de versiones, orden del culto (con
-//      nombres propios), televisores (con uno de mentira), mandos en vivo que van a la par en dos
+//      nombres propios), medios (subir imágenes, ajuste, encuadre al aire en dos pantallas),
+//      televisores (con uno de mentira), mandos en vivo que van a la par en dos
 //      pantallas, ajustes y la función "Control del orden". También que Manna atiende por https.
 //   2. Al entrar por la dirección numérica, la página pasa sola a la dirección con nombre.
 //   3. El navegador pide confirmación al salir de la pestaña de control.
@@ -27,6 +28,7 @@ import { fileURLToPath } from 'node:url';
 import { lanInterfaces } from '../server/modules/system/network.js';
 import { sleep, startChrome } from './lib/chrome.mjs';
 import { startFakeTv } from './lib/tv-falso.mjs';
+import { examplePoster } from './lib/png.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = 8123;
@@ -325,11 +327,105 @@ try {
   const added = on.order.find((i) => i.kind === 'compare');
   check('se añade al orden como elemento propio, con sus dos versiones', Boolean(added) && added.subtitle === 'RV1909 · Versión de prueba' && added.data.layout === 'rows');
 
+  const modal = `document.querySelector('.modal')`;
+  console.log('\n1. Interfaz · Medios (imágenes)');
+  await click(`document.querySelector('.rail-item[data-id=medios]')`);
+  await sleep(500);
+  const med = `document.querySelector('.ws[data-module=medios]')`;
+  const until = async (js, tries = 40) => { for (let i = 0; i < tries; i += 1) { if (await run(`return Boolean(${js})`)) return true; await sleep(400); } return false; };
+  check('sin imágenes, invita a subirlas', await run(`return ${med}.querySelector('.empty').textContent.includes('Aún no hay imágenes') && ${med}.querySelector('.media-bar').hidden`));
+  // Dos imágenes hechas aquí mismo: una apaisada más grande de lo que se guarda y un cartel vertical.
+  const wide = path.join(tmp, 'anuncios_de-octubre.png');
+  const tall = path.join(tmp, 'cartel vertical.png');
+  fs.writeFileSync(wide, examplePoster(3000, 1000));
+  fs.writeFileSync(tall, examplePoster(600, 900, [[15, 118, 110], [202, 138, 4]]));
+  const doc = await chrome.send('DOM.getDocument', {});
+  const input = await chrome.send('DOM.querySelector', { nodeId: doc.result.root.nodeId, selector: '.ws[data-module=medios] input[type=file]' });
+  await chrome.send('DOM.setFileInputFiles', { nodeId: input.result.nodeId, files: [wide, tall] });
+  await sleep(600);
+  check('al elegir archivos propone un nombre para cada imagen', await run(`return ${modal}.querySelector('h2').textContent === 'Subir 2 imágenes' && [...${modal}.querySelectorAll('.up-row input')].map(i => i.value).join('|') === 'anuncios de octubre|cartel vertical'`));
+  check('prepara cada imagen en el propio dispositivo antes de enviarla', await until(`[...${modal}.querySelectorAll('.up-row small')].every(s => s.textContent.startsWith('Lista')) && !${modal}.querySelector('.btn.primary').disabled`));
+  await run(`const i = ${modal}.querySelector('.up-row input'); i.value = 'Anuncios de octubre';`);
+  await click(`${modal}.querySelector('.btn.primary')`);
+  check('sube las imágenes y cierra la ventana', await until(`!${modal} && ${med}.querySelectorAll('.media-card').length === 2`));
+  let lib = JSON.parse(await run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify(s.media.images)`));
+  const ad = lib.find((i) => i.name === 'Anuncios de octubre');
+  check('la imagen grande llega reducida y con su miniatura; la pequeña, con su tamaño', Boolean(ad) && ad.width === 2560 && ad.height === 853 && Boolean(ad.thumb) && lib.some((i) => i.name === 'cartel vertical' && i.width === 600 && i.height === 900), lib.map((i) => `${i.name} ${i.width}×${i.height}`).join(', '));
+  const adCard = `${med}.querySelector('.media-card[data-id="${ad?.id}"]')`;
+  await click(`${adCard}.querySelector('.media-pick')`);
+  await sleep(500);
+  check('al elegir una imagen se ve en la vista previa y aparecen sus acciones', await run(`const m = document.querySelectorAll('.dock .monitor')[1]; return ${adCard}.classList.contains('selected') && m.querySelector('.img-view img').getAttribute('src') === ${JSON.stringify(ad?.url)} && !${med}.querySelector('.media-bar').hidden && ${med}.querySelector('.fit.on').dataset.fit === 'contain'`));
+  await click(`${med}.querySelector('.fit[data-fit=cover]')`);
+  await sleep(500);
+  check('el ajuste se elige sobre dos miniaturas de la imagen', await run(`return ${med}.querySelector('.fit.on').dataset.fit === 'cover' && ${med}.querySelectorAll('.fit-thumb img').length === 2`));
+  await click(`${med}.querySelector('.media-bar .btn.primary')`);
+  await sleep(900);
+  let air = await shown();
+  check('"Proyectar" pone la imagen al aire con ese ajuste, y la biblioteca lo marca', air.item.kind === 'image' && air.item.title === 'Anuncios de octubre' && air.live.fit === 'cover' && air.live.zoom === 1 && await run(`return Boolean(${adCard}.querySelector('.badge.live')) && document.querySelector('.dock-ref').textContent === 'Anuncios de octubre'`));
+  // Otra pantalla de proyección, para ver que sigue el encuadre.
+  await run(`const f = document.createElement('iframe'); f.id = 'pantalla'; f.src = '/proyeccion'; f.style.cssText = 'position:fixed;left:0;bottom:0;width:320px;height:180px;z-index:99;border:0'; document.body.append(f);`);
+  await sleep(2500);
+  const nav = `document.querySelector('.dock .live-controls .nav')`;
+  await run(`const s = document.querySelector('.dock .live-controls input[type=range]'); s.value = 3; s.dispatchEvent(new Event('input'));`);
+  await sleep(700);
+  air = await shown();
+  // Qué parte del ancho de la imagen se ve en cada pantalla: debe ser la misma.
+  const seen = `((root) => { const i = root.querySelector('.img-view img'); const scale = Number(/scale\\(([\\d.]+)\\)/.exec(i.style.transform)?.[1]); return root.querySelector('.img-view').clientWidth / (i.naturalWidth * scale); })`;
+  const parts = JSON.parse(await run(`return JSON.stringify([${seen}(document.querySelector('.dock .monitor')), ${seen}(document.querySelector('#pantalla').contentDocument)])`));
+  // La imagen es más alargada que la pantalla: llenándola ya se ve solo una parte de su ancho, y con el zoom, un tercio de eso.
+  const part = (16 / 9) / (ad.width / ad.height) / 3;
+  check('el deslizador acerca la imagen, y las dos pantallas muestran la misma parte', air.live.zoom === 3 && Math.abs(parts[0] - part) < 0.01 && Math.abs(parts[0] - parts[1]) < 0.01, `se ve ${(parts[0] * 100).toFixed(1)} % y ${(parts[1] * 100).toFixed(1)} % del ancho`);
+  const navBox = JSON.parse(await run(`const r = ${nav}.querySelector('.nav-img').getBoundingClientRect(); return JSON.stringify({ x: r.left, y: r.top, w: r.width, h: r.height })`));
+  const pointer = (kind, fx, fy) => chrome.send('Input.dispatchMouseEvent', { type: kind, x: navBox.x + navBox.w * fx, y: navBox.y + navBox.h * fy, button: 'left', buttons: kind === 'mouseReleased' ? 0 : 1, clickCount: 1 });
+  await pointer('mousePressed', 0.5, 0.5);
+  await pointer('mouseMoved', 0.6, 0.55);
+  await pointer('mouseMoved', 0.7, 0.6);
+  await pointer('mouseReleased', 0.7, 0.6);
+  await sleep(700);
+  air = await shown();
+  check('arrastrar el recuadro mueve lo que se ve', Math.abs(air.live.x - 0.7) < 0.02 && Math.abs(air.live.y - 0.6) < 0.02 && await run(`const f = ${nav}.querySelector('.nav-frame'); return !f.hidden && Math.abs(parseFloat(f.style.left) + parseFloat(f.style.width) / 2 - 70) < 2`), `centro en ${air.live.x}, ${air.live.y}`);
+  await pointer('mousePressed', 0.05, 0.5);
+  await pointer('mouseReleased', 0.05, 0.5);
+  await sleep(600);
+  air = await shown();
+  check('en el borde, el encuadre se detiene sin dejar huecos', Math.abs(air.live.x - part / 2) < 0.01, `centro en ${air.live.x}`);
+  await click(`[...document.querySelectorAll('.dock .live-controls button')].find(b => b.textContent.includes('Vista completa'))`);
+  await sleep(600);
+  air = await shown();
+  check('"Vista completa" deshace el zoom y el desplazamiento', air.live.zoom === 1 && air.live.x === 0.5 && air.live.fit === 'cover' && await run(`return [...document.querySelectorAll('.dock .live-controls button')].find(b => b.textContent.includes('Vista completa')).disabled`));
+  await run(`document.querySelector('#pantalla').remove()`);
+  await click(`[...${med}.querySelectorAll('.media-bar .btn')].find(b => b.textContent.includes('Añadir'))`);
+  await sleep(600);
+  air = await shown();
+  const inOrder = air.order.find((i) => i.kind === 'image');
+  check('la imagen se añade al orden del culto como elemento propio, con su ajuste', Boolean(inOrder) && inOrder.title === 'Anuncios de octubre' && inOrder.data.fit === 'cover' && inOrder.steps === 1);
+  const pickMenu = async (cardJs, label) => { await click(`${cardJs}.querySelector('.media-more')`); await sleep(300); await click(`[...document.querySelectorAll('.menu button')].find(b => b.textContent.includes(${JSON.stringify(label)}))`); await sleep(300); };
+  await pickMenu(adCard, 'Cambiar el nombre');
+  await run(`${modal}.querySelector('input').value = 'Cartel de la campaña'; [...${modal}.querySelectorAll('.btn')].find(b => b.textContent === 'Guardar').click();`);
+  await sleep(600);
+  check('el nombre se puede cambiar', await run(`return !${modal} && ${adCard}.querySelector('strong').textContent === 'Cartel de la campaña'`));
+  const otherCard = `[...${med}.querySelectorAll('.media-card')].find(c => c.dataset.id !== ${JSON.stringify(ad?.id)})`;
+  await pickMenu(otherCard, 'Eliminar');
+  await click(`${modal}.querySelector('.btn.danger')`);
+  await sleep(600);
+  check('una imagen se puede eliminar de la biblioteca', await run(`return !${modal} && ${med}.querySelectorAll('.media-card').length === 1 && (await fetch(${JSON.stringify(lib.find((i) => i.id !== ad?.id)?.url || '/x')})).status === 404`));
+  // En el celular los módulos no caben todos en la barra: los cuatro primeros y "Más".
+  await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  await sleep(500);
+  check('en el celular, la barra muestra cuatro módulos y "Más"', await run(`return [...document.querySelectorAll('.tabbar button')].map(b => b.textContent).join('|') === 'Orden|Biblia|Comparador|Medios|Más' && document.querySelector('.tabbar button.on').textContent === 'Medios'`));
+  await click(`document.querySelector('.tabbar .tab-more')`);
+  await sleep(300);
+  const moreItems = await run(`return [...document.querySelectorAll('.menu button')].map(b => b.textContent).join('|')`);
+  await click(`[...document.querySelectorAll('.menu button')].find(b => b.textContent === 'Ajustes')`);
+  await sleep(500);
+  check('"Más" abre los demás módulos y queda marcada cuando se está en uno de ellos', moreItems === 'Televisores|Ajustes' && (await chrome.evaluate('document.title')) === 'Manna · Ajustes' && await run(`return document.querySelector('.tabbar .tab-more').classList.contains('on') && !document.querySelector('.tabbar button[data-id].on')`), moreItems);
+  await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+  await sleep(400);
+
   console.log('\n1. Interfaz · Televisores');
   await click(`document.querySelector('.rail-item[data-id=televisores]')`);
   await sleep(500);
   const tvs = `document.querySelector('.ws[data-module=televisores]')`;
-  const modal = `document.querySelector('.modal')`;
   const toastText = () => text('#toast');
   const addTv = async (address) => {
     await run(`const i = ${modal}.querySelector('input'); i.value = ${JSON.stringify(address)}; [...${modal}.querySelectorAll('.btn')].find(b => b.textContent === 'Añadir').click();`);

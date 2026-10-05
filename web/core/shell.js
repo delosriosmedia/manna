@@ -1,6 +1,6 @@
 import { action, connect, state, subscribe } from './api.js';
 import { mountConnectionBar } from './connection.js';
-import { h, confirmBeforeClose, go, guard } from './dom.js';
+import { h, confirmBeforeClose, go, guard, menu } from './dom.js';
 import { icon } from './icons.js';
 import { joinNames, missingFor, toolsOf } from './needs.js';
 import { prefs } from './prefs.js';
@@ -10,11 +10,15 @@ import { prefs } from './prefs.js';
 //
 // Un módulo es { id, name, icon, place?, soon?, needs?, mount(el, ctx) }:
 //   place   'bottom' lo coloca al pie de la barra (ajustes)
+// En el celular los módulos son pestañas: caben cinco. Con más, se ven las cuatro primeras y
+// "Más" abre el resto.
 //   soon    módulo previsto pero aún no construido: se muestra atenuado y no se puede abrir
 //   needs   programas del equipo principal que necesita (ver core/needs.js). Si falta alguno,
 //           al abrir el módulo se avisa de qué no funcionará y se ofrece instalarlo
 //   mount   dibuja el módulo en el y puede devolver { onShow(), keys(evento) -> true si lo atendió }
 // ctx (lo que recibe cada módulo): { role, isLocal, canEdit, go(id), setPreview(elemento | null) }
+const MAX_TABS = 5;
+
 export function createShell({ role, isLocal, modules, extras = [], createDock }) {
   const canEdit = role === 'control';
   const usable = modules.filter((m) => !m.soon);
@@ -53,7 +57,16 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
     ...bottom.map(railButton),
   ].filter(Boolean));
 
-  tabbar.append(...usable.map((m) => h('button', { dataset: { id: m.id }, onclick: () => show(m.id) }, icon(m.icon, 22), h('span', {}, m.name))));
+  const tabs = usable.length > MAX_TABS ? usable.slice(0, MAX_TABS - 1) : usable;
+  const overflow = usable.slice(tabs.length);
+  const more = overflow.length ? h('button', {
+    class: 'tab-more', 'aria-haspopup': 'menu',
+    onclick: (e) => menu(e.currentTarget, overflow.map((m) => ({ label: m.name, icon: m.icon, onclick: () => show(m.id) }))),
+  }, icon('squares-four', 22), h('span', {}, 'Más')) : null;
+  tabbar.append(...[
+    ...tabs.map((m) => h('button', { dataset: { id: m.id }, onclick: () => show(m.id) }, icon(m.icon, 22), h('span', {}, m.name))),
+    more,
+  ].filter(Boolean));
   if (usable.length < 2) tabbar.hidden = true;
 
   // ---- Aviso de lo que le falta al módulo abierto ----
@@ -61,7 +74,7 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
   const dismissed = new Set(); // módulos cuyo aviso se cerró en esta visita
   function renderNotice() {
     const module = usable.find((m) => m.id === current?.id);
-    const missing = module ? missingFor(module, state.tools?.list || []) : [];
+    const missing = module ? missingFor(module, state.tools?.list || []).filter((m) => !m.soon) : [];
     if (!missing.length || dismissed.has(module.id)) {
       notice.hidden = true;
       return;
@@ -91,6 +104,7 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
     for (const [mid, m] of mounted) m.el.hidden = mid !== module.id;
     current = { id: module.id, api: mounted.get(module.id).api };
     document.querySelectorAll('.rail-item, .tabbar button').forEach((b) => b.classList.toggle('on', b.dataset.id === module.id));
+    more?.classList.toggle('on', overflow.some((m) => m.id === module.id));
     document.title = `Manna · ${module.name}`;
     dockEl.classList.remove('open');
     dock.setPreview(null);

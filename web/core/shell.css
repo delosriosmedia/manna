@@ -57,6 +57,15 @@ body.app { display: flex; flex-direction: column; height: 100dvh; overflow: hidd
 .live-controls .btn.grow { flex: 1 1 0; min-width: 0; padding: 0 6px; overflow: hidden; text-overflow: ellipsis; }
 .live-controls p { font-size: 12px; }
 .tc-clock { min-width: 64px; font: 600 15px var(--mono); }
+/* Mandos de una imagen al aire: la imagen entera y, marcado, lo que se ve en pantalla. */
+.nav { display: grid; place-items: center; height: 124px; background: #000; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+.nav:active { cursor: grabbing; }
+.nav-img { position: relative; }
+.nav-img img { display: block; width: 100%; height: 100%; opacity: 0.55; pointer-events: none; }
+.nav-frame { position: absolute; border: 2px solid var(--accent); border-radius: 2px; box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.35); pointer-events: none; }
+.nav-row { color: var(--ink-3); }
+.nav-row input { flex: 1; min-width: 0; }
+.nav-zoom { min-width: 38px; text-align: right; font: 600 12px var(--mono); color: var(--ink-2); }
 .dock-label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 600; margin-top: 8px; }
 .dock-label span { color: var(--ink-3); font-weight: 400; font-size: 12px; }
 .next-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; text-align: left; border: 1px solid var(--line); border-radius: var(--r); background: var(--canvas); transition: border-color 0.15s var(--ease); }

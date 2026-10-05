@@ -1,6 +1,7 @@
 import order from './order/workspace.js';
 import bible from './bible/workspace.js';
 import compare from './bible/compare.js';
+import medios from './media/workspace.js';
 import televisores from './tv/workspace.js';
 import settings from './settings/workspace.js';
 
@@ -13,13 +14,9 @@ export const MODULES = [
   order,
   bible,
   compare,
+  medios,
   { id: 'himnario', name: 'Himnario', icon: 'music-notes', soon: true,
     needs: [{ tools: ['ffmpeg'], feature: 'elegir la pista instrumental de un himno' }] },
-  { id: 'medios', name: 'Medios', icon: 'image', soon: true,
-    needs: [
-      { tools: ['ffmpeg'], feature: 'convertir los videos y audios que el navegador no reproduce' },
-      { tools: ['yt-dlp', 'ffmpeg'], feature: 'descargar videos de YouTube' },
-    ] },
   { id: 'diapositivas', name: 'Diapositivas', icon: 'presentation-chart', soon: true,
     needs: [{ tools: ['powerpoint'], feature: 'abrir presentaciones de PowerPoint (los PDF sí funcionan)' }] },
   televisores,

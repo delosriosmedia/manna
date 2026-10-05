@@ -4,6 +4,17 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.5.0 — 2026-10-04
+
+- **Medios**, un módulo nuevo, con su primera pestaña: **Imágenes**. Una biblioteca con miniaturas de los anuncios, carteles y fotos de la iglesia. (Videos, Audios y YouTube ya tienen su pestaña y llegan en las próximas versiones.)
+- **Subir** desde el equipo principal, desde la galería del celular o arrastrando los archivos hasta la pantalla; varias a la vez. Antes de enviar, Manna propone un nombre para cada una (el que se verá en el orden del culto) y muestra el avance.
+- Las fotos grandes **se reducen en el propio dispositivo** antes de subir: una foto de celular llega en segundos y ocupa una fracción.
+- **Ajuste a la pantalla**: se elige sobre dos miniaturas de la propia imagen, **Completa** (se ve entera, con bandas negras si hace falta) o **Llenar** (llena la pantalla, recortando lo que sobre). Manna lo recuerda para cada imagen.
+- **Al aire**, el panel muestra la imagen entera con un recuadro que marca lo que se ve: se arrastra para moverlo y se acerca con la rueda, con dos dedos o con el deslizador (hasta 5 veces). «Vista completa» lo deshace. Todas las pantallas lo siguen.
+- Una imagen se **añade al orden del culto** como elemento propio, con su ajuste.
+- **En el celular**, la barra de abajo muestra cuatro módulos y **«Más»**, que abre los demás.
+- La demostración (`node scripts/demo.mjs`) trae dos imágenes de ejemplo.
+
 ## 1.4.0 — 2026-10-04
 
 - **Televisores**, un módulo nuevo: un televisor de la misma red muestra la proyección desde su navegador, sin cables y sin ocupar la salida del proyector. Manna lo busca en la red, se vincula (el televisor pide permiso una vez), le **abre y le cierra el navegador** y le sirve de **control remoto**: teclas, un panel táctil para el puntero y texto. Por ahora, televisores Samsung.

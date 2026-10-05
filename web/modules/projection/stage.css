@@ -238,3 +238,8 @@
   opacity: 0.55;
   font-style: italic;
 }
+
+/* Imagen (tipo "image"): ocupa toda la pantalla. La coloca web/modules/media/kind.js. */
+.img-view { position: absolute; inset: 0; overflow: hidden; background: #000; }
+.img-view img { position: absolute; top: 0; left: 0; max-width: none; transform-origin: 0 0; will-change: transform; user-select: none; }
+.img-view.ready img { transition: transform 0.14s linear; }

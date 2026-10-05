@@ -6,7 +6,7 @@ El **servidor es la única fuente de verdad**. Los dispositivos son vistas: reci
 
 ## Piezas
 
-- **Estado** (`server/core/store.js`): dividido por espacios. De los módulos: `system`, `bible`, `projection`, `live`, `order`, `tv`. Del núcleo: `conexiones`, `jobs`, `tools`. `store.set(ns, patch)` lo cambia y lo envía a todos.
+- **Estado** (`server/core/store.js`): dividido por espacios. De los módulos: `system`, `bible`, `projection`, `live`, `order`, `media`, `tv`. Del núcleo: `conexiones`, `jobs`, `tools`. `store.set(ns, patch)` lo cambia y lo envía a todos.
 - **Tiempo real** (`server/core/realtime.js`): SSE en `GET /api/events?rol=<rol>`. Eventos `state` (todo, al conectar), `patch` (un espacio, en cada cambio) y `ping` (latido cada 10 s, con la hora del servidor). El cliente (`web/core/api.js`) rehace la conexión si pasan 25 s sin recibir nada y siempre recibe el estado completo al reconectar: ningún módulo necesita lógica propia de reconexión.
 - **Acciones** (`POST /api/action` con `{ type, payload }`): toda orden que cambia algo. Se registran con `app.action('modulo.verbo', { permission }, handler)`.
 - **Rutas** (`app.route`): solo para lecturas (`GET`) y subida de archivos. `app.mount('/prefijo/', carpeta)` sirve una carpeta de contenido.
@@ -33,14 +33,14 @@ Para crear uno, usa la skill `/nuevo-modulo`.
 
 ## Contenido proyectable y orden del culto
 
-Todo lo que se proyecta es de un **tipo de contenido** (`kind`). Hoy existen `verses` y `compare` (Biblia: un pasaje en una versión o en dos a la vez) y `testcard` (imagen de prueba, en `projection`: el ejemplo más pequeño de un tipo con mandos). Los que faltan están en `docs/PLAN.md`, sección 3.2. Un módulo registra el suyo con `app.kind(nombre, { label, describe, resolve, neighbor, live, control })`:
+Todo lo que se proyecta es de un **tipo de contenido** (`kind`). Hoy existen `verses` y `compare` (Biblia: un pasaje en una versión o en dos a la vez), `image` (Medios: una imagen de la biblioteca, con ajuste, zoom y desplazamiento) y `testcard` (imagen de prueba, en `projection`: el ejemplo más pequeño de un tipo con mandos). Los que faltan están en `docs/PLAN.md`, sección 3.2. Un módulo registra el suyo con `app.kind(nombre, { label, describe, resolve, neighbor, live, control })`:
 
 - `describe(data)` → `{ title, subtitle, steps, data }`: cómo se ve en el orden del culto y cuántos **pasos** tiene (versículos, estrofas, diapositivas). `null` si ya no existe.
 - `resolve(data, step)` → lo que se proyecta. `step` `null` es el elemento entero; `0..n-1`, uno de sus pasos.
 - `neighbor(data, step, delta)` (opcional) → qué sigue al avanzar fuera del orden del culto.
 - `live(content, previous)` y `control(state, patch, { content, now })` (opcionales) → sus mandos en vivo. Ver abajo.
 
-`data` es lo mínimo para localizar el contenido (para `verses`: `{ versionId, ref }`), nunca el contenido mismo.
+`data` es lo mínimo para localizar el contenido (para `verses`: `{ versionId, ref }`; para `image`: `{ id, fit }`), nunca el contenido mismo. Lo que se elige antes de proyectar y debe recordarse en el orden del culto (el ajuste de una imagen, la disposición del comparador) va en `data`; lo que se mueve al aire, en los mandos en vivo.
 
 **Estado de proyección**: `projection.item = { kind, uid, ...contenido, source: { kind, data, step, orderId } }`. `source` dice de dónde salió y es lo que se guarda en disco (junto con los mandos en vivo). `uid` cambia en cada proyección.
 

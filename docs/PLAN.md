@@ -59,7 +59,7 @@ Datos medidos en el proyecto, no supuestos.
 | `verses` | Biblia | Un versículo por paso | — | Hecho (1.0) |
 | `testcard` | Proyección | Uno | Imagen (encuadre, colores, blanco) y cronómetro | Hecho (1.1) |
 | `compare` | Biblia (pantalla Comparador) | Un versículo por paso | Disposición: lado a lado o una sobre otra | Hecho (1.3) |
-| `image` | Medios | Uno | Ajuste, zoom, desplazamiento | Fase 4 |
+| `image` | Medios | Uno | Ajuste, zoom, desplazamiento | Hecho (1.5) |
 | `song` | Himnario | Uno (el video) | Pausa, reinicio, avance; cantado o pista | Fase 5 |
 | `video`, `audio`, `youtube` | Medios | Uno | Pausa, reinicio, avance; subtítulos | Fases 6 y 7 |
 | `slides` | Diapositivas | Una diapositiva por paso | Zoom, desplazamiento, vista de la siguiente | Fase 8 |
@@ -79,7 +79,7 @@ Lo que varias fases necesitan, construido una sola vez. Dónde quedó cada pieza
 | 5 | Archivos grandes | Hecho | Trozos (Range) y subida directa a disco en `server/core/router.js`; `upload()` con avance en `web/core/api.js` |
 | 6 | Carpetas de contenido | Base hecha | Todo lo de la iglesia en `Contenido/` (decisión 13). `server/core/folders.js` (vigilar y listar), `app.mount()` para servirlas, `data/tmp/` que se vacía al abrir y al cerrar. El himnario y los medios se conectan con su módulo (fases 5 y 6) |
 | 7 | Programas externos | Hecho | `server/core/tools.js` e `install.js`; página `/requisitos`; sección en Ajustes; aviso por módulo (`needs`, `web/core/needs.js`) |
-| 8 | "Más" en la barra de pestañas del celular | **Pasa a la fase 4** | Ver sección 10 |
+| 8 | "Más" en la barra de pestañas del celular | Hecho (fase 4) | `web/core/shell.js`: con más de cinco módulos, los cuatro primeros y "Más" |
 | 9 | Nombre editable en cualquier elemento del orden | Hecho | `order.rename`, `renameItem` en `server/modules/order/logic.js` |
 | 10 | Búsqueda compartida | Hecho (fase 1) | `server/core/search.js` |
 | 11 | Selector de pasajes reutilizable | Hecho (fase 2) | `web/modules/bible/passages.js`, que usan Biblia y Comparador |
@@ -157,7 +157,9 @@ Construido como estaba previsto, salvo lo anotado en la sección 10. Resultados 
 - En el orden: tipo propio (`compare`), con icono, color y la etiqueta "Comparador", y las dos siglas en la línea secundaria.
 - Si un versículo no existe en una de las versiones, ese lado lo indica.
 
-### Fase 3 · Pantalla para televisores — construida (1.4.0), falta la prueba del dueño
+### Fase 3 · Pantalla para televisores — construida (1.4.0), en pausa
+
+**En pausa desde el 2026-10-04 (decisión 19)**: el televisor del dueño no llegó a mostrar la proyección. Se retoma al terminar las demás fases.
 
 Lo que se hizo está en la sección 9. Lo que sigue es el plan original, que se conserva como referencia.
 
@@ -171,7 +173,7 @@ Lo que se hizo está en la sección 9. Lo que sigue es el plan original, que se 
 
 **Límite**: no hay televisor en el equipo de desarrollo. Esta fase se cierra con las pruebas del dueño.
 
-### Fase 4 · Medios: imágenes
+### Fase 4 · Medios: imágenes — hecha (1.5.0)
 
 - Biblioteca con miniaturas. Se sube desde el equipo principal o desde la galería de un celular (control completo), con barra de avance. La imagen se reduce en el propio dispositivo antes de enviarla.
 - Al subir se propone un nombre, que es el que se ve en el orden.
@@ -256,6 +258,7 @@ Tomadas el 2026-10-04.
 | 16 | Televisor (S5) | **Tiene que ser pantalla remota por su navegador.** Como segunda pantalla ya funciona, pero esa salida es para el proyector. Revisar el control por IP que trae el televisor |
 | 17 | Filtro de búsqueda (S4) | **Sí**, por testamento |
 | 18 | Orden de trabajo | Fase 3 y, a la vez, fase 4 |
+| 19 | Televisor, tras la primera prueba | **En pausa.** Remotamente solo se abrió el navegador y el puntero se movió un poco; escribiendo la dirección a mano tampoco carga. Se retoma cuando estén hechas las demás modificaciones |
 
 **Decisión 5 · Letras.** El dueño pidió incluirlas: las iglesias donde se usará Manna tienen la licencia de las letras y de toda la música oficial de la Iglesia Adventista del Séptimo Día. Cómo se resuelve:
 
@@ -334,8 +337,8 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 0 Cimientos | **Hecha** · 2026-10-04 | 1.1.0 | Ver abajo |
 | 1 Búsqueda | **Hecha** · 2026-10-04 | 1.2.0 | Ver abajo. Incluye el cambio de la revisión del equipo: ya nada bloquea |
 | 2 Comparador | **Hecha** · 2026-10-04 | 1.3.0 | Ver abajo. Incluye la carpeta `Contenido/`, la búsqueda solo en RVR1960 y el segundo puerto |
-| 3 Televisores | **Construida** · 2026-10-04 · falta la prueba del dueño | 1.4.0 | Ver abajo. `https` propio y módulo Televisores. El control por red del televisor no deja pasarle la dirección |
-| 4 Imágenes | **En curso** | 1.5 | A la vez que la 3 |
+| 3 Televisores | **En pausa** (decisión 19) · construida el 2026-10-04 | 1.4.0 | Ver abajo. El televisor del dueño no carga la proyección, ni a mano. Se retoma al final |
+| 4 Imágenes | **Hecha** · 2026-10-04 | 1.5.0 | Ver abajo. Incluye «Más» en la barra del celular |
 | 5 Himnario | Pendiente | 1.6 | Videos y letras ya están en `Contenido/Himnario/`. El dueño revisa las letras |
 | 6 Videos y audios | Pendiente | 1.7 | |
 | 7 YouTube | Pendiente | 1.8 | |
@@ -387,6 +390,20 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 - **Sin probar** (es la prueba que cierra la fase): que el navegador del televisor abra Manna por `https`, qué aviso muestra y si deja continuar; la pantalla completa; puntero y texto.
 - **No hizo falta**: la página sencilla `/tv` para navegadores antiguos (el del dueño es reciente).
 
+- **Prueba del dueño (2026-10-04)**: desde Manna, el navegador del televisor se abrió y el puntero se movió brevemente, nada más. Escribiendo la dirección a mano en el televisor, **tampoco carga**. La fase queda en pausa sin diagnóstico. Lo que sí sirve de ella a todo el proyecto: `https` en los mismos puertos y el registro de cómo llega cada equipo.
+
+### Fase 4 · resultados
+
+- **Módulo Medios**, con la pestaña Imágenes (las de Videos, Audios y YouTube están a la vista, apagadas): biblioteca en rejilla, subir desde el equipo, la galería del celular o arrastrando, varias a la vez, con nombre propuesto y avance por imagen.
+- **Reducción en el dispositivo**: lado mayor de 2560 px; el PNG se conserva (por la transparencia) salvo que pese demasiado; un GIF se sube tal cual. La miniatura también la hace el dispositivo.
+- **El servidor reconoce la imagen por su contenido** (JPG, PNG, WebP, GIF) y lee sus medidas; lo que no lo es, no entra.
+- **Ajuste a la pantalla** sobre dos miniaturas; se recuerda por imagen y viaja en el elemento del orden.
+- **Al aire**: la imagen entera con un marco de lo que se ve; arrastrar, rueda, dos dedos, deslizador (hasta 5×) y «Vista completa». Las pantallas calculan el encuadre con la misma cuenta, así que muestran la misma parte aunque tengan otro tamaño.
+- **«Más»** en la barra del celular (la pieza 8 de los cimientos, que se había dejado para esta fase).
+- **Pruebas automáticas**: de 87 a 92. **Chrome real**: 17 comprobaciones nuevas (Medios y «Más»). **Pantallas**: 9 tamaños, con la biblioteca y los mandos de una imagen al aire.
+- **Sin probar**: desde un celular real (galería, fotos HEIC de iPhone, gesto de dos dedos); bibliotecas de cientos de imágenes.
+- **Límites conocidos**: no hay carpetas ni búsqueda en la biblioteca; el marco de los mandos supone una pantalla 16:9 (en un proyector 4:3 lo que se ve difiere un poco de lo marcado).
+
 ## 10. Cambios al plan
 
 Cada modificación del plan aprobado, con su motivo. Es parte de la base de la auditoría.
@@ -431,13 +448,25 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-04 | Fase 3: nace el módulo "Televisores" (buscar, vincular, abrir el navegador, control remoto, escribir la dirección) | El control por red del televisor abre el navegador pero no acepta una dirección: la primera vez hay que escribírsela, y Manna lo hace como un teclado |
 | 2026-10-04 | Fase 3: Manna anota cómo llega cada equipo (`http`, `https` o saludo cortado) | Sin ver el televisor no hay otra forma de saber por qué no entra; ahora lo dice la tarjeta |
 | 2026-10-04 | Fase 3: se quitan del plan las alternativas "como segunda pantalla" | Decisión 16 |
+| 2026-10-04 | **Fase 3 en pausa**; se retoma al terminar las demás fases | Decisión 19: el televisor no cargó la proyección ni con Manna ni a mano |
+| 2026-10-04 | Fase 4: la miniatura la hace el dispositivo que sube, junto con la reducción | El servidor no tiene con qué encoger imágenes sin añadir dependencias |
+| 2026-10-04 | Fase 4: el ajuste se recuerda por imagen (además de ir en el elemento del orden) | Quien proyecta el mismo cartel cada semana no debería elegirlo cada vez |
+| 2026-10-04 | Fase 4: los mandos muestran la imagen entera con un marco, en vez de una copia de la pantalla | El panel ya tiene el monitor "Al aire"; lo que faltaba ver es qué parte de la imagen queda fuera |
+| 2026-10-04 | Fase 4: «Más» aparece con más de cinco pestañas, no con más de cuatro | En un celular de 360 px caben cinco; con Televisores y Medios ya son seis |
+| 2026-10-04 | Un módulo puede marcar como "próximamente" lo que pedirán sus partes futuras (`needs` con `soon`) | Medios existe ya, pero ffmpeg y yt-dlp son para pestañas que aún no están: la revisión del equipo lo cuenta y el módulo no molesta con ello |
 
 ## 11. Cambios sugeridos al plan
 
 Propuestas del asistente que el dueño aún no ha decidido. Al decidirse, pasan a la sección 10 (si se aceptan) o se borran.
 
+Las sugerencias S8 a S11 son del televisor: esperan a que se retome la fase 3 (decisión 19).
+
 | # | Sugerencia | Por qué | Qué cambiaría |
 | --- | --- | --- | --- |
+| S12 | Quitar "Televisores" de la barra mientras esté en pausa | Hoy es un módulo a la vista que no cumple su propósito con el único televisor probado | Una línea en `web/modules/registry.js`; se vuelve a poner al retomarlo |
+| S13 | Si las letras siguen en revisión, hacer antes la fase 6 (videos y audios) y dejar el himnario para después | La reproducción (pausa, avance, volumen, una sola pantalla que suena) se estrenaría con los videos de la iglesia en vez de con los himnos; el himnario llegaría con eso ya probado | Se intercambian las fases 5 y 6. La parte "Reproducción" de la 5 pasa a la 6 |
+| S14 | Usar una imagen de la biblioteca como fondo de la proyección | Hoy el fondo se sube aparte, en Ajustes; con la biblioteca hecha, elegirlo de ahí es natural | Pequeño: un botón "Usar como fondo" en el menú de cada imagen |
+| S15 | Álbumes o búsqueda en la biblioteca | Solo si la biblioteca crece: con decenas de imágenes la rejilla basta | Se decidiría al ver el uso real |
 | S8 | Fijar en el router la dirección del equipo principal y la del televisor | La página de inicio del televisor guarda la dirección numérica de Manna; si el router la cambia, hay que volver a escribirla | Nada en Manna: es un ajuste del router. Se documentaría con capturas |
 | S9 | Encender y apagar el televisor desde Manna | Su control por red lo permite (encendido por red y tecla de apagado). No se incluyó para no apagar un televisor por error ni probarlo sin el dueño delante | Dos botones en la tarjeta del televisor. Pequeño; se haría tras la prueba del dueño |
 | S10 | Fase 7: enviar un video de YouTube directamente al televisor | El televisor anuncia su aplicación de YouTube en la red (se vio al explorarlo). Serviría para que el video lo reproduzca el propio televisor, sin pasar por su navegador | Se estudiaría en la fase 7; no cambia el plan todavía |

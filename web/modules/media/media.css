@@ -1,0 +1,53 @@
+/* Módulo Medios: biblioteca de imágenes en rejilla, con la acción abajo. */
+.media-tabs { display: flex; gap: 6px; }
+.media-tabs .chip:disabled { opacity: 0.45; cursor: default; }
+.media-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px 24px; }
+.media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.ws[data-module='medios'].dropping .media-body { outline: 2px dashed var(--accent); outline-offset: -8px; background: var(--accent-soft); }
+
+.media-card { position: relative; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); transition: border-color 0.12s var(--ease); }
+.media-card:hover { border-color: var(--line-2); }
+.media-card.selected { border-color: var(--accent); background: var(--accent-soft); }
+.media-card.live { border-color: var(--live); }
+.media-pick { display: block; width: 100%; padding: 8px 8px 10px; text-align: left; border-radius: var(--r-lg); }
+.media-thumb { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: var(--r); overflow: hidden; background: #000; margin-bottom: 8px; }
+.media-thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.media-thumb .badge { position: absolute; top: 6px; left: 6px; }
+.media-card .item-text { display: grid; gap: 1px; padding-right: 30px; min-width: 0; }
+.media-card .item-text strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media-card .item-text small { color: var(--ink-3); font-size: 12px; }
+.media-more { position: absolute; right: 6px; bottom: 9px; }
+html.touch .media-more { width: 40px; height: 40px; right: 2px; bottom: 3px; }
+
+/* Ajuste a la pantalla: se elige sobre dos miniaturas de la propia imagen. */
+.media-bar .sel-ref { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.fits { display: flex; gap: 6px; }
+.fit { display: grid; justify-items: center; gap: 3px; padding: 4px 6px; border: 1px solid var(--line); border-radius: var(--r); color: var(--ink-3); font-size: 11px; min-width: 64px; min-height: var(--control); }
+.fit:hover { border-color: var(--line-2); }
+.fit.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.fit-thumb { display: block; width: 52px; aspect-ratio: 16 / 9; background: #000; border-radius: 3px; overflow: hidden; }
+.fit-thumb img { width: 100%; height: 100%; display: block; }
+.fit-thumb.contain img { object-fit: contain; }
+.fit-thumb.cover img { object-fit: cover; }
+
+/* Ventana de subida */
+.up-list { display: grid; gap: 10px; max-height: 50dvh; overflow-y: auto; }
+.up-row { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 10px; align-items: start; }
+.up-thumb { aspect-ratio: 16 / 9; background: #000; border-radius: var(--r-sm); overflow: hidden; }
+.up-thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.up-main small { color: var(--ink-3); font-size: 12px; }
+.up-row.error small { color: var(--live-ink); }
+.up-row.done small { color: var(--ok); }
+.up-row.done .bar span { background: var(--ok); }
+
+@media (max-width: 1179px) {
+  .media-body { padding: 12px 16px 20px; }
+}
+@media (max-width: 859px) {
+  .media-body { padding: 10px 12px 16px; }
+  .media-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .media-tabs { order: 3; flex: 1 1 100%; overflow-x: auto; }
+  .media-bar .fits { flex: 1 1 100%; }
+  .media-bar .fit { flex: 1; grid-auto-flow: column; justify-content: center; align-items: center; gap: 8px; font-size: 12px; }
+  .media-bar .sel-ref { display: none; }
+}

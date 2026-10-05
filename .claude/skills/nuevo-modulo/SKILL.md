@@ -7,7 +7,7 @@ description: Crea un módulo nuevo de Manna con todas sus piezas (servidor, tipo
 
 Antes de escribir código, acuerda con el dueño: qué hace el módulo, qué roles lo usan y qué aporta al orden del culto. Si el alcance es grande, presenta un plan y espera aprobación.
 
-Lee `.claude/rules/arquitectura.md` y `DESIGN.md`, y la fase correspondiente de `docs/PLAN.md`. Ejemplos completos para copiar la forma: `server/modules/bible/` + `web/modules/bible/` (un módulo que aporta contenido), `server/modules/order/` + `web/modules/order/`, y la imagen de prueba (`server/modules/projection/testcard.js` + `web/modules/projection/testcard.js`), que es el tipo con mandos en vivo más pequeño.
+Lee `.claude/rules/arquitectura.md` y `DESIGN.md`, y la fase correspondiente de `docs/PLAN.md`. Ejemplos completos para copiar la forma: `server/modules/bible/` + `web/modules/bible/` (un módulo que aporta contenido), `server/modules/media/` + `web/modules/media/` (una biblioteca de archivos subidos, con un tipo que ocupa toda la pantalla y mandos que se arrastran), `server/modules/order/` + `web/modules/order/`, y la imagen de prueba (`server/modules/projection/testcard.js` + `web/modules/projection/testcard.js`), que es el tipo con mandos en vivo más pequeño.
 
 ## Pasos
 
@@ -74,7 +74,7 @@ Lee `.claude/rules/arquitectura.md` y `DESIGN.md`, y la fase correspondiente de 
    };
    ```
 
-   Con `needs`, la revisión del equipo y la franja de aviso del módulo salen solas. Dentro del módulo, lo que dependa de un programa que falta se muestra deshabilitado con su explicación (`state.tools`), nunca oculto ni roto.
+   Con `needs`, la revisión del equipo y la franja de aviso del módulo salen solas. Si el módulo llega por partes (Medios: primero imágenes, luego videos), lo que pedirán las partes que faltan se marca con `soon: true`. Dentro del módulo, lo que dependa de un programa que falta se muestra deshabilitado con su explicación (`state.tools`), nunca oculto ni roto.
 
    Regístrala en `web/modules/registry.js` (sustituyendo la entrada `soon` si ya estaba prevista) y enlaza su `.css` en `web/control.html`.
 
