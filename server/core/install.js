@@ -14,6 +14,8 @@ import { pipeline } from 'node:stream/promises';
 //   file      nombre con el que se guarda (descarga directa de un ejecutable)
 //   extract   ['ffmpeg.exe', …]: la descarga es un .zip y se sacan de él esos archivos
 //   sums      dirección de una lista "<sha256>  <nombre>" publicada junto a la descarga
+//   release   true: sums es una versión de GitHub (su API) y las huellas van en su texto como "<nombre>: <sha256>"
+//   inner     true: la huella publicada es la del programa de dentro del archivo, no la del archivo
 //   sha256    dirección de un archivo que contiene solo el sha256
 // }
 // Devuelve las rutas de los archivos instalados.
@@ -35,11 +37,15 @@ async function get(url, signal) {
 async function expectedHash(spec, signal) {
   const source = spec.sums || spec.sha256;
   if (!source) return null;
-  const text = await (await get(source, signal)).text();
+  const raw = await (await get(source, signal)).text();
+  let text = raw;
+  if (spec.release) try { text = String(JSON.parse(raw).body || ''); } catch { text = ''; }
   const name = path.posix.basename(new URL(spec.url).pathname);
-  const line = spec.sums
-    ? text.split(/\r?\n/).find((l) => l.trim().split(/\s+/).at(-1)?.replace(/^\*/, '') === name)
-    : text;
+  const line = spec.release
+    ? text.split(/\r?\n/).find((l) => l.trim().startsWith(`${name}:`))
+    : spec.sums
+      ? text.split(/\r?\n/).find((l) => l.trim().split(/\s+/).at(-1)?.replace(/^\*/, '') === name)
+      : text;
   const hash = /\b[a-f0-9]{64}\b/i.exec(line || '')?.[0];
   if (!hash) throw new Error('No se pudo comprobar la descarga: falta su huella de verificación. Instálalo a mano.');
   return hash.toLowerCase();
@@ -89,7 +95,7 @@ export async function installTool(spec, { dir, onProgress = () => {}, signal } =
     }
 
     const expected = await expectedHash(spec, signal);
-    if (expected && expected !== hash.digest('hex')) {
+    if (expected && !spec.inner && expected !== hash.digest('hex')) {
       throw new Error('La descarga llegó incompleta o dañada. Vuelve a intentarlo.');
     }
 
@@ -101,6 +107,9 @@ export async function installTool(spec, { dir, onProgress = () => {}, signal } =
       for (const name of spec.extract) {
         const found = findInside(opened, name);
         if (!found) throw new Error(`El archivo descargado no contiene ${name}. Instálalo a mano siguiendo los pasos.`);
+        if (expected && spec.inner && crypto.createHash('sha256').update(fs.readFileSync(found)).digest('hex') !== expected) {
+          throw new Error('La descarga llegó incompleta o dañada. Vuelve a intentarlo.');
+        }
         const target = path.join(dir, name);
         fs.copyFileSync(found, target);
         installed.push(target);

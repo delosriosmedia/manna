@@ -34,3 +34,9 @@
   .settings { padding: 0 12px 24px; }
   .set { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 16px 0; }
 }
+
+/* Conexión por internet: la dirección pública con su botón de copiar; un fallo, en rojo. */
+.net-address { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; overflow-wrap: anywhere; }
+.net-address a { color: var(--accent); }
+.set .muted.warn { color: var(--live-ink); }
+.net-own { display: grid; gap: 8px; }

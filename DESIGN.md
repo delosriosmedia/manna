@@ -2,6 +2,8 @@
 
 Cómo se ve y se siente la interfaz de control de Manna, y por qué. Lo lee quien vaya a crear o tocar una pantalla, sea una persona o un asistente. Los valores viven en `web/core/app.css`; este documento explica las reglas para usarlos.
 
+**Rediseño «Escenario» en curso** (fase 13 de `docs/PLAN.md`, decisión 32). La parte 1, la piel (color, letra, formas y cristal), ya está aplicada y es lo que describen las secciones 2, 4 y 5. La estructura de las secciones 7 y siguientes es todavía la de antes: cambiará en la parte 2. Lo que vendrá está descrito en el plan.
+
 Referencias: [taste-skill](https://github.com/Leonxlnx/taste-skill) (disciplina contra el aspecto genérico) y [awesome-design-md](https://github.com/voltagent/awesome-design-md) (este formato, y los sistemas de Linear, Raycast y Spotify).
 
 ## 1. Carácter
@@ -21,22 +23,23 @@ Solo modo oscuro: se usa junto a un proyector, y un panel claro deslumbra.
 
 | Ficha | Valor | Uso |
 | --- | --- | --- |
-| `--canvas` | `#0b0d12` | Fondo de la app. Nunca negro puro. |
-| `--s1` `--s2` `--s3` | `#11141b` `#171b24` `#1f2431` | Escalera de superficies: paneles, controles, estado activo o pulsado. |
-| `--line` `--line-2` | `#222837` `#30384c` | Líneas de 1 px: separadores y bordes. |
-| `--ink` `--ink-2` `--ink-3` | `#f2f4f8` `#b9c0cd` `#8a93a5` | Texto principal, de lectura y secundario. |
+| `--canvas` | `#05070a` | Suelo de la app. Nunca negro puro. |
+| `--s1` `--s2` `--s3` | `#0c0f14` `#131720` `#1b202a` | Escalera de superficies sólidas: paneles, controles, estado activo o pulsado. |
+| `--line` `--line-2` | `#1e2430` `#2b3341` | Líneas de 1 px: separadores y bordes. |
+| `--glass-1` `--glass-2` `--glass-3` | 55 %, 74 % y 92 % de opacidad | **Cristal** para lo que flota: barras y fichas, cajones, y hojas (ventanas, menús, avisos). Con `--glass-line` de borde y `--blur-1` / `--blur-2` de desenfoque. |
+| `--ink` `--ink-2` `--ink-3` | `#f1f4f8` `#c4cbd6` `#9aa3b2` | Texto principal, de lectura y secundario. |
 | `--ink-4` | `#5b6375` | Solo decorativo o deshabilitado: no alcanza el contraste mínimo. |
-| `--accent` | `#eda93a` | **El único acento** de la interfaz: selección, acción principal, foco. |
-| `--live` `--live-ink` | `#d93a40` `#ff8a8e` | **Rojo: solo "al aire"** y acciones destructivas. |
+| `--accent` `--accent-hover` | `#5ce8ff` `#8af0ff` | **El único acento**, el cian de la M: selección, acción principal, foco. |
+| `--live` `--live-ink` | `#e0383e` `#ff8a8e` | **Rojo: solo "al aire"** y acciones destructivas. |
 
 Reglas:
 
-- **El cian es del logo y solo del logo** (sección 3). No se usa en botones, textos ni estados.
-- **Un acento.** Si algo necesita destacar y no es selección, acción principal ni foco, no se colorea: se resuelve con peso o posición.
+- **Un acento, el cian de la M.** Si algo necesita destacar y no es selección, acción principal ni foco, no se colorea: se resuelve con peso o posición.
 - **Rojo significa "al aire".** Un borde rojo en un monitor, una fila o una miniatura quiere decir que eso se está proyectando. No se usa para adornar.
-- **El color por tipo vive solo en el icono del elemento** (`.kind.k-<tipo>`): azul Biblia, violeta himno, verde imagen, coral video, arena diapositivas. Nunca en botones, textos ni fondos de panel.
-- La profundidad se da con la escalera de superficies y líneas. **Sin sombras**, salvo en lo que flota (menús, resultados de búsqueda).
-- Texto sobre ámbar: `--on-accent`. Texto rojo sobre oscuro: `--live-ink`. Texto sobre rojo: blanco.
+- **El color por tipo vive solo en el icono del elemento** (`.kind.k-<tipo>`): azul Biblia, violeta himno, verde imagen, coral video, arena diapositivas, verde claro páginas. Nunca en botones, textos ni fondos de panel.
+- **Cristal solo en lo que flota** (ventanas, menús, avisos y, desde la parte 2, todo lo que va sobre la proyección). Donde el navegador no desenfoca (televisores, celulares viejos), las fichas de cristal pasan solas a sólidas (`@supports` en `app.css`), para que el texto se siga leyendo.
+- Sombras solo en lo que flota.
+- Texto sobre cian: `--on-accent`. Texto rojo sobre oscuro: `--live-ink`. Texto sobre rojo: blanco.
 
 ## 3. Marca
 
@@ -53,25 +56,25 @@ El logo es una **M de luz**: tres barras a cada lado y la M al centro, con un de
 
 Reglas:
 
-- El logo no se redibuja, no se recolorea y no se le quita el resplandor. Si cambia el dibujo, se edita el vector y se ejecuta `node scripts/generar-iconos.mjs`, que regenera todos los formatos.
+- El cian del logo es también el acento de la interfaz (sección 2). El logo no se redibuja, no se recolorea y no se le quita el resplandor. Si cambia el dibujo, se edita el vector y se ejecuta `node scripts/generar-iconos.mjs`, que regenera todos los formatos.
 - **Icono con ficha** para tamaños pequeños (44 px en la barra). **Marca sola con el nombre** para presentar la app: la marca, "MANNA" y "Church projection app" debajo, y la versión.
 - El nombre "MANNA" del logotipo va en mayúsculas, peso 700 y espaciado amplio. Es la única excepción a las reglas de tipografía, y solo en el logotipo.
 - **La versión se muestra junto al logo** (bajo el icono en la barra, bajo el nombre en inicio y en "Acerca de"). Sale de `package.json`.
-- El logo vive sobre fondo oscuro. No se coloca sobre el ámbar ni sobre fondos claros.
+- El logo vive sobre fondo oscuro. No se coloca sobre el cian ni sobre fondos claros.
 
 ## 4. Tipografía
 
-- **Geist** para todo, **Geist Mono** para números de versículo, teclas y direcciones. Van incluidas en `web/vendor/geist/` (la iglesia puede no tener internet).
-- Base de 13 px (15 px en pantallas táctiles). Texto bíblico de lectura: 15-16 px con interlineado 1.5.
-- Pesos: 400 texto, 500 controles y etiquetas, 600 títulos y lo seleccionado. No se usa 700.
+- **Sora** para toda la interfaz, **Geist Mono** para números de versículo, teclas y direcciones. Van incluidas en `web/vendor/sora/` y `web/vendor/geist/`, con su licencia libre (la iglesia puede no tener internet).
+- Base de 13 px (15 px en pantallas táctiles). Texto bíblico de lectura: 15-16 px con interlineado 1.5. Sora es algo más ancha que la letra anterior: los textos de botones y pestañas se prueban en la auditoría de pantallas.
+- Pesos: 400 texto, 500 controles y etiquetas, 600 títulos y lo seleccionado. 800 solo en la acción principal grande y en el nombre del logotipo.
 - Títulos de módulo: 17 px / 600 con espaciado -0.01em. Títulos de sección: 15 px / 600.
 - Cifras tabulares activadas en toda la app (`font-feature-settings: 'tnum'`).
-- **Mayúscula solo inicial.** Nada de TÍTULOS EN MAYÚSCULAS ni Cada Palabra Con Mayúscula (salvo el nombre del logotipo, sección 3).
+- **Mayúscula solo inicial.** Nada de TÍTULOS EN MAYÚSCULAS ni Cada Palabra Con Mayúscula (salvo el nombre del logotipo y las etiquetas pequeñas de sección, como «AL AIRE» o «SIGUE»).
 - La tipografía de lo proyectado es otra cosa: la elige el usuario en Ajustes.
 
 ## 5. Forma y espacio
 
-- **Radios:** 6 px fichas, teclas e iconos de tipo; 8 px controles; 12 px paneles, monitores y ventanas. Píldora solo en insignias de estado ("Al aire") y fichas de recientes.
+- **Formas:** **píldora** en botones, fichas, búsquedas y grupos de una sola elección; 10 px piezas pequeñas e iconos de tipo; 14 px campos y filas; 22 px paneles y monitores; 28 px ventanas.
 - **Espaciado:** múltiplos de 4 px. Dentro de un control, 8-12; entre controles, 6-12; relleno de panel, 16-20.
 - **Altura de control:** 34 px con ratón, 44 px con dedo (`--control`, cambia sola con `pointer: coarse`).
 - **Listas densas:** filas separadas por espacio y un fondo al pasar o seleccionar. Sin tarjetas con borde y sombra.
@@ -95,38 +98,39 @@ Tres zonas fijas (`web/core/shell.js`):
 
 Reglas para un módulo:
 
-- La **acción principal** (Proyectar) va abajo a la derecha de su espacio de trabajo y es el único botón ámbar de la pantalla.
-- Un módulo que gobierna **equipos** (Televisores) muestra una tarjeta por equipo: icono, nombre, modelo y dirección, una línea de estado con su punto (verde cuando ya muestra la proyección, ámbar cuando pide algo a la persona, gris apagado), su acción principal en ámbar y lo demás en un menú. Si hay algo que la persona deba hacer en el equipo, se dice en una franja ámbar suave dentro de la tarjeta, con las palabras que verá en su pantalla.
-- Los **fondos** (Ajustes) son una sola rejilla de cuadros iguales: primero los colores, luego las imágenes subidas y al final un cuadro con «+» y borde punteado para subir otra. El que está puesto lleva borde ámbar. Lo que se puede hacer con la imagen puesta (eliminarla) aparece debajo, como botón con texto: nada de aspas pequeñas sobre el cuadro, que en un celular no se aciertan.
-- Un **aviso que afecta a toda la app** (Manna se actualizó y hay que reiniciarlo) es una franja ámbar suave arriba del espacio de trabajo, en todos los módulos, con su botón; no se puede cerrar, porque no deja de ser cierto hasta que se resuelve.
-- Una **biblioteca** (Medios) es una rejilla de tarjetas: miniatura en 16:9 sobre negro, nombre y debajo cuándo se agregó y sus medidas, de la más reciente a la más antigua, y un menú de tres puntos para lo que no es de todos los días (renombrar, eliminar). La elegida lleva borde ámbar; la que está al aire, borde rojo y la insignia "Al aire". Al elegir una aparece la barra de acciones.
+- La **acción principal** (Proyectar) va abajo a la derecha de su espacio de trabajo y es el único botón cian de la pantalla.
+- Un módulo que gobierna **equipos** (Televisores) muestra una tarjeta por equipo: icono, nombre, modelo y dirección, una línea de estado con su punto (verde cuando ya muestra la proyección, cian cuando pide algo a la persona, gris apagado), su acción principal en cian y lo demás en un menú. Si hay algo que la persona deba hacer en el equipo, se dice en una franja cian suave dentro de la tarjeta, con las palabras que verá en su pantalla.
+- Los **fondos** (Ajustes) son una sola rejilla de cuadros iguales: primero los colores, luego las imágenes subidas y al final un cuadro con «+» y borde punteado para subir otra. El que está puesto lleva borde cian. Lo que se puede hacer con la imagen puesta (eliminarla) aparece debajo, como botón con texto: nada de aspas pequeñas sobre el cuadro, que en un celular no se aciertan.
+- Un **aviso que afecta a toda la app** (Manna se actualizó y hay que reiniciarlo) es una franja cian suave arriba del espacio de trabajo, en todos los módulos, con su botón; no se puede cerrar, porque no deja de ser cierto hasta que se resuelve.
+- Una **biblioteca** (Medios) es una rejilla de tarjetas: miniatura en 16:9 sobre negro, nombre y debajo cuándo se agregó y sus medidas, de la más reciente a la más antigua, y un menú de tres puntos para lo que no es de todos los días (renombrar, eliminar). La elegida lleva borde cian; la que está al aire, borde rojo y la insignia "Al aire". Al elegir una aparece la barra de acciones.
 - Una **elección que se entiende mejor viéndola** (el ajuste de una imagen a la pantalla) se ofrece sobre miniaturas del propio contenido, no con palabras solas: dos botones pequeños con la imagen ya ajustada de cada forma y su nombre debajo.
-- El **encuadre** de una imagen al aire se gobierna sobre la imagen entera, atenuada, con un marco ámbar que señala lo que se ve; debajo, el deslizador de acercar con su valor, y el botón para volver a la vista completa.
+- El **encuadre** de una imagen al aire se gobierna sobre la imagen entera, atenuada, con un marco cian que señala lo que se ve; debajo, el deslizador de acercar con su valor, y el botón para volver a la vista completa.
 - La tarjeta de un **video o audio** lleva sobre la imagen lo que dura (abajo a la derecha) y, si tiene subtítulos, su marca (abajo a la izquierda). Si ya se puede proyectar pero su copia para otras pantallas está en camino, la tarjeta no se atenúa: lo dice en verde («Ya se puede proyectar desde el equipo principal») y debajo va el avance de la copia. Si aún no se puede proyectar, la imagen se atenúa y debajo se dice por qué: una barra con el avance mientras se convierte, o el motivo en rojo con el botón que lo resuelve (Reintentar, Instalar ffmpeg).
-- El **Presentador** (función «Presentador de diapositivas») no lleva panel «Al aire»: su pantalla lo es. Arriba, «Señalar» y «Mover» como fichas con icono y una línea que dice qué hace el dedo; debajo, la diapositiva al aire en grande con borde rojo, y bajo ella Anterior (solo flecha), «Siguiente» (ancho, ámbar; «Empezar» si no hay ninguna de esa presentación en pantalla) y «Negro». A la derecha, «Siguiente» con la miniatura de la que viene («Fin de la presentación» en la última) y los mandos del encuadre; debajo de todo, la cuadrícula de diapositivas con la que está al aire en rojo. En el celular todo va en una columna que se desplaza, con la grande y sus botones arriba. El puntero en la proyección es un punto rojo con halo y borde blanco fino, como un láser.
+- **Páginas web** es una lista de una columna (dos o más en pantallas anchas): cada página en una fila con el icono del globo, su nombre y dónde se ve («Archivo HTML», su sitio, o «en su propia ventana»). La elegida, con la barra de abajo (Añadir al orden, Proyectar). Lo que va en su propia ventana se ve en las demás pantallas como una tarjeta oscura con el globo, el nombre y «Se ve en su propia ventana en el proyector».
+- El **Presentador** (función «Presentador de diapositivas») no lleva panel «Al aire»: su pantalla lo es. Arriba, «Señalar» y «Mover» como fichas con icono y una línea que dice qué hace el dedo; debajo, la diapositiva al aire en grande con borde rojo, y bajo ella Anterior (solo flecha), «Siguiente» (ancho, cian; «Empezar» si no hay ninguna de esa presentación en pantalla) y «Negro». A la derecha, «Siguiente» con la miniatura de la que viene («Fin de la presentación» en la última) y los mandos del encuadre; debajo de todo, la cuadrícula de diapositivas con la que está al aire en rojo. En el celular todo va en una columna que se desplaza, con la grande y sus botones arriba. El puntero en la proyección es un punto rojo con halo y borde blanco fino, como un láser. Con una **página web** elegida no hay «Mover», ni siguiente, ni rejilla: la grande, «Señalar» y la fila de botones, cuyo botón ancho dice «Proyectar» hasta que la página está al aire.
 - El **volumen permanente** (función «Servicio de alabanza») es un recuadro del panel "Al aire", bajo "Negro / Solo fondo": la palabra «Volumen» y el mismo mando de siempre (silencio, deslizador y porcentaje). Está aunque no suene nada, y cuando algo suena sus mandos ya no repiten el volumen. En pantallas estrechas es lo único del panel que se ve sin desplegarlo, sin rótulo ni recuadro: bajo la barra compacta de "Al aire" en un celular en vertical (le quita 50 px de alto al contenido) y al lado de ella cuando el ancho da para los dos (celular en horizontal, tableta en vertical). Las demás funciones no lo llevan: su panel es el de siempre.
-- Los **mandos de lo que suena** van en este orden, de arriba abajo: transporte (volver al principio, el botón ancho de pausar o reproducir, −10 y +10), barra de avance con el tiempo a cada lado, volumen de Manna (silencio, deslizador y porcentaje) y, solo si los hay, subtítulos: un botón que los muestra y, si vienen en más de un idioma, una lista a su lado para elegirlo. Si ninguna pantalla puede sonar, se dice en ámbar bajo el volumen.
+- Los **mandos de lo que suena** van en este orden, de arriba abajo: transporte (volver al principio, el botón ancho de pausar o reproducir, −10 y +10), barra de avance con el tiempo a cada lado, volumen de Manna (silencio, deslizador y porcentaje) y, solo si los hay, subtítulos: un botón que los muestra y, si vienen en más de un idioma, una lista a su lado para elegirlo. Si ninguna pantalla puede sonar, se dice en cian bajo el volumen.
 - Una pestaña cuyo contenido **no se sube, sino que se pide con un dato** (YouTube: un enlace) pone en la cabecera, en el sitio del botón de subir, un campo con su icono y su botón («Añadir»). En el celular ocupa una fila entera bajo las pestañas. Lo que tarda en llegar aparece enseguida como tarjeta atenuada con su barra de avance, igual que una conversión.
 - El **aviso de que falta un programa** sale solo en la parte del módulo a la que afecta (en Medios, el de yt-dlp solo en la pestaña YouTube). En el celular ocupa lo justo: el texto, los botones en una fila y el aspa de cerrar en la esquina.
-- Un **catálogo grande y numerado** (Himnario, más de seiscientos himnos) es una rejilla de fichas pequeñas e iguales: el número arriba, grande y en la tipografía de cifras, y el título debajo en dos líneas como mucho. No llevan imagen: se reconocen por el número. La elegida va en ámbar; la que está al aire, con borde rojo y su insignia. La misma rejilla se ve entera («Todos») o partida en grupos («Categorías»), cada uno con su nombre grande y cuántos himnos tiene.
+- Un **catálogo grande y numerado** (Himnario, más de seiscientos himnos) es una rejilla de fichas pequeñas e iguales: el número arriba, grande y en la tipografía de cifras, y el título debajo en dos líneas como mucho. No llevan imagen: se reconocen por el número. La elegida va en cian; la que está al aire, con borde rojo y su insignia. La misma rejilla se ve entera («Todos») o partida en grupos («Categorías»), cada uno con su nombre grande y cuántos himnos tiene.
 - **Buscar en un catálogo** sustituye la rejilla por una lista de lo encontrado, por niveles, con el número a la izquierda y, si se encontró en la letra, la parte («Estrofa 2») y el renglón con lo encontrado resaltado. Enter va al primero (o al señalado con las flechas) y deja el buscador, para que otro Enter lo proyecte.
-- Una **elección entre dos formas del mismo contenido** (un himno cantado o con la pista) son dos botones juntos, uno encendido en ámbar: en la barra de acciones antes de proyectar, y arriba de los mandos mientras está al aire. Lo que no se puede elegir en ese equipo se ve apagado y dice por qué al pasar el cursor.
-- Lo que conviene **revisar en una carpeta de contenido** (videos que faltan, letras que no cuadran) no interrumpe: es un botón discreto en ámbar en la cabecera («2 avisos») que abre la lista, dicha en frases.
-- Una **biblioteca de cosas con partes** (Diapositivas) tiene dos columnas: a la izquierda, las presentaciones, cada una en una fila con su portada, su nombre (hasta dos líneas) y cuántas diapositivas tiene; a la derecha, las diapositivas de la elegida en rejilla, con su número debajo. La elegida va en ámbar; la que está al aire, en rojo con su insignia. En pantallas estrechas se ve una columna cada vez: primero las presentaciones y, al tocar una, sus diapositivas con un botón «Presentaciones» para volver. La barra de acciones dice qué diapositiva se va a proyectar ("Diapositiva 3 de 12") y, en gris, de qué presentación.
+- Una **elección entre dos formas del mismo contenido** (un himno cantado o con la pista) son dos botones juntos, uno encendido en cian: en la barra de acciones antes de proyectar, y arriba de los mandos mientras está al aire. Lo que no se puede elegir en ese equipo se ve apagado y dice por qué al pasar el cursor.
+- Lo que conviene **revisar en una carpeta de contenido** (videos que faltan, letras que no cuadran) no interrumpe: es un botón discreto en cian en la cabecera («2 avisos») que abre la lista, dicha en frases.
+- Una **biblioteca de cosas con partes** (Diapositivas) tiene dos columnas: a la izquierda, las presentaciones, cada una en una fila con su portada, su nombre (hasta dos líneas) y cuántas diapositivas tiene; a la derecha, las diapositivas de la elegida en rejilla, con su número debajo. La elegida va en cian; la que está al aire, en rojo con su insignia. En pantallas estrechas se ve una columna cada vez: primero las presentaciones y, al tocar una, sus diapositivas con un botón «Presentaciones» para volver. La barra de acciones dice qué diapositiva se va a proyectar ("Diapositiva 3 de 12") y, en gris, de qué presentación.
 - Los **mandos de una diapositiva** empiezan por lo que el operador necesita saber sin mirar la pantalla: por cuál va y cuántas quedan en una línea, y debajo la miniatura de la que sigue con su número. Después, el recuadro del encuadre y el deslizador de acercar, iguales que en una imagen (sin «Completa / Llenar»: una diapositiva va siempre entera).
 - El **control remoto** de un equipo es una ventana: panel táctil arriba (se desliza para mover el puntero, un toque pulsa), teclas en rejilla de tres por tres con OK al centro, y los pasos de la primera vez plegados al final.
-- Lo que se selecciona se resalta en ámbar suave y aparece como **vista previa** en el panel.
+- Lo que se selecciona se resalta en cian suave y aparece como **vista previa** en el panel.
 - Todo lo que un módulo produce puede **añadirse al orden del culto**, que es donde confluyen todos.
 - Lo que se configura una vez (apariencia, dispositivos) va en **Ajustes**, no en la pantalla de operación.
-- **Mandos en vivo**: los mandos propios de lo que está al aire (imagen de prueba, zoom, reproducción) van en un recuadro bajo "Negro / Solo fondo" del panel, y repetidos en el detalle del elemento en el orden. Solo aparecen cuando lo proyectado los tiene. Filas de botones que se reparten el ancho; la opción activa, en ámbar suave. Nunca un botón ámbar lleno: ese es de la acción principal.
-- **Tareas**: lo que el equipo principal tarda en preparar se muestra como una ficha con título, barra fina ámbar y una línea "43 % · faltan 0:40". Al terminar pasa a verde un momento y desaparece; si falla, borde rojo, el motivo y un botón para quitarla. Nunca bloquea la pantalla ni usa una ventana.
+- **Mandos en vivo**: los mandos propios de lo que está al aire (imagen de prueba, zoom, reproducción) van en un recuadro bajo "Negro / Solo fondo" del panel, y repetidos en el detalle del elemento en el orden. Solo aparecen cuando lo proyectado los tiene. Filas de botones que se reparten el ancho; la opción activa, en cian suave. Nunca un botón cian lleno: ese es de la acción principal.
+- **Tareas**: lo que el equipo principal tarda en preparar se muestra como una ficha con título, barra fina cian y una línea "43 % · faltan 0:40". Al terminar pasa a verde un momento y desaparece; si falla, borde rojo, el motivo y un botón para quitarla. Nunca bloquea la pantalla ni usa una ventana.
 
-- **Aviso de módulo**: si al módulo abierto le falta un programa del equipo principal, una franja ámbar suave sobre su cabecera dice qué no se podrá hacer, con "Instalar…" o "Cómo instalarlo" y una equis para cerrarla. Informa; nunca impide usar el módulo.
-- **Resultados de búsqueda**: flotan bajo el buscador, sin empujar el contenido. La primera línea dice cuántos hay y en qué versión se buscó. Van por niveles, cada uno con su rótulo y su número ("Frase exacta 12"). Cada resultado: la cita en ámbar y el texto en hasta tres líneas con lo encontrado resaltado (fondo ámbar suave, texto claro). El resultado señalado con el teclado lleva una barra ámbar a la izquierda.
-- **Elección única entre pocas opciones** (la disposición del comparador): un grupo de botones de icono dentro de un mismo marco (`.seg`); el elegido, con fondo más claro e icono ámbar.
+- **Aviso de módulo**: si al módulo abierto le falta un programa del equipo principal, una franja cian suave sobre su cabecera dice qué no se podrá hacer, con "Instalar…" o "Cómo instalarlo" y una equis para cerrarla. Informa; nunca impide usar el módulo.
+- **Resultados de búsqueda**: flotan bajo el buscador, sin empujar el contenido. La primera línea dice cuántos hay y en qué versión se buscó. Van por niveles, cada uno con su rótulo y su número ("Frase exacta 12"). Cada resultado: la cita en cian y el texto en hasta tres líneas con lo encontrado resaltado (fondo cian suave, texto claro). El resultado señalado con el teclado lleva una barra cian a la izquierda.
+- **Elección única entre pocas opciones** (la disposición del comparador): un grupo de botones de icono dentro de un mismo marco (`.seg`); el elegido, con fondo más claro e icono cian.
 - **Dos textos a comparar**: en la lista, dos columnas con la sigla de cada versión arriba; en celular, uno bajo otro, el segundo atenuado. En la proyección, las dos versiones separadas por una línea fina del color de la cita, cada una con su sigla debajo; la letra es algo menor que la de un pasaje solo y se reduce hasta que quepa.
 
-Fuera de las tres zonas hay dos páginas de una sola columna centrada: la **pantalla de inicio** (elegir función) y la **revisión del equipo** (`/requisitos`). La revisión empieza por lo que importa al usuario, **qué funcionará en este equipo**, módulo por módulo; después, cada programa en una ficha con su estado (verde "Listo", ámbar "Falta"), para qué sirve en una frase y, si falta, la acción "Instalar por mí" y los pasos a mano plegados. Su acción principal es siempre "Abrir Manna".
+Fuera de las tres zonas hay dos páginas de una sola columna centrada: la **pantalla de inicio** (elegir función) y la **revisión del equipo** (`/requisitos`). La revisión empieza por lo que importa al usuario, **qué funcionará en este equipo**, módulo por módulo; después, cada programa en una ficha con su estado (verde "Listo", cian "Falta"), para qué sirve en una frase y, si falta, la acción "Instalar por mí" y los pasos a mano plegados. Su acción principal es siempre "Abrir Manna".
 
 ## 8. Orden del culto
 
@@ -145,7 +149,7 @@ Toda pantalla contempla, además del caso normal:
 - **Cargando:** siluetas con la forma de lo que va a aparecer. Sin ruedas giratorias.
 - **Error:** aviso flotante con lo que pasó y qué hacer, en una frase. Sin "¡Ups!" ni signos de exclamación.
 - **Sin conexión:** barra roja arriba; la reconexión es automática.
-- **Pulsado:** los botones se encogen un 2 % al pulsar. **Foco:** contorno ámbar de 2 px, siempre visible con teclado.
+- **Pulsado:** los botones se encogen un 2 % al pulsar. **Foco:** contorno cian de 2 px, siempre visible con teclado.
 
 ## 10. Movimiento
 

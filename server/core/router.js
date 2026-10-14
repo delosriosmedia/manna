@@ -49,6 +49,10 @@ const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 // realidad llega de fuera, y lo marca con estas cabeceras: eso no es el equipo principal.
 const FORWARDED = ['x-forwarded-for', 'x-forwarded-proto', 'forwarded', 'x-real-ip', 'cf-connecting-ip', 'cf-ray'];
 const TOO_BIG = 'El archivo o la petición es demasiado grande.';
+// Desde internet (lo que llega reenviado por el túnel) todo pide sesión, salvo la interfaz misma y lo
+// necesario para entrar con el PIN: así nadie de fuera ve el contenido de la iglesia.
+const OPEN_FROM_INTERNET = new Set(['/api/session', '/api/ping']);
+const LOGIN = 'Escribe el PIN de Manna para entrar.';
 
 function readBody(req, limit) {
   return new Promise((resolve, reject) => {
@@ -200,10 +204,11 @@ export function createRouter({ webDir, sessions }) {
     return sendFile(req, res, file);
   }
 
-  function serveStatic(pathname, req, res) {
+  function serveStatic(pathname, req, res, locked) {
     let rel;
     try { rel = decodeURIComponent(pathname); } catch { return false; }
     const mounted = mounts.find((m) => rel.startsWith(m.prefix));
+    if (mounted && locked) throw new HttpError(401, LOGIN);
     if (mounted) return serveFrom(req, res, mounted.dir, rel.slice(mounted.prefix.length));
     if (rel === '/') rel = '/index.html';
     else if (!path.extname(rel)) rel += '.html';
@@ -212,20 +217,27 @@ export function createRouter({ webDir, sessions }) {
 
   async function handle(req, res) {
     const url = new URL(req.url, 'http://localhost');
-    const isLocal = LOOPBACK.has(req.socket.remoteAddress) && !FORWARDED.some((name) => name in req.headers);
+    const internet = FORWARDED.some((name) => name in req.headers);
+    const isLocal = LOOPBACK.has(req.socket.remoteAddress) && !internet;
+    const reads = req.method === 'GET' || req.method === 'HEAD';
+    const session = sessions.fromRequest(req);
     try {
+      // Una página de otro sitio, o una de las encerradas que sirve Manna (origen «null»), no da órdenes.
+      if (!reads && (req.headers.origin === 'null' || req.headers['sec-fetch-site'] === 'cross-site')) throw new HttpError(403, 'Esa orden no viene de Manna.');
       for (const r of routes) {
         if (r.method !== req.method) continue;
         const m = r.rx.exec(url.pathname);
         if (!m) continue;
+        if (internet && !session && !OPEN_FROM_INTERNET.has(url.pathname)) throw new HttpError(401, LOGIN);
         const params = {};
         r.keys.forEach((k, i) => { params[k] = decodeURIComponent(m[i + 1]); });
         const ctx = {
           req, res, params,
           query: url.searchParams,
           isLocal,
+          internet,
           ip: req.socket.remoteAddress,
-          session: sessions.fromRequest(req),
+          session,
           async json() {
             if (!/^application\/json/.test(req.headers['content-type'] || '')) throw new HttpError(415, 'Se esperaba JSON.');
             const raw = await readBody(req, 1024 * 1024);
@@ -250,8 +262,7 @@ export function createRouter({ webDir, sessions }) {
         if (body !== undefined && !res.headersSent) sendJson(res, 200, body);
         return;
       }
-      const reads = req.method === 'GET' || req.method === 'HEAD';
-      if (reads && !url.pathname.startsWith('/api/') && serveStatic(url.pathname, req, res)) return;
+      if (reads && !url.pathname.startsWith('/api/') && serveStatic(url.pathname, req, res, internet && !session)) return;
       // Una dirección de /api/ que no existe suele ser una interfaz más nueva que el servidor abierto.
       sendJson(res, 404, { error: url.pathname.startsWith('/api/') ? 'Manna no reconoce esa orden. Si acabas de actualizarlo, reinícialo desde Ajustes.' : 'No encontrado.' });
     } catch (err) {

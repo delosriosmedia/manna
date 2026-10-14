@@ -8,6 +8,7 @@
 - Las pruebas crean sus datos en carpetas temporales. No dependen de `Contenido/` ni de `data/`, ni de internet (las descargas se prueban contra un servidor en el propio equipo).
 - Un hook corre las pruebas automáticamente al editar `server/`, `web/`, `scripts/` o `test/`.
 - **Revisión del código sin ejecutarlo** (`test/codigo.test.js`, con `scripts/lib/codigo.mjs`): falla si un archivo importa algo que el otro no ofrece, si una variable o un parámetro lleva el nombre de algo importado (así se rompió la subida del fondo: un campo `upload` tapaba la función `upload`), o si la interfaz envía una orden o pide una dirección que el servidor no tiene. Un fallo aquí se arregla cambiando el nombre o el código, no aflojando la regla.
+- Lo que Manna le pide a una ventana de Chrome por el protocolo de depuración (las flechas a una página web) se prueba con un Chrome sin ventana de verdad: `test/teclas.test.js` (se salta, diciéndolo, si el equipo no tiene Chrome ni Edge).
 - Lo que solo pasa entre arranques (notar una actualización, relevar a una copia anterior, reiniciar) se prueba con procesos de verdad sobre una copia del programa: `test/arranque.test.js`.
 
 ## En navegador
@@ -31,6 +32,8 @@ Usar siempre un servidor de prueba con `MANNA_DATA` temporal, `PORT=8123`, `MANN
 Lo que habla con un equipo de la red (un televisor) se prueba contra uno de mentira: `scripts/lib/tv-falso.mjs` responde como un Samsung y apunta lo que recibe. Lo usan `test/tv.test.js` y los dos guiones de Chrome. Nunca se deja que una prueba salga a la red de verdad.
 
 Lo que descarga de internet (YouTube) se prueba con un programa de mentira: `scripts/lib/yt-dlp-falso.mjs` escribe un yt-dlp que dice el título y el avance, fabrica el video con ffmpeg y deja subtítulos "automáticos" como los de YouTube; falla como un video privado si el identificador empieza por `privado`. Se pone en `data/herramientas/` del servidor de prueba, que arranca con `MANNA_FALTA=yt-dlp` para que el yt-dlp de verdad del equipo no se use nunca. Lo usan `test/youtube.test.js` y la prueba en Chrome. **Una descarga real de YouTube no forma parte de ninguna prueba.**
+
+La conexión por internet se prueba con un cloudflared de mentira (`scripts/lib/cloudflared-falso.mjs`, en la carpeta de programas de la prueba y con `MANNA_FALTA=cloudflared`): da la dirección de un túnel rápido, «se registra» y falla como una clave no válida si la clave empieza por «malo». **Ninguna prueba abre un túnel de verdad.** Los instaladores aceptan `MANNA_DESCARGA` (un `.zip` local con `file://`), `MANNA_BASE`, `MANNA_DOCUMENTOS` y `MANNA_DESTINO` para probarlos en carpetas temporales sin tocar el equipo.
 
 El himnario de las pruebas, la auditoría y la demostración es **inventado**: `scripts/lib/himnario-falso.mjs` fabrica los videos (con dos pistas de sonido, como los de verdad) y escribe títulos y letras que no son de ningún himnario, con los casos difíciles dentro (una letra con otro título que su video, un himno sin letra, uno sin video, uno sin pista). Todo guion que arranca un servidor le pasa `MANNA_HIMNARIO`; si no, leería el de `Contenido/`. El Chrome de las pruebas va con el sonido apagado (`--mute-audio`).
 

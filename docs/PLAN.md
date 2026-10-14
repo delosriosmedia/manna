@@ -135,6 +135,7 @@ De menor a mayor riesgo; cada fase deja algo usable y **se publica al cerrarla**
 | 10 | Función «Presentador» | M | |
 | 11 | Páginas web y presentaciones HTML | M | |
 | 12 | PowerPoint en vivo (Windows) | L | |
+| 13 | Rediseño «Escenario» de toda la interfaz de control (decisión 32) | L+ | Va antes de la 12 |
 
 **Orden cambiado el 2026-10-04 (decisión 20)**: la fase 6 va antes que la 5, mientras el dueño revisa las letras de los himnos. La reproducción (pausa, avance, volumen, una sola pantalla que suena), que iba a estrenarse con el himnario, se construye con los videos.
 
@@ -259,18 +260,13 @@ Sección 8.
 - Se prueba entera en el equipo de desarrollo.
 - **Dónde está** (2026-10-14, sin publicar): `web/modules/slides/presenter.js` (la pantalla), `web/roles/presentador.js` y `web/presentador.html` (la función, con la clase `no-dock`), el rol en `server/roles.js`, la orden `projection.pointer` y el espacio `pointer` en `server/modules/projection/index.js`, el punto en `web/modules/projection/stage.js` (`setPointer`, `pointAt`) y `picture.js` (`locate`, `spot`). Pruebas: `test/servidor.test.js` (puntero), sección «Presentador» de `scripts/probar-chrome.mjs` y dos pantallas en `scripts/auditar-responsive.mjs`.
 
-### Fase 11 · Páginas web y presentaciones HTML
+### Fase 11 · Páginas web y presentaciones HTML — hecha (1.11.0)
 
 - Un archivo HTML o ZIP subido se proyecta sin internet, encerrado para que no pueda dar órdenes a Manna.
 - Una dirección que se deja mostrar dentro de Manna (Canva con su enlace de insertar, Google Slides publicado, Genially) se ve en todas las pantallas y admite el puntero.
 - Una que no se deja (Kahoot): su propia ventana a pantalla completa sobre la proyección, que se cierra al pasar a otra cosa y se maneja con el ratón del equipo principal; anterior y siguiente desde el celular, si se le pueden enviar las flechas.
 - Manna dice al agregar una dirección en cuál de los dos casos cae. **Las direcciones necesitan internet durante el culto** (decisión 30).
-- **Cómo se hará** (notas del 2026-10-14 para retomarla; lo marcado «sin comprobar» viene de una consulta, no de una prueba):
-  - Un tipo de contenido nuevo (`web`) con su biblioteca, en el módulo Diapositivas (un módulo puede tener varios tipos). En `data` solo el id de la entrada; la entrada guarda nombre, origen (`archivo` o `dirección`) y si se deja insertar.
-  - **Archivo subido**: se guarda en `data/media/web/<id>/` y se sirve con la cabecera `Content-Security-Policy: sandbox allow-scripts`, para que tenga un origen propio aunque se abra suelto; en la proyección va en un `<iframe sandbox="allow-scripts">` sin `allow-same-origin` ni `allow-top-navigation`. Además, `POST /api/action` y las subidas deben rechazar lo que llegue con `Origin: null` o `Sec-Fetch-Site: cross-site` (comprobar antes qué valida hoy `server/core/router.js`). Un ZIP hay que abrirlo a mano (Node trae `zlib`, no lector de ZIP): si se quiere evitar, empezar admitiendo solo un `.html` suelto.
-  - **Dirección**: al agregarla, el servidor la pide (GET, con tiempo límite y siguiendo redirecciones) y mira `X-Frame-Options` (`DENY` o `SAMEORIGIN` = no se deja) y `frame-ancestors` de `Content-Security-Policy` (sin `*` = no se deja). Lo que una página impide con JavaScript no se ve así. Es la primera conexión de Manna hacia internet fuera de las descargas de programas: hay que anotar la excepción en `.claude/rules/servidor.md` (hoy solo permite conectar a la red local). Canva solo se deja con su enlace de «Insertar» (`…/view?embed`), Google Slides con «Publicar en la web» (`…/pub`), Genially con su enlace de insertar; Kahoot no se deja (sin comprobar).
-  - **Insertable**: el tipo la dibuja en el escenario como `<iframe>` a pantalla completa y ofrece `locate` / `spot` (el rectángulo del iframe) para el puntero. Anterior y siguiente desde un celular no llegan dentro de un iframe de otro sitio: no se ofrecen, salvo con la vía de la ventana aparte.
-  - **No insertable**: `openKiosk()` de `server/modules/projection/launcher.js` abre otro Chrome en la segunda pantalla con esa dirección y perfil propio (si no, Chrome reutiliza el abierto e ignora la posición), y se cierra al proyectar otra cosa. Las flechas desde el celular, con el protocolo de depuración de Chrome: `--remote-debugging-port=0` y `--remote-debugging-address=127.0.0.1`, el puerto se lee de `DevToolsActivePort` en el perfil, y `Input.dispatchKeyEvent` por `server/core/ws.js` (sin comprobar). Ese puerto da control total del navegador: solo en 127.0.0.1 y solo mientras la ventana existe. Las demás pantallas (celulares, televisores) muestran una tarjeta «Se ve en el proyector».
+- **Cómo quedó** (2026-10-14): un módulo propio, **Páginas web** (`server/modules/web/`, `web/modules/web/`), no una pestaña de Diapositivas. Solo `.html` sueltos, sin ZIP. Un archivo propio va encerrado (cabecera `sandbox` y marco con `sandbox`) y recibe «Anterior» / «Siguiente» por mensajes al marco, en todas las pantallas a la vez. Lo que no se deja mostrar lo abre el módulo de proyección en otra ventana (`item.window`, perfil `navegador-paginas`). El router rechaza toda orden con `Origin: null` o de otro sitio. Ampliación aprobada (S33, S34): esa ventana recibe «Anterior» y «Siguiente» desde cualquier dispositivo, por el protocolo de depuración de Chrome (solo en 127.0.0.1 y con su perfil propio), y el Presentador también presenta páginas web, con el puntero.
 
 ### Fase 12 · PowerPoint en vivo (Windows)
 
@@ -285,6 +281,74 @@ Sección 8.
   - **Trampas**: una ventana de PowerPoint que pide algo (vista protegida, reparar el archivo, fuentes) deja el proceso esperando para siempre: hace falta tiempo límite y cerrar ese PowerShell. No cerrar un PowerPoint que ya estuviera abierto. Que no queden `POWERPNT.EXE` huérfanos.
   - **Puntero**: COM no deja colocar el láser de PowerPoint; la vía posible es mover el ratón de Windows sobre esa pantalla (`SetCursorPos`) con el puntero en modo láser. Sin comprobar; si no sale, en este modo no hay puntero.
   - En el estado, la diapositiva al aire sigue siendo del tipo `slides` (con su imagen, que es lo que ven celulares y televisores); un ajuste por presentación dice si se pasa en vivo. Para probarlo sin PowerPoint hay que ampliar `scripts/lib/powerpoint-falso.mjs` para que haga de sesión en vivo.
+
+### Fase 13 · Rediseño «Escenario» de la interfaz de control
+
+Decisión 32. El diseño se aprobó sobre un lienzo de prototipos navegables (https://claude.ai/artifact/J1nL2fMbgmB3wiUgVZKJW4, privado del dueño). Lo que hace falta para construirlo está aquí; al empezar, `DESIGN.md` se reescribe con ello.
+
+**Lo aprobado**
+- Escritorio y tableta en horizontal: **«Escenario»**. Lo que está al aire ocupa toda la pantalla, con un borde rojo mientras se ve. Encima flotan, en cristal:
+  - la barra superior: estado, «Buscar en todo» y la ficha de la función;
+  - el dock de módulos a la izquierda, que abre cajones;
+  - la cola del culto a la derecha;
+  - la barra de transporte abajo.
+- Celular y tableta en vertical: **«Historias»**.
+  - La proyección en un recuadro 16:9 arriba, con su color tiñendo el fondo.
+  - Se pasa tocando la imagen (a la derecha avanza, a la izquierda vuelve), con rayitas que marcan los pasos.
+  - Debajo: Al aire / Solo fondo / Negro, el volumen y el carrusel «A continuación».
+  - Abajo, el dock: cada módulo se abre en un cajón que sube y se amplía a pantalla completa.
+- **Un toque prepara, doble toque o Intro proyecta.** Lo preparado se ve en la tarjeta «Preparado», con Proyectar y Añadir al orden. Sustituye a la vista previa del panel «Al aire», que desaparece.
+- **Buscar en todo (Ctrl K)**: versículos (RV1960), himnos (número, título o letra), medios, presentaciones y páginas.
+- Orden del culto en dos lugares: la **cola** para operar y el **cajón** para prepararlo, con una segunda vista, el **Mapa del culto**.
+- El **Comparador pasa a ser un botón de la Biblia** y deja de ser un módulo propio. En la Biblia, «Varios» elige un tramo con dos toques.
+- Sistema visual:
+  - **cian #5CE8FF** como único acento: selección, acción principal y foco;
+  - rojo #E0383E solo para «al aire»;
+  - suelo #030406;
+  - cristal en tres niveles: flotante, cajón y hoja;
+  - **Sora** para la interfaz, en lugar de Geist. Se incluye en `web/vendor/`, con licencia libre;
+  - la proyección conserva su propia letra.
+- La cola, abierta por defecto en escritorio. En el celular, tocar la imagen pasa en todas las funciones. En el Presentador, «Señalar» cambia el toque a señalar.
+- **Toda capa flotante se cierra al tocar fuera y con Esc** (pedido del dueño): la búsqueda, los menús, las hojas, los cajones del celular, el Mapa del culto, el PIN y las confirmaciones.
+- **Lo local siempre funciona por defecto** (pedido del dueño):
+  - las direcciones, el código QR y el icono usan la red de la iglesia;
+  - la conexión por internet es un camino más, y su estado (apagada, conectando o caída) no bloquea ni cambia nada de lo local;
+  - ya es así, y lo comprueba `test/internet.test.js`.
+
+**Cómo se hará**: por partes. Cada una deja Manna funcionando, lleva sus pruebas y se publica al cerrarla.
+1. **Sistema visual.**
+   - Fichas nuevas en `web/core/app.css` y Sora en `web/vendor/`; sale Geist.
+   - Cristal con alternativa sólida donde `backdrop-filter` no exista o vaya lento: televisores y celulares modestos.
+   - Iconos que falten; `DESIGN.md` reescrito.
+   - Aún no cambia la estructura: es un cambio de piel.
+2. **Estructura de capas** (`web/core/shell.js`).
+   - Proyección de fondo con `createStage` a pantalla completa, barra superior, dock, cajón compacto (440 px) o ampliado, cola plegable y barra de transporte.
+   - Los mandos de cada tipo (`controls()` de los tipos) pasan a la barra de transporte.
+   - Tarjeta «Preparado» y, en el celular, «Historias».
+   - Fuera del equipo principal, la proyección de fondo de un video o un himno muestra su imagen, no el video, para no gastar batería ni red.
+3. **Buscar en todo**, en el cliente, juntando lo que ya existe: la búsqueda de la RV1960 del servidor, el himnario (`GET /api/hymns`) y lo que hay en el estado (medios, diapositivas, páginas).
+4. **Módulos en cajones**, uno a uno, fluidos (caben en 440 px, ampliados y en el celular):
+   - Orden (lista y Mapa del culto) y Biblia (con Comparar y Varios);
+   - Himnario (la ficha al lado), Medios, Diapositivas y Páginas web;
+   - Ajustes, por secciones, con la revisión del equipo dentro.
+5. **Funciones.**
+   - Inicio y PIN con teclado.
+   - Control, Alabanza (volumen grande) y Control del orden (solo la cola).
+   - Presentador en escritorio y en celular, con «Señalar».
+   - La revisión del equipo con la piel nueva.
+   - La pantalla de proyección no cambia.
+6. **Pruebas y documentos.**
+   - `scripts/probar-chrome.mjs` y `scripts/auditar-responsive.mjs` se rehacen en buena parte, junto con cada parte y no al final: cambian casi todos los selectores, pero se conservan las comprobaciones de comportamiento, incluida la de pulsar todas las órdenes.
+   - La auditoría mide además el contraste sobre fondos cambiantes y que las capas se cierren al tocar fuera.
+   - `README.md`, `.claude/rules/web.md` y `DESIGN.md`.
+
+**Riesgos**
+- Es el cambio más grande hasta ahora. Por eso va por partes, y cada una se puede publicar sola.
+- Las pruebas en Chrome dependen de la estructura: rehacerlas es parte de cada paso.
+- El cristal desenfocado y la proyección de fondo cuestan en celulares y televisores: alternativa sólida y sin video de fondo fuera del equipo principal.
+- Legibilidad sobre fondos que cambian, como una diapositiva blanca detrás: el cristal lleva opacidad suficiente y la auditoría mide el contraste.
+- Los voluntarios tendrán que aprender dónde está cada cosa. Se conservan los atajos y lo de siempre: Anterior, Siguiente, Negro.
+- Preparar añade un toque. El doble toque proyecta directo.
 
 ## 5. Cómo se trabaja cada fase
 
@@ -327,6 +391,8 @@ Tomadas el 2026-10-04.
 | 25 | Al terminar un video (S17) | **Pasar a «Solo fondo»** con un desvanecido rápido |
 | 26 | Botón para hacer sonar (S18) | **No.** Se quita también el aviso «Toca aquí para que suene». El sonido va solo al dispositivo de audio configurado en el equipo principal |
 | 30 | Presentador, páginas web y PowerPoint en vivo (2026-10-14) | **Sí a todo, en el orden 10 → 11 → 12.** Acepta que en PowerPoint en vivo se saque igualmente una foto de cada diapositiva para los celulares, que ese modo sea solo para Windows al principio y que las páginas web por dirección necesiten internet durante el culto |
+| 31 | Instalación y conexión por internet (2026-10-14) | **Se queda la conexión por internet (Cloudflare) y se abre con el mismo icono que Manna**, si está encendida en Ajustes. Desde internet **nada se ve sin PIN**, ni la pantalla de proyección; el PIN se queda como está (4 cifras, 5 intentos por minuto). **Se instala con un solo archivo** que baja Manna a una carpeta que el usuario no ve; volver a abrirlo lo actualiza. **La carpeta de contenido de la iglesia nunca se reemplaza ni se mueve.** Levanta los límites «solo red local» y «ningún programa nuevo» para cloudflared |
+| 32 | Rediseño de la interfaz (2026-10-14) | **Aprobado el diseño «Escenario»** para escritorio y tableta horizontal y **«Historias»** para celular y tableta vertical, con lo que propusieron los prototipos: cian como acento, Sora, preparar antes de proyectar, buscar en todo, cola abierta, el Comparador dentro de la Biblia y tocar la imagen para pasar en el celular. Además: **toda capa flotante se cierra al tocar fuera** y **lo local siempre funciona por defecto**, esté o no la conexión por internet. Va antes de la fase 12 |
 | 29 | Tras la fase 8 (2026-10-05) | **Empezar ya el himnario**, con un archivo `.md` que el dueño dejó en `Contenido/Himnario/letras/` con todas las letras **y las categorías**. Las sugerencias S23 a S28 y las pruebas, después |
 | 28 | Orden tras la fase 7 (2026-10-05) | **Pasar de una vez a la fase 8 (diapositivas) y ahí detenerse** para hacer pruebas, antes de revisar la fase del himnario |
 | 27 | La espera al convertir un video pesado (S19, S20, S21) | **Convertir más rápido y poder usar el video de inmediato**; la conversión para los dispositivos remotos, de fondo. **No** medir el equipo desde la revisión |
@@ -420,8 +486,9 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 5 Himnario | **Hecha** · 2026-10-05 | 1.9.0 | Ver abajo. Probado con el himnario real: 613 himnos, 540 con letra. **El archivo de letras tiene 73 himnos (123 a 195) que no corresponden a sus videos**: no se usan hasta que se corrijan |
 | 9 Auditoría | Pendiente | 2.0 | |
 | 10 Presentador | **Hecha** · 2026-10-14, publicada en la 1.10.0 | | Probada en Chrome (con dedos simulados) y en la auditoría de pantallas. Falta la prueba del dueño con un celular real y el proyector |
-| 11 Páginas web | Pendiente | | |
-| 12 PowerPoint en vivo | Pendiente | | |
+| 11 Páginas web | **Hecha** · 2026-10-14 | 1.11.0 | Probada con pruebas automáticas y en Chrome real, con páginas de un servidor del propio equipo. **Falta la prueba del dueño**: la ventana aparte con el proyector, Canva y Kahoot de verdad, y en Windows |
+| 12 PowerPoint en vivo | Pendiente | | Después de la 13 |
+| 13 Rediseño Escenario | **En curso** · plan aprobado el 2026-10-14; **parte 1 (sistema visual) hecha** | | Cian, Sora, píldoras y cristal en ventanas, menús y avisos. Pruebas: 156 automáticas, 319 en Chrome, auditoría de 9 tamaños sin problemas (en tableta horizontal, el campo de YouTube pasó a su propia línea por el ancho de Sora). Sigue la parte 2, la estructura de capas |
 
 ### Fase 0 · resultados
 
@@ -567,6 +634,13 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 
 | Fecha | Cambio | Motivo |
 | --- | --- | --- |
+| 2026-10-14 | Fase 11: Páginas web es un módulo propio, no una pestaña de Diapositivas | Su biblioteca y su forma de agregar no se parecen a las de una presentación; así no se acopla a Diapositivas |
+| 2026-10-14 | Fase 11: solo archivos `.html` sueltos, sin ZIP | Abrir un ZIP sin dependencias obliga a escribir un lector a mano; el dueño aceptó empezar así |
+| 2026-10-14 | Fase 11: «Anterior» y «Siguiente» llegan a un archivo HTML propio por mensajes al marco, no por el protocolo de depuración de Chrome | Llegan a todas las pantallas a la vez (también a la que se abre tarde) y se pueden probar en Chrome sin proyector |
+| 2026-10-14 | Se añade la fase 13 (rediseño «Escenario») y va antes de la 12 | Decisión 32 |
+| 2026-10-14 | Fuera de las fases (decisión 31): la conexión por internet entra en Manna (módulo `internet`), desde internet todo pide PIN, y se instala con un solo archivo que no toca nunca el contenido | A petición del dueño |
+| 2026-10-14 | Fase 11, ampliación: la ventana aparte recibe «Anterior» y «Siguiente» desde el celular (S33) y el Presentador muestra páginas web, con el puntero (S34) | El dueño aceptó las dos sugerencias |
+| 2026-10-14 | S35 deja de ser «subir un ZIP» y pasa a estudiar **compartir una pestaña de Chrome**, como Google Meet | A petición del dueño: resolvería a la vez internet, los ZIP y las páginas que no se dejan mostrar |
 | 2026-10-14 | Se añaden las fases 10 (Presentador), 11 (páginas web) y 12 (PowerPoint en vivo) | Decisión 30, a petición del dueño |
 | 2026-10-04 | Las versiones se renumeran: la fase 0 es la 1.1 y cada fase sube una (1.2 … 1.9, auditoría 2.0) | La fase 0 dejó cambios a la vista (revisión del equipo, nombre propio, imagen de prueba) y se publica, como todas |
 | 2026-10-04 | La fase 0 gana tres piezas: revisión del equipo con "Instalar por mí", tareas con avance y tiempo restante, e imagen de prueba | Las dos primeras salen de las respuestas del dueño (decisión 2 y la conversión con avance a la vista); la tercera es el tipo con mandos que exigía el criterio de cierre, hecho útil en vez de desechable |
@@ -671,5 +745,32 @@ Las sugerencias S8 a S11 son del televisor: esperan a que se retome la fase 3 (d
 | S26 | Una carpeta `Contenido/Diapositivas/` donde dejar PDF, que el control del equipo principal convierta solo | Es lo que ya hacen los videos con `Contenido/Medios/`. Hoy una presentación solo entra subiéndola desde la app | Pequeño-mediano: lo convertiría la página de control del equipo principal (el servidor no sabe leer un PDF), como ya hace para comprobar los videos |
 | S27 | Guardar también el PDF original y poder **reemplazar** una presentación conservando su sitio en el orden del culto | Hoy, si se corrige una diapositiva a última hora, hay que subir la presentación de nuevo y volver a añadirla al orden | Pequeño. Ocupa algo más de disco |
 | S28 | Mostrar las **notas del orador** de un PowerPoint en el panel "Al aire" | PowerPoint las puede entregar al convertir; a quien predica o dirige le sirven | Mediano; solo para PowerPoint (un PDF no las trae) |
+| S35 | **Proyectar una pestaña ya abierta en el Chrome del equipo principal**, como al compartir en Google Meet | Serviría para cualquier página, también las que no se dejan mostrar o piden iniciar sesión, sin ZIP | Estudiado el 2026-10-14: ver «S35 · lo que se sabe», debajo. Mediano |
 | S7 | Revisar los 5 himnos con alguna parte de un solo renglón (58, 68, 352, 546 y 590) | Puede que les falten líneas. Eran 15 en los archivos anteriores | Nada en el plan; se corrige el archivo y Manna lo vuelve a leer solo |
 
+
+### S35 · Compartir una pestaña de Chrome: lo que se sabe (2026-10-14)
+
+Consultado a Gemini y comprobado en la documentación de Chrome lo marcado así; lo demás, **sin comprobar**.
+
+- **Cómo sería**: el control del equipo principal (en `localhost`, que el navegador da por seguro) pide `getDisplayMedia`; Chrome muestra **su selector de pestañas cada vez** (no se puede saltar ni recordar). El video llega a la ventana de proyección (otro Chrome, otro perfil) por WebRTC, con Manna de intermediario para conectarlas.
+- **Lo que gana**: vale para cualquier página: Kahoot, Canva sin enlace de insertar y las que piden iniciar sesión, porque la pestaña es la del Chrome normal con sus sesiones. Lleva el sonido de la pestaña. Quien opera la maneja en su pantalla mientras se proyecta, sin ZIP ni archivos.
+- **Controles que Manna podría tener** (Chrome de escritorio):
+  - **Desplazar** la pestaña y **acercar o alejar** con *Captured Surface Control*: `forwardWheel`, `increaseZoomLevel`, `decreaseZoomLevel` y `resetZoomLevel`. Desde Chrome 136, y pide permiso una vez (comprobado: https://developer.chrome.com/docs/web-platform/captured-surface-control).
+  - **Cambiar a otra pestaña** sin volver a empezar (`surfaceSwitching`).
+  - Que Chrome **no salte** a la pestaña al compartir (*Conditional Focus*).
+  - **Pausar o dejar de compartir**.
+- **Lo que no se puede**:
+  - No hay forma estándar de enviar **flechas ni clics** a la pestaña compartida. Para «Anterior / Siguiente» desde un celular haría falta una **extensión de Chrome** con `chrome.debugger`, instalada a mano; Chrome muestra un aviso de depuración en la pestaña.
+  - El protocolo de depuración ya no se abre sobre el perfil normal de Chrome (Chrome 136).
+- **Límites**:
+  - Solo se comparte desde el equipo principal: un celular en `http://` no puede.
+  - Compartir dura lo que siga abierta la página de control que comparte.
+  - Codificar el video gasta CPU del equipo principal.
+  - El texto pequeño se ve peor que en la página tal cual.
+  - Hacerlo llegar también a celulares y televisores por WebRTC sin `https` está sin comprobar: Chrome oculta la dirección del equipo tras un nombre `.local`, y Safari en `http://` puede no aceptarlo.
+- **Recomendación**:
+  - Añadirlo como **una forma más** de proyectar, sin quitar las direcciones ni los archivos: «Compartir una pestaña», solo en el equipo principal y hacia su pantalla de proyección, con desplazar, acercar y cambiar de pestaña.
+  - Las demás pantallas mostrarían la tarjeta «Se ve en el proyector».
+  - Antes, una prueba de concepto de un día: WebRTC entre dos Chrome del mismo equipo, sin dependencias.
+  - Las flechas desde el celular, solo si se acepta la extensión.

@@ -13,14 +13,23 @@ import tv from './modules/tv/index.js';
 import media from './modules/media/index.js';
 import slides from './modules/slides/index.js';
 import hymns from './modules/hymns/index.js';
+import web from './modules/web/index.js';
+import internet from './modules/internet/index.js';
 
 // Para añadir un módulo nuevo: crea su carpeta en server/modules y agrégalo aquí.
-const MODULES = [system, bible, projection, order, media, slides, hymns, tv];
+const MODULES = [system, bible, projection, order, media, slides, hymns, web, internet, tv];
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DATA = process.env.MANNA_DATA || path.join(ROOT, 'data');
+// Instalado con «Instalar Manna», el programa vive en <base>/programa y el instalador apunta en
+// <base>/carpetas.json dónde están los datos y el contenido de la iglesia (que nunca mueve).
+function installedFolders() {
+  if (path.basename(ROOT) !== 'programa') return {};
+  try { return JSON.parse(fs.readFileSync(path.join(ROOT, '..', 'carpetas.json'), 'utf8').replace(/^\uFEFF/, '')); } catch { return {}; }
+}
+const placed = installedFolders();
+const DATA = process.env.MANNA_DATA || placed.datos || path.join(ROOT, 'data');
 // Lo que pone cada iglesia (biblias, himnos, letras) vive en una sola carpeta: ver Contenido/LEEME.txt.
-const CONTENT = path.join(ROOT, 'Contenido');
+const CONTENT = placed.contenido || path.join(ROOT, 'Contenido');
 
 // Así arranca el icono "Manna": sin ventana, con los mensajes guardados en data/manna.log.
 const BACKGROUND = process.argv.includes('--segundo-plano');

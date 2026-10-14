@@ -8,7 +8,7 @@
 //      nombres propios), himnario (uno inventado: buscar por número, título y letra, cantado y pista), medios (subir imágenes, ajuste, encuadre al aire en dos pantallas; videos
 //      y audios que van a la par; YouTube, con un yt-dlp de mentira), televisores (con uno de
 //      mentira), diapositivas (un PDF de verdad, convertido por el propio Chrome, y un PowerPoint
-//      con un PowerPoint de mentira), el Presentador (pasar diapositivas, señalar con el dedo, acercar y mover; también en 375 px), mandos en vivo que van a la par en dos pantallas, ajustes
+//      con un PowerPoint de mentira), el Presentador (pasar diapositivas, señalar con el dedo, acercar y mover, páginas web; también en 375 px), Páginas web (direcciones que se dejan mostrar y que no, y un archivo HTML encerrado que recibe las flechas desde los mandos al aire), mandos en vivo que van a la par en dos pantallas, ajustes
 //      y la función "Control del orden". También que Manna atiende por https.
 //   2. Al entrar por la dirección numérica, la página pasa sola a la dirección con nombre.
 //   3. El navegador pide confirmación al salir de la pestaña de control.
@@ -37,6 +37,7 @@ import { lanInterfaces } from '../server/modules/system/network.js';
 import { killOnExit, sleep, startChrome } from './lib/chrome.mjs';
 import { startFakeTv } from './lib/tv-falso.mjs';
 import { writeFakeYtDlp } from './lib/yt-dlp-falso.mjs';
+import { writeFakeCloudflared } from './lib/cloudflared-falso.mjs';
 import { fakePresentation, writeFakePowerPoint } from './lib/powerpoint-falso.mjs';
 import { makePdf } from './lib/pdf.mjs';
 import { HYMN_FACTS, hymnTitle, seedHymnal } from './lib/himnario-falso.mjs';
@@ -111,6 +112,13 @@ const ytAsked = path.join(tmp, 'yt-dlp-pedido.json');
 if (CAN_YOUTUBE) writeFakeYtDlp(path.join(tmp, 'data', 'herramientas'), { title: 'Saludo de la iglesia hermana', seconds: 6, log: ytAsked, pause: 600 });
 else UNTOUCHED['media.youtube'] = 'el yt-dlp de mentira necesita ffmpeg y un sistema que ejecute guiones; se prueba en test/youtube.test.js';
 
+// La conexión por internet, igual: un cloudflared de mentira (un guion que escribe lo mismo que el de
+// verdad) en la carpeta de programas del servidor de prueba. Nunca se abre un túnel de verdad.
+const CAN_TUNNEL = process.platform !== 'win32';
+const tunnelAsked = path.join(tmp, 'cloudflared-pedido.json');
+if (CAN_TUNNEL) writeFakeCloudflared(path.join(tmp, 'data', 'herramientas'), { log: tunnelAsked });
+else for (const name of ['internet.set', 'internet.own']) UNTOUCHED[name] = 'el cloudflared de mentira es un guion y este sistema no los ejecuta; se prueba en test/internet.test.js';
+
 // El himnario de la prueba es inventado (videos de colores con dos tonos, letras escritas aquí):
 // no se usa el de Contenido/Himnario.
 const hymnal = seedHymnal(path.join(tmp, 'himnario'), { count: 14, seconds: 14 });
@@ -125,7 +133,7 @@ const fakeTv = await startFakeTv();
 function startServer(host, extra = {}) {
   // MANNA_SIN_VENTANA: la prueba no abre su proyección en el proyector de verdad, si lo hay.
   // MANNA_CONVERSION_LENTA: cada conversión tarda en empezar, para poder ver qué pasa mientras tanto.
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), ...extra };
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), ...extra };
   if (host) env.MANNA_HOST = host;
   // killOnExit: si la prueba se corta a medias, el servidor no se queda abierto ocupando el puerto.
   return killOnExit(spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env }));
@@ -242,7 +250,7 @@ async function reviewSection() {
   await new Promise((resolve) => downloads.listen(0, '127.0.0.1', resolve));
   const from = `http://127.0.0.1:${downloads.address().port}`;
   const review = startServer(null, {
-    PORT: '8125', MANNA_NAME: 'manna-revision', MANNA_DATA: path.join(tmp, 'revision'), MANNA_FALTA: 'yt-dlp,navegador',
+    PORT: '8125', MANNA_NAME: 'manna-revision', MANNA_DATA: path.join(tmp, 'revision'), MANNA_FALTA: 'yt-dlp,navegador,cloudflared',
     MANNA_DESCARGAS: JSON.stringify({ 'yt-dlp': { url: `${from}/yt-dlp-prueba`, sums: `${from}/SUMAS`, file: 'yt-dlp', size: '60 KB' } }),
   });
   try {
@@ -251,7 +259,7 @@ async function reviewSection() {
     await sleep(2000);
     const card = `document.querySelector('.req[data-id="yt-dlp"]')`;
     const mod = (id) => `document.querySelector('#modules .mod[data-id=${id}]')`;
-    check('la revisión lista los cuatro programas y marca los que faltan', await run(`return document.querySelectorAll('.req').length === 4 && ${card}.classList.contains('missing') && document.querySelector('.req[data-id=navegador]').classList.contains('missing')`));
+    check('la revisión lista los cinco programas y marca los que faltan', await run(`return document.querySelectorAll('.req').length === 5 && ${card}.classList.contains('missing') && document.querySelector('.req[data-id=navegador]').classList.contains('missing') && document.querySelector('.req[data-id=cloudflared]').classList.contains('missing')`));
     check('explica para qué sirve y cómo instalarlo a mano', await run(`return ${card}.textContent.includes('YouTube') && Boolean(${card}.querySelector('details code'))`));
     check('dice qué módulos funcionarán completos y cuáles no', await run(`return ${mod('biblia')}.textContent.includes('Completo') && !${mod('biblia')}.classList.contains('limited') && ${mod('medios')}.classList.contains('limited') && ${mod('medios')}.textContent.includes('YouTube: falta yt-dlp') && ${mod('ajustes')}.textContent.includes('falta Google Chrome')`));
     check('no bloquea: Manna se puede abrir aunque falten programas', await run(`const a = document.querySelector('#footer a'); return a.textContent === 'Abrir Manna' && a.getAttribute('href') === '/control' && document.querySelector('#lead').textContent.startsWith('Manna funciona')`));
@@ -547,14 +555,14 @@ try {
   await click(`${modal}.querySelector('.btn.danger')`);
   await sleep(600);
   check('una imagen se puede eliminar de la biblioteca', await run(`return !${modal} && ${med}.querySelectorAll('.media-card').length === 1 && (await fetch(${JSON.stringify(lib.find((i) => i.id !== ad?.id)?.url || '/x')})).status === 404`));
-  // En el celular caben cinco pestañas y hay seis módulos: se ven los cuatro primeros y "Más",
+  // En el celular caben cinco pestañas y hay siete módulos: se ven los cuatro primeros y "Más",
   // que abre los demás (el reparto se prueba también en test/codigo.test.js).
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await sleep(500);
   check('en el celular, la barra muestra cuatro módulos y «Más»', await run(`return [...document.querySelectorAll('.tabbar button')].map(b => b.textContent).join('|') === 'Orden|Biblia|Himnario|Medios|Más' && document.querySelector('.tabbar button.on').textContent === 'Medios'`), await run(`return [...document.querySelectorAll('.tabbar button')].map(b => b.textContent).join('|')`));
   await click(`[...document.querySelectorAll('.tabbar button')].find(b => b.textContent === 'Más')`);
   await sleep(300);
-  check('«Más» abre los que no caben', await run(`return [...document.querySelectorAll('.menu button')].map(b => b.textContent).join('|') === 'Comparador|Diapositivas|Ajustes'`), await run(`return [...document.querySelectorAll('.menu button')].map(b => b.textContent).join('|')`));
+  check('«Más» abre los que no caben', await run(`return [...document.querySelectorAll('.menu button')].map(b => b.textContent).join('|') === 'Comparador|Diapositivas|Páginas web|Ajustes'`), await run(`return [...document.querySelectorAll('.menu button')].map(b => b.textContent).join('|')`));
   await press('Escape');
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(400);
@@ -1113,6 +1121,274 @@ try {
     await sleep(2500);
   }
 
+  console.log('\n1. Interfaz · Páginas web');
+  {
+    // Un sitio de mentira en este equipo, con una página que se deja mostrar dentro de otra y otra que no
+    // (X-Frame-Options): nada sale a internet.
+    const site = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', ...(req.url.startsWith('/no-se-deja') && { 'X-Frame-Options': 'DENY' }) });
+      res.end('<!doctype html><title>Sitio de prueba</title><body>Sitio de prueba</body>');
+    });
+    await new Promise((resolve) => site.listen(0, '127.0.0.1', resolve));
+    const open = `http://127.0.0.1:${site.address().port}/se-deja`;
+    const closed = `http://127.0.0.1:${site.address().port}/no-se-deja`;
+    try {
+      const ws = `document.querySelector('.ws[data-module=paginas]')`;
+      const entry = (name) => `[...${ws}.querySelectorAll('.web-item')].find(i => i.querySelector('strong').textContent === ${JSON.stringify(name)})`;
+      const pagesNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).web.pages)`).then(JSON.parse);
+      const pickPage = async (name) => { await click(`${entry(name)}.querySelector('.web-pick')`); await sleep(300); };
+      const projectPage = async (name) => { await pickPage(name); await click(`${ws}.querySelector('.abar .btn.primary')`); await sleep(600); };
+      const pageMenu = async (name, label) => { await click(`${entry(name)}.querySelector('.web-more')`); await sleep(300); await menuItem(label); await sleep(400); };
+      // La otra pantalla de proyección, dentro de la prueba; recoge lo que le dice el marco de la página.
+      const far = `document.querySelector('#pantalla').contentDocument`;
+      const heard = () => run(`return JSON.stringify(document.querySelector('#pantalla').contentWindow.__msgs)`).then(JSON.parse);
+      const echoes = async (n) => { await until(`document.querySelector('#pantalla').contentWindow.__msgs.filter(m => m.eco).length >= ${n}`, 15); return (await heard()).filter((m) => m.eco).map((m) => `${m.eco}${m.key === 'ArrowRight' ? '→' : '←'}`).join(' '); };
+      const dockKey = (label) => click(`[...document.querySelectorAll('.dock .live-controls .web-keys .btn')].find(b => b.textContent.trim() === ${JSON.stringify(label)})`);
+
+      await click(`document.querySelector('.rail-item[data-id=paginas]')`);
+      await sleep(500);
+      check('Páginas web, sin páginas, invita a agregar una y no muestra la barra', await run(`return document.title === 'Manna · Páginas web' && ${ws}.querySelector('.empty').textContent.includes('Aún no hay páginas') && ${ws}.querySelector('.abar').hidden`));
+
+      // Una dirección mal escrita: el error se dice y la ventana sigue abierta para corregirla.
+      await click(`${ws}.querySelector('.ws-head .btn')`);
+      await sleep(300);
+      const fill = (address, name = '') => run(`const m = ${modal}; m.querySelector('input[type=url]').value = ${JSON.stringify(address)}; m.querySelector('input:not([type=url])').value = ${JSON.stringify(name)};`);
+      expectError('Escribe la dirección de la página');
+      await fill('esto no es una dirección');
+      await modalButton('Agregar');
+      await sleep(600);
+      check('una dirección mal escrita muestra el error y deja la ventana abierta', (await text('#toast')).includes('Escribe la dirección de la página') && await run(`return Boolean(${modal}) && !${ws}.querySelector('.web-item')`));
+
+      // Una que se deja mostrar: se verá en todas las pantallas.
+      await fill(open, 'Presentación del culto');
+      await modalButton('Agregar');
+      check('una dirección que se deja mostrar se agrega y dice que se verá en todas las pantallas', await until(`${entry('Presentación del culto')}`, 15) && (await text('#toast')).includes('se verá en todas las pantallas') && await run(`return !${modal}`)
+        && await run(`return ${entry('Presentación del culto')}.querySelector('small').textContent.trim() === '127.0.0.1' && ${ws}.querySelector('.abar').hidden === false`), await text('#toast'));
+      check('el servidor la guardó como mostrable', (await pagesNow()).some((p) => p.name === 'Presentación del culto' && p.source === 'url' && p.framable === true && p.url === open));
+
+      // Una que no: el proyector la abre en su propia ventana, y la lista lo dice.
+      await click(`${ws}.querySelector('.ws-head .btn')`);
+      await sleep(300);
+      await fill(closed, 'Concurso bíblico');
+      await modalButton('Agregar');
+      check('una dirección que no se deja mostrar avisa de que irá en su propia ventana, y su subtítulo también', await until(`${entry('Concurso bíblico')}`, 15) && (await text('#toast')).includes('su propia ventana')
+        && await run(`return ${entry('Concurso bíblico')}.querySelector('small').textContent.includes('en su propia ventana')`), await text('#toast'));
+      check('el servidor la guardó como no mostrable', (await pagesNow()).some((p) => p.name === 'Concurso bíblico' && p.framable === false));
+
+      // Un archivo HTML inventado: cuenta las teclas que recibe y, además, intenta dar una orden a Manna
+      // desde dentro del marco (una orden de verdad, para que la comprobación no pase en vacío).
+      const game = path.join(tmp, 'eco_de-teclas.html');
+      fs.writeFileSync(game, `<!doctype html><title>Eco</title><body>Eco<script>
+let n = 0;
+addEventListener('keydown', (e) => { n += 1; parent.postMessage({ eco: n, key: e.key }, '*'); });
+fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ type: 'order.addSection', payload: { title: 'Intruso' } }) })
+  .then((r) => parent.postMessage({ orden: r.status }, '*'), () => parent.postMessage({ orden: 'error' }, '*'));
+</script></body>`);
+      await chooseFiles('.ws[data-module=paginas] input[type=file]', [game]);
+      check('«Subir un archivo HTML» lo agrega, con el nombre del archivo, y queda elegido', await until(`${entry('eco de teclas')}`, 15) && (await text('#toast')).includes('«eco de teclas» agregada') && await run(`return ${entry('eco de teclas')}.classList.contains('selected') && ${entry('eco de teclas')}.querySelector('small').textContent.trim() === 'Archivo HTML'`));
+      const fileId = (await pagesNow()).find((p) => p.name === 'eco de teclas')?.id;
+      check('se sirve encerrado (sandbox) y con el puente de las flechas', await run(`const r = await fetch('/paginas/${fileId}'); const t = await r.text(); return r.headers.get('content-security-policy') === 'sandbox allow-scripts' && t.includes("d.manna!=='tecla'")`));
+
+      // La otra pantalla de proyección escucha lo que diga el marco.
+      await run(`const f = document.createElement('iframe'); f.id = 'pantalla'; f.src = '/proyeccion'; f.style.cssText = 'position:fixed;left:0;bottom:0;width:640px;height:360px;z-index:99;border:0'; document.body.append(f);`);
+      await until(`${far}?.readyState === 'complete'`, 20);
+      await run(`const w = document.querySelector('#pantalla').contentWindow; w.__msgs = []; w.addEventListener('message', (e) => w.__msgs.push(e.data));`);
+      await projectPage('eco de teclas');
+      check('proyectarlo pone en la otra pantalla un marco encerrado: solo con scripts, sin origen propio', await until(`${far}.querySelector('iframe.web-frame')`, 20)
+        && await run(`const f = ${far}.querySelector('iframe.web-frame'); return f.getAttribute('sandbox') === 'allow-scripts' && f.getAttribute('src') === '/paginas/${fileId}' && ${far}.querySelector('.web-card').hidden`));
+      check('«Anterior» y «Siguiente» aparecen en los mandos al aire', await until(`document.querySelector('.dock .live-controls .web-keys') && !document.querySelector('.dock .live-controls .web-keys').hidden`, 15));
+      await until(`document.querySelector('#pantalla').contentWindow.__msgs.some(m => 'orden' in m)`, 15);
+      const order = (await heard()).find((m) => 'orden' in m)?.orden;
+      check('la orden enviada desde dentro del marco no se cumple (sin permiso o sin respuesta) y no cambia nada', (order === 'error' || order === 401 || order === 403) && !(await live()).order.includes('Intruso'), String(order));
+      await dockKey('Siguiente');
+      await sleep(400);
+      await dockKey('Siguiente');
+      await sleep(400);
+      await dockKey('Anterior');
+      await sleep(400);
+      const keys = await echoes(3);
+      check('«Siguiente» dos veces y «Anterior» una: el marco recibe las tres teclas, en orden', keys === '1→ 2→ 3←' && await run(`return (await (await fetch('/api/state')).json()).live.state.count === 3`), keys);
+      await run(`const w = document.querySelector('#pantalla').contentWindow; w.__msgs = []; const f = w.document.querySelector('.web-frame'); f.src = f.src;`);
+      const again = await echoes(3);
+      check('si el marco se recarga, vuelve a recibir todas las teclas desde el principio', again === '1→ 2→ 3←', again);
+
+      // Una dirección que se deja mostrar: un marco con esa dirección y sin flechas.
+      await projectPage('Presentación del culto');
+      check('una dirección que se deja mostrar se ve en un marco de la otra pantalla, sin tarjeta y sin flechas', await until(`${far}.querySelector('iframe.web-frame')?.getAttribute('src') === ${JSON.stringify(open)}`, 15)
+        && await run(`return ${far}.querySelector('.web-card').hidden && document.querySelector('.dock .live-controls .web-keys').hidden`));
+
+      // La que no se deja: tarjeta, sin marco.
+      await projectPage('Concurso bíblico');
+      check('la que no se deja mostrar se ve como una tarjeta que dice que va en su propia ventana, sin marco', await until(`${far}.querySelector('.web-card') && !${far}.querySelector('.web-card').hidden`, 15)
+        && await run(`const c = ${far}.querySelector('.web-card'); return c.getClientRects().length > 0 && c.textContent.includes('Se ve en su propia ventana en el proyector') && c.textContent.includes('Concurso bíblico') && !${far}.querySelector('iframe')`), await run(`return ${far}.querySelector('.web-card')?.textContent`));
+      await run(`document.querySelector('#pantalla').remove()`);
+
+      // Al orden del culto: en la miniatura, siempre una tarjeta.
+      await pickPage('Presentación del culto');
+      await click(`[...${ws}.querySelectorAll('.abar .btn')].find(b => b.textContent.includes('Añadir'))`);
+      await sleep(600);
+      check('«Añadir al orden» la pone en el orden del culto', (await text('#toast')).includes('añadida al orden del culto') && (await live()).order.includes('Presentación del culto'));
+      await click(`document.querySelector('.rail-item[data-id=orden]')`);
+      await sleep(500);
+      await click(`[...document.querySelectorAll('.ws[data-module=orden] .orow')].find(r => r.textContent.includes('Presentación del culto'))`);
+      const detail = `document.querySelector('.ws[data-module=orden] .odetail')`;
+      check('en el orden, su miniatura es la tarjeta y no carga ningún marco, aunque la página se deje mostrar', await until(`${detail}.querySelector('.slide .web-card')`, 15)
+        && await run(`const c = ${detail}.querySelector('.slide .web-card'); return !c.hidden && c.textContent.includes('Presentación del culto') && !${detail}.querySelector('iframe')`));
+
+      // ---- El Presentador con páginas web ----
+      // Ya hay tres: el archivo «eco de teclas», «Presentación del culto» (se deja mostrar, y está en el orden del culto) y
+      // «Concurso bíblico» (en su propia ventana, al aire ahora).
+      console.log('\n1. Interfaz · Presentador · páginas web');
+      {
+        const pr = `document.querySelector('.ws[data-module=presentador]')`;
+        const ids = Object.fromEntries((await pagesNow()).map((p) => [p.name, p.id]));
+        const snap = () => run(`const s = await (await fetch('/api/state')).json(); const i = s.projection.item; return JSON.stringify({ item: i && { kind: i.kind, id: i.id, orderId: i.source?.orderId }, pointer: s.pointer, count: s.live.state?.count || 0, orderWeb: s.order.items.filter((o) => o.kind === 'web').map((o) => o.id) })`).then(JSON.parse);
+        const rows = () => run(`return JSON.stringify([...${pr}.querySelectorAll('.pr-list .deck')].map((d) => ({ name: d.querySelector('strong').textContent, small: d.querySelector('small').textContent, globe: Boolean(d.querySelector('.deck-cover use[href$="#globe"]')) })))`).then(JSON.parse);
+        const seen = (selector) => run(`const e = ${pr}.querySelector(${JSON.stringify(selector)}); return Boolean(e) && e.getClientRects().length > 0`);
+        const label = (text) => `[...${pr}.querySelectorAll('button')].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
+        const big = `${pr}.querySelector('.btn.primary.grow')`;
+        const prev = `${pr}.querySelector('.btn[aria-label=Anterior]')`;
+        const pick = (name) => click(`[...${pr}.querySelectorAll('.pr-list .deck')].find((d) => d.querySelector('strong').textContent === ${JSON.stringify(name)}).querySelector('.deck-pick')`);
+        // Un dedo sobre la grande, en fracciones del marco de la página (no del monitor).
+        const onFrame = (kind, fx, fy) => run(`const m = ${pr}.querySelector('.pr-live'); const r = m.querySelector('iframe.web-frame').getBoundingClientRect(); m.dispatchEvent(new PointerEvent(${JSON.stringify(kind)}, { pointerId: 1, bubbles: true, clientX: r.left + r.width * ${fx}, clientY: r.top + r.height * ${fy} }))`);
+        // Dónde dibuja el punto rojo la pantalla de proyección, en fracciones de su marco; null si no se ve.
+        const farDot = () => run(`const d = ${far}; const p = d.querySelector('.stage-pointer'); const f = d.querySelector('iframe.web-frame'); if (!p || p.hidden || !f) return 'null'; const a = p.getBoundingClientRect(); const r = f.getBoundingClientRect(); return JSON.stringify({ x: (a.left + a.width / 2 - r.left) / r.width, y: (a.top + a.height / 2 - r.top) / r.height })`).then(JSON.parse);
+        const near = (got, x, y) => Boolean(got) && Math.abs(got.x - x) <= 0.02 && Math.abs(got.y - y) <= 0.02;
+
+        // Con una página al aire al entrar, se sigue sola (la de su propia ventana lleva Anterior y Siguiente).
+        await chrome.send('Page.navigate', { url: `${local}/presentador?w=${Date.now()}` });
+        await sleep(2500);
+        check('con una página web al aire, al entrar el Presentador la sigue sola, con «Siguiente» y «Anterior»', await run(`return ${pr}.dataset.view === 'present' && ${pr}.querySelector('.pr-title').textContent === 'Concurso bíblico' && ${big}.textContent.trim() === 'Siguiente' && !${big}.disabled && !${prev}.disabled`));
+        await run(`const f = document.createElement('iframe'); f.id = 'pantalla'; f.src = '/proyeccion'; f.style.cssText = 'position:fixed;left:0;bottom:0;width:640px;height:360px;z-index:99;border:0'; document.body.append(f);`);
+        await until(`${far}?.readyState === 'complete'`, 20);
+        const listen = () => run(`const w = document.querySelector('#pantalla').contentWindow; w.__msgs = []; if (!w.__oye) { w.__oye = true; w.addEventListener('message', (e) => w.__msgs.push(e.data)); }`);
+        await listen();
+
+        // Las páginas en las listas.
+        await click(label('Presentaciones'));
+        await sleep(300);
+        let list = await rows();
+        check('«Del orden» ofrece la presentación y, con icono de globo y «Página web · …», la página del orden', await run(`return ${pr}.dataset.view === 'choose' && ${pr}.querySelector('.pr-tabs .chip.on').textContent === 'Del orden'`)
+          && list.filter((r) => r.globe).length === 1 && list.some((r) => !r.globe && r.name.includes('Informe'))
+          && list.find((r) => r.globe).name === 'Presentación del culto' && list.find((r) => r.globe).small === 'Página web · 127.0.0.1', JSON.stringify(list));
+        await click(`${pr}.querySelector('.pr-tabs [data-tab=biblioteca]')`);
+        await sleep(300);
+        list = await rows();
+        check('«Biblioteca» da las presentaciones y, detrás, las tres páginas web', list.length > 3 && list.filter((r) => r.globe).length === 3 && list.slice(-3).every((r) => r.globe) && list.slice(0, -3).every((r) => !r.globe)
+          && list.slice(-3).every((r) => r.small.startsWith('Página web · ')), JSON.stringify(list));
+
+        // Una página elegida del orden: sin «Mover», sin siguiente ni rejilla; «Proyectar» la pone y lo hace desde su elemento del orden.
+        await click(`${pr}.querySelector('.pr-tabs [data-tab=orden]')`);
+        await pick('Presentación del culto');
+        await sleep(400);
+        check('elegir una página abre la vista de presentar sin «Mover», sin siguiente ni rejilla, avisa de lo que hay al aire y el botón dice «Proyectar»',
+          await run(`return ${pr}.dataset.view === 'present' && ${pr}.querySelector('.pr-title').textContent === 'Presentación del culto' && ${big}.textContent.trim() === 'Proyectar' && ${prev}.disabled && ${pr}.querySelector('.pr-onair').textContent.startsWith('En pantalla:')`)
+          && await seen('[data-tool=point]') && !await seen('[data-tool=move]') && !await seen('.pr-next') && !await seen('.pr-side .dock-label') && !await seen('.pr-grid') && !await seen('.slide-pick')
+          && await seen('.pr-onair'));
+        await click(big);
+        await sleep(700);
+        let now = await snap();
+        check('«Proyectar» pone la página al aire, desde su elemento del orden', now.item?.kind === 'web' && now.item.id === ids['Presentación del culto'] && now.item.orderId === now.orderWeb[0] && Boolean(now.orderWeb[0]), JSON.stringify(now));
+
+        // Una dirección que se deja mostrar: sin flechas. Las del teclado no mandan nada.
+        check('con una dirección que se deja mostrar al aire, «Anterior» y «Siguiente» quedan desactivados y el aviso se quita', await run(`return ${big}.textContent.trim() === 'Siguiente' && ${big}.disabled && ${prev}.disabled && ${pr}.querySelector('.pr-onair').hidden`));
+        await press('ArrowRight');
+        await press('ArrowLeft');
+        check('y las flechas del teclado no mandan nada', (await snap()).count === 0 && await run(`const s = await (await fetch('/api/state')).json(); return !s.live.state`));
+
+        // Señalar: el punto cae en el mismo sitio del marco, en la grande y en la pantalla de proyección.
+        await until(`${far}.querySelector('iframe.web-frame')?.getAttribute('src') && ${far}.querySelector('iframe.web-frame').getBoundingClientRect().width > 0`, 20);
+        await onFrame('pointerdown', 0.3, 0.7);
+        await sleep(500);
+        now = await snap();
+        let dot = await farDot();
+        check('un toque sobre la grande señala en las fracciones del marco, y el punto rojo cae en el mismo sitio de la pantalla de proyección', near(now.pointer, 0.3, 0.7) && near(dot, 0.3, 0.7) && await seen('.pr-live .stage-pointer'), JSON.stringify({ pointer: now.pointer, dot }));
+        await onFrame('pointermove', 0.6, 0.4);
+        await sleep(500);
+        now = await snap();
+        dot = await farDot();
+        check('al arrastrar, el punto sigue al dedo', near(now.pointer, 0.6, 0.4) && near(dot, 0.6, 0.4), JSON.stringify({ pointer: now.pointer, dot }));
+        await onFrame('pointerup', 0.6, 0.4);
+        await sleep(500);
+        check('al soltar, el punto desaparece de las dos pantallas', (await snap()).pointer.x === null && await farDot() === null && !await seen('.pr-live .stage-pointer'));
+
+        // Un archivo propio, elegido de la biblioteca: «Proyectar» lo pone (sin elemento del orden) y las flechas le llegan al marco.
+        await click(label('Presentaciones'));
+        await click(`${pr}.querySelector('.pr-tabs [data-tab=biblioteca]')`);
+        await pick('eco de teclas');
+        await sleep(400);
+        check('un archivo HTML elegido de la biblioteca también dice «Proyectar»', await run(`return ${pr}.dataset.view === 'present' && ${big}.textContent.trim() === 'Proyectar'`));
+        await listen();
+        await click(big);
+        await sleep(700);
+        now = await snap();
+        check('«Proyectar» lo pone al aire, sin elemento del orden', now.item?.kind === 'web' && now.item.id === ids['eco de teclas'] && !now.item.orderId, JSON.stringify(now.item));
+        await until(`document.querySelector('#pantalla').contentWindow.__msgs.some((m) => 'orden' in m)`, 20);
+        check('con el archivo al aire, «Siguiente» y «Anterior» están activos', await run(`return ${big}.textContent.trim() === 'Siguiente' && !${big}.disabled && !${prev}.disabled`));
+        await click(big);
+        await sleep(400);
+        await click(big);
+        await sleep(400);
+        await click(prev);
+        await sleep(400);
+        await press('ArrowRight');
+        const keys = await echoes(4);
+        check('«Siguiente» dos veces, «Anterior» y la flecha derecha del teclado: el marco de la pantalla de proyección recibe las cuatro, en orden', keys === '1→ 2→ 3← 4→' && (await snap()).count === 4, keys);
+
+        // Volver a una presentación: reaparece todo lo suyo.
+        await click(label('Presentaciones'));
+        await pick((await rows()).find((r) => !r.globe && r.name.includes('Informe')).name);
+        await sleep(400);
+        check('al elegir una presentación reaparecen «Mover», el siguiente y la rejilla, y el botón vuelve a «Empezar»', await run(`return ${pr}.dataset.view === 'present' && ${pr}.querySelector('.pr-title').textContent.includes('Informe') && ${big}.textContent.trim() === 'Empezar' && ${pr}.querySelector('.pr-hint').textContent.includes('diapositiva') && ${pr}.querySelectorAll('.slide-pick').length === 4`)
+          && await seen('[data-tool=move]') && await seen('.pr-next') && await seen('.pr-side .dock-label') && await seen('.pr-grid') && await seen('.slide-pick'));
+
+        // En el celular, con la página al aire (la sigue sola al entrar).
+        await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
+        await chrome.send('Page.navigate', { url: `${local}/presentador?p=${Date.now()}` });
+        await sleep(2500);
+        check('en 375 px, con una página, la grande y sus botones se ven sin desbordar', await run(`const w = 375; /* el ancho pedido, no innerWidth */ const fits = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= w && r.top >= 0 && r.bottom <= innerHeight; }; const t = [...${pr}.querySelectorAll('.pr-main .transport .btn')];
+          return ${pr}.dataset.view === 'present' && ${pr}.querySelector('.pr-title').textContent === 'eco de teclas' && t.length === 3 && t.every(fits) && fits(${pr}.querySelector('.pr-live')) && fits(${pr}.querySelector('.pr-tools')) && document.documentElement.scrollWidth <= w`),
+        await run(`return document.documentElement.scrollWidth + ' de ' + innerWidth`));
+        await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+        // Lo que sigue elimina «eco de teclas»: que no esté al aire.
+        await run(`await ${post('projection.show', { kind: 'web', data: { id: ids['Concurso bíblico'] } })}`);
+        await chrome.send('Page.navigate', { url: `${local}/control?q=${Date.now()}#paginas` });
+        await sleep(2500);
+      }
+
+      // Nombre y eliminación.
+      await click(`document.querySelector('.rail-item[data-id=paginas]')`);
+      await sleep(400);
+      // Con un nombre largo, que en el celular tiene que cortarse y no ensanchar la página.
+      const longName = 'Presentación de la escuela sabática del domingo con un nombre muy largo';
+      await pageMenu('Presentación del culto', 'Cambiar el nombre');
+      await run(`${modal}.querySelector('input').value = ${JSON.stringify(longName)};`);
+      await modalButton('Guardar');
+      await sleep(600);
+      check('una página se renombra desde su menú «…»', await run(`return !${modal} && Boolean(${entry(longName)}) && !${entry('Presentación del culto')}`) && (await pagesNow()).some((p) => p.name === longName));
+      await pageMenu('eco de teclas', 'Eliminar');
+      check('«Eliminar» pide confirmación y dice qué se quita', await run(`return ${modal}.textContent.includes('«eco de teclas» se quitará de la biblioteca')`));
+      await modalButton('Eliminar');
+      await sleep(700);
+      check('al confirmar se elimina de la lista y se borra su archivo', await run(`return !${modal} && !${entry('eco de teclas')} && ${ws}.querySelectorAll('.web-item').length === 2 && (await fetch('/paginas/${fileId}')).status === 404`) && (await pagesNow()).length === 2);
+
+      // En el celular.
+      await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
+      await chrome.send('Page.navigate', { url: `${local}/control?w=${Date.now()}#paginas` });
+      await sleep(2500);
+      await pickPage(longName);
+      check('en 375 px, con un nombre largo, la lista y la barra se ven sin desbordar', await run(`const w = 375; /* el ancho pedido, no innerWidth: una página que desborda ensancha el de Chrome */ const fits = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= w; }; const bar = ${ws}.querySelector('.abar');
+        return document.documentElement.scrollWidth <= w && ${ws}.querySelectorAll('.web-item').length === 2 && [...${ws}.querySelectorAll('.web-item')].every(fits) && fits(bar) && bar.getBoundingClientRect().bottom <= innerHeight && [...bar.querySelectorAll('button')].every(fits)`),
+      await run(`return document.documentElement.scrollWidth + ' de ' + innerWidth`));
+      await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+      await chrome.send('Page.navigate', { url: `${local}/control?g=${Date.now()}#paginas` });
+      await sleep(2500);
+    } finally {
+      site.closeAllConnections();
+      site.close();
+    }
+  }
+
   console.log('\n1. Interfaz · Televisores');
   // El módulo está en pausa: no sale en la barra, pero sigue ahí y se entra por su dirección.
   check('Televisores, en pausa, no aparece en la barra de módulos', await run(`return !document.querySelector('.rail-item[data-id=televisores]') && !document.querySelector('.tabbar [data-id=televisores]')`));
@@ -1194,7 +1470,53 @@ try {
   await run(`const s = document.querySelector('.settings input[type=range]'); s.value = 60; s.dispatchEvent(new Event('input'));`);
   await sleep(500);
   check('los estilos de proyección se aplican', (await live()).size === 60);
-  check('Ajustes lista los programas del equipo principal', await run(`return document.querySelectorAll('.tools .tool').length === 4`));
+  check('Ajustes lista los programas del equipo principal', await run(`return document.querySelectorAll('.tools .tool').length === 5 && Boolean(document.querySelector('.tools .tool[data-id=cloudflared]'))`));
+
+  if (CAN_TUNNEL) {
+    console.log('\n1. Interfaz · Ajustes: conexión por internet');
+    // Un túnel de mentira: la dirección y el «Registered tunnel connection» los escribe el guion de cloudflared-falso.
+    const net = `[...document.querySelectorAll('.settings .set')].find((s) => s.querySelector('h2').textContent === 'Conexión por internet')`;
+    const netState = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).internet)`).then(JSON.parse);
+    const netButtons = () => run(`return ${net}.querySelectorAll('.set-body .row .btn').length`);
+    const netBtn = (label) => `[...${net}.querySelectorAll('.set-body .row .btn')].find((b) => b.textContent.trim() === ${JSON.stringify(label)})`;
+    const netText = () => run(`return ${net}.querySelector('.set-body > p').textContent`);
+    const ownKey = `eyJ${'a1B2'.repeat(15)}`;
+    const quickUrl = 'https://manna-de-prueba.trycloudflare.com';
+    check('empieza apagada, con sus dos botones', await netText() === 'Apagada.' && await netButtons() === 2 && await run(`return ${netBtn('Encender')}.disabled === false && Boolean(${netBtn('Usar un dominio propio')}) && ${net}.querySelector('.net-address').hidden`));
+    await click(netBtn('Encender'));
+    check('«Encender» la pasa a encendida, con la dirección del túnel y su botón «Copiar»', await until(`${net}.querySelector('.set-body > p').textContent.startsWith('Encendida') && ${net}.querySelector('.net-address a').textContent === ${JSON.stringify(quickUrl)}`)
+      && await run(`const a = ${net}.querySelector('.net-address'); return !a.hidden && a.querySelector('a').href === ${JSON.stringify(`${quickUrl}/`)} && [...a.querySelectorAll('.btn')].map((b) => b.textContent.trim()).join() === 'Copiar' && ${netBtn('Apagar')} !== undefined`), await netText());
+    check('el servidor la da por encendida y la recuerda', (await netState()).status === 'on' && (await netState()).on === true && fs.existsSync(path.join(tmp, 'data', 'tunel.json')));
+    // El dominio propio: la clave y la dirección que se le dio en Cloudflare.
+    await click(netBtn('Usar un dominio propio'));
+    await sleep(300);
+    check('«Usar un dominio propio» abre una ventana con la clave y la dirección, sin «Quitar»', await run(`const m = document.querySelector('.modal'); return Boolean(m) && m.querySelector('input[type=password]').getAttribute('aria-label') === 'Clave del túnel' && m.querySelectorAll('.net-own input').length === 2 && ![...m.querySelectorAll('.btn')].some((b) => b.textContent.includes('Quitar'))`));
+    await run(`const m = document.querySelector('.modal'); const [k, a] = m.querySelectorAll('.net-own input'); k.value = ${JSON.stringify(ownKey)}; a.value = 'manna.ejemplo.org';`);
+    await modalButton('Guardar');
+    check('«Guardar» muestra la dirección propia y el botón pasa a «Cambiar el dominio propio»', await until(`${net}.querySelector('.set-body > p').textContent.startsWith('Encendida') && ${net}.querySelector('.net-address a').textContent === 'https://manna.ejemplo.org'`)
+      && await run(`return !document.querySelector('.modal') && Boolean(${netBtn('Cambiar el dominio propio')}) && !${netBtn('Usar un dominio propio')}`), await netText());
+    const keyAsked = fs.readFileSync(tunnelAsked, 'utf8').trim().split('\n').map((l) => JSON.parse(l)).at(-1);
+    check('cloudflared recibió la clave por el entorno, no en los argumentos', keyAsked.token === true && keyAsked.args.join(' ') === 'tunnel --no-autoupdate run');
+    check('la clave no aparece en el estado ni en la página', await run(`const raw = await (await fetch('/api/state')).text(); return !raw.includes(${JSON.stringify(ownKey)}) && !document.documentElement.outerHTML.includes(${JSON.stringify(ownKey)})`) && (await netState()).own === true);
+    // Una clave que Cloudflare no acepta: lo dice con palabras claras.
+    await click(netBtn('Cambiar el dominio propio'));
+    await sleep(300);
+    check('al cambiarlo, la ventana ofrece «Quitar el dominio propio»', await run(`return [...document.querySelectorAll('.modal .btn')].some((b) => b.textContent.trim() === 'Quitar el dominio propio')`));
+    await run(`const m = document.querySelector('.modal'); const [k, a] = m.querySelectorAll('.net-own input'); k.value = ${JSON.stringify(`malo${'z'.repeat(50)}`)}; a.value = 'manna.ejemplo.org';`);
+    await modalButton('Guardar');
+    check('una clave no válida se ve como error', await until(`${net}.querySelector('.set-body > p').classList.contains('warn') && ${net}.querySelector('.set-body > p').textContent.includes('La clave del túnel no es válida')`) && await run(`return ${net}.querySelector('.net-address').hidden`), await netText());
+    // Vuelta al túnel rápido.
+    await click(netBtn('Cambiar el dominio propio'));
+    await sleep(300);
+    await modalButton('Quitar el dominio propio');
+    check('«Quitar el dominio propio» vuelve al túnel rápido', await until(`${net}.querySelector('.set-body > p').textContent.startsWith('Encendida') && ${net}.querySelector('.net-address a').textContent === ${JSON.stringify(quickUrl)}`)
+      && await run(`return Boolean(${netBtn('Usar un dominio propio')}) && !${netBtn('Cambiar el dominio propio')}`) && (await netState()).own === false, await netText());
+    // Desde internet (lo que llega por un túnel lleva estas cabeceras) no se cambia.
+    const outside = await run(`return await fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Prueba': '1', 'Cf-Connecting-Ip': '203.0.113.9', 'X-Forwarded-For': '203.0.113.9' }, body: JSON.stringify({ type: 'internet.set', payload: { on: false } }) }).then((r) => r.status)`);
+    check('una orden que llega desde internet no la apaga', outside !== 200 && (await netState()).on === true, `HTTP ${outside}`);
+    await click(netBtn('Apagar'));
+    check('«Apagar» la deja apagada', await until(`${net}.querySelector('.set-body > p').textContent === 'Apagada.' && ${net}.querySelector('.net-address').hidden && ${netBtn('Encender')}`) && (await netState()).status === 'off' && (await netState()).on === false);
+  }
 
   console.log('\n1. Interfaz · Ajustes: fondos de la proyección');
   // Aquí se rompió la subida del fondo durante cuatro versiones sin que ninguna prueba lo pulsara.
@@ -1276,6 +1598,7 @@ try {
   check('"Control del orden" no ofrece editar', await run(`return !document.querySelector('.ws-head .search') && !document.querySelector('.orow .grip') && !document.querySelector('.orow .icon-btn[aria-label=Opciones]')`));
   check('el servidor rechaza una edición desde esa función', (await run(`return await ${post('order.clear')}`)) === 403);
   check('esa función gobierna lo que está al aire, pero no instala programas', await run(`return !document.querySelector('.dock .live-controls').hidden`) && (await run(`return await ${post('projection.control', { pattern: 'blanco' })}`)) === 200 && (await live()).pattern === 'blanco' && (await run(`return await ${post('tools.install', { id: 'yt-dlp' })}`)) === 403);
+  check('tampoco puede encender ni cambiar la conexión por internet', (await run(`return await ${post('internet.set', { on: true })}`)) === 403 && (await run(`return await ${post('internet.own', { token: '' })}`)) === 403);
   await click(`[...document.querySelectorAll('.orow')].find(r => r.textContent.includes('Salmos 23')).querySelector('.icon-btn')`);
   await sleep(600);
   check('pero sí puede proyectar', (await live()).ref === 'Salmos 23:1');
@@ -1363,7 +1686,7 @@ try {
   // Un Manna que "arrancó con el código de antes" (huella fingida): debe notarlo y decirlo.
   await stopServer(server);
   // De paso, sin ffmpeg: para ver cómo se comporta Medios en un equipo que no lo tiene.
-  server = startServer(null, { MANNA_HUELLA: 'de-antes', MANNA_REVISAR_CODIGO_MS: '300', MANNA_FALTA: 'ffmpeg,yt-dlp,powerpoint' });
+  server = startServer(null, { MANNA_HUELLA: 'de-antes', MANNA_REVISAR_CODIGO_MS: '300', MANNA_FALTA: 'ffmpeg,yt-dlp,powerpoint,cloudflared' });
   await sleep(3000);
   await chrome.send('Page.navigate', { url: `${local}/control?fin=${Date.now()}#orden` });
   await sleep(2500);

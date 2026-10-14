@@ -95,12 +95,14 @@ export default function setup(app) {
     await responder.stop();
   });
 
-  const publicRoles = () => sessions.roles.map(({ id, name, description, path, requiresPin }) => ({ id, name, description, path, requiresPin }));
+  // Desde internet todas piden PIN (core/sessions.js).
+  const publicRoles = (internet) => sessions.roles.map(({ id, name, description, path, requiresPin }) => ({ id, name, description, path, requiresPin: requiresPin || internet }));
 
   app.route('GET', '/api/session', (ctx) => ({
     role: ctx.session?.role || null,
     isLocal: ctx.isLocal,
-    roles: publicRoles(),
+    internet: ctx.internet,
+    roles: publicRoles(ctx.internet),
     serverId: settings.data.id,
     version,
     nameUrl: store.get('system').nameUrl,

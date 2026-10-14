@@ -17,8 +17,11 @@ const TABS = [['orden', 'Del orden'], ['biblioteca', 'Biblioteca'], ['subir', 'S
 // Pantalla del presentador (función «Presentador de diapositivas»): una presentación cada vez, con
 // la diapositiva al aire en grande, la siguiente y todas en rejilla. Sobre la grande, el dedo señala
 // en la proyección (puntero) o mueve y acerca el encuadre. «Siguiente» no sale de la presentación.
+// También una página web (módulo Páginas web): la grande y el puntero; «Anterior» y «Siguiente» le
+// llegan como las flechas si es un archivo propio o va en su propia ventana.
 function mount(el, ctx) {
   let deckId = null;
+  let pageId = null;   // página web elegida, en vez de una presentación
   let orderId = null;  // elemento del orden del que se eligió, para proyectar desde él
   let awaited = null;  // recién subida que aún no llegó con el estado
   let touched = false; // la persona ya eligió (o volvió a la lista): no se sigue sola a lo que esté al aire
@@ -26,6 +29,13 @@ function mount(el, ctx) {
   let tool = 'point';
   const decks = () => state.slides?.decks || [];
   const deck = () => decks().find((d) => d.id === deckId && d.status === 'ready') || null;
+  const pages = () => state.web?.pages || [];
+  const page = () => pages().find((p) => p.id === pageId) || null;
+  // La página elegida, si es lo que hay en pantalla (también en negro).
+  const pageOnAir = () => {
+    const item = state.projection?.item;
+    return item?.kind === 'web' && item.id === pageId ? item : null;
+  };
   // Número de la diapositiva de esta presentación que está en pantalla (también en negro); 0 si ninguna.
   const at = () => {
     const item = state.projection?.item;
@@ -60,37 +70,53 @@ function mount(el, ctx) {
   const nextImg = h('img', { alt: '' });
   const nextEnd = h('span', { class: 'pr-end' }, 'Fin de la presentación');
   const nextView = h('button', { class: 'monitor pr-next', 'aria-label': 'Proyectar la siguiente', onclick: () => go(1) }, nextImg, nextEnd);
+  const nextHead = h('div', { class: 'dock-label' }, 'Siguiente', nextLabel);
   const controls = h('div', {});
   const grid = h('div', { class: 'slide-grid' });
+  const gridBox = h('div', { class: 'pr-grid' }, grid);
   const present = h('div', { class: 'pr-body' },
     h('div', { class: 'pr-main' },
       h('div', { class: 'pr-tools' }, ...toolButtons, hint),
       live, onAir,
       h('div', { class: 'transport' }, prev, next, black)),
-    h('div', { class: 'pr-side' }, h('div', { class: 'dock-label' }, 'Siguiente', nextLabel), nextView, controls),
-    h('div', { class: 'pr-grid' }, grid));
+    h('div', { class: 'pr-side' }, nextHead, nextView, controls),
+    gridBox);
 
   el.replaceChildren(h('div', { class: 'ws-head' }, back, h('h1', {}, 'Presentador'), title), chooser, present, picker);
   el.classList.add('presenter');
   createLiveControls(controls);
 
-  function choose(id, fromOrder = null) {
+  function choose(id, fromOrder = null, kind = 'slides') {
     touched = true;
-    awaited = id && !decks().some((d) => d.id === id) ? id : null;
-    deckId = id;
+    awaited = kind === 'slides' && id && !decks().some((d) => d.id === id) ? id : null;
+    deckId = kind === 'slides' ? id : null;
+    pageId = kind === 'web' ? id : null;
     orderId = fromOrder;
     render();
   }
+  const fromOrder = () => orderId && (state.order?.items || []).some((i) => i.id === orderId);
 
   // Proyecta la diapositiva n: desde su elemento del orden, si se eligió de ahí y sigue en él.
   const project = guard(async (n) => {
     const d = deck();
     if (!d || n < 1 || n > d.pages) return;
-    if (orderId && (state.order?.items || []).some((i) => i.id === orderId)) await action('order.show', { id: orderId, step: n - 1 });
+    if (fromOrder()) await action('order.show', { id: orderId, step: n - 1 });
     else await action('projection.show', { kind: 'slides', data: { id: d.id }, step: n - 1 });
   });
+  const showPage = guard(async () => {
+    if (fromOrder()) await action('order.show', { id: orderId, step: 0 });
+    else await action('projection.show', { kind: 'web', data: { id: pageId } });
+  });
+  const press = guard((key) => action('projection.control', { key }));
+  const pageKeys = (item) => Boolean(item && (item.file || item.window));
   // Sin salir de la presentación: si no hay ninguna de ella en pantalla, «Siguiente» empieza por la primera.
-  const go = (delta) => project(at() ? at() + delta : 1);
+  // Una página: si no está en pantalla, «Proyectar» la pone; si está, las flechas (si las admite).
+  function go(delta) {
+    if (!pageId) return project(at() ? at() + delta : 1);
+    const item = pageOnAir();
+    if (!item) return delta > 0 && showPage();
+    return pageKeys(item) && press(delta > 0 ? 'ArrowRight' : 'ArrowLeft');
+  }
 
   function paintTools() {
     toolButtons.forEach((b) => {
@@ -98,11 +124,12 @@ function mount(el, ctx) {
       b.setAttribute('aria-pressed', String(b.dataset.tool === tool));
     });
     live.dataset.tool = tool;
-    hint.textContent = tool === 'point' ? 'Toca la diapositiva para señalar en la pantalla' : 'Arrastra para mover; dos dedos para acercar';
+    hint.textContent = tool === 'point' ? `Toca la ${pageId ? 'página' : 'diapositiva'} para señalar en la pantalla` : 'Arrastra para mover; dos dedos para acercar';
   }
 
   function renderList() {
-    const view = tab || ((state.order?.items || []).some((i) => i.kind === 'slides') ? 'orden' : 'biblioteca');
+    const listed = (i) => i.kind === 'slides' || i.kind === 'web';
+    const view = tab || ((state.order?.items || []).some(listed) ? 'orden' : 'biblioteca');
     tabs.querySelectorAll('.chip').forEach((b) => {
       b.classList.toggle('on', b.dataset.tab === view);
       b.setAttribute('aria-selected', String(b.dataset.tab === view));
@@ -114,17 +141,25 @@ function mount(el, ctx) {
           h('span', { class: `deck-cover${ready ? '' : ' blank'}` }, ready ? h('img', { src: thumbUrl(d, 1), alt: '', loading: 'lazy' }) : icon('presentation-chart', 26)),
           h('span', { class: 'item-text' }, h('strong', {}, extra.title), h('small', {}, extra.facts))));
     };
+    const pageRow = (pg, title, onclick) => h('div', { class: `deck${pg ? '' : ' pending'}` },
+      h('button', { class: 'deck-pick', disabled: !pg, onclick },
+        h('span', { class: 'deck-cover blank' }, icon('globe', 26)),
+        h('span', { class: 'item-text' }, h('strong', {}, title), h('small', {}, pg ? `Página web · ${pg.subtitle}` : 'Ya no está en Páginas web'))));
+    const findPage = (id) => pages().find((pg) => pg.id === id);
     const facts = (d) => (!d ? 'Ya no está en la biblioteca' : d.status === 'ready' ? plural(d.pages) : d.status === 'converting' ? 'Convirtiéndose…' : d.error || 'No se pudo convertir');
     const empty = (strong, text, ...more) => h('div', { class: 'empty' }, h('strong', {}, strong), text, ...more);
     if (view === 'orden') {
-      const items = (state.order?.items || []).filter((i) => i.kind === 'slides');
+      const items = (state.order?.items || []).filter(listed);
       const find = (i) => decks().find((d) => d.id === i.data?.id);
       list.replaceChildren(...(items.length
-        ? items.map((i) => row(find(i), { title: i.title, facts: facts(find(i)) }, () => choose(i.data.id, i.id)))
+        ? items.map((i) => (i.kind === 'web'
+          ? pageRow(findPage(i.data?.id), i.title, () => choose(i.data.id, i.id, 'web'))
+          : row(find(i), { title: i.title, facts: facts(find(i)) }, () => choose(i.data.id, i.id))))
         : [empty('No hay presentaciones en el orden del culto', 'Elige una de la biblioteca o súbela.')]));
     } else if (view === 'biblioteca') {
-      list.replaceChildren(...(decks().length
-        ? decks().map((d) => row(d, { title: d.name, facts: facts(d) }, () => choose(d.id)))
+      list.replaceChildren(...(decks().length || pages().length
+        ? [...decks().map((d) => row(d, { title: d.name, facts: facts(d) }, () => choose(d.id))),
+          ...pages().map((pg) => pageRow(pg, pg.name, () => choose(pg.id, null, 'web')))]
         : [empty('Aún no hay presentaciones', 'Súbela desde «Subir».')]));
     } else {
       list.replaceChildren(empty('Subir una presentación', 'En PDF o, si el equipo principal tiene PowerPoint, tal cual. Al terminar se abre aquí.',
@@ -160,29 +195,45 @@ function mount(el, ctx) {
     if (awaited && decks().some((d) => d.id === awaited)) awaited = null;
     // Al entrar sin elegir nada, se sigue la presentación que esté en pantalla.
     const item = state.projection?.item;
-    if (!touched && !deckId && item?.kind === 'slides') {
-      deckId = item.id;
+    if (!touched && !deckId && !pageId && (item?.kind === 'slides' || item?.kind === 'web')) {
+      if (item.kind === 'slides') deckId = item.id;
+      else pageId = item.id;
       orderId = item.source?.orderId || null;
     }
     const d = deck();
-    el.dataset.view = d ? 'present' : 'choose';
-    back.hidden = !d;
-    title.textContent = d ? d.name : '';
-    if (!d) {
+    const pg = page();
+    el.dataset.view = d || pg ? 'present' : 'choose';
+    back.hidden = !d && !pg;
+    title.textContent = d ? d.name : pg ? pg.name : '';
+    if (!d && !pg) {
       renderList();
       return;
     }
-    const n = at();
     const p = state.projection;
     const showing = p?.mode === 'live' && Boolean(p.item);
     live.classList.toggle('on-air', showing);
+    black.classList.toggle('on', p?.mode === 'black');
+    // Una página no tiene siguiente ni rejilla, ni encuadre que mover.
+    toolButtons[1].hidden = Boolean(pg);
+    if (pg) tool = 'point';
+    paintTools();
+    for (const part of [nextHead, nextView, gridBox]) part.hidden = Boolean(pg);
+    if (pg) {
+      const air = pageOnAir();
+      onAir.hidden = Boolean(air) || !p?.item;
+      if (!onAir.hidden) onAir.textContent = `En pantalla: ${describeLive(p).text || describeLive(p).label}. «Proyectar» pone esta página.`;
+      prev.disabled = !pageKeys(air);
+      next.disabled = Boolean(air) && !pageKeys(air);
+      next.replaceChildren(air ? 'Siguiente' : 'Proyectar', icon('caret-right', 18));
+      return;
+    }
+    const n = at();
     // Lo de otra cosa en pantalla se dice: la grande muestra siempre lo que se proyecta.
     onAir.hidden = Boolean(n) || !p?.item;
     if (!onAir.hidden) onAir.textContent = `En pantalla: ${describeLive(p).text || describeLive(p).label}. «Empezar» proyecta la primera diapositiva.`;
     prev.disabled = n <= 1;
     next.disabled = n >= d.pages;
     next.replaceChildren(n ? 'Siguiente' : 'Empezar', icon('caret-right', 18));
-    black.classList.toggle('on', p?.mode === 'black');
     const upcoming = n + 1 <= d.pages ? n + 1 : 0;
     nextLabel.textContent = upcoming ? `${upcoming} de ${d.pages}` : '';
     nextView.disabled = !upcoming;
@@ -265,13 +316,14 @@ function mount(el, ctx) {
   subscribe('live', (l) => stage.setLive(l));
   subscribe('pointer', (p) => stage.setPointer(p));
   subscribe('slides', render);
-  subscribe('order', () => { if (!deck()) render(); });
+  subscribe('web', render);
+  subscribe('order', () => { if (!deck() && !page()) render(); });
   paintTools();
 
   return {
     onShow: render,
     keys(e) {
-      if (!deck()) return false;
+      if (!deck() && !page()) return false;
       if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { go(1); return true; }
       if (['ArrowLeft', 'PageUp'].includes(e.key)) { go(-1); return true; }
       return false;

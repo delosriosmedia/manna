@@ -26,6 +26,8 @@ const ICONS = [
   'speaker-x', 'closed-captioning', 'waveform', 'folder-simple', 'youtube-logo', 'link-simple',
   // presentador
   'hand-pointing', 'arrows-out-cardinal',
+  // páginas web
+  'globe',
 ];
 
 const base = `https://unpkg.com/@phosphor-icons/core@${VERSION}`;

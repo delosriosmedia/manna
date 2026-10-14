@@ -5,6 +5,7 @@ import himnario from './hymns/workspace.js';
 import medios from './media/workspace.js';
 import diapositivas from './slides/workspace.js';
 import presentador from './slides/presenter.js';
+import paginas from './web/workspace.js';
 import televisores from './tv/workspace.js';
 import settings from './settings/workspace.js';
 
@@ -22,6 +23,7 @@ export const MODULES = [
   medios,
   compare,
   diapositivas,
+  paginas,
   // En pausa por decisión del dueño (docs/ESTADO.md): al retomarlo, basta quitar `hidden`.
   { ...televisores, hidden: true },
   settings,

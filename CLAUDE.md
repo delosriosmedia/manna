@@ -13,7 +13,7 @@ Repositorio: https://github.com/delosriosmedia/manna
 ## Comandos
 
 - Iniciar en desarrollo: `node server/index.js` (mensajes en la terminal; Ctrl+C para apagar)
-- Como lo abre el usuario: icono **Manna**, creado por `Instalar Manna en Windows.bat` / `Instalar Manna en Mac.command`. Arranca con `--segundo-plano` (sin ventana, registro en `data/manna.log`) y se apaga con el botón "Apagar" del control
+- Como lo abre el usuario: icono **Manna**, creado por `Instalar Manna en Windows.bat` / `Instalar Manna en Mac.command`, que se descargan sueltos (versión de GitHub), bajan Manna a una carpeta propia y lo actualizan al volver a abrirlos (ver README, «Instalación»). Arranca con `--segundo-plano` (sin ventana, registro en `data/manna.log`) y se apaga con el botón "Apagar" del control
 - Pruebas: `npm test` (incluye la revisión del código sin ejecutarlo: imports que no existen, nombres que tapan algo importado y órdenes que el servidor no tiene)
 - Servidor de prueba sin abrir navegador ni tocar los datos reales:
   `MANNA_NAME=manna-prueba MANNA_NO_OPEN=1 MANNA_SIN_VENTANA=1 MANNA_DATA="$TMPDIR/manna-prueba" PORT=8123 node server/index.js`
@@ -25,16 +25,16 @@ Repositorio: https://github.com/delosriosmedia/manna
 ## Stack
 
 - Servidor: Node.js 18+, módulos ES, **sin dependencias** (no hay `npm install`).
-- Programas externos del equipo principal: Chrome o Edge, ffmpeg, yt-dlp y PowerPoint. Se detectan, se instalan y se ejecutan solo a través de `server/core/tools.js` (PowerPoint se gobierna desde `server/modules/slides/powerpoint.js`). Al abrirse, Manna revisa que estén (`/requisitos`).
-- Web: HTML, CSS y JavaScript puro con módulos ES. **Sin framework ni paso de compilación.** Tipografía (Geist), iconos (Phosphor) y pdf.js incluidos en `web/vendor/`.
+- Programas externos del equipo principal: Chrome o Edge, ffmpeg, yt-dlp, cloudflared y PowerPoint. Se detectan, se instalan y se ejecutan solo a través de `server/core/tools.js` (PowerPoint se gobierna desde `server/modules/slides/powerpoint.js`). Al abrirse, Manna revisa que estén (`/requisitos`).
+- Web: HTML, CSS y JavaScript puro con módulos ES. **Sin framework ni paso de compilación.** Tipografía (Sora para la interfaz y Geist Mono para cifras), iconos (Phosphor) y pdf.js incluidos en `web/vendor/`.
 - Tiempo real: Server-Sent Events (`GET /api/events`). Órdenes: `POST /api/action`.
 - Red: puerto 80 (8000 si está ocupado) y nombre `manna.local` anunciado por mDNS, hecho a mano en `server/modules/system/mdns.js`. Cada puerto atiende `http` y `https` a la vez (certificado propio, hecho a mano en `server/core/cert.js`); con el 80 se abren además el 8000 y el 443.
-- Datos locales en `data/` (JSON, medios subidos, programas instalados por Manna y temporales). Lo que pone cada iglesia, en `Contenido/`: `Biblias/`, `Himnario/videos/`, `Himnario/letras/` y `Medios/` (ver `Contenido/LEEME.txt`).
+- Datos locales en `data/` (JSON, medios subidos, programas instalados por Manna y temporales); instalado, donde diga `carpetas.json`, junto al programa. Lo que pone cada iglesia, en `Contenido/`: `Biblias/`, `Himnario/videos/`, `Himnario/letras/` y `Medios/` (ver `Contenido/LEEME.txt`).
 
 ## Límites fijados por el dueño del proyecto
 
-- Siempre será una **web app en red local**. Nada de apps nativas ni servicios en la nube.
-- No añadir dependencias externas, frameworks ni compilación sin aprobación explícita. Aprobados el 2026-10-04: **ffmpeg y yt-dlp** como programas del equipo principal, **PowerPoint** para las presentaciones si está instalado, y **pdf.js** dentro de `web/vendor/`. Nada más.
+- Siempre será una **web app en red local**. Nada de apps nativas ni servicios en la nube. Excepciones aprobadas: las **páginas web** que se agregan por su dirección (Canva, Kahoot…) necesitan internet durante el culto (decisión 30); y la **conexión por internet** con un túnel de Cloudflare, que se enciende en Ajustes y, desde fuera, lo pide todo con PIN (decisión 31).
+- No añadir dependencias externas, frameworks ni compilación sin aprobación explícita. Aprobados el 2026-10-04: **ffmpeg y yt-dlp** como programas del equipo principal, **PowerPoint** para las presentaciones si está instalado, y **pdf.js** dentro de `web/vendor/`; aprobado el 2026-10-14: **cloudflared**, para la conexión por internet. Nada más.
 - La revisión inicial del equipo comprueba que está todo lo necesario y avisa de qué módulos funcionarán y cuáles no, pero **nunca bloquea**: Manna se abre igual, y cada módulo avisa al abrirlo de lo que le falta y ofrece instalarlo. Abrir Manna debe seguir siendo fácil para alguien sin conocimientos técnicos.
 - Las biblias con derechos de autor **nunca** se suben al repositorio (solo la Reina-Valera 1909). Tampoco los himnos en video, los medios de cada iglesia ni las letras de los himnos. Todo eso vive en `Contenido/`, que no se publica: las letras se usan (las iglesias tienen la licencia y el dueño las entregó), pero solo en local. Las pruebas y la documentación no llevan letras reales: se usan textos inventados.
 - La búsqueda de texto en la Biblia se hace **solo en la Reina-Valera 1960**, no en todas las versiones.

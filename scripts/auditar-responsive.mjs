@@ -19,6 +19,8 @@
 //     «Proyectar», y los mandos de una diapositiva al aire (por dónde va, la que sigue, acercar) caben
 //   - el Presentador (sin panel «Al aire») deja a la vista la diapositiva grande, Anterior / Siguiente /
 //     Negro, las herramientas de señalar y mover y los mandos en vivo, y su lista de presentaciones cabe
+//   - Páginas web: la lista (una de internet que se deja mostrar, otra que no y un archivo HTML, con nombres
+//     largos) y la barra de la elegida caben y dejan a la vista «Proyectar»
 //   - en la función de alabanza, el volumen de Manna está a la vista sin desplegar "Al aire"
 //   - en YouTube, el campo del enlace cabe en la cabecera y los mandos de un video con subtítulos
 //     en dos idiomas (botón y lista) caben en el panel
@@ -54,6 +56,7 @@ const DEVICES = [
 ];
 
 // Pantallas a revisar. prepare: lo que hay que hacer tras cargar. primary: la acción principal.
+// page: se revisa con esa página web (id de data/paginas.json) al aire.
 // show: se revisa con ese elemento del ejemplo al aire ('testcard', 'image', 'video', 'youtube' o 'slides': todos tienen mandos en vivo).
 const SCREENS = [
   { name: 'Biblia', url: '/control#biblia', primary: '.abar .btn.primary', content: '.col-verses' },
@@ -100,6 +103,11 @@ const SCREENS = [
   // El Presentador no lleva panel «Al aire»: noDock cambia ese control por la diapositiva grande y su fila de botones.
   { name: 'Presentador: elegir presentación', url: '/presentador', noDock: true, content: '.pr-choose', inside: '.pr-list .deck', settle: 600 },
   { name: 'Presentador: presentando', url: '/presentador', show: 'slides', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', controls: '.pr-side .live-controls', settle: 800 },
+  // Con una página web al aire (un archivo propio): sin rejilla ni siguiente; la grande y Anterior / Siguiente / Negro a la vista (sus flechas van en la fila de botones, no en los mandos).
+  { name: 'Presentador: una página web', url: '/presentador', page: 'archivo1', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', settle: 800 },
+  { name: 'Páginas web', url: '/control#paginas', content: '.web-list', inside: '.web-item', settle: 400 },
+  { name: 'Páginas web: una elegida', url: '/control#paginas', content: '.web-list', primary: '.ws[data-module=paginas] .abar .btn.primary', inside: '.ws[data-module=paginas] .abar', settle: 600,
+    prepare: `document.querySelector('.ws[data-module=paginas] .web-pick').click()` },
   { name: 'Televisores', url: '/control#televisores', content: '.tvs', inside: '.tv' },
   { name: 'Televisores: control remoto', url: '/control#televisores', inside: '.modal', settle: 700,
     prepare: `[...document.querySelectorAll('.tv-actions .btn')].find((b) => b.textContent === 'Control remoto').click()` },
@@ -171,6 +179,15 @@ fs.mkdirSync(path.join(tmp, 'data'), { recursive: true });
 fs.writeFileSync(path.join(tmp, 'data', 'televisores.json'), JSON.stringify({
   list: [{ id: 'tele', ip: '192.168.1.50', name: 'Televisor del salón de jóvenes', model: 'QN00PRUEBA', token: fakeTv.token }],
 }));
+// Tres páginas web, sin internet: se escriben ya "agregadas" (dos direcciones, una que se deja mostrar y otra
+// que no, y un archivo HTML), con nombres largos para ver que no desbordan.
+fs.mkdirSync(path.join(tmp, 'data', 'paginas'), { recursive: true });
+fs.writeFileSync(path.join(tmp, 'data', 'paginas', 'archivo1.html'), '<!doctype html><title>Juego</title><body>Juego de la iglesia</body>');
+fs.writeFileSync(path.join(tmp, 'data', 'paginas.json'), JSON.stringify({ pages: [
+  { id: 'enlace1', name: 'Presentación de la escuela sabática con un nombre muy largo para ver cómo se corta en el celular', source: 'url', url: 'http://localhost:9/design/ejemplo-de-una-direccion-larga/view', framable: true, added: 3 },
+  { id: 'enlace2', name: 'Concurso bíblico', source: 'url', url: 'https://kahoot.it/', framable: false, added: 2 },
+  { id: 'archivo1', name: 'Juego de la iglesia', source: 'file', url: null, framable: true, added: 1 },
+] }));
 // El ejemplo se escribe antes de arrancar: el servidor lee el orden y la biblioteca al abrirse.
 const example = seedExample(path.join(tmp, 'data'));
 const server = killOnExit(spawn(process.execPath, ['server/index.js'], {
@@ -195,6 +212,7 @@ try {
     for (const screen of SCREENS) {
       if (screen.narrowOnly && !narrow) continue;
       if (screen.show) await showInOrder(example[screen.show]);
+      if (screen.page) await chrome.evaluate(`fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'projection.show',payload:{kind:'web',data:{id:${JSON.stringify(screen.page)}}}})}).then((r) => r.status)`);
       // La dirección cambia en cada visita para forzar una carga limpia de la página.
       const [pathname, hash = ''] = screen.url.split('#');
       await chrome.send('Page.navigate', { url: `${base}${pathname}?t=${Date.now()}${hash ? `#${hash}` : ''}` });
@@ -212,7 +230,7 @@ try {
         const file = path.join(tmp, `${device.w}x${device.h} ${screen.name.replace(/[:"]/g, '')}.png`);
         fs.writeFileSync(file, Buffer.from(png.result.data, 'base64'));
       }
-      if (screen.show) await showInOrder(example.live);
+      if (screen.show || screen.page) await showInOrder(example.live);
     }
   }
 } finally {

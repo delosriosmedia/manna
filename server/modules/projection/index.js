@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import { HttpError } from '../../core/router.js';
 import { EXTENSIONS, IMAGE_TYPES, readImageInfo } from '../../core/images.js';
 import { listScreens, secondScreen } from './display.js';
-import { openKiosk } from './launcher.js';
+import { openKiosk, sendKeys } from './launcher.js';
 import { liveToRestore } from './live.js';
 import { registerTestCard } from './testcard.js';
 
@@ -309,6 +309,7 @@ export default function setup(app) {
   // ---- Ventana en la segunda pantalla ----
   let child = null;
   let closing = false;
+  let place = null; // la pantalla en que está
   const setDisplay = (patch) => store.set('projection', { display: { ...get().display, ...patch } });
 
   function closeWindow() {
@@ -320,6 +321,7 @@ export default function setup(app) {
 
   function openWindow(screen) {
     closing = false;
+    place = screen;
     const mine = openKiosk({
       url: `http://localhost:${app.port}/proyeccion`,
       screen,
@@ -365,6 +367,42 @@ export default function setup(app) {
     await reconcile();
   });
 
+  // ---- Página en su propia ventana ----
+  // Lo que no se deja mostrar dentro de Manna (item.window: una dirección de internet) se abre en otra
+  // ventana a pantalla completa, sobre la de proyección, mientras está al aire. Con perfil propio: si
+  // no, Chrome la abriría junto a la de proyección e ignoraría la posición. Si alguien la cierra a mano,
+  // no se reabre hasta que se proyecte otra cosa.
+  // Si sus mandos en vivo llevan teclas pulsadas ({ presses, count }, como una página web), las nuevas
+  // se le pulsan en esa ventana, en orden: así se pasa desde un celular.
+  const pagesProfile = path.join(app.dataDir, 'navegador-paginas');
+  let page = null; // { url, child, sent, queue }
+  const liveKeys = () => {
+    const live = store.get('live');
+    return live.uid === get().item?.uid && live.state?.presses ? live.state : null;
+  };
+  function syncPage() {
+    const { item, mode } = get();
+    const want = child && mode === 'live' ? item?.window || null : null;
+    if (want === (page?.url ?? null)) return;
+    page?.child?.kill();
+    page = null;
+    if (!want) return;
+    const mine = { url: want, child: null, sent: liveKeys()?.count ?? 0, queue: Promise.resolve() };
+    page = mine;
+    mine.child = openKiosk({ url: want, screen: place, profileDir: pagesProfile, debug: true, onExit: () => { mine.child = null; } });
+  }
+  function pressPage() {
+    const keys = liveKeys();
+    if (!page?.child || !keys || keys.count <= page.sent) return;
+    const missing = keys.presses.slice(Math.max(0, keys.presses.length - (keys.count - page.sent)));
+    page.sent = keys.count;
+    page.queue = page.queue.then(() => sendKeys(pagesProfile, missing));
+  }
+  store.on('change', (ns) => {
+    if (ns === 'projection') syncPage();
+    else if (ns === 'live') pressPage();
+  });
+
   let timer = null;
   store.on('listening', () => {
     reconcile();
@@ -373,6 +411,7 @@ export default function setup(app) {
   });
   app.onClose(() => {
     clearInterval(timer);
+    page?.child?.kill();
     closeWindow();
   });
 }

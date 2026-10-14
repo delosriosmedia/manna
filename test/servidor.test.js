@@ -9,6 +9,7 @@ import { createApp } from '../server/core/app.js';
 import system from '../server/modules/system/index.js';
 import projection from '../server/modules/projection/index.js';
 import order from '../server/modules/order/index.js';
+import web, { framable, parseAddress } from '../server/modules/web/index.js';
 import { makePng } from '../scripts/lib/png.mjs';
 
 // El servidor de verdad, con sus módulos, atendido por HTTP en este equipo. Usa datos temporales
@@ -21,7 +22,7 @@ async function start(name, env = {}) {
   Object.assign(process.env, env);
   const app = createApp({ rootDir: ROOT, dataDir: path.join(tmp, name), biblesDir: path.join(tmp, `${name}-biblias`) });
   for (const key of Object.keys(env)) delete process.env[key];
-  for (const setup of [system, projection, order]) await setup(app);
+  for (const setup of [system, projection, order, web]) await setup(app);
   await app.tools.scan();
   const server = http.createServer(app.handle);
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -259,9 +260,29 @@ test('lo que llega por un túnel o un proxy de este equipo no cuenta como el equ
   assert.equal((await (await outside('/api/session')).json()).isLocal, false);
   const login = await outside('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'control' }) });
   assert.equal(login.status, 401, 'sin PIN no entra');
-  assert.equal((await outside('/api/system/pin')).status, 403);
+  assert.notEqual((await outside('/api/system/pin')).status, 200);
   // Sin esas cabeceras sigue siendo el equipo principal.
   assert.equal((await (await main.request('/api/session')).json()).isLocal, true);
+});
+
+test('desde internet nada se ve sin PIN, ni la pantalla de proyección', async () => {
+  const tunnel = { 'Cf-Connecting-Ip': '203.0.113.9', 'X-Forwarded-For': '203.0.113.9' };
+  const outside = (url, options = {}) => fetch(new URL(url, main.base), { ...options, headers: { ...options.headers, ...tunnel } });
+  const info = await (await outside('/api/session')).json();
+  assert.equal(info.internet, true);
+  assert.ok(info.roles.every((r) => r.requiresPin), 'todas las funciones piden PIN');
+  assert.equal((await main.request('/api/session').then((r) => r.json())).internet, false);
+  // La interfaz y lo necesario para entrar, sí; el contenido y el estado, no.
+  for (const url of ['/', '/proyeccion', '/core/api.js', '/api/ping']) assert.equal((await outside(url)).status, 200, url);
+  for (const url of ['/api/state', '/api/events?rol=proyeccion', '/media/x.jpg', '/paginas/x']) assert.equal((await outside(url)).status, 401, url);
+  // La proyección pide el PIN; con él, entra y ve el estado.
+  const open = (pin) => outside('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'proyeccion', pin }) });
+  assert.equal((await open()).status, 401, 'sin PIN no entra');
+  const { pin } = await (await main.request('/api/system/pin')).json();
+  const entered = await open(pin);
+  assert.equal(entered.status, 200);
+  const cookie = entered.headers.get('set-cookie').split(';')[0];
+  assert.equal((await outside('/api/state', { headers: { cookie } })).status, 200, 'con la sesión, sí');
 });
 
 test('cambiar el PIN cierra las demás sesiones, también las abiertas sin PIN', async () => {
@@ -279,7 +300,7 @@ test('cambiar el PIN cierra las demás sesiones, también las abiertas sin PIN',
 test('la revisión del equipo lista los programas y dice con qué página abrir', async () => {
   const { tools } = await main.state();
   assert.equal(tools.checked, true);
-  assert.deepEqual(tools.list.map((t) => t.id), ['navegador', 'ffmpeg', 'yt-dlp', 'powerpoint']);
+  assert.deepEqual(tools.list.map((t) => t.id), ['navegador', 'ffmpeg', 'yt-dlp', 'cloudflared', 'powerpoint']);
   assert.equal(tools.pending, tools.list.filter((t) => t.level === 'feature' && !t.found).length);
   assert.equal(main.app.tools.entry(), tools.pending ? '/requisitos' : '/control');
 });
@@ -305,4 +326,166 @@ test('aunque falten programas, ni siquiera el navegador, ninguna página se bloq
   } finally {
     await bare.stop();
   }
+});
+
+// ---- Páginas web ----
+
+// Un sitio de mentira en este equipo: responde según la ruta, para probar cómo se reconoce lo que se deja mostrar.
+async function withSite(run) {
+  const routes = {
+    '/libre': [200, {}],
+    '/deny': [200, { 'X-Frame-Options': 'DENY' }],
+    '/same': [200, { 'X-Frame-Options': 'SAMEORIGIN' }],
+    '/csp-no': [200, { 'Content-Security-Policy': "default-src 'self'; frame-ancestors 'none'" }],
+    '/csp-todos': [200, { 'Content-Security-Policy': 'frame-ancestors *' }],
+    '/roto': [500, {}],
+  };
+  const site = http.createServer((req, res) => {
+    const [status, headers] = routes[req.url] || [404, {}];
+    res.writeHead(status, headers);
+    res.end('<html></html>');
+  });
+  await new Promise((resolve) => site.listen(0, '127.0.0.1', resolve));
+  try {
+    return await run(`http://127.0.0.1:${site.address().port}`);
+  } finally {
+    await new Promise((resolve) => site.close(resolve));
+  }
+}
+
+test('una dirección se agrega y se reconoce si se deja mostrar dentro de la proyección', async () => {
+  await withSite(async (site) => {
+    const add = async (route) => (await main.send('web.add', { url: site + route })).result;
+    const libre = await add('/libre');
+    assert.deepEqual([libre.framable, libre.source, libre.url, libre.name], [true, 'url', `${site}/libre`, '127.0.0.1']);
+    assert.equal((await add('/deny')).framable, false);
+    assert.equal((await add('/same')).framable, false);
+    assert.equal((await add('/csp-no')).framable, false);
+    assert.equal((await add('/csp-todos')).framable, true);
+    const roto = await main.send('web.add', { url: `${site}/roto`, name: 'Juego roto' });
+    assert.deepEqual([roto.status, roto.result.framable, roto.result.name], [200, false, 'Juego roto'], 'si responde con error se agrega, en su propia ventana');
+    const pages = (await main.state()).web.pages;
+    assert.equal(pages.length, 6);
+    assert.deepEqual(pages.map((p) => p.added), pages.map((p) => p.added).sort((a, b) => b - a), 'la más reciente va primero');
+    assert.match(pages.find((p) => p.id === roto.result.id).subtitle, /127\.0\.0\.1 · en su propia ventana/);
+    assert.equal(pages.find((p) => p.id === libre.id).subtitle, '127.0.0.1');
+  });
+  // Un puerto cerrado no se puede abrir; un texto que no es una dirección ni se intenta.
+  const closed = http.createServer();
+  await new Promise((resolve) => closed.listen(0, '127.0.0.1', resolve));
+  const { port } = closed.address();
+  await new Promise((resolve) => closed.close(resolve));
+  assert.equal((await main.send('web.add', { url: `http://127.0.0.1:${port}/` })).status, 502);
+  assert.equal((await main.send('web.add', { url: 'hola' })).status, 400);
+  assert.equal((await main.state()).web.pages.length, 6);
+
+  assert.equal(parseAddress('canva.com/x'), 'https://canva.com/x');
+  assert.equal(parseAddress(' http://localhost:3000/a '), 'http://localhost:3000/a');
+  for (const bad of ['hola', '', 'ftp://sitio.com', null]) assert.throws(() => parseAddress(bad), /dirección de la página/, String(bad));
+  const headers = (h) => (name) => h[name] ?? null;
+  assert.equal(framable(headers({})), true);
+  assert.equal(framable(headers({ 'x-frame-options': 'deny' })), false);
+  assert.equal(framable(headers({ 'content-security-policy': "frame-ancestors 'self' https://a.com" })), false);
+  assert.equal(framable(headers({ 'content-security-policy': 'script-src *' })), true);
+});
+
+test('un archivo HTML se sube, se sirve encerrado y con el puente; lo que no es HTML se rechaza', async () => {
+  const upload = (name, body) => main.request(`/api/web?name=${encodeURIComponent(name)}`, { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body });
+  const html = '<!doctype html><html><body><h1>Juego de prueba</h1></body></html>';
+  const ok = await upload('Juego de prueba', html);
+  assert.equal(ok.status, 200);
+  const page = await ok.json();
+  assert.deepEqual([page.source, page.url, page.name, page.framable], ['file', `/paginas/${page.id}`, 'Juego de prueba', true]);
+
+  const before = (await main.state()).web.pages.length;
+  assert.equal((await upload('Binario', Buffer.from([0x89, 0, 1, 2, 0, 0, 60, 100, 105, 118, 62]))).status, 415);
+  assert.equal((await upload('Texto', 'solo texto, sin etiquetas')).status, 415);
+  assert.equal((await main.state()).web.pages.length, before, 'lo rechazado no queda en la biblioteca');
+  assert.equal(fs.readdirSync(path.join(main.app.dataDir, 'paginas')).length, 1, 'ni su archivo');
+
+  // Sin sesión no se sube.
+  const anonymous = await fetch(`${main.base}/api/web?name=x`, { method: 'POST', body: html });
+  assert.ok([401, 403].includes(anonymous.status), String(anonymous.status));
+  await anonymous.arrayBuffer();
+
+  // Se sirve sin sesión (la abre la pantalla de proyección), encerrada y con el puente al final.
+  const served = await fetch(`${main.base}${page.url}`);
+  assert.equal(served.status, 200);
+  assert.equal(served.headers.get('content-security-policy'), 'sandbox allow-scripts');
+  const body = await served.text();
+  assert.ok(body.startsWith(html));
+  const bridge = body.slice(html.length);
+  assert.ok(bridge.includes('manna') && bridge.includes('tecla'));
+  const missing = await fetch(`${main.base}/paginas/inexistente`);
+  assert.equal(missing.status, 404);
+  await missing.arrayBuffer();
+});
+
+test('el tipo web: un archivo se pasa con las flechas; una dirección no tiene mandos', async () => {
+  const pages = (await main.state()).web.pages;
+  const file = pages.find((p) => p.source === 'file');
+  const own = pages.find((p) => p.source === 'url' && !p.framable);
+  const framed = pages.find((p) => p.source === 'url' && p.framable);
+
+  assert.equal((await main.send('projection.show', { kind: 'web', data: { id: file.id } })).status, 200);
+  let state = await main.state();
+  assert.deepEqual([state.projection.item.file, state.projection.item.window], [true, null]);
+  assert.deepEqual(state.live.state, { presses: [], count: 0 });
+  await main.send('projection.control', { key: 'ArrowRight' });
+  await main.send('projection.control', { key: 'ArrowRight' });
+  assert.equal((await main.send('projection.control', { key: 'ArrowLeft' })).status, 200);
+  assert.deepEqual((await main.state()).live.state, { presses: ['ArrowRight', 'ArrowRight', 'ArrowLeft'], count: 3 });
+  assert.equal((await main.send('projection.control', { key: 'Enter' })).status, 400);
+  assert.equal((await main.state()).live.state.count, 3, 'una tecla no permitida no cambia nada');
+
+  // Una dirección que no se deja mostrar la abre el proyector en su ventana, y se pasa con las flechas
+  // (las pulsa el módulo de proyección en esa ventana); la que se deja no tiene mandos.
+  await main.send('projection.show', { kind: 'web', data: { id: own.id } });
+  state = await main.state();
+  assert.deepEqual([state.projection.item.window, state.projection.item.file], [own.url, false]);
+  assert.equal((await main.send('projection.control', { key: 'ArrowRight' })).status, 200);
+  assert.deepEqual((await main.state()).live.state, { presses: ['ArrowRight'], count: 1 });
+  await main.send('projection.show', { kind: 'web', data: { id: framed.id } });
+  assert.equal((await main.state()).projection.item.window, null);
+  assert.equal((await main.send('projection.control', { key: 'ArrowRight' })).status, 409);
+
+  const added = await main.send('order.add', { kind: 'web', data: { id: file.id } });
+  assert.deepEqual([added.status, added.result.title, added.result.steps], [200, file.name, 1]);
+  await main.send('order.clear');
+  await main.send('projection.clear');
+});
+
+test('una página se renombra, también lo que está al aire, y al quitarla se borra su archivo', async () => {
+  const file = (await main.state()).web.pages.find((p) => p.source === 'file');
+  await main.send('projection.show', { kind: 'web', data: { id: file.id } });
+  assert.equal((await main.send('web.rename', { id: file.id, name: 'Trivia de domingo' })).status, 200);
+  const state = await main.state();
+  assert.equal(state.web.pages.find((p) => p.id === file.id).name, 'Trivia de domingo');
+  assert.equal(state.projection.item.title, 'Trivia de domingo');
+  assert.equal((await main.send('web.rename', { id: file.id, name: '  ' })).status, 400);
+
+  assert.equal((await main.send('web.remove', { id: file.id })).status, 200);
+  assert.equal((await main.state()).web.pages.some((p) => p.id === file.id), false);
+  const gone = await fetch(`${main.base}/paginas/${file.id}`);
+  assert.equal(gone.status, 404);
+  await gone.arrayBuffer();
+  assert.equal((await main.send('web.remove', { id: file.id })).status, 404);
+  await main.send('projection.clear');
+});
+
+test('una orden que no viene de Manna (origen «null» o de otro sitio) se rechaza', async () => {
+  const post = (headers) => main.request('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ type: 'projection.mode', payload: { mode: 'clear' } }) });
+  const statusOf = async (headers) => {
+    const res = await post(headers);
+    await res.arrayBuffer();
+    return res.status;
+  };
+  assert.equal(await statusOf({ Origin: 'null' }), 403);
+  assert.equal(await statusOf({ 'Sec-Fetch-Site': 'cross-site' }), 403);
+  assert.equal(await statusOf({ 'Sec-Fetch-Site': 'same-origin' }), 200);
+  assert.equal(await statusOf({}), 200);
+  // Leer no se restringe: la página encerrada se abre con origen «null».
+  const read = await main.request('/api/ping', { headers: { Origin: 'null' } });
+  assert.equal(read.status, 200);
+  await read.arrayBuffer();
 });

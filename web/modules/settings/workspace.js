@@ -1,4 +1,4 @@
-import { action, disconnect, subscribe } from '../../core/api.js';
+import { action, disconnect, state, subscribe } from '../../core/api.js';
 import { h, allowLeaving, dialog, go, guard, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { createDisplayToggle, createStylePanel, createTestCardButton, describeDisplay } from '../projection/controls.js';
@@ -11,6 +11,15 @@ function mount(el, ctx) {
   const screens = h('p', { class: 'muted' });
   const tools = h('div', { class: 'tools' });
   const version = h('p', { class: 'version' });
+  const net = h('p', { class: 'muted' });
+  const netLink = h('a', { target: '_blank', rel: 'noopener' });
+  const netAddress = h('p', { class: 'net-address', hidden: true }, netLink,
+    h('button', { class: 'btn', onclick: guard(async () => {
+      await navigator.clipboard.writeText(netLink.href);
+      toast('Dirección copiada.');
+    }) }, icon('copy', 15), 'Copiar'));
+  const netToggle = h('button', { class: 'btn', onclick: guard(() => action('internet.set', { on: !state.internet?.on })) });
+  const netOwn = h('button', { class: 'btn', onclick: () => openOwnTunnel() });
 
   const section = (title, hint, ...content) => h('section', { class: 'set' },
     h('div', { class: 'set-title' }, h('h2', {}, title), hint && h('p', { class: 'muted' }, hint)),
@@ -24,6 +33,8 @@ function mount(el, ctx) {
         displayText, h('div', { class: 'row', style: 'flex-wrap: wrap;' }, createDisplayToggle(), createTestCardButton())),
       section('Dispositivos', 'Celulares, tabletas y otros equipos de la misma red.',
         screens, h('div', { class: 'row' }, h('button', { class: 'btn', onclick: guard(() => openDevicesDialog(ctx.isLocal)) }, icon('qr-code', 16), 'Conectar un dispositivo'))),
+      section('Conexión por internet', 'Para usar Manna desde fuera de la iglesia. Desde internet todo pide el PIN, también la pantalla de proyección.',
+        net, netAddress, ctx.isLocal && h('div', { class: 'row', style: 'flex-wrap: wrap;' }, netToggle, netOwn)),
       section('Programas del equipo principal', 'Lo que Manna usa para convertir videos, descargar de YouTube y abrir presentaciones.',
         tools, h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => go('/requisitos') }, icon('check-circle', 16), 'Revisar el equipo'))),
       section('Este dispositivo', null,
@@ -60,6 +71,41 @@ function mount(el, ctx) {
         toast(`Actualizando ${t.name}. El avance está en el panel «Al aire».`);
       }) }, icon('arrow-clockwise', 15), t.installing ? 'Actualizando…' : 'Actualizar'))));
   });
+  const NET = {
+    off: 'Apagada.',
+    starting: 'Conectando con Cloudflare…',
+    on: 'Encendida. Desde internet se entra por esta dirección:',
+  };
+  subscribe('internet', (s) => {
+    net.textContent = s.status === 'error' ? s.error : NET[s.status] || '';
+    net.classList.toggle('warn', s.status === 'error');
+    netAddress.hidden = !(s.on && s.url);
+    if (s.url) {
+      netLink.href = s.url;
+      netLink.textContent = s.url;
+    }
+    netToggle.replaceChildren(icon('power', 15), s.on ? 'Apagar' : 'Encender');
+    netOwn.textContent = s.own ? 'Cambiar el dominio propio' : 'Usar un dominio propio';
+  });
+  // Un túnel propio de Cloudflare: su clave (no se vuelve a mostrar) y la dirección que se le dio.
+  function openOwnTunnel() {
+    const token = h('input', { class: 'input', type: 'password', autocomplete: 'off', placeholder: 'Clave del túnel (empieza por eyJ…)', 'aria-label': 'Clave del túnel' });
+    const address = h('input', { class: 'input', placeholder: 'https://manna.tuiglesia.org', 'aria-label': 'Dirección' });
+    const save = (value) => guard(async () => {
+      await action('internet.own', value ? { token: token.value, address: address.value } : { token: '' });
+      box.close();
+      toast(value ? 'Dominio propio guardado.' : 'Se usará el túnel rápido, con una dirección nueva cada vez.');
+    });
+    const box = dialog('Dominio propio',
+      h('p', { class: 'muted' }, `En el panel de Cloudflare (Zero Trust → Networks → Tunnels), crea un túnel, dale la dirección de tu dominio y que lleve a http://localhost:${location.port || '80'}. Copia aquí la clave que te muestra (puedes pegar la orden entera).`),
+      h('div', { class: 'net-own' }, token, address),
+      h('div', { class: 'row', style: 'justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 14px;' },
+        state.internet?.own && h('button', { class: 'btn', onclick: save(false) }, 'Quitar el dominio propio'),
+        h('button', { class: 'btn', onclick: () => box.close() }, 'Cancelar'),
+        h('button', { class: 'btn primary', onclick: save(true) }, 'Guardar')));
+    token.focus();
+  }
+
   subscribe('conexiones', ({ porRol = {} }) => {
     const n = (role) => porRol[role] || 0;
     const controls = n('control') + n('orden');

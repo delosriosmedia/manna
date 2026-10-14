@@ -93,6 +93,8 @@ html.touch .pr-tools .chip { min-height: 40px; padding: 0 14px; }
 .pr-end { color: var(--ink-3); font-size: 13px; }
 .presenter .dock-label { margin-top: 0; }
 .presenter .slide-info { display: none; }
+/* Con una página web al aire, «Anterior» y «Siguiente» ya están debajo de la grande. */
+.presenter .web-keys { display: none; }
 
 @media (max-width: 1179px) {
   .pr-body { grid-template-columns: minmax(0, 1fr) 250px; padding: 12px 16px 14px; }

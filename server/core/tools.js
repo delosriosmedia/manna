@@ -103,6 +103,9 @@ async function findPowerPoint() {
 
 // Descargas oficiales para "Instalar por mí". Si un sistema no figura, se instala a mano.
 const YT = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download';
+const CF = 'https://github.com/cloudflare/cloudflared/releases/latest/download';
+// cloudflared no publica una lista de huellas aparte: van en el texto de cada versión («nombre: huella»).
+const CF_SUMS = 'https://api.github.com/repos/cloudflare/cloudflared/releases/latest';
 const OFFICIAL = {
   ffmpeg: {
     win32: {
@@ -115,6 +118,11 @@ const OFFICIAL = {
   'yt-dlp': {
     win32: { url: `${YT}/yt-dlp.exe`, sums: `${YT}/SHA2-256SUMS`, file: 'yt-dlp.exe', size: '18 MB' },
     darwin: { url: `${YT}/yt-dlp_macos`, sums: `${YT}/SHA2-256SUMS`, file: 'yt-dlp', size: '37 MB' },
+  },
+  cloudflared: {
+    win32: { url: `${CF}/cloudflared-windows-amd64.exe`, sums: CF_SUMS, release: true, file: 'cloudflared.exe', size: '65 MB' },
+    // En Mac la huella publicada es la del programa, no la del .tgz que lo trae.
+    darwin: { url: `${CF}/cloudflared-darwin-${process.arch === 'arm64' ? 'arm64' : 'amd64'}.tgz`, sums: CF_SUMS, release: true, inner: true, extract: ['cloudflared'], size: '20 MB' },
   },
 };
 
@@ -178,6 +186,20 @@ const CATALOG = [
       win32: { steps: [terminal.win32, 'Copia esta orden, pégala y pulsa Enter:', AFTER_COMMAND], command: 'winget install --id yt-dlp.yt-dlp -e' },
       darwin: { steps: [terminal.darwin, 'Copia esta orden, pégala y pulsa Enter (necesita Homebrew, de brew.sh):', AFTER_COMMAND], command: 'brew install yt-dlp' },
       other: { steps: ['Instala el paquete "yt-dlp" con el gestor de programas de tu sistema.'] },
+    },
+  },
+  {
+    id: 'cloudflared',
+    name: 'cloudflared',
+    level: 'optional',
+    purpose: 'Abre la conexión por internet (Ajustes): entrar a Manna desde fuera de la iglesia, siempre con PIN.',
+    link: 'https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/',
+    binaries: ['cloudflared'],
+    version: { args: ['--version'], pattern: /version (\S+)/ },
+    manual: {
+      win32: { steps: [terminal.win32, 'Copia esta orden, pégala y pulsa Enter:', AFTER_COMMAND], command: 'winget install --id Cloudflare.cloudflared -e' },
+      darwin: { steps: [terminal.darwin, 'Copia esta orden, pégala y pulsa Enter (necesita Homebrew, de brew.sh):', AFTER_COMMAND], command: 'brew install cloudflared' },
+      other: { steps: ['Instala "cloudflared" siguiendo las instrucciones de Cloudflare.'] },
     },
   },
   {

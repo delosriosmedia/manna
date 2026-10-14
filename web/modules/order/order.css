@@ -13,7 +13,7 @@
 .orow:hover { background: var(--s1); }
 .orow.selected { background: var(--s2); border-color: var(--line-2); }
 .orow.selected .item-text strong { -webkit-line-clamp: unset; }
-.orow.live { background: var(--live-soft); border-color: rgba(217, 58, 64, 0.5); }
+.orow.live { background: var(--live-soft); border-color: rgba(224, 56, 62, 0.5); }
 .orow.past:not(.selected) { opacity: 0.55; }
 .orow .grip { color: var(--ink-4); cursor: grab; display: grid; }
 .orow .num { width: 18px; text-align: right; font: 500 12px var(--mono); color: var(--ink-3); flex-shrink: 0; }

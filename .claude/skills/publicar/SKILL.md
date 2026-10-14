@@ -76,6 +76,15 @@ Solo tras un sí:
 git push
 ```
 
-Si hubo versión nueva, crea también la etiqueta: `git tag v<versión> && git push --tags`.
+Si hubo versión nueva, crea también la etiqueta y la **versión de GitHub con los dos instaladores**, que es de donde los descarga quien instala Manna (enlaces del README, «Instalación»). El de Mac va dentro de un `.zip` para que conserve el permiso de ejecutarse:
+
+```bash
+git tag v<versión> && git push --tags
+dir=$(mktemp -d)
+cp "Instalar Manna en Windows.bat" "$dir/Instalar-Manna-Windows.bat"
+cp "Instalar Manna en Mac.command" "$dir/" && chmod +x "$dir/Instalar Manna en Mac.command"
+(cd "$dir" && zip -q Instalar-Manna-Mac.zip "Instalar Manna en Mac.command")
+gh release create v<versión> --title "Manna <versión>" --notes "<lo de esta versión en CHANGELOG.md>" "$dir/Instalar-Manna-Windows.bat" "$dir/Instalar-Manna-Mac.zip"
+```
 
 Confirma con el enlace al repositorio: https://github.com/delosriosmedia/manna

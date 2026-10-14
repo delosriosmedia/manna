@@ -8,6 +8,7 @@ import './media/kind.js';
 import './media/clip.js';
 import './slides/kind.js';
 import './hymns/kind.js';
+import './web/kind.js';
 
 // Tipos previstos que todavía no tiene ningún módulo: solo icono y nombre, para que un orden
 // del culto que los contenga se lea bien. No se pueden proyectar. Cuando un módulo registra

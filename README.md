@@ -17,6 +17,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
   - **Videos y audios**: se suben o se copian a `Contenido/Medios/`. Lo habitual se usa tal cual y lo demás se convierte solo, en segundo plano. Al aire: pausa, saltos, barra de avance, subtítulos y el volumen de Manna. Todas las pantallas van a la par y suena una sola.
   - **YouTube**: se pega el enlace de un video y Manna lo descarga una vez, con su título, su imagen y sus subtítulos en español e inglés. Queda en la biblioteca y se proyecta sin anuncios, sin cortes y sin internet, con los mismos mandos que cualquier video.
 - **Diapositivas**: las presentaciones de la iglesia, en PDF o en PowerPoint, convertidas en imágenes. Se recorren con «Siguiente», el panel muestra la diapositiva que viene y cuántas quedan, y cada una se puede acercar como una imagen.
+- **Páginas web**: presentaciones y juegos de internet (Canva, Google Slides, Genially, Kahoot) o un archivo HTML propio, a pantalla completa. Una dirección necesita internet durante el culto; si la página no se deja mostrar dentro de Manna, el proyector la abre en su propia ventana. Un archivo HTML se pasa con «Anterior» y «Siguiente» desde cualquier dispositivo.
 - **Fondos**: seis colores y las imágenes que subas, que quedan guardadas junto a ellos en Ajustes.
 - **Televisores** (en pausa y fuera de la barra, ver `docs/ESTADO.md`): un televisor Samsung de la misma red muestra la proyección desde su navegador, sin cables. Manna lo encuentra, le abre el navegador y le sirve de control remoto (teclas, puntero y texto); la primera vez le escribe la dirección por ti.
 - **Mandos en vivo**: lo que está al aire trae sus propios mandos en el panel y en el orden del culto. Los tienen las imágenes, los videos, las diapositivas y la **imagen de prueba** (Ajustes → Proyector de este equipo), que sirve para encuadrar el proyector o un televisor y comprobar, con su cronómetro, que todas las pantallas van a la par.
@@ -24,7 +25,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Preparado para crecer**: cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
 - **Funciones por dispositivo**: cada dispositivo elige al entrar.
   - **Control completo**: todos los módulos. Pide PIN.
-  - **Presentador de diapositivas**: una sola pantalla para pasar una presentación (del orden, de la biblioteca o subida ahí mismo): la diapositiva al aire en grande, la siguiente y todas en cuadrícula, con **señalar con el dedo** en la proyección y mover o acercar con los dedos. Pide PIN.
+  - **Presentador de diapositivas**: una sola pantalla para pasar una presentación (del orden, de la biblioteca o subida ahí mismo): la diapositiva al aire en grande, la siguiente y todas en cuadrícula, con **señalar con el dedo** en la proyección y mover o acercar con los dedos. Pide PIN. También presenta las **páginas web**, con el puntero.
   - **Servicio de alabanza**: Himnario, Medios, Orden y Biblia, con el volumen de Manna siempre a la vista. Proyecta, prepara el orden y sube medios, pero no toca los ajustes. Pide PIN.
   - **Control del orden**: solo proyecta lo que ya está en el orden del culto. Pensado para el celular. Pide PIN.
   - **Pantalla de proyección**: espejo de la proyección principal. Sin PIN.
@@ -42,29 +43,42 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 | ffmpeg | Convertir videos y audios, unir imagen y sonido de YouTube, sacar la pista instrumental de los himnos | Manna se abre; las funciones que lo usan no estarán disponibles |
 | yt-dlp | Descargar videos de YouTube | Igual |
 | Microsoft PowerPoint (opcional) | Convertir las presentaciones de PowerPoint en diapositivas | Se sube el PDF de la presentación, que no necesita ningún programa |
+| cloudflared (opcional) | La conexión por internet (Ajustes) | Manna funciona igual en la red de la iglesia; la conexión por internet avisa de que falta |
 
-Solo Node.js se instala antes. Lo demás lo comprueba Manna cada vez que se abre: si falta algo, en vez del control muestra la **revisión del equipo**, que dice qué módulos funcionarán completos y cuáles no, para qué sirve cada programa, y ofrece **Abrir Manna** de todos modos e **Instalar por mí** (descarga ffmpeg y yt-dlp de sus sitios oficiales a la carpeta `data/herramientas/`, sin tocar el sistema) o los pasos para hacerlo a mano. La misma revisión está en **Ajustes → Programas del equipo principal**, y cada módulo avisa al abrirlo si le falta algo. Los demás dispositivos no instalan nada.
+Solo Node.js se instala antes. Lo demás lo comprueba Manna cada vez que se abre: si falta algo, en vez del control muestra la **revisión del equipo**, que dice qué módulos funcionarán completos y cuáles no, para qué sirve cada programa, y ofrece **Abrir Manna** de todos modos e **Instalar por mí** (descarga ffmpeg, yt-dlp y cloudflared de sus sitios oficiales, comprobando su huella, a la carpeta `herramientas` de los datos de Manna, sin tocar el sistema) o los pasos para hacerlo a mano. La misma revisión está en **Ajustes → Programas del equipo principal**, y cada módulo avisa al abrirlo si le falta algo. Los demás dispositivos no instalan nada.
 
 ffmpeg lo usa Medios para convertir los videos y audios que el navegador no reproduce; sin él, los MP4 y MP3 habituales funcionan igual. yt-dlp (con ffmpeg) descarga los videos de YouTube; como YouTube cambia a menudo, en **Ajustes → Programas del equipo principal** hay un botón **Actualizar** para ponerlo al día. PowerPoint lo usa Diapositivas para convertir una presentación `.pptx`; es opcional, porque un PDF se convierte en el propio navegador.
 
-## Instalación (una sola vez por equipo)
+## Instalación
 
-1. Copia la carpeta de Manna al equipo principal y pon tu contenido en la carpeta `Contenido/` (ver abajo, "La carpeta de tu iglesia").
-2. Abre con doble clic el archivo que corresponda:
-   - **Windows**: `Instalar Manna en Windows.bat`
-   - **Mac**: `Instalar Manna en Mac.command`
-3. El instalador comprueba que está Node.js y crea el icono **Manna** en el Escritorio (y en el menú Inicio o en Aplicaciones). Al terminar, abre Manna, que revisa el resto del equipo.
+Solo hay que descargar **un archivo** (y tener Node.js; ver arriba):
 
-Avisos que pueden salir la primera vez:
+- **Windows**: [Instalar-Manna-Windows.bat](https://github.com/delosriosmedia/manna/releases/latest/download/Instalar-Manna-Windows.bat)
+- **Mac**: [Instalar-Manna-Mac.zip](https://github.com/delosriosmedia/manna/releases/latest/download/Instalar-Manna-Mac.zip) (al abrirlo queda `Instalar Manna en Mac.command`)
 
-- **Windows**: el Firewall pregunta por Node.js. Elige *Permitir acceso* en redes privadas; sin eso los celulares no pueden conectarse.
-- **Mac**: si macOS bloquea el instalador, ve a Ajustes del Sistema → Privacidad y seguridad → *Abrir igualmente*. Si pide permiso para leer la carpeta de Manna o para la red local, elige *Permitir*.
+Ábrelo con doble clic. El instalador comprueba que está Node.js, **baja Manna** de GitHub a una carpeta que no hace falta abrir nunca, y crea el icono **Manna** en el Escritorio (y en el menú Inicio o en Aplicaciones). Al terminar abre Manna, que revisa el resto del equipo.
 
-Si mueves la carpeta de Manna a otro sitio, vuelve a ejecutar el instalador. Para desinstalar, borra el icono (en Mac, también la app Manna de Aplicaciones) y la carpeta.
+| | Windows | Mac |
+| --- | --- | --- |
+| El programa | `%LOCALAPPDATA%\Manna\programa` | `~/Library/Application Support/Manna/programa` |
+| Sus datos (PIN, orden del culto, lo subido, `manna.log`) | `%LOCALAPPDATA%\Manna\datos` | `~/Library/Application Support/Manna/datos` |
+| **El contenido de la iglesia** | `Documentos\Manna\Contenido` | `Documentos/Manna/Contenido` |
+
+- **Para actualizar Manna**, vuelve a abrir el mismo archivo: reemplaza el programa y no toca los datos.
+- **La carpeta de contenido nunca se reemplaza ni se mueve**: el instalador solo le añade lo que falte (sus instrucciones y la Reina-Valera 1909).
+- Si Manna ya estaba instalado a la antigua (la carpeta entera, con su `Instalar Manna…` dentro), el instalador lo reconoce por su icono y **sigue usando el contenido y los datos de esa carpeta, donde están**. No la borres.
+- Para desinstalar: borra el icono (en Mac, también la app Manna de Aplicaciones) y la carpeta `Manna` del programa. El contenido de la iglesia queda en Documentos.
+
+Avisos que pueden salir la primera vez (el archivo no está firmado, porque firmarlo cuesta dinero):
+
+- **Windows**: «Windows protegió su PC» → *Más información* → *Ejecutar de todas formas*. Luego el Firewall pregunta por Node.js: elige *Permitir acceso* en redes privadas; sin eso los celulares no pueden conectarse.
+- **Mac**: si macOS no deja abrir el instalador, ve a Ajustes del Sistema → Privacidad y seguridad → *Abrir igualmente*. Si pide permiso para leer una carpeta o para la red local, elige *Permitir*.
+
+Quien desarrolla Manna lo abre desde su copia del proyecto con `node server/index.js`: así usa `data/` y `Contenido/` de esa copia.
 
 ## La carpeta de tu iglesia
 
-Todo lo que pone cada iglesia va en una sola carpeta, `Contenido/`. Manna lee lo que encuentra y lo muestra solo, sin importar nada ni reiniciar. Cada subcarpeta trae un `LEEME.txt` con el formato exacto.
+Todo lo que pone cada iglesia va en una sola carpeta, `Contenido` (en Documentos/Manna; ver «Instalación»). Manna lee lo que encuentra y lo muestra solo, sin importar nada ni reiniciar. Cada subcarpeta trae un `LEEME.txt` con el formato exacto.
 
 | Carpeta | Qué va |
 | --- | --- |
@@ -73,7 +87,7 @@ Todo lo que pone cada iglesia va en una sola carpeta, `Contenido/`. Manna lee lo
 | `Contenido/Himnario/letras/` | Las letras de los himnos y sus categorías, en un archivo de texto `.md` (cómo se escribe, en su `LEEME.txt`) |
 | `Contenido/Medios/` | Videos y audios para proyectar. También se pueden subir desde la app; para archivos grandes, copiarlos aquí es lo más rápido |
 
-Al actualizar Manna, conserva `Contenido/` y `data/`; lo demás se reemplaza. Nada de `Contenido/` se publica en GitHub, salvo las instrucciones y la Reina-Valera 1909.
+Al actualizar Manna con el instalador, el contenido y los datos no se tocan. Nada de `Contenido/` se publica en GitHub, salvo las instrucciones y la Reina-Valera 1909.
 
 ## Uso diario
 
@@ -86,11 +100,20 @@ Al actualizar Manna, conserva `Contenido/` y `data/`; lo demás se reemplaza. Na
 
 Al cerrar o recargar la pestaña del control, el navegador pide confirmación para evitar cierres por error.
 
-Si Manna no abre, vuelve a pulsar el icono. Si sigue sin abrir, aparece una página con el motivo; el detalle queda en `data/manna.log`.
+Si Manna no abre, vuelve a pulsar el icono. Si sigue sin abrir, aparece una página con el motivo; el detalle queda en `manna.log`, en la carpeta de datos (ver «Instalación»).
 
 ### Al actualizar Manna
 
 Si el programa se actualiza con Manna abierto, las pantallas de control muestran el aviso **«Manna se actualizó mientras estaba abierto»**. En el equipo principal, pulsa **Reiniciar ahora**: Manna se cierra y vuelve a abrirse solo, y los demás dispositivos se reconectan sin hacer nada. También vale pulsar otra vez el icono **Manna**, o **Ajustes → Reiniciar Manna**. Hasta reiniciarlo, lo nuevo puede fallar con un mensaje como «Manna no reconoce esa orden».
+
+### Conexión por internet
+
+Para usar Manna desde fuera de la iglesia (un celular con datos, otra casa), en el equipo principal: **Ajustes → Conexión por internet → Encender**. Manna lo recuerda: desde entonces, el icono **Manna** abre también la conexión, y **Apagar Manna** la cierra. La primera vez hace falta cloudflared, el programa de Cloudflare: **Revisar el equipo → Instalar por mí**.
+
+- **Desde internet todo pide el PIN**, también la pantalla de proyección: nadie de fuera ve las biblias, los himnos ni los medios de la iglesia sin él. En la red de la iglesia todo sigue igual.
+- Sin más, la dirección es de prueba (`…trycloudflare.com`) y cambia cada vez que se abre: Ajustes la muestra con un botón para copiarla.
+- **Con un dominio propio**, la dirección es siempre la misma (por ejemplo `https://manna.tuiglesia.org`). En [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) (gratis), *Networks → Tunnels → Create a tunnel* (tipo *Cloudflared*). En *Public Hostname* pon la dirección y, como servicio, `HTTP` y `localhost:80` (o el puerto que muestre Manna). Copia la clave que empieza por `eyJ…` (vale pegar la orden entera) y pégala en **Ajustes → Conexión por internet → Usar un dominio propio**, con la dirección. La clave se guarda solo en el equipo principal y no se vuelve a mostrar.
+- Por internet viaja todo lo que se ve: también los videos y las imágenes que cargue un control remoto. Con una conexión lenta, mejor proyectar desde la red de la iglesia.
 
 ### Si un dispositivo pierde la conexión
 
@@ -162,6 +185,16 @@ La pista instrumental necesita ffmpeg en el equipo principal: los videos traen d
 
 Cada diapositiva queda como una imagen: las **animaciones, las transiciones y los videos incrustados no se conservan**. Si una presentación lleva un video, súbelo aparte a Medios y ponlo en el orden del culto en su sitio. Las diapositivas se guardan en `data/media/diapositivas/` del equipo principal.
 
+### Páginas web
+
+1. En **Páginas web**, pulsa **Agregar página** y pega la dirección (por ejemplo, la de una presentación de Canva o la de un Kahoot). Manna la abre un momento para ver cómo se puede mostrar y te lo dice:
+   - **Se verá en todas las pantallas**: va dentro de la proyección. Se maneja con el ratón sobre la pantalla de proyección del equipo principal. En Canva conviene el enlace de «Compartir → Insertar».
+   - **Se abrirá en su propia ventana**: la página no deja que otra la muestre (Kahoot, por ejemplo). Al proyectarla, el proyector la abre a pantalla completa encima de la proyección, y se cierra al proyectar otra cosa o al poner «Negro». Se maneja con el ratón y el teclado del equipo principal, y desde cualquier dispositivo con **Anterior** y **Siguiente** (le llegan como las flechas); los demás dispositivos ven una tarjeta con su nombre.
+2. Para una presentación hecha como página propia, pulsa **Subir un archivo HTML** en la misma ventana. Se proyecta sin internet y, con ella al aire, **Anterior** y **Siguiente** del panel «Al aire» la pasan como las flechas del teclado, en todas las pantallas a la vez. Lo que use (imágenes, estilos) debe ir dentro del archivo o en internet.
+3. **Proyectar** o **Añadir al orden**, como cualquier otra cosa.
+
+Las direcciones **necesitan internet durante el culto**. Los archivos se guardan en `data/paginas/` del equipo principal.
+
 ### Un televisor como pantalla
 
 > **En pausa.** En la primera prueba con un televisor real, Manna le abrió el navegador pero el televisor no llegó a mostrar la proyección. El módulo no aparece en la barra; lo que sigue describe cómo está pensado y se retomará más adelante.
@@ -220,6 +253,8 @@ server/
                         título y letra, y la pista instrumental de cada himno
     slides/             presentaciones convertidas en diapositivas: recibir las páginas de un PDF, pedirle
                         a PowerPoint que exporte las de una presentación (powerpoint.js) y proyectarlas
+    web/                páginas web y archivos HTML: comprobar si una dirección se deja mostrar
+                        dentro de otra página y servir los archivos encerrados
     tv/                 televisores de la red como pantalla: buscarlos, vincularlos, abrirles
                         el navegador y hacerles de control remoto (samsung.js es lo propio de la marca)
 web/
@@ -228,7 +263,7 @@ web/
   modules/              la pantalla de cada módulo (registry.js es la lista) y cómo se dibuja
                         cada tipo de contenido (kinds.js es la lista)
   roles/                una página por función: control, alabanza, presentador, orden, proyeccion, y la revisión del equipo
-  vendor/               tipografía Geist, iconos Phosphor, generador de QR y pdf.js (para leer los PDF
+  vendor/               tipografías Sora y Geist Mono, iconos Phosphor, generador de QR y pdf.js (para leer los PDF
                         en el navegador), con sus licencias
 DESIGN.md               sistema de diseño de la interfaz
 Contenido/              lo de tu iglesia: biblias, himnos en video y letras (no se sube a GitHub,
@@ -275,7 +310,7 @@ Se incluye la Reina-Valera 1909, de dominio público ([eBible.org](https://ebibl
 ## Créditos
 
 - Logo: diseño del autor del proyecto, reconstruido en vector (`instalacion/icono/manna.svg`).
-- Tipografía [Geist](https://github.com/vercel/geist-font) (SIL Open Font License).
+- Tipografías [Sora](https://github.com/sora-xor/sora-font) y [Geist Mono](https://github.com/vercel/geist-font) (SIL Open Font License).
 - Iconos [Phosphor](https://phosphoricons.com) (licencia MIT).
 - Lectura de PDF: [pdf.js](https://mozilla.github.io/pdf.js/) de Mozilla (licencia Apache 2.0), incluido en `web/vendor/pdfjs/`.
 - Códigos QR: [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) de Kazuhiko Arase (licencia MIT).

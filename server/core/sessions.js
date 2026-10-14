@@ -47,7 +47,8 @@ export function createSessions({ storage, roles }) {
     const role = roleById.get(roleId);
     if (!role) throw new HttpError(400, 'Manna no reconoce esa función. Si acabas de actualizarlo, ciérralo y vuelve a abrirlo.');
     const sameRole = ctx.session?.role === roleId;
-    if (role.requiresPin && !ctx.isLocal && !sameRole) checkPin(pin, ctx.ip);
+    // Desde internet, también la pantalla de proyección.
+    if ((role.requiresPin || ctx.internet) && !ctx.isLocal && !sameRole) checkPin(pin, ctx.ip);
     if (ctx.session) delete store.data.list[ctx.session.id];
     const id = crypto.randomBytes(24).toString('hex');
     store.data.list[id] = { role: roleId, created: Date.now() };

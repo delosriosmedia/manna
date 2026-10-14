@@ -4,6 +4,20 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.11.0 — 2026-10-14
+
+- **Nueva piel «Escenario»**, primer paso del rediseño: el acento pasa a ser el cian de la M, la letra es Sora, los botones y las fichas son píldoras, y las ventanas, los menús y los avisos son de cristal oscuro. Todo sigue en su sitio: lo que cambia de lugar llega en los próximos pasos.
+- **Instalar Manna con un solo archivo**: se descarga «Instalar Manna» para Windows o para Mac y él baja Manna, lo guarda donde no hace falta verlo y crea el icono. Para actualizar, se vuelve a abrir el mismo archivo. **La carpeta de contenido de la iglesia nunca se reemplaza ni se mueve**: en una instalación nueva está en Documentos/Manna/Contenido, y una instalación anterior sigue usando la suya donde está.
+- **Conexión por internet dentro de Manna**: se enciende en **Ajustes → Conexión por internet** y desde entonces el icono Manna la abre solo (y «Apagar Manna» la cierra). Ajustes muestra la dirección para copiarla, y admite un dominio propio de Cloudflare. Desaparecen los archivos «Conectar Internet».
+- **Desde internet todo pide el PIN**, también la pantalla de proyección: nadie de fuera ve las biblias, los himnos ni los medios sin él.
+- cloudflared se instala desde la revisión del equipo con «Instalar por mí», como ffmpeg y yt-dlp.
+- **Páginas web**, un módulo nuevo: presentaciones y juegos de internet (Canva, Google Slides, Genially, Kahoot) y archivos HTML propios, proyectados a pantalla completa. Se agregan con su dirección o subiendo el archivo, y se añaden al orden del culto como todo lo demás.
+- Al agregar una dirección, Manna dice si la página **se deja mostrar dentro de Manna** (entonces se ve en todas las pantallas) o no (como Kahoot): entonces el proyector la abre en **su propia ventana**, encima de la proyección, y la cierra al pasar a otra cosa. Las direcciones necesitan internet durante el culto.
+- Un **archivo HTML propio** se proyecta sin internet y encerrado, sin poder tocar Manna. «Anterior» y «Siguiente» en el panel «Al aire» lo pasan como las flechas del teclado, en todas las pantallas a la vez.
+- Seguridad: Manna rechaza cualquier orden que llegue desde otro sitio web o desde una página encerrada.
+- Lo que va en **su propia ventana** también se pasa desde el celular: «Anterior» y «Siguiente» le llegan como las flechas del teclado.
+- El **Presentador** también presenta páginas web: aparecen en «Biblioteca» y en «Del orden», se ven en grande y se puede **señalar con el dedo** sobre ellas; «Anterior» y «Siguiente» las pasan si es un archivo HTML o va en su propia ventana.
+
 ## 1.10.0 — 2026-10-14
 
 - **Presentador de diapositivas**, una función nueva para quien pasa las diapositivas (`/presentador`, con PIN). La presentación se elige del orden del culto o de la biblioteca, o se sube ahí mismo. Muestra en grande la diapositiva que está en pantalla, la siguiente al lado (debajo en el celular) y todas en una cuadrícula: tocar una la proyecta. «Siguiente» no salta al siguiente elemento del orden al llegar a la última.

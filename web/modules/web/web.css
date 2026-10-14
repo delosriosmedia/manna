@@ -1,0 +1,25 @@
+/* Módulo Páginas web: la lista de páginas y, abajo, la barra de la elegida. */
+.web-list { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 8px; align-content: start; }
+.web-list > .empty { grid-column: 1 / -1; }
+.web-item { position: relative; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); transition: border-color 0.12s var(--ease); }
+.web-item:hover { border-color: var(--line-2); }
+.web-item.selected { border-color: var(--accent); background: var(--accent-soft); }
+.web-item.live { border-color: var(--live); }
+.web-pick { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; width: 100%; min-height: 56px; padding: 10px 44px 10px 10px; text-align: left; }
+.web-pick .item-text { display: grid; gap: 2px; min-width: 0; }
+.web-pick strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.web-pick small { color: var(--ink-3); font-size: 12px; overflow-wrap: anywhere; }
+.web-pick .badge { font-size: 10px; padding: 1px 6px; }
+.web-more { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
+
+/* Barra de la elegida: un nombre largo se corta y deja sitio a los botones. */
+.web-bar .sel-ref { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Ventana para agregar */
+.web-add { display: grid; gap: 8px; }
+.web-add-note { margin-top: 10px; font-size: 12px; }
+.web-add-actions { flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+
+/* Mandos al aire */
+.web-keys { gap: 8px; margin-bottom: 6px; }
+.web-keys .btn { flex: 1; justify-content: center; }
