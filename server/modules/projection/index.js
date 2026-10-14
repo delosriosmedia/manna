@@ -141,6 +141,16 @@ export default function setup(app) {
 
   // Anterior / siguiente. Si lo proyectado viene del orden del culto, recorre sus pasos y
   // luego pasa al elemento vecino; si no, lo decide el tipo de contenido.
+  // Puntero: dónde señala alguien sobre lo que está al aire, en fracciones de la imagen (0 a 1), para
+  // que caiga en el mismo sitio en pantallas de otras proporciones. Cambia muchas veces por segundo y
+  // no importa tras un reinicio: no se guarda. Lleva el uid de lo proyectado: al cambiar, desaparece.
+  store.register('pointer', { uid: 0, x: null, y: null });
+  app.action('projection.pointer', { permission: 'projection.control' }, ({ x, y } = {}) => {
+    const { item, mode } = get();
+    const inside = (v) => typeof v === 'number' && v >= 0 && v <= 1;
+    store.set('pointer', item && mode === 'live' && inside(x) && inside(y) ? { uid: item.uid, x, y } : { uid: 0, x: null, y: null });
+  });
+
   app.action('projection.step', { permission: 'projection.control' }, ({ delta }) => {
     const { item } = get();
     if (!item) return null;

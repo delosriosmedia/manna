@@ -26,23 +26,29 @@ export class BibleLibrary {
   scan() {
     const found = new Map();
     const names = new Map();
-    const files = fs.readdirSync(this.#dir).filter((f) => EXTENSIONS.has(path.extname(f).toLowerCase())).sort();
+    // La carpeta puede faltar un momento (se movió o se renombró con Manna abierto): entonces no
+    // hay biblias, pero Manna no se cae. Esto se llama desde un temporizador, sin nadie que atrape.
+    let files = [];
+    try { files = fs.readdirSync(this.#dir); } catch { /* sin carpeta */ }
+    files = files.filter((f) => !f.startsWith('.') && EXTENSIONS.has(path.extname(f).toLowerCase())).sort();
     for (const fileName of files) {
       const file = path.join(this.#dir, fileName);
       let head = '';
+      let mtime = 0;
       try {
         const fd = fs.openSync(file, 'r');
         const buf = Buffer.alloc(2048);
         head = buf.toString('utf8', 0, fs.readSync(fd, buf, 0, buf.length, 0));
         fs.closeSync(fd);
-      } catch { continue; }
+        mtime = fs.statSync(file).mtimeMs;
+      } catch { continue; } // desapareció mientras se listaba
       const meta = describeVersion(fileName, head);
       if (found.has(meta.id)) continue;
       // Dos archivos de la misma versión: el segundo se distingue con "(2)".
       const count = (names.get(meta.name) || 0) + 1;
       names.set(meta.name, count);
       if (count > 1) meta.name += ` (${count})`;
-      found.set(meta.id, { ...meta, file, mtime: fs.statSync(file).mtimeMs });
+      found.set(meta.id, { ...meta, file, mtime });
     }
     for (const [id, old] of this.#versions) {
       if (found.get(id)?.mtime !== old.mtime) this.#parsed.delete(id);
@@ -66,10 +72,17 @@ export class BibleLibrary {
     if (bible) return bible;
     const meta = this.#versions.get(id);
     if (!meta) return null;
-    const { books } = parseBible(fs.readFileSync(meta.file, 'utf8'));
-    bible = { books, byNumber: new Map(books.map((b) => [b.n, b])) };
-    this.#parsed.set(id, bible);
-    return bible;
+    try {
+      const { books } = parseBible(fs.readFileSync(meta.file, 'utf8'));
+      bible = { books, byNumber: new Map(books.map((b) => [b.n, b])) };
+      this.#parsed.set(id, bible);
+      return bible;
+    } catch (err) {
+      // Un archivo dañado no tira Manna (el índice de búsqueda se prepara desde un temporizador):
+      // esa versión queda como si no estuviera.
+      console.error(`No se pudo leer la biblia ${path.basename(meta.file)}:`, err.message);
+      return null;
+    }
   }
 
   books(id) {
@@ -177,7 +190,7 @@ export class BibleLibrary {
 
     const started = performance.now();
     const searchId = this.searchVersion(id);
-    this.index(searchId);
+    if (!this.index(searchId)) return null;
     const bible = this.#parsed.get(searchId);
     const meta = this.#versions.get(searchId);
     const prepared = prepareQuery(query);

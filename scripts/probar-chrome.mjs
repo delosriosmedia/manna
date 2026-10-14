@@ -8,7 +8,7 @@
 //      nombres propios), himnario (uno inventado: buscar por número, título y letra, cantado y pista), medios (subir imágenes, ajuste, encuadre al aire en dos pantallas; videos
 //      y audios que van a la par; YouTube, con un yt-dlp de mentira), televisores (con uno de
 //      mentira), diapositivas (un PDF de verdad, convertido por el propio Chrome, y un PowerPoint
-//      con un PowerPoint de mentira), mandos en vivo que van a la par en dos pantallas, ajustes
+//      con un PowerPoint de mentira), el Presentador (pasar diapositivas, señalar con el dedo, acercar y mover; también en 375 px), mandos en vivo que van a la par en dos pantallas, ajustes
 //      y la función "Control del orden". También que Manna atiende por https.
 //   2. Al entrar por la dirección numérica, la página pasa sola a la dirección con nombre.
 //   3. El navegador pide confirmación al salir de la pestaña de control.
@@ -98,7 +98,7 @@ const sample = (name, args) => {
   return file;
 };
 if (!HAS_FFMPEG) {
-  for (const name of ['media.retry', 'media.subtitlesRemove', 'projection.volume', 'POST /api/media/clips', 'POST /api/media/clips/:id/thumb', 'POST /api/media/clips/:id/subtitles']) {
+  for (const name of ['media.retry', 'media.subtitlesRemove', 'POST /api/media/clips', 'POST /api/media/clips/:id/thumb', 'POST /api/media/clips/:id/subtitles']) {
     UNTOUCHED[name] = 'este equipo no tiene ffmpeg para fabricar los videos de la prueba';
   }
 }
@@ -326,6 +326,7 @@ try {
   const { version } = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   check('la versión se ve junto al logo', (await text('.rail-version')) === `v${version}` && await run(`return document.querySelector('.rail .brand-mark img').naturalWidth > 0`), `v${version}`);
   check('el panel marca "Al aire"', await run(`return document.querySelector('.dock-head strong').textContent === 'Al aire' && document.querySelector('.dock .monitor').classList.contains('on-air')`));
+  check('en el control del equipo principal, junto a "Al aire" está el botón del proyector (sin segunda pantalla, apagado)', await run(`const b = document.querySelector('.dock-head .btn'); return Boolean(b) && b.disabled && b.textContent === 'Sin pantalla' && b.getAttribute('aria-label') === 'Sin segunda pantalla' && !document.querySelector('.dock-head .status')`));
   check('el pasaje queda en "Recientes"', await run(`return [...document.querySelectorAll('.chips .chip')].some(c => c.textContent === 'Juan 3:16-17')`));
   await press('ArrowRight');
   check('→ avanza al versículo siguiente', (await live()).ref === 'Juan 3:18');
@@ -978,6 +979,13 @@ try {
     check('en el orden se ven sus diapositivas en miniatura, rotuladas, con la imagen pequeña de cada una', await until(`${detail}.querySelectorAll('.slide img').length === 4 && [...${detail}.querySelectorAll('.slide img')].every(i => i.naturalWidth === 320 && /\\/m\\d\\.jpg$/.test(i.getAttribute('src')))
       && [...${detail}.querySelectorAll('.slide-cap span')].map(s => s.textContent).join() === 'Diapositiva 1,Diapositiva 2,Diapositiva 3,Diapositiva 4'`, 30)
       && await run(`return ${detail}.querySelector('.odetail-head small').textContent === 'Diapositivas · PDF · 4 diapositivas'`), await run(`return [...${detail}.querySelectorAll('.slide img')].map(i => (i.getAttribute('src') || '').split('/').pop() + ' ' + i.naturalWidth).join(', ')`));
+    // Un iPhone triplica los píxeles de cada miniatura: no por eso se pide la imagen grande (decenas de ellas cerraban Safari).
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
+    await sleep(900);
+    check('en un celular de pantalla densa (iPhone) las miniaturas del orden siguen con la imagen pequeña', await run(`return devicePixelRatio === 3 && ${detail}.querySelectorAll('.slide img').length === 4 && [...${detail}.querySelectorAll('.slide img')].every(i => i.naturalWidth === 320)`),
+      await run(`return devicePixelRatio + ' · ' + [...${detail}.querySelectorAll('.slide img')].map(i => i.clientWidth + '>' + i.naturalWidth).join(', ')`));
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+    await sleep(500);
     await click(`${detail}.querySelectorAll('.slide')[1]`);
     await sleep(600);
     air = await onAir();
@@ -1023,6 +1031,85 @@ try {
     check('«Presentaciones» vuelve a la lista', pane.list && !pane.pages);
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
     await chrome.send('Page.navigate', { url: `${local}/control?d=${Date.now()}#diapositivas` });
+    await sleep(2500);
+  }
+
+  console.log('\n1. Interfaz · Presentador');
+  {
+    const pr = `document.querySelector('.ws[data-module=presentador]')`;
+    const snap = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ item: s.projection.item && { kind: s.projection.item.kind, number: s.projection.item.number, orderId: s.projection.item.source?.orderId }, mode: s.projection.mode, pointer: s.pointer, view: s.live.state })`).then(JSON.parse);
+    const num = async () => (await snap()).item?.number;
+    // Un dedo (pointerId) sobre el monitor grande, en fracciones de su ancho y su alto.
+    const finger = (kind, id, fx, fy) => run(`const m = ${pr}.querySelector('.pr-live'); const r = m.getBoundingClientRect(); m.dispatchEvent(new PointerEvent(${JSON.stringify(kind)}, { pointerId: ${id}, bubbles: true, clientX: r.left + r.width * ${fx}, clientY: r.top + r.height * ${fy} }))`);
+    const button = (label) => `[...${pr}.querySelectorAll('button')].find(b => b.textContent.trim() === ${JSON.stringify(label)})`;
+    const sees = (js) => run(`const e = ${js}; return Boolean(e) && !e.hidden && e.getClientRects().length > 0`);
+    // Con otra cosa al aire (un versículo del orden), la pantalla dice que no es de la presentación.
+    const orderId = (kind) => run(`return (await (await fetch('/api/state')).json()).order.items.find(i => i.kind === ${JSON.stringify(kind)}).id`);
+    const verse = await orderId('verses');
+    await run(`await ${post('order.show', { id: 'ID' })}`.replace('"ID"', JSON.stringify(verse)));
+    await chrome.send('Page.navigate', { url: `${local}/presentador` });
+    await sleep(2500);
+    check('/presentador trae solo su módulo, titulado «Presentador», y no muestra el panel «Al aire»', await run(`return document.title === 'Manna · Presentador' && [...document.querySelectorAll('.rail-item')].map(b => b.dataset.id).join() === 'presentador' && [...document.querySelectorAll('.dock, .dock-body, .dock-mini')].every(e => !e.getClientRects().length)`),
+      await run(`return document.title + ' · ' + [...document.querySelectorAll('.rail-item')].map(b => b.dataset.id).join()`));
+    check('con la presentación en el orden del culto, se abre en «Del orden» y la ofrece', await run(`return ${pr}.dataset.view === 'choose' && ${pr}.querySelector('.pr-tabs .chip.on').textContent === 'Del orden' && ${pr}.querySelectorAll('.pr-list .deck').length === 1 && ${pr}.querySelector('.pr-list .deck strong').textContent.includes('Informe')`));
+    await click(`${pr}.querySelector('.pr-list .deck-pick')`);
+    await sleep(500);
+    check('al tocarla se abre la vista de presentar, con su grande, su siguiente y la rejilla', await run(`return ${pr}.dataset.view === 'present' && ${pr}.querySelectorAll('.slide-pick').length === 4 && ${pr}.querySelector('.pr-title').textContent.includes('Informe')`));
+    check('con otra cosa al aire lo dice, y el botón propone empezar', await run(`const o = ${pr}.querySelector('.pr-onair'); return !o.hidden && o.textContent.startsWith('En pantalla:') && ${pr}.querySelector('.btn.primary.grow').textContent === 'Empezar' && ${pr}.querySelector('.btn[aria-label=Anterior]').disabled`));
+    await click(`${pr}.querySelector('.btn.primary.grow')`);
+    await sleep(600);
+    let now = await snap();
+    check('«Empezar» proyecta la primera, desde el orden del culto, y la rejilla la marca', now.item?.kind === 'slides' && now.item.number === 1 && now.item.orderId === await orderId('slides')
+      && await run(`return ${pr}.querySelector('.slide-pick[data-n="1"]').classList.contains('live') && ${pr}.querySelector('.pr-onair').hidden && ${pr}.querySelector('.btn.primary.grow').textContent === 'Siguiente'`), JSON.stringify(now.item));
+    await click(`${pr}.querySelector('.btn.primary.grow')`);
+    await sleep(500);
+    check('«Siguiente» pasa a la 2, se ve en la grande y el recuadro «Siguiente» muestra la 3', (await num()) === 2 && await until(`${pr}.querySelector('.pr-live .img-view img')?.getAttribute('src')?.endsWith('/2.jpg')`, 10)
+      && await run(`return ${pr}.querySelector('.slide-pick[data-n="2"]').classList.contains('live') && !${pr}.querySelector('.slide-pick[data-n="1"]').classList.contains('live') && /3 de 4/.test(${pr}.querySelector('.pr-side .dock-label').textContent)`));
+    await click(`${pr}.querySelector('.slide-pick[data-n="4"]')`);
+    await sleep(500);
+    check('tocar una miniatura la proyecta; en la última no hay más: «Siguiente» queda desactivado y se ve el fin', (await num()) === 4 && await run(`const e = ${pr}.querySelector('.pr-end'); return ${pr}.querySelector('.btn.primary.grow').disabled && !e.hidden && e.textContent === 'Fin de la presentación' && ${pr}.querySelector('.pr-next').disabled`));
+    await click(`${pr}.querySelector('.slide-pick[data-n="2"]')`);
+    await sleep(500);
+
+    // El dedo señala: cada toque pone el punto rojo en la proyección, y al soltar se quita.
+    await finger('pointerdown', 1, 0.8, 0.2);
+    await sleep(500);
+    now = await snap();
+    check('un dedo sobre la grande señala en la proyección, en las mismas fracciones', now.pointer.x != null && Math.abs(now.pointer.x - 0.8) < 0.03 && Math.abs(now.pointer.y - 0.2) < 0.03, JSON.stringify(now.pointer));
+    check('y el punto rojo se ve en la propia grande', await sees(`${pr}.querySelector('.pr-live .stage-pointer')`));
+    await finger('pointerup', 1, 0.8, 0.2);
+    await sleep(500);
+    check('al soltar, el punto se quita', (await snap()).pointer.x === null && !await sees(`${pr}.querySelector('.pr-live .stage-pointer')`));
+
+    // Mover: dos dedos que se separan acercan; uno que arrastra desplaza el encuadre.
+    await click(`${pr}.querySelector('[data-tool=move]')`);
+    await finger('pointerdown', 1, 0.4, 0.5);
+    await finger('pointerdown', 2, 0.6, 0.5);
+    await finger('pointermove', 2, 0.8, 0.5);
+    await sleep(600);
+    await finger('pointerup', 1, 0.4, 0.5);
+    await finger('pointerup', 2, 0.8, 0.5);
+    now = await snap();
+    check('dos dedos que se separan al doble dejan el zoom en 2', now.view.zoom === 2, JSON.stringify(now.view));
+    await finger('pointerdown', 3, 0.5, 0.5);
+    await finger('pointermove', 3, 0.3, 0.5);
+    await sleep(600);
+    await finger('pointerup', 3, 0.3, 0.5);
+    now = await snap();
+    check('un dedo que se desplaza a la izquierda un 20 % del monitor deja el encuadre en x 0,6', Math.abs(now.view.x - 0.6) < 0.03 && Math.abs(now.view.y - 0.5) < 0.03, JSON.stringify(now.view));
+    await click(button('Vista completa'));
+    await sleep(500);
+    check('«Vista completa» devuelve el zoom a 1', (await snap()).view.zoom === 1);
+
+    // En el celular: la grande y la fila Anterior / Siguiente / Negro, sin desplazarse.
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
+    await chrome.send('Page.navigate', { url: `${local}/presentador?m=${Date.now()}` });
+    await sleep(2500);
+    const inView = (selector) => run(`const e = ${pr}.querySelector(${JSON.stringify(selector)}); const r = e.getBoundingClientRect(); return r.width > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth`);
+    check('en 375 px se ven sin desplazar la grande y Anterior / Siguiente / Negro, y la página no se ensancha', await inView('.pr-live') && await inView('.btn[aria-label=Anterior]') && await inView('.btn.primary.grow') && await inView(`.transport .btn:last-child`)
+      && await run(`return ${pr}.dataset.view === 'present' && document.documentElement.scrollWidth <= innerWidth`), await run(`const r = ${pr}.querySelector('.transport').getBoundingClientRect(); return Math.round(r.bottom) + ' de ' + innerHeight`));
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+    await chrome.send('Page.navigate', { url: `${local}/control?p=${Date.now()}#diapositivas` });
     await sleep(2500);
   }
 
@@ -1192,6 +1279,25 @@ try {
   await click(`[...document.querySelectorAll('.orow')].find(r => r.textContent.includes('Salmos 23')).querySelector('.icon-btn')`);
   await sleep(600);
   check('pero sí puede proyectar', (await live()).ref === 'Salmos 23:1');
+
+  console.log('\n1. Interfaz · Servicio de alabanza');
+  await chrome.send('Page.navigate', { url: `${local}/alabanza` });
+  await sleep(2200);
+  const praise = `document.querySelector('.dock .dock-volume')`;
+  const praiseInView = () => run(`const r = ${praise}.getBoundingClientRect(); return r.height > 0 && r.top >= 0 && r.bottom <= innerHeight`);
+  check('"Servicio de alabanza" trae Himnario, Medios, Orden y Biblia, sin Ajustes', await run(`return [...document.querySelectorAll('.rail-item')].map(b => b.dataset.id).join() === 'himnario,medios,orden,biblia'`));
+  check('fuera del control, el panel "Al aire" no lleva el botón del proyector, solo su estado', await run(`return !document.querySelector('.dock-head .btn') && Boolean(document.querySelector('.dock-head .status'))`));
+  check('lleva el volumen de Manna a la vista aunque no suene nada', (await live()).kind === 'verses' && await praiseInView());
+  await run(`const s = ${praise}.querySelector('input[type=range]'); s.value = 35; s.dispatchEvent(new Event('input'));`);
+  await sleep(700);
+  check('ese mando es el volumen general', await run(`return (await (await fetch('/api/state')).json()).live.volume === 0.35`));
+  check('puede preparar el orden, pero no tocar los ajustes ni instalar programas', (await run(`return await ${post('order.addSection', { title: 'Alabanza' })}`)) === 200
+    && (await run(`return await ${post('projection.styles', { fontSize: 50 })}`)) === 403 && (await run(`return await ${post('tools.install', { id: 'yt-dlp' })}`)) === 403);
+  await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  await sleep(500);
+  check('en el celular el volumen sigue a la vista, sin desplegar "Al aire"', await praiseInView() && await run(`return !document.querySelector('.dock .monitor').getClientRects().length`));
+  await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+  await run(`await ${post('projection.volume', { volume: 1 })}`);
 
   if (!QUICK) {
     // ================= 2. Paso a la dirección con nombre =================

@@ -45,6 +45,9 @@ const MIME = {
 };
 
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+// Un túnel o un proxy abierto en este mismo equipo (cloudflared) entrega desde 127.0.0.1 lo que en
+// realidad llega de fuera, y lo marca con estas cabeceras: eso no es el equipo principal.
+const FORWARDED = ['x-forwarded-for', 'x-forwarded-proto', 'forwarded', 'x-real-ip', 'cf-connecting-ip', 'cf-ray'];
 const TOO_BIG = 'El archivo o la petición es demasiado grande.';
 
 function readBody(req, limit) {
@@ -209,7 +212,7 @@ export function createRouter({ webDir, sessions }) {
 
   async function handle(req, res) {
     const url = new URL(req.url, 'http://localhost');
-    const isLocal = LOOPBACK.has(req.socket.remoteAddress);
+    const isLocal = LOOPBACK.has(req.socket.remoteAddress) && !FORWARDED.some((name) => name in req.headers);
     try {
       for (const r of routes) {
         if (r.method !== req.method) continue;

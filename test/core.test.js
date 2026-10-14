@@ -1,11 +1,30 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { parseRange } from '../server/core/router.js';
+import { createStorage } from '../server/core/storage.js';
 import { applyClock, createClock, freezeClock, hasEnded, positionAt } from '../server/core/playback.js';
 import { createJobs, estimate } from '../server/core/jobs.js';
 
 // ---- Trozos de archivo (Range) ----
+
+test('si el disco no deja guardar, Manna sigue y lo vuelve a intentar', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-guardado-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  t.mock.method(console, 'error', () => {});
+  const storage = createStorage(dir);
+  const saved = storage('prueba', { n: 0 });
+  saved.data.n = 7;
+  saved.save();
+  fs.rmSync(dir, { recursive: true }); // sin carpeta, escribir falla
+  assert.doesNotThrow(() => saved.flush());
+  fs.mkdirSync(dir);
+  storage.flushAll(); // lo que no se pudo guardar sigue pendiente
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'prueba.json'), 'utf8')), { n: 7 });
+});
 
 test('parseRange entiende las tres formas de pedir un trozo', () => {
   assert.deepEqual(parseRange('bytes=0-499', 1000), { start: 0, end: 499 });

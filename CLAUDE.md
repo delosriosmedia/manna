@@ -18,7 +18,7 @@ Repositorio: https://github.com/delosriosmedia/manna
 - Servidor de prueba sin abrir navegador ni tocar los datos reales:
   `MANNA_NAME=manna-prueba MANNA_NO_OPEN=1 MANNA_SIN_VENTANA=1 MANNA_DATA="$TMPDIR/manna-prueba" PORT=8123 node server/index.js`
   (`MANNA_SIN_VENTANA=1` es obligatorio en pruebas: sin él, si hay un proyector conectado, la prueba se proyecta y suena en él)
-- Pruebas de extremo a extremo en un Chrome real: `node scripts/probar-chrome.mjs` (completas, 3 min) o `node scripts/probar-chrome.mjs rapido` (revisión del equipo e interfaz, 1 min). Usa los puertos 8123 y 8125: cierra antes la demostración
+- Pruebas de extremo a extremo en un Chrome real: `node scripts/probar-chrome.mjs` (completas, 3 min) o `node scripts/probar-chrome.mjs rapido` (revisión del equipo e interfaz, 1 min). Usa los puertos 8123 y 8125: cierra antes la demostración **y su pestaña** (también la del navegador integrado; ver `.claude/rules/pruebas.md`)
 - Auditoría de adaptación a pantallas (celular, tableta, escritorio): `node scripts/auditar-responsive.mjs`
 - Demostración con un orden del culto de ejemplo y datos temporales: `node scripts/demo.mjs` (puerto 8123). Con ella, `/vista-previa` muestra la app en el marco de un celular o una tableta
 

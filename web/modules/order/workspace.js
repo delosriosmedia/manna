@@ -204,7 +204,7 @@ function mount(el, ctx) {
 
   function slide(caption, contentItem, isLive, onclick) {
     const monitor = h('div', { class: `monitor${isLive ? ' on-air' : ''}` });
-    createStage(monitor).render({ mode: 'live', item: contentItem, styles: state.projection.styles });
+    createStage(monitor, { thumbnail: true }).render({ mode: 'live', item: contentItem, styles: state.projection.styles });
     return h('button', { class: 'slide', onclick }, monitor,
       h('span', { class: 'slide-cap' }, h('span', {}, caption), isLive ? h('b', {}, 'Al aire') : null));
   }

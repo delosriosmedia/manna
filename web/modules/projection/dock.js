@@ -5,7 +5,8 @@ import { createJobsList } from '../../core/jobs.js';
 import { keyOf, kindBadge } from '../../core/kinds.js';
 import { createStage } from './stage.js';
 import { createLiveControls } from './live.js';
-import { describeDisplay, describeLive, toggleMode } from './controls.js';
+import { createDisplayToggle, describeDisplay, describeLive, toggleMode } from './controls.js';
+import { createVolume } from './volume.js';
 
 // Panel "Al aire": lo que está en pantalla y los mandos para gobernarlo, visible desde cualquier módulo.
 // En pantallas estrechas se reduce a una barra compacta que se despliega al tocarla.
@@ -16,6 +17,8 @@ export function createDock(container, ctx) {
   const tally = h('span', { class: 'tally' });
   const label = h('strong', {});
   const display = h('span', { class: 'status' });
+  // En el control del equipo principal, en vez del estado va el botón que enciende y apaga el proyector.
+  const power = ctx.role === 'control' && ctx.isLocal ? createDisplayToggle({ compact: true }) : null;
   const program = h('div', { class: 'monitor' });
   const ref = h('div', { class: 'dock-ref' });
   const black = h('button', { class: 'btn grow', title: 'Pantalla en negro', onclick: () => toggleMode('black') }, 'Negro', h('kbd', {}, 'B'));
@@ -32,8 +35,13 @@ export function createDock(container, ctx) {
       h('button', { class: 'link', onclick: () => ctx.go('orden') }, 'Abrir orden')),
     nextList);
 
+  // Volumen de Manna siempre a mano, suene algo o no: lo pide la función de alabanza. En el celular
+  // es lo único del panel que se ve sin desplegarlo (shell.css, .has-volume).
+  const volume = ctx.role === 'alabanza' ? createVolume() : null;
+  container.classList.toggle('has-volume', Boolean(volume));
+
   const body = h('div', { class: 'dock-body' },
-    h('div', { class: 'dock-head' }, tally, label, h('span', { class: 'spacer' }), display,
+    h('div', { class: 'dock-head' }, tally, label, power, h('span', { class: 'spacer' }), !power && display,
       h('button', { class: 'icon-btn dock-close', 'aria-label': 'Cerrar', onclick: () => container.classList.remove('open') }, icon('caret-down', 20))),
     program,
     ref,
@@ -41,6 +49,7 @@ export function createDock(container, ctx) {
       h('button', { class: 'btn', title: 'Anterior', 'aria-label': 'Anterior', onclick: step(-1) }, icon('caret-left', 16)),
       h('button', { class: 'btn grow', onclick: step(1) }, 'Siguiente', icon('caret-right', 16), h('kbd', {}, '→'))),
     h('div', { class: 'transport' }, black, clear),
+    volume && h('div', { class: 'dock-volume' }, h('div', { class: 'dock-label' }, 'Volumen'), volume.el),
     liveControls,
     jobs,
     previewBlock,

@@ -39,7 +39,8 @@ export function describeDisplay(display) {
 }
 
 // Encendido/apagado de la ventana en la segunda pantalla del equipo principal.
-export function createDisplayToggle() {
+//   compact: con icono y una sola palabra, para la cabecera del panel "Al aire".
+export function createDisplayToggle({ compact = false } = {}) {
   const button = h('button', { class: 'btn', onclick: guard(async () => {
     const { display } = state.projection;
     if (!display.hasSecond) {
@@ -49,7 +50,12 @@ export function createDisplayToggle() {
     await action('projection.display', { on: !display.on });
   }) });
   subscribe('projection', ({ display }) => {
-    button.textContent = !display.hasSecond ? 'Sin segunda pantalla' : display.on ? 'Apagar proyector' : 'Encender proyector';
+    const full = !display.hasSecond ? 'Sin segunda pantalla' : display.on ? 'Apagar proyector' : 'Encender proyector';
+    if (compact) {
+      button.replaceChildren(icon('monitor', 16), !display.hasSecond ? 'Sin pantalla' : display.on ? 'Apagar' : 'Encender');
+      button.title = full;
+      button.setAttribute('aria-label', full);
+    } else button.textContent = full;
     button.disabled = !display.hasSecond;
   });
   return button;

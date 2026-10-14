@@ -131,8 +131,8 @@ export default function setup(app) {
     return { pin: sessions.pin };
   });
 
-  app.action('system.setPin', { permission: 'system.admin' }, ({ pin }) => {
-    sessions.setPin(String(pin ?? ''));
+  app.action('system.setPin', { permission: 'system.admin' }, ({ pin }, ctx) => {
+    sessions.setPin(String(pin ?? ''), ctx?.session?.id);
   });
 
   // Botón "Reiniciar Manna": cierra y vuelve a abrir con el código que haya en disco. Es lo que

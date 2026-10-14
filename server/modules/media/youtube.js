@@ -42,6 +42,7 @@ export function downloadArgs({ id, dir, ffmpegDir = null }) {
     '--ignore-config', '--no-playlist', '--no-warnings', '--newline', '--no-simulate', '--socket-timeout', '20', '--retries', '3',
     // Un directo no tiene final: no se puede guardar.
     '--match-filter', '!is_live',
+    // No se le fuerza un "player_client": con «android,web» YouTube solo entrega 360p (visto el 2026-10-10).
     ...(ffmpegDir ? ['--ffmpeg-location', ffmpegDir] : []),
     '-f', FORMAT, '--merge-output-format', 'mp4',
     '--write-thumbnail', '--convert-thumbnails', 'jpg',
@@ -98,6 +99,7 @@ export function createProgress() {
 // Por qué falló, dicho para quien usa Manna, a partir de lo que escribió yt-dlp.
 export function explain(stderr) {
   const text = String(stderr || '');
+  if (/ffmpeg.*(?:not found|not installed)|Postprocessing.*ffmpeg/i.test(text)) return 'Falta ffmpeg en el equipo principal para unir la imagen y el sonido. Se instala desde Ajustes, en "Programas del equipo principal".';
   if (/private video|video unavailable|has been removed|no longer available|This video is not available/i.test(text)) return 'Ese video no está disponible: es privado o se quitó de YouTube.';
   if (/confirm you.re not a bot|sign in to confirm/i.test(text)) return 'YouTube no dejó descargarlo ahora (pide iniciar sesión). Inténtalo más tarde.';
   if (/age.restricted|confirm your age/i.test(text)) return 'Ese video tiene restricción de edad y no se puede descargar.';

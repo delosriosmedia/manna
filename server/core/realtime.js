@@ -26,7 +26,7 @@ export function createRealtime({ store, router }) {
   // elige a otra. Sin ninguna que pueda, `sonido` es null y los controles lo avisan.
   const soundClient = () => {
     const local = [...clients].filter((c) => c.local && c.able);
-    return (local.find((c) => c.role === 'proyeccion') || local.find((c) => c.role === 'control' || c.role === 'orden'))?.id || null;
+    return (local.find((c) => c.role === 'proyeccion') || local.find((c) => c.role === 'control' || c.role === 'orden' || c.role === 'alabanza'))?.id || null;
   };
 
   function publishCounts() {

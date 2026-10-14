@@ -45,22 +45,23 @@ export function createSessions({ storage, roles }) {
 
   function open(ctx, { role: roleId, pin }) {
     const role = roleById.get(roleId);
-    if (!role) throw new HttpError(400, 'Función desconocida.');
+    if (!role) throw new HttpError(400, 'Manna no reconoce esa función. Si acabas de actualizarlo, ciérralo y vuelve a abrirlo.');
     const sameRole = ctx.session?.role === roleId;
     if (role.requiresPin && !ctx.isLocal && !sameRole) checkPin(pin, ctx.ip);
     if (ctx.session) delete store.data.list[ctx.session.id];
     const id = crypto.randomBytes(24).toString('hex');
-    store.data.list[id] = { role: roleId, local: ctx.isLocal, created: Date.now() };
+    store.data.list[id] = { role: roleId, created: Date.now() };
     store.save();
     ctx.res.setHeader('Set-Cookie', `${COOKIE}=${id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000`);
     return { role: roleId };
   }
 
-  function setPin(pin) {
+  // Cambiar el PIN cierra todas las sesiones menos la de quien lo cambia (keep): los demás
+  // dispositivos escriben el nuevo, y el equipo principal vuelve a entrar solo, sin PIN.
+  function setPin(pin, keep = null) {
     if (!/^\d{4,8}$/.test(pin || '')) throw new HttpError(400, 'El PIN debe tener entre 4 y 8 números.');
     store.data.pin = pin;
-    // Los dispositivos remotos deben volver a escribir el PIN nuevo.
-    for (const [id, s] of Object.entries(store.data.list)) if (!s.local) delete store.data.list[id];
+    for (const id of Object.keys(store.data.list)) if (id !== keep) delete store.data.list[id];
     store.save();
   }
 

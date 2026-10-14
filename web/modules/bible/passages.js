@@ -74,15 +74,18 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
     await loadChapter(view.book, view.chapter, view.sel);
   });
 
+  let asked = 0; // cuántos capítulos se han pedido: una respuesta que llega tarde no pisa a la última
   async function loadChapter(book, chapter, sel = null) {
     const b = view.books.find((x) => x.n === book) || view.books[0];
     const ch = b.chapters.includes(chapter) ? chapter : b.chapters[0];
     const secondId = second();
+    const mine = asked += 1;
     const [data, other] = await Promise.all([
       api(`/api/bible/${view.versionId}/chapter/${b.n}/${ch}`),
       // La segunda versión puede no tener ese capítulo: entonces sus versículos faltan, sin más.
       secondId ? api(`/api/bible/${secondId}/chapter/${b.n}/${ch}`).catch(() => ({ verses: [] })) : null,
     ]);
+    if (mine !== asked) return;
     Object.assign(view, {
       book: b.n, chapter: ch, verses: data.verses, name: data.name, secondId,
       others: new Map((other?.verses || []).map((v) => [v.n, v.text])),

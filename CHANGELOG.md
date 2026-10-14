@@ -4,6 +4,23 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.10.0 — 2026-10-14
+
+- **Presentador de diapositivas**, una función nueva para quien pasa las diapositivas (`/presentador`, con PIN). La presentación se elige del orden del culto o de la biblioteca, o se sube ahí mismo. Muestra en grande la diapositiva que está en pantalla, la siguiente al lado (debajo en el celular) y todas en una cuadrícula: tocar una la proyecta. «Siguiente» no salta al siguiente elemento del orden al llegar a la última.
+- **Señalar con el dedo**: en el Presentador, tocar la diapositiva grande marca un punto rojo en la pantalla de proyección, que sigue al dedo y se borra al soltarlo. Cae en el mismo sitio de la diapositiva aunque la pantalla tenga otra forma o esté acercada.
+- **Mover y acercar con los dedos** sobre la diapositiva grande del Presentador: pellizcar acerca y arrastrar desplaza, además del recuadro, el deslizador y «Vista completa» de siempre.
+- **En iPhone, el orden del culto ya no se cierra con una presentación.** La página se recargaba sola dos o tres veces y Safari acababa diciendo «Ocurrió un problema varias veces», al abrir el orden o al pasar de diapositiva: en la pantalla de un iPhone cada miniatura cargaba la diapositiva a tamaño completo, y con todas a la vez el teléfono se quedaba sin memoria. Ahora las miniaturas del orden cargan siempre la imagen pequeña, en cualquier dispositivo.
+- **Diapositivas en Mac: un PowerPoint ya se convierte.** Antes fallaba siempre («PowerPoint no pudo convertir esta presentación»): macOS ya no deja que otro programa entre en la carpeta de PowerPoint, y PowerPoint no exporta imágenes cuando se le pide desde fuera. Ahora PowerPoint guarda un PDF y macOS saca de él las imágenes. La primera vez, PowerPoint pide acceso a una carpeta de Manna: se pulsa «Seleccionar…» y «Conceder acceso», y no vuelve a preguntar. En Windows no cambia nada.
+- **Encender y apagar el proyector desde el panel «Al aire»**: en el control del equipo principal, junto a «Al aire», hay un botón que abre o cierra la pantalla de proyección sin ir a Ajustes.
+- **Servicio de alabanza**, una función nueva para quienes dirigen los cantos: Himnario, Medios, Orden y Biblia, con el **volumen de Manna siempre a la vista**, suene algo o no (en el celular, bajo la barra de «Al aire»). Puede proyectar, preparar el orden y subir medios, pero no toca los ajustes. Se elige en la pantalla de inicio y pide PIN.
+- **Seguridad**: lo que llega a Manna por un túnel o un proxy abierto en el propio equipo principal (para entrar desde internet, por ejemplo) ya no se trata como si fuera el equipo principal. Antes entraba con control completo y sin PIN; ahora pide PIN y no puede ver el PIN ni apagar Manna.
+- **Cambiar el PIN cierra todas las demás sesiones**: quien estuviera dentro vuelve a escribirlo. El equipo principal vuelve a entrar solo.
+- Manna ya no se cierra si un momento no puede guardar sus datos (disco lleno, o un archivo que otro programa tiene abierto en Windows): sigue y lo guarda en el siguiente cambio. Tampoco si la carpeta de biblias desaparece o una biblia está dañada: esa versión queda sin usar y se anota en el registro.
+- En la carpeta de biblias se ignoran los archivos ocultos que crea macOS.
+- YouTube: si falta ffmpeg para unir la imagen y el sonido, lo dice.
+- Abrir una función que el Manna abierto aún no conoce (porque se actualizó sin reiniciarlo) lo dice en pantalla, en vez de dejar la página en blanco.
+- Biblia: al cambiar de capítulo muy deprisa ya no puede quedarse a la vista un capítulo anterior.
+
 ## 1.9.0 — 2026-10-05
 
 - **Himnario**, un módulo nuevo: los himnos en video de la carpeta de la iglesia (`Contenido/Himnario/videos/`), cada uno en una ficha con su número y su título.

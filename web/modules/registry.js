@@ -4,6 +4,7 @@ import compare from './bible/compare.js';
 import himnario from './hymns/workspace.js';
 import medios from './media/workspace.js';
 import diapositivas from './slides/workspace.js';
+import presentador from './slides/presenter.js';
 import televisores from './tv/workspace.js';
 import settings from './settings/workspace.js';
 
@@ -28,3 +29,14 @@ export const MODULES = [
 
 // Función "Control del orden": solo opera el orden del culto, sin editarlo.
 export const ORDER_ONLY = [order];
+
+// Función "Servicio de alabanza": centrado en himnario, videos de medios, orden y biblia.
+export const ALABANZA_MODULES = [
+  himnario,
+  medios,
+  order,
+  bible,
+];
+
+// Función "Presentador de diapositivas": solo su pantalla, que ya muestra lo que está al aire.
+export const PRESENTADOR_MODULES = [presentador];

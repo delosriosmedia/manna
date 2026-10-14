@@ -10,6 +10,22 @@ export const ROLES = [
     permissions: ['*'],
   },
   {
+    id: 'alabanza',
+    name: 'Servicio de alabanza',
+    description: 'Himnario, videos y orden del culto con control permanente de volumen.',
+    path: '/alabanza',
+    requiresPin: true,
+    permissions: ['projection.control', 'order.edit', 'media.edit', 'jobs.manage'],
+  },
+  {
+    id: 'presentador',
+    name: 'Presentador de diapositivas',
+    description: 'Pasa diapositivas, señala con el dedo en la pantalla y acerca lo que haga falta.',
+    path: '/presentador',
+    requiresPin: true,
+    permissions: ['projection.control', 'slides.edit'],
+  },
+  {
     id: 'orden',
     name: 'Control del orden',
     description: 'Solo proyecta lo que ya está en el orden del culto. Pensado para el celular.',

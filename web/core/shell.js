@@ -21,7 +21,7 @@ import { splitTabs } from './tabs.js';
 // ctx (lo que recibe cada módulo): { role, isLocal, canEdit, go(id), setPreview(elemento | null), setPart(id) }
 //   setPart  un módulo con pestañas dice en cuál está, para avisar solo de lo que le falta a esa
 export function createShell({ role, isLocal, modules, extras = [], createDock }) {
-  const canEdit = role === 'control';
+  const canEdit = role === 'control' || role === 'alabanza';
   const usable = modules.filter((m) => !m.soon);
   const listed = modules.filter((m) => !m.hidden);
   const mounted = new Map(); // id -> { el, api }
@@ -89,7 +89,8 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
       icon('warning', 18),
       h('p', {}, h('strong', {}, `${tools.length > 1 ? 'Faltan' : 'Falta'} ${joinNames(tools.map((t) => t.name))}. `),
         `Aquí no se podrá ${joinNames(missing.map((m) => m.feature))}.`),
-      ...tools.filter((t) => t.installable && isLocal).map((t) => h('button', { class: 'btn', disabled: t.installing, onclick: guard(() => action('tools.install', { id: t.id })) },
+      // Instalar es cosa del control completo; las demás funciones llegan por "Cómo instalarlo".
+      ...tools.filter((t) => t.installable && isLocal && role === 'control').map((t) => h('button', { class: 'btn', disabled: t.installing, onclick: guard(() => action('tools.install', { id: t.id })) },
         icon('download-simple', 15), t.installing ? `Instalando ${t.name}…` : `Instalar ${t.name}`)),
       h('button', { class: 'btn', onclick: () => go('/requisitos') }, 'Cómo instalarlo'),
       h('button', { class: 'icon-btn sm', 'aria-label': 'Cerrar el aviso', onclick: () => { dismissed.add(key); renderNotice(); } }, icon('x', 14)),

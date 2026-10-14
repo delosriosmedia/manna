@@ -19,7 +19,9 @@ const SMALL = 420;
 
 // La imagen ocupa la pantalla entera, completa (con bandas negras) o llenándola, y mientras
 // está al aire se puede acercar y desplazar.
-export function drawPicture(host) {
+//   thumbnail: es una miniatura de una lista: siempre la versión pequeña, mida lo que mida. Un
+//   iPhone triplica los píxeles, y con decenas de imágenes grandes a la vez Safari cierra la página.
+export function drawPicture(host, { thumbnail = false } = {}) {
   const img = h('img', { alt: '', draggable: false });
   const box = h('div', { class: 'img-view' }, img);
   host.replaceChildren(box);
@@ -45,7 +47,7 @@ export function drawPicture(host) {
     // Una miniatura se dibuja antes de colocarse en la página, cuando aún no mide nada: si hay
     // versión pequeña, se espera a saber el tamaño (avisa el observador) en vez de pedir la grande.
     if (!width && item.thumb && !full) return;
-    const small = item.thumb && !full && (view?.zoom || 1) <= 1.01 && width <= SMALL;
+    const small = item.thumb && !full && (view?.zoom || 1) <= 1.01 && (thumbnail || width <= SMALL);
     const want = small ? item.thumb : item.url;
     if (!small) full = true;
     if (img.getAttribute('src') === want) return;
@@ -74,6 +76,18 @@ export function drawPicture(host) {
       view = state;
       load();
       layout();
+    },
+    // Del punto de la imagen (fracciones de 0 a 1) a la pantalla, y al revés: el puntero señala la
+    // misma parte de la imagen en todas las pantallas, aunque cambien las proporciones o el zoom.
+    locate(x, y) {
+      const r = img.getBoundingClientRect();
+      return r.width ? { x: r.left + x * r.width, y: r.top + y * r.height } : null;
+    },
+    spot(clientX, clientY) {
+      const r = img.getBoundingClientRect();
+      const x = (clientX - r.left) / r.width;
+      const y = (clientY - r.top) / r.height;
+      return r.width && x >= 0 && x <= 1 && y >= 0 && y <= 1 ? { x, y } : null;
     },
     destroy: () => observer.disconnect(),
   };

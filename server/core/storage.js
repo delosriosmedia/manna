@@ -13,17 +13,27 @@ export function createStorage(dataDir) {
     } catch { /* primera ejecución o archivo dañado: se usan los valores por defecto */ }
 
     let timer = null;
+    let dirty = false;
     const flush = () => {
-      if (!timer) return;
       clearTimeout(timer);
       timer = null;
+      if (!dirty) return;
       const tmp = `${file}.tmp`;
-      fs.writeFileSync(tmp, JSON.stringify(entry.data, null, 2));
-      fs.renameSync(tmp, file);
+      // Esto corre desde un temporizador: si el disco no deja escribir (lleno, o en Windows otro
+      // programa tiene el archivo abierto), Manna no se cae. Sigue con lo que tiene en memoria y lo
+      // vuelve a intentar en el siguiente cambio y al cerrar.
+      try {
+        fs.writeFileSync(tmp, JSON.stringify(entry.data, null, 2));
+        fs.renameSync(tmp, file);
+        dirty = false;
+      } catch (err) {
+        console.error(`No se pudo guardar ${name}.json:`, err.message);
+      }
     };
     const entry = {
       data,
       save() {
+        dirty = true;
         clearTimeout(timer);
         timer = setTimeout(flush, 200);
       },

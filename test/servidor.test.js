@@ -33,7 +33,7 @@ async function start(name, env = {}) {
     return { status: res.status, ...(await res.json()) };
   };
   return {
-    app, request, send,
+    app, base, request, send,
     state: async () => (await request('/api/state')).json(),
     // Desde este mismo equipo el control se concede sin PIN.
     async login(role = 'control') {
@@ -196,6 +196,26 @@ test('un tipo con mandos en vivo se proyecta, se gobierna y valida sus órdenes'
   assert.deepEqual([state.projection.item, state.live.state], [null, null]);
 });
 
+test('el puntero señala sobre lo que está al aire y desaparece al soltar, al cambiar de contenido o si no es válido', async () => {
+  const shown = await main.send('projection.show', { kind: 'testcard', data: {} });
+  assert.equal((await main.send('projection.pointer', { x: 0.25, y: 0.75 })).status, 200);
+  assert.deepEqual((await main.state()).pointer, { uid: shown.result.uid, x: 0.25, y: 0.75 });
+  for (const bad of [{ x: 2, y: 0.5 }, { x: '0.5', y: 0.5 }, {}]) {
+    await main.send('projection.pointer', { x: 0.5, y: 0.5 });
+    await main.send('projection.pointer', bad);
+    assert.equal((await main.state()).pointer.x, null, JSON.stringify(bad));
+  }
+  // Ligado a la proyección: lo de antes no se ve sobre lo nuevo, y en negro no se señala.
+  await main.send('projection.pointer', { x: 0.5, y: 0.5 });
+  await main.send('projection.show', { kind: 'testcard', data: {} });
+  const state = await main.state();
+  assert.notEqual(state.pointer.uid, state.projection.item.uid);
+  await main.send('projection.mode', { mode: 'black' });
+  await main.send('projection.pointer', { x: 0.5, y: 0.5 });
+  assert.equal((await main.state()).pointer.x, null);
+  await main.send('projection.clear');
+});
+
 test('el volumen general se valida y se guarda', async () => {
   assert.equal((await main.send('projection.volume', { volume: 0.4 })).status, 200);
   assert.equal((await main.state()).live.volume, 0.4);
@@ -230,6 +250,28 @@ test('sin sesión no se gobierna nada', async () => {
   });
   assert.equal(anonymous.status, 401);
   await anonymous.arrayBuffer();
+});
+
+test('lo que llega por un túnel o un proxy de este equipo no cuenta como el equipo principal', async () => {
+  // Así entrega cloudflared lo que viene de internet: desde 127.0.0.1, con estas cabeceras.
+  const tunnel = { 'Cf-Connecting-Ip': '203.0.113.9', 'X-Forwarded-For': '203.0.113.9' };
+  const outside = (url, options = {}) => fetch(new URL(url, main.base), { ...options, headers: { ...options.headers, ...tunnel } });
+  assert.equal((await (await outside('/api/session')).json()).isLocal, false);
+  const login = await outside('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'control' }) });
+  assert.equal(login.status, 401, 'sin PIN no entra');
+  assert.equal((await outside('/api/system/pin')).status, 403);
+  // Sin esas cabeceras sigue siendo el equipo principal.
+  assert.equal((await (await main.request('/api/session')).json()).isLocal, true);
+});
+
+test('cambiar el PIN cierra las demás sesiones, también las abiertas sin PIN', async () => {
+  const other = await fetch(new URL('/api/session', main.base), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'control' }) });
+  const cookie = other.headers.get('set-cookie').split(';')[0];
+  const state = () => fetch(new URL('/api/action', main.base), { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ type: 'projection.mode', payload: { mode: 'clear' } }) }).then((res) => res.status);
+  assert.equal(await state(), 200);
+  assert.equal((await main.send('system.setPin', { pin: '13579' })).status, 200);
+  assert.equal(await state(), 401, 'la otra sesión ya no vale');
+  assert.equal((await main.send('projection.mode', { mode: 'clear' })).status, 200, 'la de quien lo cambió, sí');
 });
 
 // ---- Revisión del equipo ----

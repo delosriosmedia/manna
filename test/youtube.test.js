@@ -74,6 +74,9 @@ test('explain dice por qué falló una descarga, con palabras de quien usa Manna
   assert.match(explain("ERROR: [youtube] abc: Sign in to confirm you're not a bot"), /más tarde/);
   assert.match(explain('ERROR: unable to download webpage: <urlopen error [Errno 8] nodename nor servname provided>'), /internet/);
   assert.match(explain('ERROR: abc does not pass filter (!is_live), skipping ..'), /directo/);
+  assert.match(explain('ERROR: Postprocessing: ffmpeg not found. Please install or provide the path using --ffmpeg-location'), /Falta ffmpeg/);
+  // "both" o "bottom" no son "bot": un fallo desconocido no se achaca a que YouTube pida iniciar sesión.
+  assert.match(explain('ERROR: both formats failed'), /actualiza yt-dlp/);
   assert.match(explain('ERROR: algo que nadie esperaba'), /actualiza yt-dlp/);
 });
 

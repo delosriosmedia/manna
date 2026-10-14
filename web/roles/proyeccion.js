@@ -11,6 +11,7 @@ const me = await session.get().catch(() => null);
 const stage = createStage($('#stage'));
 subscribe('projection', (p) => stage.render(p));
 subscribe('live', (live) => stage.setLive(live));
+subscribe('pointer', (p) => stage.setPointer(p));
 subscribe('conexiones', ({ sonido }) => stage.setSound(Boolean(sonido) && sonido === connectionId()));
 connect('proyeccion');
 // Una pantalla remota que entró por la IP pasa a la dirección con nombre si puede.

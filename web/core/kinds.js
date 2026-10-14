@@ -9,7 +9,10 @@
 //     key(item),              identidad de lo dibujado: si no cambia, es lo mismo en pantalla
 //     background,             false si ocupa toda la pantalla (imagen, video); por defecto se dibuja
 //                             sobre el fondo elegido en Ajustes (texto)
-//     draw(host, { stage }) -> { update(item, { mode, styles }), live?(state, { volume, sound }), stop?(), destroy?() }
+//     draw(host, { stage, thumbnail }) -> { update(item, { mode, styles }), live?(state, { volume, sound }), stop?(), destroy?(),
+//                                          locate?(x, y), spot?(clientX, clientY) }
+//                             locate y spot pasan de un punto del contenido (0 a 1) a la página y al revés:
+//                             con ellos el escenario muestra el puntero del presentador
 //                             dibuja el contenido dentro de host. `stage` es el escenario entero.
 //                             live() recibe el estado de los mandos (null si lo dibujado no está al
 //                             aire: una vista previa), el volumen general y si esta pantalla suena

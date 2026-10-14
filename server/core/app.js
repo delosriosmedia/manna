@@ -199,7 +199,10 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
   }
 
   async function close() {
-    for (const fn of closers) await fn();
+    // Que un módulo falle al cerrar no impide guardar lo pendiente ni cerrar a los demás.
+    for (const fn of closers) {
+      try { await fn(); } catch (err) { console.error(err); }
+    }
     jobs.close();
     storage.flushAll();
     realtime.close();

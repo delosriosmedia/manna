@@ -132,8 +132,13 @@ De menor a mayor riesgo; cada fase deja algo usable y **se publica al cerrarla**
 | 8 | Diapositivas | L | 1.8 |
 | 5 | Himnario | M | 1.9 |
 | 9 | Auditoría del proyecto completo | M | 2.0 |
+| 10 | Función «Presentador» | M | |
+| 11 | Páginas web y presentaciones HTML | M | |
+| 12 | PowerPoint en vivo (Windows) | L | |
 
 **Orden cambiado el 2026-10-04 (decisión 20)**: la fase 6 va antes que la 5, mientras el dueño revisa las letras de los himnos. La reproducción (pausa, avance, volumen, una sola pantalla que suena), que iba a estrenarse con el himnario, se construye con los videos.
+
+**Y el 2026-10-14 (decisión 30)**: se añaden las fases 10 a 12, en ese orden, a petición del dueño.
 
 **Y el 2026-10-05 (decisión 28)**: tras la fase 7 se hace la 8 (diapositivas); ahí se detiene el trabajo para que el dueño pruebe, y después se revisa el himnario.
 
@@ -246,6 +251,41 @@ Reproducción (para todo lo que suena): reloj compartido (hecho), pausa, reinici
 
 Sección 8.
 
+### Fase 10 · Función «Presentador»
+
+- Una función propia (`/presentador`, con PIN) para quien pasa diapositivas, sin panel «Al aire»: la presentación se elige del orden del culto o de la biblioteca de Diapositivas, o se sube ahí mismo.
+- La diapositiva al aire en grande, la siguiente al lado (debajo en el celular) y la cuadrícula de todas: tocar una la proyecta. Al llegar a la última, «Siguiente» no salta al siguiente elemento del orden.
+- **Señalar**: el dedo sobre la diapositiva marca un punto en la proyección. **Mover**: pellizcar acerca y arrastrar desplaza, además de los mandos de encuadre de siempre.
+- Se prueba entera en el equipo de desarrollo.
+- **Dónde está** (2026-10-14, sin publicar): `web/modules/slides/presenter.js` (la pantalla), `web/roles/presentador.js` y `web/presentador.html` (la función, con la clase `no-dock`), el rol en `server/roles.js`, la orden `projection.pointer` y el espacio `pointer` en `server/modules/projection/index.js`, el punto en `web/modules/projection/stage.js` (`setPointer`, `pointAt`) y `picture.js` (`locate`, `spot`). Pruebas: `test/servidor.test.js` (puntero), sección «Presentador» de `scripts/probar-chrome.mjs` y dos pantallas en `scripts/auditar-responsive.mjs`.
+
+### Fase 11 · Páginas web y presentaciones HTML
+
+- Un archivo HTML o ZIP subido se proyecta sin internet, encerrado para que no pueda dar órdenes a Manna.
+- Una dirección que se deja mostrar dentro de Manna (Canva con su enlace de insertar, Google Slides publicado, Genially) se ve en todas las pantallas y admite el puntero.
+- Una que no se deja (Kahoot): su propia ventana a pantalla completa sobre la proyección, que se cierra al pasar a otra cosa y se maneja con el ratón del equipo principal; anterior y siguiente desde el celular, si se le pueden enviar las flechas.
+- Manna dice al agregar una dirección en cuál de los dos casos cae. **Las direcciones necesitan internet durante el culto** (decisión 30).
+- **Cómo se hará** (notas del 2026-10-14 para retomarla; lo marcado «sin comprobar» viene de una consulta, no de una prueba):
+  - Un tipo de contenido nuevo (`web`) con su biblioteca, en el módulo Diapositivas (un módulo puede tener varios tipos). En `data` solo el id de la entrada; la entrada guarda nombre, origen (`archivo` o `dirección`) y si se deja insertar.
+  - **Archivo subido**: se guarda en `data/media/web/<id>/` y se sirve con la cabecera `Content-Security-Policy: sandbox allow-scripts`, para que tenga un origen propio aunque se abra suelto; en la proyección va en un `<iframe sandbox="allow-scripts">` sin `allow-same-origin` ni `allow-top-navigation`. Además, `POST /api/action` y las subidas deben rechazar lo que llegue con `Origin: null` o `Sec-Fetch-Site: cross-site` (comprobar antes qué valida hoy `server/core/router.js`). Un ZIP hay que abrirlo a mano (Node trae `zlib`, no lector de ZIP): si se quiere evitar, empezar admitiendo solo un `.html` suelto.
+  - **Dirección**: al agregarla, el servidor la pide (GET, con tiempo límite y siguiendo redirecciones) y mira `X-Frame-Options` (`DENY` o `SAMEORIGIN` = no se deja) y `frame-ancestors` de `Content-Security-Policy` (sin `*` = no se deja). Lo que una página impide con JavaScript no se ve así. Es la primera conexión de Manna hacia internet fuera de las descargas de programas: hay que anotar la excepción en `.claude/rules/servidor.md` (hoy solo permite conectar a la red local). Canva solo se deja con su enlace de «Insertar» (`…/view?embed`), Google Slides con «Publicar en la web» (`…/pub`), Genially con su enlace de insertar; Kahoot no se deja (sin comprobar).
+  - **Insertable**: el tipo la dibuja en el escenario como `<iframe>` a pantalla completa y ofrece `locate` / `spot` (el rectángulo del iframe) para el puntero. Anterior y siguiente desde un celular no llegan dentro de un iframe de otro sitio: no se ofrecen, salvo con la vía de la ventana aparte.
+  - **No insertable**: `openKiosk()` de `server/modules/projection/launcher.js` abre otro Chrome en la segunda pantalla con esa dirección y perfil propio (si no, Chrome reutiliza el abierto e ignora la posición), y se cierra al proyectar otra cosa. Las flechas desde el celular, con el protocolo de depuración de Chrome: `--remote-debugging-port=0` y `--remote-debugging-address=127.0.0.1`, el puerto se lee de `DevToolsActivePort` en el perfil, y `Input.dispatchKeyEvent` por `server/core/ws.js` (sin comprobar). Ese puerto da control total del navegador: solo en 127.0.0.1 y solo mientras la ventana existe. Las demás pantallas (celulares, televisores) muestran una tarjeta «Se ve en el proyector».
+
+### Fase 12 · PowerPoint en vivo (Windows)
+
+- La presentación la pasa el propio PowerPoint del equipo principal, en una ventana sobre la segunda pantalla: videos, GIF, animaciones y transiciones tal cual. Anterior, siguiente e ir a una diapositiva desde cualquier celular; si alguien avanza en el equipo, los celulares lo ven.
+- Los celulares siguen viendo una foto de cada diapositiva, que PowerPoint saca al agregarla (decisión 30).
+- En este modo no hay zoom; el puntero, solo si se puede mover el láser de PowerPoint. Los televisores ven la foto. El sonido de PowerPoint no lo gobierna el volumen de Manna.
+- **Solo Windows** (decisión 30): PowerPoint para Mac no deja elegir la pantalla. En Mac sigue la conversión en imágenes. Solo se puede probar de verdad en el equipo de la iglesia.
+- **Cómo se hará** (notas del 2026-10-14 para retomarla; «sin comprobar» = de una consulta, no de una prueba):
+  - Se conserva el `.pptx` original junto a sus imágenes (hoy se borra tras convertir: mirar `server/modules/slides/index.js` y `powerpoint.js`). Las imágenes y miniaturas se siguen sacando como ahora.
+  - **Un PowerShell que queda abierto** mientras dura la presentación, con un guion fijo en `powerpoint.js` (`-EncodedCommand`, como el de convertir) que lee órdenes de una línea JSON por la entrada estándar (`abrir`, `ir a n`, `siguiente`, `anterior`, `salir`, `dónde`). Lanzar uno por orden tarda 1-2 s; abierto, decenas de milisegundos (sin comprobar).
+  - Por COM (`PowerPoint.Application`): abrir sin ventana del editor, `SlideShowSettings.ShowType` en ventana y colocar `SlideShowWindow` (`Left`, `Top`, `Width`, `Height`, en puntos = píxeles × 72 / PPP de Windows) sobre la segunda pantalla que da `server/modules/projection/display.js`; ponerla delante de la ventana de proyección de Chrome (`Activate` o `SetForegroundWindow` sobre su `HWND`). Avanzar con `View.Next()`, `View.Previous()`, `View.GotoSlide(n)`; leer `View.Slide.SlideIndex` cada medio segundo para que los celulares sigan lo que se haga en el equipo; `View.Exit()` al proyectar otra cosa o al apagar Manna (`app.onClose`). Existe también la propiedad `DisplayMonitor` de `SlideShowSettings` (sin comprobar).
+  - **Trampas**: una ventana de PowerPoint que pide algo (vista protegida, reparar el archivo, fuentes) deja el proceso esperando para siempre: hace falta tiempo límite y cerrar ese PowerShell. No cerrar un PowerPoint que ya estuviera abierto. Que no queden `POWERPNT.EXE` huérfanos.
+  - **Puntero**: COM no deja colocar el láser de PowerPoint; la vía posible es mover el ratón de Windows sobre esa pantalla (`SetCursorPos`) con el puntero en modo láser. Sin comprobar; si no sale, en este modo no hay puntero.
+  - En el estado, la diapositiva al aire sigue siendo del tipo `slides` (con su imagen, que es lo que ven celulares y televisores); un ajuste por presentación dice si se pasa en vivo. Para probarlo sin PowerPoint hay que ampliar `scripts/lib/powerpoint-falso.mjs` para que haga de sesión en vivo.
+
 ## 5. Cómo se trabaja cada fase
 
 1. Detalle de la fase si hay algo que decidir; si no, se implementa.
@@ -286,6 +326,7 @@ Tomadas el 2026-10-04.
 | 24 | «Negro» y «Solo fondo» con algo sonando (S16) | **Lo pausan.** Y todo lo que detenga el sonido (pausa, negro, cambiar de contenido) lo hace con un **desvanecido rápido**, sin corte; la interfaz reacciona al instante |
 | 25 | Al terminar un video (S17) | **Pasar a «Solo fondo»** con un desvanecido rápido |
 | 26 | Botón para hacer sonar (S18) | **No.** Se quita también el aviso «Toca aquí para que suene». El sonido va solo al dispositivo de audio configurado en el equipo principal |
+| 30 | Presentador, páginas web y PowerPoint en vivo (2026-10-14) | **Sí a todo, en el orden 10 → 11 → 12.** Acepta que en PowerPoint en vivo se saque igualmente una foto de cada diapositiva para los celulares, que ese modo sea solo para Windows al principio y que las páginas web por dirección necesiten internet durante el culto |
 | 29 | Tras la fase 8 (2026-10-05) | **Empezar ya el himnario**, con un archivo `.md` que el dueño dejó en `Contenido/Himnario/letras/` con todas las letras **y las categorías**. Las sugerencias S23 a S28 y las pruebas, después |
 | 28 | Orden tras la fase 7 (2026-10-05) | **Pasar de una vez a la fase 8 (diapositivas) y ahí detenerse** para hacer pruebas, antes de revisar la fase del himnario |
 | 27 | La espera al convertir un video pesado (S19, S20, S21) | **Convertir más rápido y poder usar el video de inmediato**; la conversión para los dispositivos remotos, de fondo. **No** medir el equipo desde la revisión |
@@ -378,6 +419,9 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 8 Diapositivas | **Hecha** · 2026-10-05 | 1.8.0 | Ver abajo. El PDF, probado de verdad; **PowerPoint, solo con uno de mentira**: falta la prueba en Windows. Aquí se detiene el trabajo (decisión 28) |
 | 5 Himnario | **Hecha** · 2026-10-05 | 1.9.0 | Ver abajo. Probado con el himnario real: 613 himnos, 540 con letra. **El archivo de letras tiene 73 himnos (123 a 195) que no corresponden a sus videos**: no se usan hasta que se corrijan |
 | 9 Auditoría | Pendiente | 2.0 | |
+| 10 Presentador | **Hecha** · 2026-10-14, publicada en la 1.10.0 | | Probada en Chrome (con dedos simulados) y en la auditoría de pantallas. Falta la prueba del dueño con un celular real y el proyector |
+| 11 Páginas web | Pendiente | | |
+| 12 PowerPoint en vivo | Pendiente | | |
 
 ### Fase 0 · resultados
 
@@ -523,6 +567,7 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 
 | Fecha | Cambio | Motivo |
 | --- | --- | --- |
+| 2026-10-14 | Se añaden las fases 10 (Presentador), 11 (páginas web) y 12 (PowerPoint en vivo) | Decisión 30, a petición del dueño |
 | 2026-10-04 | Las versiones se renumeran: la fase 0 es la 1.1 y cada fase sube una (1.2 … 1.9, auditoría 2.0) | La fase 0 dejó cambios a la vista (revisión del equipo, nombre propio, imagen de prueba) y se publica, como todas |
 | 2026-10-04 | La fase 0 gana tres piezas: revisión del equipo con "Instalar por mí", tareas con avance y tiempo restante, e imagen de prueba | Las dos primeras salen de las respuestas del dueño (decisión 2 y la conversión con avance a la vista); la tercera es el tipo con mandos que exigía el criterio de cierre, hecho útil en vez de desechable |
 | 2026-10-04 | "Más" en las pestañas del celular pasa de la fase 0 a la 4 | Hasta que haya una quinta pestaña no hay con qué probarlo |

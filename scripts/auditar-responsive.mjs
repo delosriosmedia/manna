@@ -17,6 +17,9 @@
 //     sonido elegido, y los mandos de un himno al aire (cantado o pista, avance, volumen) caben
 //   - en Diapositivas, las presentaciones y las diapositivas de la elegida dejan a la vista
 //     «Proyectar», y los mandos de una diapositiva al aire (por dónde va, la que sigue, acercar) caben
+//   - el Presentador (sin panel «Al aire») deja a la vista la diapositiva grande, Anterior / Siguiente /
+//     Negro, las herramientas de señalar y mover y los mandos en vivo, y su lista de presentaciones cabe
+//   - en la función de alabanza, el volumen de Manna está a la vista sin desplegar "Al aire"
 //   - en YouTube, el campo del enlace cabe en la cabecera y los mandos de un video con subtítulos
 //     en dos idiomas (botón y lista) caben en el panel
 //
@@ -63,6 +66,9 @@ const SCREENS = [
   { name: 'Ajustes, con aviso', url: '/control#ajustes', content: '.settings', inside: '.ws-notice' },
   { name: 'Al aire desplegado', url: '/control#orden', narrowOnly: true, prepare: `document.querySelector('.dock-mini-main').click()`, sheet: true },
   { name: 'Control del orden', url: '/orden', content: '.olist', longTitles: true },
+  // La función de alabanza lleva el volumen de Manna siempre a la vista: en el celular, bajo la barra de "Al aire".
+  { name: 'Servicio de alabanza', url: '/alabanza#himnario', content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: '.dock-volume', settle: 700,
+    prepare: `document.querySelector('.ws[data-module=himnario] .hymn')?.click()` },
   { name: 'Orden con mandos en vivo', url: '/control#orden', show: 'testcard', controls: '.odetail .live-controls' },
   { name: 'Al aire con mandos en vivo', url: '/control#ajustes', show: 'testcard', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
   { name: 'Medios: imágenes', url: '/control#medios', content: '.media-body[data-panel=imagenes]', primary: '.media-bar[data-panel=imagenes] .btn.primary', inside: '.media-bar[data-panel=imagenes]', settle: 600,
@@ -91,6 +97,9 @@ const SCREENS = [
     prepare: `document.querySelector('.ws[data-module=diapositivas] .deck-pick').click()` },
   { name: 'Al aire con una diapositiva', url: '/control#diapositivas', show: 'slides', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
   { name: 'Orden con una diapositiva al aire', url: '/control#orden', show: 'slides', controls: '.odetail .live-controls' },
+  // El Presentador no lleva panel «Al aire»: noDock cambia ese control por la diapositiva grande y su fila de botones.
+  { name: 'Presentador: elegir presentación', url: '/presentador', noDock: true, content: '.pr-choose', inside: '.pr-list .deck', settle: 600 },
+  { name: 'Presentador: presentando', url: '/presentador', show: 'slides', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', controls: '.pr-side .live-controls', settle: 800 },
   { name: 'Televisores', url: '/control#televisores', content: '.tvs', inside: '.tv' },
   { name: 'Televisores: control remoto', url: '/control#televisores', inside: '.modal', settle: 700,
     prepare: `[...document.querySelectorAll('.tv-actions .btn')].find((b) => b.textContent === 'Control remoto').click()` },
@@ -120,12 +129,16 @@ const MEASURE = (screen, touch) => `(() => {
   const navItems = [...document.querySelectorAll(nav)];
   // Con un solo módulo (función "Control del orden") no hay nada entre lo que navegar.
   out.navegacion = navItems.length <= 1 || navItems.every(inView);
-  if (${JSON.stringify(Boolean(screen.sheet))} && !shown(q('.rail'))) {
+  if (${JSON.stringify(Boolean(screen.noDock))}) {
+    out.alAire = shown(q('.pr-live')) ? inView(q('.pr-live')) && [...document.querySelectorAll('.pr-main .transport .btn')].every(inView) : true;
+  } else if (${JSON.stringify(Boolean(screen.sheet))} && !shown(q('.rail'))) {
     out.alAire = inView(q('.dock-body .monitor')) && [...document.querySelectorAll('.dock-body > .transport .btn')].every(inView);
     const m = box(q('.dock-body .monitor'));
     out.monitorProporcion = Math.abs(m.width / m.height - 16 / 9) < 0.08;
   } else {
-    const wideDock = shown(q('.dock-body'));
+    // El panel entero está a la vista si lo está su monitor: con volumen permanente (función de
+    // alabanza), del panel plegado se ve solo el volumen.
+    const wideDock = shown(q('.dock-body .monitor'));
     out.alAire = wideDock
       ? inView(q('.dock-body .monitor')) && [...document.querySelectorAll('.dock-body > .transport .btn')].every(inView)
       : inView(q('.dock-mini')) && [...document.querySelectorAll('.dock-mini .icon-btn')].every(inView);

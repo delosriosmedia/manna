@@ -76,6 +76,20 @@
   opacity: 1 !important;
 }
 
+/* Puntero del presentador: un punto rojo con halo, como un láser. Su sitio lo pone stage.js. */
+.stage-pointer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3.2cqh;
+  height: 3.2cqh;
+  margin: -1.6cqh 0 0 -1.6cqh;
+  border-radius: 50%;
+  background: #ff2a2a;
+  box-shadow: 0 0 1.2cqh 0.5cqh rgba(255, 42, 42, 0.6), 0 0 0 0.25cqh rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+}
+
 /* Contenido que ocupa toda la pantalla (imagen de prueba, y más adelante imágenes y video):
    sin márgenes y por encima del fondo. En "solo fondo" se oculta igual que el texto. */
 .stage[data-fill='full'] .stage-content {

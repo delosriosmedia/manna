@@ -6,7 +6,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 
 ## Qué hace
 
-- **Tres zonas, siempre iguales**: los módulos a la izquierda, el módulo activo al centro y el panel **Al aire** a la derecha, con el monitor de lo proyectado y los mandos (anterior, siguiente, negro, solo fondo).
+- **Tres zonas, siempre iguales**: los módulos a la izquierda, el módulo activo al centro y el panel **Al aire** a la derecha, con el monitor de lo proyectado y los mandos (anterior, siguiente, negro, solo fondo). En el control del equipo principal, junto a «Al aire», está el botón que **enciende y apaga el proyector**.
 - **Biblia**: los 66 libros a la vista en una rejilla; capítulos y versículos; pasajes recientes. Lee los archivos `.xmm` (OpenLP) y `.xml` de la carpeta `Contenido/Biblias/`; basta copiar un archivo y aparece solo.
 - **Búsqueda**: por cita (`Juan 3:16-18`, `1 co 13 4`, `sal 23`) o por texto, mientras escribes. El texto se busca en la Reina-Valera 1960 (o en la versión elegida, si no está instalada) y el resultado se abre en la versión que tengas elegida. Los resultados salen por niveles (frase exacta, todas las palabras, parecidas), con lo encontrado resaltado, y se pueden limitar al Antiguo o al Nuevo Testamento.
 - **Comparador**: el mismo pasaje en dos versiones, lado a lado o una sobre otra, cada una con su sigla. Se elige igual que en Biblia, se proyecta, se añade al orden como elemento propio, y la disposición se puede cambiar mientras está al aire.
@@ -24,6 +24,8 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Preparado para crecer**: cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
 - **Funciones por dispositivo**: cada dispositivo elige al entrar.
   - **Control completo**: todos los módulos. Pide PIN.
+  - **Presentador de diapositivas**: una sola pantalla para pasar una presentación (del orden, de la biblioteca o subida ahí mismo): la diapositiva al aire en grande, la siguiente y todas en cuadrícula, con **señalar con el dedo** en la proyección y mover o acercar con los dedos. Pide PIN.
+  - **Servicio de alabanza**: Himnario, Medios, Orden y Biblia, con el volumen de Manna siempre a la vista. Proyecta, prepara el orden y sube medios, pero no toca los ajustes. Pide PIN.
   - **Control del orden**: solo proyecta lo que ya está en el orden del culto. Pensado para el celular. Pide PIN.
   - **Pantalla de proyección**: espejo de la proyección principal. Sin PIN.
 - **Celular, tableta y escritorio**: en pantallas estrechas se ve un módulo a la vez, con pestañas abajo y "Al aire" como barra compacta que se despliega.
@@ -153,7 +155,7 @@ La pista instrumental necesita ffmpeg en el equipo principal: los videos traen d
 1. En **Diapositivas**, pulsa **Subir presentación** y elige un **PDF** o un **PowerPoint** (también puedes arrastrarlo hasta la pantalla).
 2. Ponle el nombre con el que quieres verla en el orden del culto y pulsa **Subir**.
    - Un **PDF** lo convierte el propio navegador, página a página, con el avance a la vista. Se puede hacer desde un celular.
-   - Un **PowerPoint** lo convierte el PowerPoint del equipo principal, de fondo; mientras tanto puedes seguir usando Manna. En Windows no se ve ninguna ventana. En Mac, PowerPoint se abre un momento, y la primera vez macOS pregunta si Manna puede controlarlo: hay que aceptar.
+   - Un **PowerPoint** lo convierte el PowerPoint del equipo principal, de fondo; mientras tanto puedes seguir usando Manna. En Windows no se ve ninguna ventana. En Mac, PowerPoint se abre un momento. La primera vez hay que aceptar dos avisos: el de macOS, que pregunta si Manna puede controlar PowerPoint, y el de PowerPoint, que pide acceso a una carpeta de Manna («Seleccionar…» y luego «Conceder acceso»). No vuelven a salir.
    - Si el equipo principal **no tiene PowerPoint**, guarda la presentación como PDF donde la hiciste (en PowerPoint: Archivo → Exportar → PDF; en Presentaciones de Google: Archivo → Descargar → PDF; en Keynote: Archivo → Exportar a → PDF) y sube el PDF.
 3. Elige la presentación: a su lado aparecen sus diapositivas. Toca aquella por la que quieres empezar y pulsa **Proyectar** (o doble clic), o **Añadir al orden** para dejarla preparada.
 4. Con una diapositiva al aire, **Siguiente** y **Anterior** (o ← →) las recorren. El panel **Al aire** dice por cuál vas, cuántas quedan y muestra la que sigue; debajo, el recuadro para acercar y desplazar, como en una imagen.
@@ -225,7 +227,7 @@ web/
                         reloj, tareas, iconos y estilos base
   modules/              la pantalla de cada módulo (registry.js es la lista) y cómo se dibuja
                         cada tipo de contenido (kinds.js es la lista)
-  roles/                una página por función: control, orden, proyeccion, y la revisión del equipo
+  roles/                una página por función: control, alabanza, presentador, orden, proyeccion, y la revisión del equipo
   vendor/               tipografía Geist, iconos Phosphor, generador de QR y pdf.js (para leer los PDF
                         en el navegador), con sus licencias
 DESIGN.md               sistema de diseño de la interfaz

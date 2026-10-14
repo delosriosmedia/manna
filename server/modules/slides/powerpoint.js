@@ -1,6 +1,5 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { readImageInfo } from '../../core/images.js';
 
@@ -12,15 +11,19 @@ import { readImageInfo } from '../../core/images.js';
 //            diapositiva. La presentación se abre sin ventana; si PowerPoint ya estaba abierto
 //            con otras, no se cierra.
 //   Mac      osascript se lo pide por AppleScript. PowerPoint se abre a la vista un momento, y la
-//            primera vez macOS pregunta si Manna puede controlarlo. PowerPoint en Mac solo puede
-//            leer y escribir en sus propias carpetas sin pedir permiso archivo por archivo: se
-//            trabaja en una de ellas y luego se trae el resultado.
+//            primera vez macOS pregunta si Manna puede controlarlo. Ahí PowerPoint no exporta
+//            imágenes cuando se le pide así (responde que sí y no escribe nada: probado el
+//            2026-10-10 con la 16.113), pero sí un PDF: lo guarda y sus páginas las convierte en
+//            imágenes macOS (PDFKit). PowerPoint solo guarda donde se le ha dado permiso, y lo pide
+//            en una ventana suya ("Conceder acceso al archivo"): el PDF va siempre a la misma
+//            carpeta de Manna para que lo pida una sola vez. Su carpeta propia ya no sirve: macOS
+//            no deja que otro programa entre en ella.
 //
 // Las rutas viajan en variables de entorno (Windows) o como argumentos (Mac): nunca se pegan en
 // el texto de la orden.
 //
-// Lo que el guion de cada sistema deja en la carpeta de salida: 1.jpg, 2.jpg… y, si puede, sus
-// miniaturas m1.jpg, m2.jpg… Lo que va diciendo: "MANNA<tab>total<tab>N" y "MANNA<tab>slide<tab>i".
+// Lo que queda en la carpeta de salida: 1.jpg, 2.jpg… y, si se puede, sus miniaturas m1.jpg,
+// m2.jpg… Lo que va diciendo cada guion: "MANNA<tab>total<tab>N" y "MANNA<tab>slide<tab>i".
 
 export const PRESENTATION_EXTENSIONS = ['.pptx', '.ppsx', '.pptm', '.ppsm', '.ppt', '.pps'];
 const MARK = 'MANNA';
@@ -71,12 +74,14 @@ try {
 }
 `;
 
-// Mac. Recibe dos argumentos: la presentación y la carpeta donde dejar las imágenes (PowerPoint
-// la crea, con un archivo por diapositiva). Si PowerPoint no estaba abierto, se cierra al terminar.
+// Mac. Recibe dos argumentos: la presentación y la carpeta donde dejar "salida.pdf". PowerPoint
+// responde antes de haberlo guardado (y si le falta permiso sobre la carpeta, mientras lo pide):
+// se espera a que el archivo aparezca. Si PowerPoint no estaba abierto, se cierra al terminar.
+export const MAC_NO_ACCESS = 'MANNA_SIN_PERMISO';
 export const MAC_SCRIPT = `
 on run argv
   set entrada to POSIX file (item 1 of argv)
-  set salida to POSIX file (item 2 of argv)
+  set salida to (item 2 of argv) & "/salida.pdf"
   set estabaAbierto to application "Microsoft PowerPoint" is running
   tell application "Microsoft PowerPoint"
     launch
@@ -84,17 +89,51 @@ on run argv
       open entrada
       set deck to active presentation
       set total to count of slides of deck
-      save deck in salida as save as JPG
-      close deck saving no
+      save deck in (POSIX file salida) as save as PDF
     end timeout
-    if not estabaAbierto then quit
   end tell
+  set hecho to false
+  repeat 300 times
+    try
+      do shell script "test -s " & quoted form of salida
+      set hecho to true
+      exit repeat
+    end try
+    delay 1
+  end repeat
+  try
+    tell application "Microsoft PowerPoint"
+      close deck saving no
+      if not estabaAbierto then quit
+    end tell
+  end try
+  if not hecho then error "${MAC_NO_ACCESS}"
   return "${MARK}" & tab & "total" & tab & total
 end run
 `;
 
-// Carpeta propia de PowerPoint en Mac, donde puede leer y escribir sin preguntar.
-export const macWorkDir = (home = os.homedir()) => path.join(home, 'Library', 'Group Containers', 'UBF8T346G9.Office', 'Manna');
+// Mac. Las páginas de un PDF, en imágenes (JavaScript de macOS, con PDFKit). Recibe el PDF, la
+// carpeta de salida, el lado mayor de cada imagen y el de su miniatura.
+export const MAC_PAGES_SCRIPT = `
+ObjC.import('AppKit');
+ObjC.import('Quartz');
+function run(argv) {
+  const doc = $.PDFDocument.alloc.initWithURL($.NSURL.fileURLWithPath(argv[0]));
+  const out = $.NSFileHandle.fileHandleWithStandardOutput;
+  const draw = (page, side, file) => {
+    const size = page.boundsForBox($.kPDFDisplayBoxMediaBox).size;
+    const k = side / Math.max(size.width, size.height);
+    const image = page.thumbnailOfSizeForBox($.NSMakeSize(Math.round(size.width * k), Math.round(size.height * k)), $.kPDFDisplayBoxMediaBox);
+    const jpg = $.NSBitmapImageRep.imageRepWithData(image.TIFFRepresentation).representationUsingTypeProperties($.NSBitmapImageFileTypeJPEG, $({ NSImageCompressionFactor: 0.9 }));
+    jpg.writeToFileAtomically(argv[1] + '/' + file, true);
+  };
+  for (let i = 0; i < doc.pageCount; i++) {
+    draw(doc.pageAtIndex(i), Number(argv[2]), (i + 1) + '.jpg');
+    draw(doc.pageAtIndex(i), Number(argv[3]), 'm' + (i + 1) + '.jpg');
+    out.writeData($('${MARK}\\tslide\\t' + (i + 1) + '\\n').dataUsingEncoding($.NSUTF8StringEncoding));
+  }
+}
+`;
 
 // Qué se lanza en cada sistema para exportar `input` a la carpeta `dir`.
 //   fake: guion de mentira para las pruebas (MANNA_POWERPOINT_PRUEBA); se ejecuta con Node.
@@ -118,8 +157,7 @@ export function readLine(line) {
 }
 
 // Las imágenes que hay en una carpeta, en el orden de las diapositivas: [{ file, thumb }].
-// Vale para lo que deja el guion de Windows ("3.jpg", "m3.jpg") y para lo que deja PowerPoint en
-// Mac ("Slide3.jpeg", o "Diapositiva3.jpeg" con Office en español): manda el número del nombre.
+// Manda el número del nombre ("3.jpg", y su miniatura "m3.jpg").
 export function collect(dir) {
   let names = [];
   try { names = fs.readdirSync(dir); } catch { return []; }
@@ -136,21 +174,13 @@ export function collect(dir) {
 // Por qué falló, dicho para quien usa Manna.
 export function explain(stderr, platform = process.platform) {
   const text = String(stderr || '');
+  if (text.includes(MAC_NO_ACCESS)) return 'PowerPoint necesita permiso para guardar en la carpeta de Manna. En su aviso «Conceder acceso al archivo» pulsa «Seleccionar…» y luego «Conceder acceso», y vuelve a subirla. También puedes guardarla como PDF y subir el PDF.';
   // En Mac, PowerPoint abierto pero mudo: macOS está preguntando en pantalla si Manna puede controlarlo, o PowerPoint espera una respuesta.
   if (/-1712|Tiempo límite agotado|timed out/i.test(text)) return 'PowerPoint no respondió. Si macOS pregunta si Manna puede controlar PowerPoint, acéptalo y vuelve a subirla; si PowerPoint muestra una ventana, ciérrala. También puedes guardarla como PDF y subir el PDF.';
   if (/-1743|not authori[sz]ed to send Apple events|no tiene autorización/i.test(text)) return 'macOS no deja que Manna use PowerPoint. Permítelo en Ajustes del Sistema → Privacidad y seguridad → Automatización, o guarda la presentación como PDF y sube el PDF.';
   if (/80040154|class not registered|clase no registrada|Retrieving the COM class factory/i.test(text)) return 'PowerPoint no respondió: puede que no esté instalado del todo. Guarda la presentación como PDF y sube el PDF.';
   if (/password|contraseña/i.test(text)) return 'La presentación está protegida con contraseña. Quítasela, o guárdala como PDF y sube el PDF.';
   return `PowerPoint no pudo convertir esta presentación${platform === 'darwin' ? ' (puede que esté esperando una respuesta en su ventana)' : ''}. Guárdala como PDF (Archivo → Exportar) y sube el PDF.`;
-}
-
-// Miniatura de una imagen con lo que trae macOS (sips). true si quedó hecha.
-function macThumb(from, to) {
-  return new Promise((resolve) => {
-    const child = spawn('sips', ['-s', 'format', 'jpeg', '-Z', String(THUMB_SIDE), from, '--out', to], { stdio: 'ignore' });
-    child.on('error', () => resolve(false));
-    child.on('close', (code) => resolve(code === 0 && fs.existsSync(to)));
-  });
 }
 
 // Convierte presentaciones, de una en una, como tareas con avance.
@@ -161,6 +191,8 @@ export function createExporter(app, { platform = process.platform } = {}) {
   let running = null; // { task, job, child, cancelled }
   let closed = false;
   const fake = process.env.MANNA_POWERPOINT_PRUEBA || null;
+  // Siempre la misma carpeta: PowerPoint (en Mac) recuerda el permiso que se le dio sobre ella.
+  const work = path.join(app.dataDir, 'powerpoint');
 
   function launch(plan, onLine) {
     return new Promise((resolve) => {
@@ -188,45 +220,36 @@ export function createExporter(app, { platform = process.platform } = {}) {
     running = queue.shift();
     const current = running;
     const { task, job } = current;
-    job.update({ detail: platform === 'darwin' && !fake ? 'Abriendo PowerPoint (si macOS pregunta, permite que Manna lo controle)' : 'Abriendo PowerPoint' });
+    const mac = platform === 'darwin' && !fake;
+    job.update({ detail: mac ? 'Abriendo PowerPoint (si pide acceso a una carpeta, pulsa «Seleccionar…» y «Conceder acceso»)' : 'Abriendo PowerPoint' });
     fs.mkdirSync(task.dir, { recursive: true });
 
-    // En Mac se trabaja dentro de la carpeta de PowerPoint y luego se trae el resultado.
-    const mac = platform === 'darwin' && !fake;
-    const work = mac ? path.join(macWorkDir(), task.id) : null;
-    let input = task.input;
-    let out = task.dir;
+    // En Mac, PowerPoint deja un PDF en la carpeta de trabajo y macOS saca de él las imágenes.
+    const pdf = mac ? path.join(work, 'salida.pdf') : null;
     let result = { code: -1, err: '' };
     try {
       if (mac) {
-        fs.rmSync(work, { recursive: true, force: true });
         fs.mkdirSync(work, { recursive: true });
-        input = path.join(work, `entrada${path.extname(task.input)}`);
-        fs.copyFileSync(task.input, input);
-        out = path.join(work, 'salida');
+        fs.rmSync(pdf, { force: true });
       }
-      const plan = exportPlan(platform, { input, dir: out, fake });
+      const plan = exportPlan(platform, { input: task.input, dir: mac ? work : task.dir, fake });
       if (!plan) result = { code: -1, err: 'sistema sin PowerPoint' };
       else {
         let total = 0;
-        result = await launch(plan, (line) => {
+        const onLine = (line) => {
           const said = readLine(line);
           if (said?.total) total = said.total;
           if (said?.slide && total) job.update({ progress: Math.min(0.99, said.slide / total), detail: `Diapositiva ${said.slide} de ${total}` });
-        });
-      }
-      if (mac && result.code === 0) {
-        // PowerPoint deja "Slide1.jpeg"…: se traen con su número y se les hace la miniatura.
-        const made = collect(out);
-        for (const [i, page] of made.entries()) {
-          fs.copyFileSync(page.file, path.join(task.dir, `${i + 1}.jpg`));
-          await macThumb(page.file, path.join(task.dir, `m${i + 1}.jpg`));
+        };
+        result = await launch(plan, onLine);
+        if (mac && result.code === 0 && !current.cancelled) {
+          result = await launch({ file: 'osascript', args: ['-l', 'JavaScript', '-e', MAC_PAGES_SCRIPT, pdf, task.dir, String(SLIDE_SIDE), String(THUMB_SIDE)], env: {} }, onLine);
         }
       }
     } catch (err) {
       result = { code: -1, err: err.message };
     } finally {
-      if (work) fs.rmSync(work, { recursive: true, force: true });
+      if (pdf) fs.rmSync(pdf, { force: true });
     }
 
     const pages = result.code === 0 ? collect(task.dir).filter((page) => readImageInfo(page.file)) : [];
@@ -234,7 +257,11 @@ export function createExporter(app, { platform = process.platform } = {}) {
     running = null;
     if (ok) job.done('Listo');
     else if (current.cancelled || closed) job.done('Cancelado');
-    else job.fail(explain(result.err, platform));
+    else {
+      // El motivo tal cual, al registro: lo que se le dice a la persona no lo lleva.
+      console.error(`PowerPoint no pudo convertir «${task.name}»: ${String(result.err).trim()}`);
+      job.fail(explain(result.err, platform));
+    }
     task.onDone({ ok, pages, cancelled: current.cancelled || closed, error: ok ? null : explain(result.err, platform) });
     next();
   }

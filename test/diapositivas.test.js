@@ -50,6 +50,8 @@ test('las órdenes para PowerPoint nunca llevan la ruta pegada en el texto', () 
   assert.deepEqual(mac.args.slice(2), ['/tmp/a b.pptx', '/tmp/salida'], 'las rutas van como argumentos');
   assert.equal(MAC_SCRIPT.includes('/tmp'), false);
   assert.match(MAC_SCRIPT, /if not estabaAbierto then quit/);
+  // En Mac se pide un PDF: PowerPoint no exporta imágenes cuando se le pide por AppleScript.
+  assert.match(MAC_SCRIPT, /save as PDF/);
 
   assert.equal(exportPlan('linux', { input: 'a', dir: 'b' }), null);
   const fake = exportPlan('win32', { input: 'a', dir: 'b', fake: '/x/guion.mjs' });
@@ -75,6 +77,7 @@ test('readLine, collect y explain entienden lo que deja y dice PowerPoint', () =
   assert.match(explain('Retrieving the COM class factory ... 80040154 Class not registered', 'win32'), /PDF/);
   assert.match(explain('execution error: Microsoft PowerPoint detectó un error: Tiempo límite agotado para un evento Apple. (-1712)', 'darwin'), /acéptalo/);
   assert.match(explain('algo raro', 'win32'), /Guárdala como PDF/);
+  assert.match(explain('execution error: MANNA_SIN_PERMISO (-2700)', 'darwin'), /Conceder acceso/);
 });
 
 // ---- Contra el servidor de verdad ----
