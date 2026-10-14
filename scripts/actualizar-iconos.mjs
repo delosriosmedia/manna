@@ -28,6 +28,8 @@ const ICONS = [
   'hand-pointing', 'arrows-out-cardinal',
   // páginas web
   'globe',
+  // escenario (fase 13)
+  'sliders-horizontal', 'arrows-in',
 ];
 
 const base = `https://unpkg.com/@phosphor-icons/core@${VERSION}`;

@@ -4,82 +4,122 @@ import { h, allowLeaving, confirmBeforeClose, dialog, go, guard, menu } from './
 import { icon } from './icons.js';
 import { joinNames, missingFor, toolsOf } from './needs.js';
 import { prefs } from './prefs.js';
-import { splitTabs } from './tabs.js';
 
-// Estructura de la app: barra de módulos, espacio de trabajo y panel "Al aire".
-// La usan todas las funciones de control; cada una le pasa los módulos que le corresponden.
+// Estructura de las funciones de control: el «Escenario» (fase 13 de docs/PLAN.md).
+// Lo que está al aire ocupa el fondo; encima flotan la barra de arriba, el dock de módulos, el cajón
+// del módulo abierto, la cola del culto, la tarjeta «Preparado» y la barra de transporte. Esas piezas
+// las hace createScene (modules/projection/escenario.js), que cada función le pasa. En el celular
+// (< 860 px) es «Historias»: la proyección en un recuadro arriba, y los módulos en cajones que suben.
 //
 // Un módulo es { id, name, icon, place?, soon?, needs?, mount(el, ctx) }:
-//   place   'bottom' lo coloca al pie de la barra (ajustes)
-// En el celular los módulos son pestañas: caben cinco. Con más, se ven las cuatro primeras y
-// "Más" abre el resto (core/tabs.js).
-//   soon    módulo previsto pero aún no construido: se muestra atenuado y no se puede abrir
-//   hidden  módulo en pausa: existe y se abre por su dirección (#id), pero no sale en la barra
-//   needs   programas del equipo principal que necesita (ver core/needs.js). Si falta alguno,
-//           al abrir el módulo se avisa de qué no funcionará y se ofrece instalarlo
+//   place   'bottom' lo coloca al final del dock (ajustes)
+//   soon    previsto pero aún no construido: no sale
+//   hidden  en pausa: existe y se abre por su dirección (#id), pero no sale en el dock
+//   needs   programas del equipo principal que necesita (ver core/needs.js)
 //   mount   dibuja el módulo en el y puede devolver { onShow(), keys(evento) -> true si lo atendió }
-// ctx (lo que recibe cada módulo): { role, isLocal, canEdit, go(id), setPreview(elemento | null), setPart(id) }
+// ctx (lo que recibe cada módulo): { role, isLocal, canEdit, go(id), setPreview(elemento | null), prepare(...), setPart(id) }
+//   prepare  { item?, kind?, title, subtitle?, project(), add?() }: lo deja en la tarjeta «Preparado»
 //   setPart  un módulo con pestañas dice en cuál está, para avisar solo de lo que le falta a esa
-export function createShell({ role, isLocal, modules, extras = [], createDock }) {
+//
+// layout 'full' (Presentador): el único módulo ocupa la pantalla entera, sin escenario.
+export function createShell({ role, isLocal, modules, extras = [], createScene, layout = 'escena' }) {
   const canEdit = role === 'control' || role === 'alabanza';
   const usable = modules.filter((m) => !m.soon);
-  const listed = modules.filter((m) => !m.hidden);
+  const listed = usable.filter((m) => !m.hidden);
   const mounted = new Map(); // id -> { el, api }
   let current = null;
+  const full = layout === 'full';
+  const narrow = matchMedia('(max-width: 859px)');
 
   const notice = h('div', { class: 'ws-notice', role: 'status', hidden: true });
-  const work = h('main', { class: 'work' });
-  const dockEl = h('aside', { class: 'dock', 'aria-label': 'Al aire' });
-  const rail = h('nav', { class: 'rail', 'aria-label': 'Módulos' });
-  const tabbar = h('nav', { class: 'tabbar', 'aria-label': 'Módulos' });
+  const work = h('div', { class: 'work' });
+  const ctx = { role, isLocal, canEdit, go: show };
+  const scene = full ? null : createScene({ ...ctx, openControls: () => openControls() });
+  ctx.setPreview = (item) => scene?.setPreview(item);
+  ctx.prepare = (next) => scene?.prepare(next);
 
-  const ctx = { role, isLocal, canEdit, go: show, setPreview: (item) => dock.setPreview(item) };
-  const dock = createDock(dockEl, ctx);
+  // ---- Barra de arriba: estado, función y versión ----
+  const version = h('small', { class: 'role-version' });
+  subscribe('system', (s) => { version.textContent = s.version ? `Manna ${s.version}` : ''; });
+  const ROLE_NAMES = { control: 'Control completo', alabanza: 'Servicio de alabanza', orden: 'Control del orden', presentador: 'Presentador' };
+  const roleChip = h('button', { class: 'role-chip glass', 'aria-haspopup': 'menu', title: ROLE_NAMES[role] || role, onclick: (e) => menu(e.currentTarget, [
+    ...extras.map((x) => ({ label: x.name, icon: x.icon, onclick: x.onclick })),
+    extras.length && '-',
+    { label: 'Cambiar de función', icon: 'arrows-left-right', onclick: () => go('/') },
+  ].filter(Boolean)) }, h('span', { class: 'role-dot', 'aria-hidden': 'true' }), h('span', { class: 'role-text' }, h('strong', {}, ROLE_NAMES[role] || role), version));
+  scene?.status.prepend(h('a', { class: 'brand-mark', href: '/', title: 'Cambiar la función de este dispositivo' }, h('img', { src: '/logo.svg', alt: 'Manna' })));
+  const top = h('header', { class: 'topbar' }, scene?.status, h('span', { class: 'spacer' }), roleChip);
 
-  // ---- Navegación entre módulos ----
-  const railButton = (m) => h('button', {
-    class: `rail-item${m.soon ? ' soon' : ''}`, dataset: { id: m.id }, disabled: m.soon,
-    title: m.soon ? `${m.name}: próximamente` : m.name,
-    onclick: () => (m.onclick ? m.onclick() : show(m.id)),
-  }, icon(m.icon, 20), h('span', {}, m.name));
+  // ---- Dock de módulos y cajón ----
+  const dockbar = h('nav', { class: 'dockbar glass', 'aria-label': 'Módulos' });
+  const dockButton = (m) => h('button', { class: 'dock-item', dataset: { id: m.id }, title: m.name, 'aria-label': m.name, 'aria-pressed': 'false', onclick: () => (current?.id === m.id && isOpen() ? closeDrawer() : show(m.id)) },
+    icon(m.icon, 20), h('span', { class: 'dock-name' }, m.name));
+  dockbar.append(...listed.filter((m) => m.place !== 'bottom').map(dockButton), h('span', { class: 'dock-fill' }), ...listed.filter((m) => m.place === 'bottom').map(dockButton));
+  if (listed.length < 2 && !full) dockbar.classList.add('single');
 
-  const version = h('span', { class: 'rail-version' });
-  subscribe('system', (s) => { version.textContent = s.version ? `v${s.version}` : ''; });
+  const drawerTitle = h('h2', {});
+  const wideButton = h('button', { class: 'icon-btn sm drawer-wide', onclick: () => setWide(!drawer.classList.contains('wide')) });
+  const drawer = h('section', { class: 'drawer glass', hidden: true, 'aria-labelledby': 'drawer-title' },
+    h('div', { class: 'drawer-head' }, Object.assign(drawerTitle, { id: 'drawer-title' }), scene?.mini, h('span', { class: 'spacer' }), wideButton,
+      h('button', { class: 'icon-btn sm', 'aria-label': 'Cerrar el cajón', title: 'Cerrar (Esc)', onclick: () => closeDrawer() }, icon('x', 16))),
+    notice, work);
+  // En el celular el cajón sube desde abajo y se cierra al tocar fuera.
+  const backdrop = h('div', { class: 'drawer-backdrop', hidden: true, onclick: () => closeDrawer() });
+  const isOpen = () => !drawer.hidden;
+  // Cada disposición recuerda lo suyo: en el escritorio, cajón ancho o estrecho; en el celular, a media
+  // altura (se ve lo que está al aire encima) o a pantalla completa.
+  const wideKey = () => (narrow.matches ? 'cajon.completo' : 'cajon.ancho');
+  function setWide(wide) {
+    drawer.classList.toggle('wide', wide);
+    prefs.set(wideKey(), wide);
+    wideButton.replaceChildren(icon(wide ? 'arrows-in' : 'arrows-out', 16));
+    const label = narrow.matches ? (wide ? 'Reducir el cajón' : 'Ampliar a pantalla completa') : (wide ? 'Hacer el cajón más estrecho' : 'Ampliar el cajón');
+    wideButton.setAttribute('aria-label', label);
+    wideButton.title = label;
+  }
+  function openDrawer() {
+    drawer.hidden = false;
+    backdrop.hidden = !narrow.matches;
+    document.body.classList.add('drawer-open');
+  }
+  function closeDrawer() {
+    drawer.hidden = true;
+    backdrop.hidden = true;
+    document.body.classList.remove('drawer-open');
+    paintDock();
+    scene?.setPreview(null);
+    document.title = 'Manna';
+    history.replaceState(null, '', location.pathname);
+  }
+  function paintDock() {
+    dockbar.querySelectorAll('.dock-item').forEach((b) => {
+      const on = isOpen() && b.dataset.id === current?.id;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+  }
 
-  const main = listed.filter((m) => m.place !== 'bottom');
-  const bottom = listed.filter((m) => m.place === 'bottom');
-  rail.append(...[
-    h('a', { class: 'brand-mark', href: '/', title: 'Cambiar la función de este dispositivo' }, h('img', { src: '/logo.svg', alt: 'Manna' })),
-    version,
-    ...main.filter((m) => !m.soon).map(railButton),
-    main.some((m) => m.soon) && h('div', { class: 'rail-sep' }),
-    ...main.filter((m) => m.soon).map(railButton),
-    h('div', { class: 'rail-fill' }),
-    ...extras.map(railButton),
-    ...bottom.map(railButton),
-  ].filter(Boolean));
-
-  const { tabs, overflow } = splitTabs(listed.filter((m) => !m.soon));
-  const more = overflow.length ? h('button', {
-    class: 'tab-more', 'aria-haspopup': 'menu',
-    onclick: (e) => menu(e.currentTarget, overflow.map((m) => ({ label: m.name, icon: m.icon, onclick: () => show(m.id) }))),
-  }, icon('squares-four', 22), h('span', {}, 'Más')) : null;
-  tabbar.append(...[
-    ...tabs.map((m) => h('button', { dataset: { id: m.id }, onclick: () => show(m.id) }, icon(m.icon, 22), h('span', {}, m.name))),
-    more,
-  ].filter(Boolean));
-  if (tabs.length < 2) tabbar.hidden = true;
+  // ---- Mandos de lo que está al aire: una capa que se cierra al tocar fuera ----
+  const controlsLayer = h('div', { class: 'controls-layer', hidden: true, onclick: (e) => { if (e.target === controlsLayer) closeControls(); } },
+    h('section', { class: 'controls-pop glass', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Mandos de lo que está al aire' },
+      h('div', { class: 'drawer-head' }, h('h2', {}, 'Mandos'), h('span', { class: 'spacer' }),
+        h('button', { class: 'icon-btn sm', 'aria-label': 'Cerrar', onclick: () => closeControls() }, icon('x', 16))),
+      scene?.controls));
+  function openControls() {
+    controlsLayer.hidden = false;
+  }
+  function closeControls() {
+    controlsLayer.hidden = true;
+  }
 
   // ---- Aviso de lo que le falta al módulo abierto ----
   // Nada impide usar el módulo: solo se dice qué parte no funcionará y cómo resolverlo.
-  const dismissed = new Set(); // avisos cerrados en esta visita: módulo y programas que faltaban
-  const parts = new Map();     // id del módulo -> la parte (pestaña) que tiene abierta
+  const dismissed = new Set();
+  const parts = new Map();
   function renderNotice() {
     const module = usable.find((m) => m.id === current?.id);
-    // Un programa opcional (PowerPoint) no merece una franja en cada visita: el módulo lo explica cuando hace falta.
     const missing = module ? missingFor(module, state.tools?.list || [], parts.get(module.id)).filter((m) => !m.soon && m.tools.some((t) => t.level !== 'optional')) : [];
     const tools = toolsOf(missing);
-    // Cerrar un aviso vale para ese módulo y esos programas: el de otra pestaña a la que le falta otra cosa sí sale.
     const key = `${module?.id}:${tools.map((t) => t.id).join()}`;
     if (!missing.length || dismissed.has(key)) {
       notice.hidden = true;
@@ -89,7 +129,6 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
       icon('warning', 18),
       h('p', {}, h('strong', {}, `${tools.length > 1 ? 'Faltan' : 'Falta'} ${joinNames(tools.map((t) => t.name))}. `),
         `Aquí no se podrá ${joinNames(missing.map((m) => m.feature))}.`),
-      // Instalar es cosa del control completo; las demás funciones llegan por "Cómo instalarlo".
       ...tools.filter((t) => t.installable && isLocal && role === 'control').map((t) => h('button', { class: 'btn', disabled: t.installing, onclick: guard(() => action('tools.install', { id: t.id })) },
         icon('download-simple', 15), t.installing ? `Instalando ${t.name}…` : `Instalar ${t.name}`)),
       h('button', { class: 'btn', onclick: () => go('/requisitos') }, 'Cómo instalarlo'),
@@ -100,10 +139,7 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
   subscribe('tools', renderNotice);
 
   // ---- Aviso de actualización ----
-  // Manna se actualizó estando abierto: la interfaz es la nueva y el servidor, el de antes. Hasta
-  // reiniciarlo, lo nuevo puede fallar. Se dice en todas las pantallas de control, y el equipo
-  // principal puede reiniciarlo desde el propio aviso.
-  const update = h('div', { class: 'update-bar', role: 'alert', hidden: true });
+  const update = h('div', { class: 'update-bar glass', role: 'alert', hidden: true });
   const restart = () => {
     const box = dialog('Reiniciar Manna',
       h('p', {}, 'Manna se cerrará y volverá a abrirse solo, ya con la versión nueva. La proyección se interrumpe unos segundos y los demás dispositivos se reconectan sin hacer nada.'),
@@ -124,7 +160,6 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
       isLocal && h('button', { class: 'btn', onclick: restart }, icon('arrow-clockwise', 15), 'Reiniciar ahora'),
     ].filter(Boolean));
   });
-  // Tras el reinicio, esta página sigue siendo la de antes: se carga la nueva sin preguntar.
   onServerUpdate(() => {
     allowLeaving();
     location.reload();
@@ -132,7 +167,6 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
 
   function show(id) {
     const module = usable.find((m) => m.id === id) || usable[0];
-    if (current?.id === module.id) return;
     if (!mounted.has(module.id)) {
       const el = h('section', { class: 'ws', dataset: { module: module.id } });
       work.append(el);
@@ -142,13 +176,14 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
       };
       mounted.set(module.id, { el, api: module.mount(el, { ...ctx, setPart }) || {} });
     }
+    const changed = current?.id !== module.id;
     for (const [mid, m] of mounted) m.el.hidden = mid !== module.id;
     current = { id: module.id, api: mounted.get(module.id).api };
-    document.querySelectorAll('.rail-item, .tabbar button').forEach((b) => b.classList.toggle('on', b.dataset.id === module.id));
-    more?.classList.toggle('on', overflow.some((m) => m.id === module.id));
+    drawerTitle.textContent = module.name;
     document.title = `Manna · ${module.name}`;
-    dockEl.classList.remove('open');
-    dock.setPreview(null);
+    if (!full) openDrawer();
+    paintDock();
+    if (changed) scene?.setPreview(null);
     history.replaceState(null, '', `#${module.id}`);
     prefs.set(`modulo.${role}`, module.id);
     renderNotice();
@@ -156,7 +191,8 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
   }
 
   // ---- Atajos de teclado ----
-  // ← → y B / C gobiernan lo que está al aire desde cualquier módulo; el resto lo decide el módulo activo.
+  // ← → y B / C gobiernan lo que está al aire desde cualquier módulo; Intro proyecta lo preparado;
+  // Esc cierra la capa de arriba (los mandos o el cajón). El resto lo decide el módulo abierto.
   const step = guard((delta) => action('projection.step', { delta }));
   document.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -165,29 +201,51 @@ export function createShell({ role, isLocal, modules, extras = [], createDock })
       return;
     }
     if (document.querySelector('.modal-backdrop, .menu')) return;
-    if (current?.api.keys?.(e)) {
+    if (e.key === 'Escape' && !full) {
+      if (!controlsLayer.hidden) closeControls();
+      else if (isOpen()) closeDrawer();
+      return;
+    }
+    if ((full || isOpen()) && current?.api.keys?.(e)) {
       e.preventDefault();
       return;
     }
     const global = {
       ArrowRight: () => step(1), PageDown: () => step(1),
       ArrowLeft: () => step(-1), PageUp: () => step(-1),
-      b: () => dock.toggleMode('black'), B: () => dock.toggleMode('black'),
-      c: () => dock.toggleMode('clear'), C: () => dock.toggleMode('clear'),
+      b: () => scene?.toggleMode('black'), B: () => scene?.toggleMode('black'),
+      c: () => scene?.toggleMode('clear'), C: () => scene?.toggleMode('clear'),
+      Enter: () => scene?.projectPrepared(),
     }[e.key];
     if (!global) return;
     e.preventDefault();
     global();
   });
 
-  document.body.classList.add('app');
-  work.prepend(update, notice);
-  document.body.append(h('div', { class: 'shell' }, rail, work, dockEl), tabbar);
+  document.body.classList.add('app', full ? 'full' : 'escena');
+  if (full) {
+    document.body.append(h('div', { class: 'shell' }, work));
+  } else {
+    const place = () => {
+      document.body.classList.toggle('narrow', narrow.matches);
+      scene.place(narrow.matches);
+      backdrop.hidden = !narrow.matches || !isOpen();
+      // Hasta que cada módulo quepa en el cajón estrecho (parte 4 de la fase 13), en el escritorio se abre
+      // ancho; en un celular bajo no cabe a media altura y se abre completo.
+      setWide(prefs.get(wideKey(), !narrow.matches || innerHeight < 700));
+    };
+    narrow.addEventListener('change', place);
+    document.body.append(scene.bg, h('div', { class: 'scene-scrim', 'aria-hidden': 'true' }), top, update, scene.story,
+      dockbar, scene.queue, backdrop, drawer, scene.prep, scene.transport, controlsLayer);
+    place();
+  }
   mountConnectionBar();
   confirmBeforeClose();
 
-  show(location.hash.slice(1) || prefs.get(`modulo.${role}`) || usable[0].id);
-  window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+  // Se abre el módulo de la dirección (#id); sin ella, el escenario queda a la vista y el cajón cerrado.
+  const first = location.hash.slice(1);
+  if (full || first) show(first || prefs.get(`modulo.${role}`) || usable[0].id);
+  window.addEventListener('hashchange', () => { if (location.hash.slice(1)) show(location.hash.slice(1)); });
   connect(role);
 
   return { show, ctx };

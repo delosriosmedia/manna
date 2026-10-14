@@ -6,7 +6,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 
 ## Qué hace
 
-- **Tres zonas, siempre iguales**: los módulos a la izquierda, el módulo activo al centro y el panel **Al aire** a la derecha, con el monitor de lo proyectado y los mandos (anterior, siguiente, negro, solo fondo). En el control del equipo principal, junto a «Al aire», está el botón que **enciende y apaga el proyector**.
+- **«Escenario»**: lo que está al aire ocupa el fondo de la pantalla y, encima, los módulos (en un cajón que se abre desde el dock de la izquierda), la **cola del culto** (un toque prepara, doble toque proyecta), la tarjeta **Preparado** (Intro la proyecta) y la barra de abajo: anterior, siguiente, lo que sigue, solo fondo, negro, mandos y volumen. En el control del equipo principal, arriba junto al estado, está el botón que **enciende y apaga el proyector**.
 - **Biblia**: los 66 libros a la vista en una rejilla; capítulos y versículos; pasajes recientes. Lee los archivos `.xmm` (OpenLP) y `.xml` de la carpeta `Contenido/Biblias/`; basta copiar un archivo y aparece solo.
 - **Búsqueda**: por cita (`Juan 3:16-18`, `1 co 13 4`, `sal 23`) o por texto, mientras escribes. El texto se busca en la Reina-Valera 1960 (o en la versión elegida, si no está instalada) y el resultado se abre en la versión que tengas elegida. Los resultados salen por niveles (frase exacta, todas las palabras, parecidas), con lo encontrado resaltado, y se pueden limitar al Antiguo o al Nuevo Testamento.
 - **Comparador**: el mismo pasaje en dos versiones, lado a lado o una sobre otra, cada una con su sigla. Se elige igual que en Biblia, se proyecta, se añade al orden como elemento propio, y la disposición se puede cambiar mientras está al aire.
@@ -29,7 +29,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
   - **Servicio de alabanza**: Himnario, Medios, Orden y Biblia, con el volumen de Manna siempre a la vista. Proyecta, prepara el orden y sube medios, pero no toca los ajustes. Pide PIN.
   - **Control del orden**: solo proyecta lo que ya está en el orden del culto. Pensado para el celular. Pide PIN.
   - **Pantalla de proyección**: espejo de la proyección principal. Sin PIN.
-- **Celular, tableta y escritorio**: en pantallas estrechas se ve un módulo a la vez, con pestañas abajo y "Al aire" como barra compacta que se despliega.
+- **Celular, tableta y escritorio**: en el celular, «Historias»: arriba lo que está en pantalla (tocar a la derecha avanza, a la izquierda vuelve), debajo los modos, el volumen y lo que sigue; los módulos, en el dock de abajo, suben en un cajón que se cierra tocando fuera.
 - **Proyección automática**: al iniciar, detecta la segunda pantalla del equipo principal y abre ahí la proyección a pantalla completa. Si no hay segunda pantalla, lo avisa y no la abre.
 - **Apariencia de la proyección**: tipografía, colores, sombra, fondos e imagen propia, con ajuste automático del tamaño del texto para que siempre quepa.
 - **Reconexión automática**: si un dispositivo pierde la red o queda en segundo plano, reconecta solo y se pone al día. Si Manna se reinicia, recupera lo que estaba en pantalla.
@@ -292,7 +292,7 @@ El procedimiento completo está en `.claude/skills/nuevo-modulo/SKILL.md`. En re
 
 1. **Servidor**: `server/modules/<id>/index.js` exporta `setup(app)` y se registra en `server/app.js`. Usa `app.store.register()` para su estado, `app.action()` para sus órdenes y `app.storage()` para guardar datos.
 2. **Tipo de contenido**: si aporta algo proyectable, lo registra con `app.kind()`. Con eso sus elementos ya se pueden añadir al orden del culto y recorrer con "Siguiente". Si tiene mandos mientras está al aire (zoom, reproducción), los declara ahí mismo.
-3. **Interfaz**: `web/modules/<id>/workspace.js` y una línea en `web/modules/registry.js`. Aparece en la barra de módulos. Cómo se dibuja su tipo de contenido y sus mandos van en `web/modules/<id>/kind.js`.
+3. **Interfaz**: `web/modules/<id>/workspace.js` y una línea en `web/modules/registry.js`. Aparece en el dock de módulos. Cómo se dibuja su tipo de contenido y sus mandos van en `web/modules/<id>/kind.js`.
 4. **Aspecto**: siguiendo `DESIGN.md`.
 
 El código no tiene dependencias: no hace falta `npm install`. Los programas externos del equipo principal (ffmpeg, yt-dlp, PowerPoint) se detectan en `server/core/tools.js` y se usan solo desde ahí o, PowerPoint, desde `server/modules/slides/powerpoint.js`. Lo de terceros que va dentro del proyecto (`web/vendor/`) se renueva con `scripts/actualizar-iconos.mjs` y `scripts/actualizar-pdfjs.mjs`.

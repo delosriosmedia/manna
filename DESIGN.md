@@ -88,27 +88,32 @@ Reglas:
 
 ## 7. Estructura
 
-Tres zonas fijas (`web/core/shell.js`):
+«Escenario» (`web/core/shell.js` coloca las piezas; `web/modules/projection/escenario.js` las hace): lo que está al aire ocupa el fondo de la pantalla y, encima, en cristal, lo que lo gobierna. Cada capa flotante se cierra al tocar fuera y con Esc.
 
-| Zona | Qué contiene |
+| Pieza | Qué contiene |
 | --- | --- |
-| **Barra de módulos** (izquierda) | Un botón por módulo. Los previstos pero no construidos se muestran atenuados. Abajo, lo que se prepara antes de la reunión: Dispositivos, Televisores y Ajustes. |
-| **Espacio de trabajo** (centro) | Solo el módulo activo. Cabecera con el título y su buscador o acción de entrada. |
-| **Panel "Al aire"** (derecha) | En la cabecera, el estado ("Al aire", "Solo fondo"…) y el del proyector; en el control del equipo principal, en lugar de este último va el botón que lo enciende y lo apaga. Monitor de lo proyectado, anterior / siguiente, negro, solo fondo, los mandos propios de lo que está al aire, las tareas en curso, vista previa de la selección y lo que sigue en el orden. Igual en todos los módulos. |
+| **Fondo** | La proyección en vivo, entera (16:9) y centrada; lo que sobra alrededor, su propio fondo desenfocado. Fuera del equipo principal se dibuja ligera (un video muestra su imagen). Un velo oscuro arriba y abajo para que se lea lo de encima. |
+| **Barra de arriba** | A la izquierda, el logo (vuelve al inicio), el estado («● AL AIRE» en rojo, «SOLO FONDO», «NEGRO», «NADA») con lo que se ve y, en el control del equipo principal, el botón del proyector. A la derecha, la función con la versión; su menú tiene lo de esa función (Dispositivos) y «Cambiar de función». |
+| **Dock** (izquierda, centrado) | Un icono por módulo; Ajustes al final. Pulsar el del módulo abierto cierra su cajón. |
+| **Cajón** | El módulo abierto, con su nombre, ampliar o estrechar, y cerrar. Ancho por defecto (hasta la cola); estrecho, 440 px. Al abrir la función no hay ninguno abierto, salvo que la dirección lo diga (`#biblia`). |
+| **Cola del culto** (derecha) | El orden del culto para operar: secciones, elementos, lo ya pasado atenuado, lo preparado en cian y lo que está al aire en rojo, con sus pasos debajo (el actual en rojo). Un toque prepara; doble toque proyecta. Arriba, «2 de 10» y las tareas en curso. Se pliega a un icono. |
+| **Preparado** (abajo a la derecha) | Lo elegido para proyectar: «PREPARADO» con su título y «Proyectar ↵» (Intro lo proyecta desde cualquier módulo) y, si viene de un módulo, «Añadir al orden». Lo seleccionado en un módulo sale como «SELECCIONADO», con su miniatura: se proyecta desde el módulo. Desaparece cuando eso ya está al aire. |
+| **Transporte** (abajo, centrado) | Anterior, «Siguiente» (cian), «SIGUE» y lo que viene, «Solo fondo» (C), «Negro» (B), «Mandos» (solo si lo que está al aire tiene) y el volumen de Manna, siempre a la vista. |
+| **Mandos** | Los de lo que está al aire, en una capa sobre el transporte. |
 
 Reglas para un módulo:
 
 - La **acción principal** (Proyectar) va abajo a la derecha de su espacio de trabajo y es el único botón cian de la pantalla.
 - Un módulo que gobierna **equipos** (Televisores) muestra una tarjeta por equipo: icono, nombre, modelo y dirección, una línea de estado con su punto (verde cuando ya muestra la proyección, cian cuando pide algo a la persona, gris apagado), su acción principal en cian y lo demás en un menú. Si hay algo que la persona deba hacer en el equipo, se dice en una franja cian suave dentro de la tarjeta, con las palabras que verá en su pantalla.
 - Los **fondos** (Ajustes) son una sola rejilla de cuadros iguales: primero los colores, luego las imágenes subidas y al final un cuadro con «+» y borde punteado para subir otra. El que está puesto lleva borde cian. Lo que se puede hacer con la imagen puesta (eliminarla) aparece debajo, como botón con texto: nada de aspas pequeñas sobre el cuadro, que en un celular no se aciertan.
-- Un **aviso que afecta a toda la app** (Manna se actualizó y hay que reiniciarlo) es una franja cian suave arriba del espacio de trabajo, en todos los módulos, con su botón; no se puede cerrar, porque no deja de ser cierto hasta que se resuelve.
+- Un **aviso que afecta a toda la app** (Manna se actualizó y hay que reiniciarlo) es una franja de cristal con borde cian bajo la barra de arriba, en todos los módulos, con su botón; no se puede cerrar, porque no deja de ser cierto hasta que se resuelve.
 - Una **biblioteca** (Medios) es una rejilla de tarjetas: miniatura en 16:9 sobre negro, nombre y debajo cuándo se agregó y sus medidas, de la más reciente a la más antigua, y un menú de tres puntos para lo que no es de todos los días (renombrar, eliminar). La elegida lleva borde cian; la que está al aire, borde rojo y la insignia "Al aire". Al elegir una aparece la barra de acciones.
 - Una **elección que se entiende mejor viéndola** (el ajuste de una imagen a la pantalla) se ofrece sobre miniaturas del propio contenido, no con palabras solas: dos botones pequeños con la imagen ya ajustada de cada forma y su nombre debajo.
 - El **encuadre** de una imagen al aire se gobierna sobre la imagen entera, atenuada, con un marco cian que señala lo que se ve; debajo, el deslizador de acercar con su valor, y el botón para volver a la vista completa.
 - La tarjeta de un **video o audio** lleva sobre la imagen lo que dura (abajo a la derecha) y, si tiene subtítulos, su marca (abajo a la izquierda). Si ya se puede proyectar pero su copia para otras pantallas está en camino, la tarjeta no se atenúa: lo dice en verde («Ya se puede proyectar desde el equipo principal») y debajo va el avance de la copia. Si aún no se puede proyectar, la imagen se atenúa y debajo se dice por qué: una barra con el avance mientras se convierte, o el motivo en rojo con el botón que lo resuelve (Reintentar, Instalar ffmpeg).
 - **Páginas web** es una lista de una columna (dos o más en pantallas anchas): cada página en una fila con el icono del globo, su nombre y dónde se ve («Archivo HTML», su sitio, o «en su propia ventana»). La elegida, con la barra de abajo (Añadir al orden, Proyectar). Lo que va en su propia ventana se ve en las demás pantallas como una tarjeta oscura con el globo, el nombre y «Se ve en su propia ventana en el proyector».
-- El **Presentador** (función «Presentador de diapositivas») no lleva panel «Al aire»: su pantalla lo es. Arriba, «Señalar» y «Mover» como fichas con icono y una línea que dice qué hace el dedo; debajo, la diapositiva al aire en grande con borde rojo, y bajo ella Anterior (solo flecha), «Siguiente» (ancho, cian; «Empezar» si no hay ninguna de esa presentación en pantalla) y «Negro». A la derecha, «Siguiente» con la miniatura de la que viene («Fin de la presentación» en la última) y los mandos del encuadre; debajo de todo, la cuadrícula de diapositivas con la que está al aire en rojo. En el celular todo va en una columna que se desplaza, con la grande y sus botones arriba. El puntero en la proyección es un punto rojo con halo y borde blanco fino, como un láser. Con una **página web** elegida no hay «Mover», ni siguiente, ni rejilla: la grande, «Señalar» y la fila de botones, cuyo botón ancho dice «Proyectar» hasta que la página está al aire.
-- El **volumen permanente** (función «Servicio de alabanza») es un recuadro del panel "Al aire", bajo "Negro / Solo fondo": la palabra «Volumen» y el mismo mando de siempre (silencio, deslizador y porcentaje). Está aunque no suene nada, y cuando algo suena sus mandos ya no repiten el volumen. En pantallas estrechas es lo único del panel que se ve sin desplegarlo, sin rótulo ni recuadro: bajo la barra compacta de "Al aire" en un celular en vertical (le quita 50 px de alto al contenido) y al lado de ella cuando el ancho da para los dos (celular en horizontal, tableta en vertical). Las demás funciones no lo llevan: su panel es el de siempre.
+- El **Presentador** (función «Presentador de diapositivas») no lleva escenario: su pantalla ocupa todo y es su propio «Al aire». Arriba, «Señalar» y «Mover» como fichas con icono y una línea que dice qué hace el dedo; debajo, la diapositiva al aire en grande con borde rojo, y bajo ella Anterior (solo flecha), «Siguiente» (ancho, cian; «Empezar» si no hay ninguna de esa presentación en pantalla) y «Negro». A la derecha, «Siguiente» con la miniatura de la que viene («Fin de la presentación» en la última) y los mandos del encuadre; debajo de todo, la cuadrícula de diapositivas con la que está al aire en rojo. En el celular todo va en una columna que se desplaza, con la grande y sus botones arriba. El puntero en la proyección es un punto rojo con halo y borde blanco fino, como un láser. Con una **página web** elegida no hay «Mover», ni siguiente, ni rejilla: la grande, «Señalar» y la fila de botones, cuyo botón ancho dice «Proyectar» hasta que la página está al aire.
+- El **volumen de Manna** está siempre a la vista, suene algo o no: en la barra de transporte y, en el celular, bajo los modos. En el Servicio de alabanza, en el celular, es más grande. Los mandos de lo que suena no lo repiten.
 - Los **mandos de lo que suena** van en este orden, de arriba abajo: transporte (volver al principio, el botón ancho de pausar o reproducir, −10 y +10), barra de avance con el tiempo a cada lado, volumen de Manna (silencio, deslizador y porcentaje) y, solo si los hay, subtítulos: un botón que los muestra y, si vienen en más de un idioma, una lista a su lado para elegirlo. Si ninguna pantalla puede sonar, se dice en cian bajo el volumen.
 - Una pestaña cuyo contenido **no se sube, sino que se pide con un dato** (YouTube: un enlace) pone en la cabecera, en el sitio del botón de subir, un campo con su icono y su botón («Añadir»). En el celular ocupa una fila entera bajo las pestañas. Lo que tarda en llegar aparece enseguida como tarjeta atenuada con su barra de avance, igual que una conversión.
 - El **aviso de que falta un programa** sale solo en la parte del módulo a la que afecta (en Medios, el de yt-dlp solo en la pestaña YouTube). En el celular ocupa lo justo: el texto, los botones en una fila y el aspa de cerrar en la esquina.
@@ -166,20 +171,20 @@ Toda pantalla contempla, además del caso normal:
 
 ## 12. Comportamiento adaptable
 
-Lo que no puede perderse en ningún tamaño: **ver qué está al aire, avanzar y retroceder, y llegar a la acción principal sin desplazarse.**
+Lo que no puede perderse en ningún tamaño: **ver qué está al aire, avanzar y retroceder, y llegar a la acción principal sin desplazarse.** En el celular, con un cajón abierto, lo que está al aire sigue a la vista (el recuadro encima y, siempre, el estado en la cabecera del cajón) y un toque fuera del cajón devuelve a los mandos.
 
 | Ancho | Dispositivo | Disposición |
 | --- | --- | --- |
-| 1180 px o más | Escritorio, portátil, tableta grande en horizontal | Las tres zonas completas. Biblia en tres columnas. Orden con lista y pasos lado a lado. |
-| 860 – 1179 px | Tableta en horizontal, portátil pequeño | Las tres zonas, más estrechas. En Biblia, libros y capítulos comparten columna. En Orden, los pasos se abren bajo el elemento elegido. |
-| Menos de 860 px | Celular, tableta en vertical | Un módulo a la vez, con **pestañas abajo**: hasta cinco; con más módulos, los cuatro primeros y **«Más»**, que abre el resto en un menú y queda marcada cuando se está en uno de ellos. "Al aire" es una **barra compacta** con anterior / siguiente que se despliega a pantalla completa. Biblia avanza por pasos: libro, capítulo, versículos. |
-| Menos de 860 px y menos de 480 px de alto | Celular en horizontal | Las pestañas pasan al lado izquierdo y las cabeceras quedan en una fila, para dejar el alto al contenido. |
+| 1180 px o más | Escritorio, portátil, tableta grande en horizontal | «Escenario» completo. Cola y Preparado de 340 px. Biblia en tres columnas. |
+| 860 – 1179 px | Tableta en horizontal, portátil pequeño | «Escenario», con cola y Preparado de 290 px y sin las teclas en el transporte. En Biblia, libros y capítulos comparten columna. |
+| Menos de 860 px | Celular, tableta en vertical | **«Historias»**: arriba la proyección en su recuadro (borde rojo al aire, segmentos de los pasos; tocar a la derecha avanza y a la izquierda vuelve), lo que se ve con el botón de mandos, «Al aire / Solo fondo / Negro», el volumen y «A continuación» en tarjetas que se deslizan (un toque prepara, doble toque proyecta). El dock va abajo con el nombre de cada módulo y se desliza. Un módulo sube en un cajón a media altura, bajo el recuadro (en celulares de menos de 700 px de alto, completo), que se cierra tocando fuera; su cabecera dice lo que está al aire. Preparado es una barra sobre el dock. |
+| Menos de 860 px y menos de 480 px de alto | Celular en horizontal | El dock pasa a la izquierda; el recuadro y lo demás, lado a lado. El cajón ocupa la mitad derecha (ampliado, todo menos el dock). |
 
 Se comprueba con `node scripts/auditar-responsive.mjs`, que abre la app en nueve tamaños y verifica estas garantías. Hay que ejecutarlo al tocar cualquier disposición.
 
 ## 13. Lo que no se hace
 
-- Degradados, brillos, vidrio esmerilado o sombras decorativas (el resplandor es solo del logo).
+- Degradados, brillos o sombras decorativas. El cristal (`.glass`, fichas `--glass-*`) es solo para lo que flota sobre la proyección; el resplandor, solo del logo.
 - Un segundo color de acento, o rojo que no signifique "al aire".
 - Emojis, o iconos de otra familia.
 - Tarjetas con borde y sombra para agrupar listas.

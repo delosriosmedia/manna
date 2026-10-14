@@ -40,8 +40,9 @@
 .slide.skeleton .monitor { background: var(--s2); border-color: var(--line); animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.5; } }
 
-/* Tableta y celular: una sola columna; los pasos se abren bajo el elemento elegido. */
-@media (max-width: 1179px) {
+/* Tableta y celular: una sola columna; los pasos se abren bajo el elemento elegido. Hasta que los
+   módulos se midan por su cajón (fase 13, parte 4), también con el cajón de menos de ~1000 px. */
+@media (max-width: 1463px) {
   .order-grid { display: block; overflow-y: auto; }
   .olist { overflow: visible; padding: 8px 12px 24px; }
 }

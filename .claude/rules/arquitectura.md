@@ -29,7 +29,7 @@ Un módulo es una carpeta en `server/modules/<id>/` cuyo `index.js` exporta `set
 - Nombres de acción: `modulo.verbo` (`projection.show`, `order.add`).
 - Nombres de permiso: `modulo.capacidad` (`projection.control`, `order.edit`).
 - Un módulo puede aportar más de una pantalla y más de un tipo de contenido. El de Biblia tiene dos pantallas (Biblia y Comparador) y dos tipos (`verses` y `compare`); lo que comparten vive en su carpeta (`web/modules/bible/passages.js`).
-- En la web, cada pantalla de un módulo es un archivo de `web/modules/<id>/` (lo habitual, `workspace.js`) y se lista en `web/modules/registry.js`. La estructura común (barra de módulos, espacio de trabajo, panel "Al aire") es `web/core/shell.js`; las páginas de `web/roles/` solo eligen qué módulos recibe cada función.
+- En la web, cada pantalla de un módulo es un archivo de `web/modules/<id>/` (lo habitual, `workspace.js`) y se lista en `web/modules/registry.js`. La estructura común (el «Escenario»: proyección de fondo, dock, cajón del módulo, cola del culto, «Preparado» y transporte) es `web/core/shell.js` con `web/modules/projection/escenario.js`; las páginas de `web/roles/` solo eligen qué módulos recibe cada función.
 
 Para crear uno, usa la skill `/nuevo-modulo`.
 

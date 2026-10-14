@@ -39,7 +39,7 @@ export function describeDisplay(display) {
 }
 
 // Encendido/apagado de la ventana en la segunda pantalla del equipo principal.
-//   compact: con icono y una sola palabra, para la cabecera del panel "Al aire".
+//   compact: con icono y una sola palabra, para la barra de arriba del escenario.
 export function createDisplayToggle({ compact = false } = {}) {
   const button = h('button', { class: 'btn', onclick: guard(async () => {
     const { display } = state.projection;
@@ -65,7 +65,7 @@ export function createDisplayToggle({ compact = false } = {}) {
 export function createTestCardButton() {
   return h('button', { class: 'btn', onclick: guard(async () => {
     await action('projection.show', { kind: 'testcard', data: {} });
-    toast('Imagen de prueba en pantalla. Sus mandos están en el panel "Al aire".');
+    toast('Imagen de prueba en pantalla. Sus mandos se abren con «Mandos».');
   }) }, icon('frame-corners', 16), 'Mostrar imagen de prueba');
 }
 

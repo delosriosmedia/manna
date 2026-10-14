@@ -323,6 +323,8 @@ function mount(el, ctx) {
   return {
     onShow: render,
     keys(e) {
+      const mode = { b: 'black', c: 'clear' }[e.key.toLowerCase()];
+      if (mode) { toggleMode(mode); return true; }
       if (!deck() && !page()) return false;
       if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { go(1); return true; }
       if (['ArrowLeft', 'PageUp'].includes(e.key)) { go(-1); return true; }

@@ -68,7 +68,7 @@ function mount(el, ctx) {
       // Un programa que conviene tener al día (yt-dlp) se actualiza desde aquí, en el equipo principal.
       t.found && t.update && ctx.isLocal && h('button', { class: 'btn', title: t.update, disabled: t.installing, onclick: guard(async () => {
         await action('tools.install', { id: t.id });
-        toast(`Actualizando ${t.name}. El avance está en el panel «Al aire».`);
+        toast(`Actualizando ${t.name}. El avance está en la cola del culto.`);
       }) }, icon('arrow-clockwise', 15), t.installing ? 'Actualizando…' : 'Actualizar'))));
   });
   const NET = {

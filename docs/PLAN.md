@@ -488,7 +488,7 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 10 Presentador | **Hecha** · 2026-10-14, publicada en la 1.10.0 | | Probada en Chrome (con dedos simulados) y en la auditoría de pantallas. Falta la prueba del dueño con un celular real y el proyector |
 | 11 Páginas web | **Hecha** · 2026-10-14 | 1.11.0 | Probada con pruebas automáticas y en Chrome real, con páginas de un servidor del propio equipo. **Falta la prueba del dueño**: la ventana aparte con el proyector, Canva y Kahoot de verdad, y en Windows |
 | 12 PowerPoint en vivo | Pendiente | | Después de la 13 |
-| 13 Rediseño Escenario | **En curso** · plan aprobado el 2026-10-14; **parte 1 (sistema visual) hecha** | | Cian, Sora, píldoras y cristal en ventanas, menús y avisos. Pruebas: 156 automáticas, 319 en Chrome, auditoría de 9 tamaños sin problemas (en tableta horizontal, el campo de YouTube pasó a su propia línea por el ancho de Sora). Sigue la parte 2, la estructura de capas |
+| 13 Rediseño Escenario | **En curso** · plan aprobado el 2026-10-14; **partes 1 (sistema visual) y 2 (estructura de capas) hechas** | | Parte 1: cian, Sora, píldoras y cristal en ventanas, menús y avisos (156 automáticas, 319 en Chrome, auditoría sin problemas). Parte 2: escenario con dock, cajón, cola del culto, «Preparado» y transporte; «Historias» en el celular; toda capa se cierra al tocar fuera y con Esc. Pruebas: 155 automáticas, 355 en Chrome (con las nuevas de la cola, «Preparado», el cajón, los mandos y «Historias»), auditoría de 9 tamaños sin problemas. Sigue la parte 3, buscar en todo |
 
 ### Fase 0 · resultados
 
@@ -638,6 +638,10 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-14 | Fase 11: solo archivos `.html` sueltos, sin ZIP | Abrir un ZIP sin dependencias obliga a escribir un lector a mano; el dueño aceptó empezar así |
 | 2026-10-14 | Fase 11: «Anterior» y «Siguiente» llegan a un archivo HTML propio por mensajes al marco, no por el protocolo de depuración de Chrome | Llegan a todas las pantallas a la vez (también a la que se abre tarde) y se pueden probar en Chrome sin proyector |
 | 2026-10-14 | Se añade la fase 13 (rediseño «Escenario») y va antes de la 12 | Decisión 32 |
+| 2026-10-14 | Fase 13, parte 2: en el escritorio el cajón se abre ancho (hasta la cola) y en el celular a media altura, o completo en celulares de menos de 700 px de alto | Hasta la parte 4 los módulos conservan su disposición; en el cajón estrecho o en un celular bajo no caben |
+| 2026-10-14 | Fase 13, parte 2: en el celular, la cabecera del cajón dice lo que está al aire (en vez del nombre del módulo, que ya está en el módulo) | Con el cajón completo, el prototipo lo tapaba todo, y la garantía de `DESIGN.md` pide ver siempre qué está al aire |
+| 2026-10-14 | Fase 13, parte 2: «Dispositivos» pasa al menú de la función, y en el celular el dock lleva todos los módulos y se desliza (sin «Más») | El dock del escenario es solo de módulos; con nombre bajo cada icono, deslizar se entiende mejor que un menú aparte |
+| 2026-10-14 | Fase 13, parte 2: el volumen va en la barra de transporte en todas las funciones, no solo en el Servicio de alabanza | En el escenario hay sitio, y así los mandos de lo que suena no lo repiten |
 | 2026-10-14 | Fuera de las fases (decisión 31): la conexión por internet entra en Manna (módulo `internet`), desde internet todo pide PIN, y se instala con un solo archivo que no toca nunca el contenido | A petición del dueño |
 | 2026-10-14 | Fase 11, ampliación: la ventana aparte recibe «Anterior» y «Siguiente» desde el celular (S33) y el Presentador muestra páginas web, con el puntero (S34) | El dueño aceptó las dos sugerencias |
 | 2026-10-14 | S35 deja de ser «subir un ZIP» y pasa a estudiar **compartir una pestaña de Chrome**, como Google Meet | A petición del dueño: resolvería a la vez internet, los ZIP y las páginas que no se dejan mostrar |

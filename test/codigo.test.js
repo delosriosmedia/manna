@@ -6,7 +6,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { bindingsOf, checkContract, checkModules, declaredIn, exportsOf, importsOf, sourceFiles, strip } from '../scripts/lib/codigo.mjs';
 import { codeSignature } from '../server/core/build.js';
-import { splitTabs } from '../web/core/tabs.js';
 import { whenLabel } from '../web/core/time.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -152,13 +151,6 @@ test('la huella del código cambia cuando cambia un archivo del servidor o la ve
 });
 
 // ---- Piezas pequeñas de la interfaz que no necesitan navegador ----
-
-test('en el celular caben cinco pestañas; con más, las cuatro primeras y "Más"', () => {
-  const modules = ['orden', 'biblia', 'comparador', 'medios', 'himnario', 'ajustes'];
-  assert.deepEqual(splitTabs(modules.slice(0, 5)), { tabs: modules.slice(0, 5), overflow: [] });
-  assert.deepEqual(splitTabs(modules), { tabs: ['orden', 'biblia', 'comparador', 'medios'], overflow: ['himnario', 'ajustes'] });
-  assert.deepEqual(splitTabs(['orden']), { tabs: ['orden'], overflow: [] });
-});
 
 test('whenLabel dice cuándo se agregó algo: hoy, ayer o la fecha', () => {
   const now = new Date(2026, 9, 4, 21, 0).getTime();

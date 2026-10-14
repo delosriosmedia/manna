@@ -2,28 +2,31 @@
 // de los dispositivos que se usan en la iglesia, y comprueba lo que importa para operar:
 //
 //   - nada se sale por los lados (sin desplazamiento horizontal)
-//   - la navegación entre módulos está a la vista
-//   - "Al aire" y sus mandos (anterior / siguiente) están siempre a la vista
-//   - la acción principal de cada pantalla (Proyectar) se alcanza sin desplazarse
+//   - el dock de módulos está a la vista (en el celular va abajo, con nombres, y se desliza si no caben)
+//   - lo que está al aire se ve y se gobierna siempre. Escritorio y tableta horizontal (860 px o más): la barra
+//     de estado y los botones de la barra de transporte, a la vista, y las piezas flotantes (cajón, cola, tarjeta
+//     «Preparado», barras, dock) sin pisarse. Celular: el
+//     recuadro de «Historias» por encima del cajón (o, con el cajón a pantalla completa, el estado «AL AIRE»)
+//   - la acción principal de cada pantalla (Proyectar), dentro del cajón, se alcanza sin desplazarse y nada la tapa
 //   - queda sitio útil para el contenido (lista de versículos, orden del culto)
 //   - en pantallas táctiles, los botones tienen tamaño para el dedo (40 px o más)
 //   - los títulos largos del orden del culto se leen (no se cortan en una sola línea)
-//   - los mandos en vivo de lo que está al aire caben, en el panel y en el orden
+//   - los mandos en vivo de lo que está al aire caben, en la capa «Mandos» y en el orden
 //   - los resultados de la búsqueda y el aviso de un módulo al que le falta un programa caben
 //   - la tarjeta de un televisor y su control remoto caben, con teclas para el dedo
 //   - la biblioteca de imágenes deja a la vista su acción principal, y los mandos de una imagen
-//     al aire caben en el panel
+//     al aire caben en la capa de mandos
 //   - el himnario (todos, por categorías y lo encontrado al buscar) deja a la vista «Proyectar» y el
 //     sonido elegido, y los mandos de un himno al aire (cantado o pista, avance, volumen) caben
 //   - en Diapositivas, las presentaciones y las diapositivas de la elegida dejan a la vista
 //     «Proyectar», y los mandos de una diapositiva al aire (por dónde va, la que sigue, acercar) caben
-//   - el Presentador (sin panel «Al aire») deja a la vista la diapositiva grande, Anterior / Siguiente /
+//   - el Presentador (sin escenario) deja a la vista la diapositiva grande, Anterior / Siguiente /
 //     Negro, las herramientas de señalar y mover y los mandos en vivo, y su lista de presentaciones cabe
 //   - Páginas web: la lista (una de internet que se deja mostrar, otra que no y un archivo HTML, con nombres
 //     largos) y la barra de la elegida caben y dejan a la vista «Proyectar»
-//   - en la función de alabanza, el volumen de Manna está a la vista sin desplegar "Al aire"
+//   - en la función de alabanza, el volumen de Manna está a la vista (barra de transporte; en el celular, grande bajo el recuadro)
 //   - en YouTube, el campo del enlace cabe en la cabecera y los mandos de un video con subtítulos
-//     en dos idiomas (botón y lista) caben en el panel
+//     en dos idiomas (botón y lista) caben en la capa de mandos
 //
 // Uso:  node scripts/auditar-responsive.mjs             resumen en la terminal
 //       node scripts/auditar-responsive.mjs capturas    además guarda una imagen de cada pantalla
@@ -55,6 +58,9 @@ const DEVICES = [
   { name: 'Escritorio', w: 1920, h: 1080, touch: false },
 ];
 
+// Abre la capa «Mandos» (en el celular, con el botón de la tarjeta de lo al aire; en el resto, el de la barra de transporte).
+const OPEN_CONTROLS = `(matchMedia('(max-width: 859px)').matches ? document.querySelector('.story-controls') : document.querySelector('.transport-bar .btn[aria-haspopup=dialog]')).click()`;
+
 // Pantallas a revisar. prepare: lo que hay que hacer tras cargar. primary: la acción principal.
 // page: se revisa con esa página web (id de data/paginas.json) al aire.
 // show: se revisa con ese elemento del ejemplo al aire ('testcard', 'image', 'video', 'youtube' o 'slides': todos tienen mandos en vivo).
@@ -67,13 +73,14 @@ const SCREENS = [
   { name: 'Orden del culto', url: '/control#orden', content: '.olist', longTitles: true },
   // El equipo de la auditoría "no tiene" navegador para la proyección: Ajustes lleva su aviso.
   { name: 'Ajustes, con aviso', url: '/control#ajustes', content: '.settings', inside: '.ws-notice' },
-  { name: 'Al aire desplegado', url: '/control#orden', narrowOnly: true, prepare: `document.querySelector('.dock-mini-main').click()`, sheet: true },
-  { name: 'Control del orden', url: '/orden', content: '.olist', longTitles: true },
+  // La capa de mandos abierta: su recuadro cabe en la pantalla y trae los mandos de lo que está al aire.
+  { name: 'Capa de mandos', url: '/control#orden', show: 'testcard', inside: '.controls-pop', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
+  { name: 'Control del orden', url: '/orden#orden', content: '.olist', longTitles: true },
   // La función de alabanza lleva el volumen de Manna siempre a la vista: en el celular, bajo la barra de "Al aire".
-  { name: 'Servicio de alabanza', url: '/alabanza#himnario', content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: '.dock-volume', settle: 700,
+  { name: 'Servicio de alabanza', url: '/alabanza#himnario', content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: { wide: '.transport-bar .tb-volume', narrow: '.story-volume.big' }, settle: 700,
     prepare: `document.querySelector('.ws[data-module=himnario] .hymn')?.click()` },
   { name: 'Orden con mandos en vivo', url: '/control#orden', show: 'testcard', controls: '.odetail .live-controls' },
-  { name: 'Al aire con mandos en vivo', url: '/control#ajustes', show: 'testcard', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
+  { name: 'Al aire con mandos en vivo', url: '/control#ajustes', show: 'testcard', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
   { name: 'Medios: imágenes', url: '/control#medios', content: '.media-body[data-panel=imagenes]', primary: '.media-bar[data-panel=imagenes] .btn.primary', inside: '.media-bar[data-panel=imagenes]', settle: 600,
     prepare: `(() => { document.querySelector('.media-tabs [data-tab=imagenes]').click(); document.querySelector('.media-body[data-panel=imagenes] .media-card .media-pick').click(); })()` },
   { name: 'Medios: videos', url: '/control#medios', content: '.media-body[data-panel=videos]', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.media-bar[data-panel=videos]', settle: 700,
@@ -83,24 +90,24 @@ const SCREENS = [
   // El equipo de la auditoría "no tiene" yt-dlp: las pestañas de Medios llevan su aviso encima.
   { name: 'Medios: YouTube', url: '/control#medios', content: '.media-body[data-panel=youtube]', primary: '.media-bar[data-panel=youtube] .btn.primary', inside: '.yt-add', settle: 700,
     prepare: `(() => { document.querySelector('.media-tabs [data-tab=youtube]').click(); document.querySelector('.media-body[data-panel=youtube] .media-card[data-status=ready] .media-pick').click(); })()` },
-  { name: 'Al aire con un video de YouTube', url: '/control#orden', show: 'youtube', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
-  { name: 'Al aire con un video', url: '/control#orden', show: 'video', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
+  { name: 'Al aire con un video de YouTube', url: '/control#orden', show: 'youtube', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
+  { name: 'Al aire con un video', url: '/control#orden', show: 'video', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
   { name: 'Orden con un video al aire', url: '/control#orden', show: 'video', controls: '.odetail .live-controls' },
-  { name: 'Al aire con una imagen', url: '/control#medios', show: 'image', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
+  { name: 'Al aire con una imagen', url: '/control#medios', show: 'image', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
   { name: 'Himnario', url: '/control#himnario', content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: '.hymn-bar', settle: 700,
     prepare: `document.querySelector('.ws[data-module=himnario] .hymn')?.click()` },
   { name: 'Himnario: categorías', url: '/control#himnario', content: '.hymns-body', inside: '.hymn-group header', settle: 700,
     prepare: `document.querySelector('.hymn-views [data-view=categories]').click()` },
   { name: 'Himnario: búsqueda', url: '/control#himnario', content: '.hymns-body', inside: '.hymn-hit', settle: 1100,
     prepare: `(() => { document.querySelector('.hymn-views [data-view=grid]').click(); const i = document.querySelector('.ws[data-module=himnario] .search input'); i.value = 'renglon inventado'; i.dispatchEvent(new Event('input')); })()` },
-  { name: 'Al aire con un himno', url: '/control#himnario', show: 'song', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
+  { name: 'Al aire con un himno', url: '/control#himnario', show: 'song', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
   { name: 'Orden con un himno al aire', url: '/control#orden', show: 'song', controls: '.odetail .live-controls' },
   { name: 'Diapositivas: presentaciones', url: '/control#diapositivas', content: '.decks', inside: '.deck' },
   { name: 'Diapositivas: una presentación', url: '/control#diapositivas', content: '.deck-pages', primary: '.deck-bar .btn.primary', inside: '.deck-bar', settle: 600,
     prepare: `document.querySelector('.ws[data-module=diapositivas] .deck-pick').click()` },
-  { name: 'Al aire con una diapositiva', url: '/control#diapositivas', show: 'slides', controls: '.dock .live-controls', prepare: `document.querySelector('.dock-mini-main')?.click()`, sheet: 'narrow' },
+  { name: 'Al aire con una diapositiva', url: '/control#diapositivas', show: 'slides', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
   { name: 'Orden con una diapositiva al aire', url: '/control#orden', show: 'slides', controls: '.odetail .live-controls' },
-  // El Presentador no lleva panel «Al aire»: noDock cambia ese control por la diapositiva grande y su fila de botones.
+  // El Presentador no lleva escenario: noDock cambia ese control por la diapositiva grande y su fila de botones.
   { name: 'Presentador: elegir presentación', url: '/presentador', noDock: true, content: '.pr-choose', inside: '.pr-list .deck', settle: 600 },
   { name: 'Presentador: presentando', url: '/presentador', show: 'slides', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', controls: '.pr-side .live-controls', settle: 800 },
   // Con una página web al aire (un archivo propio): sin rejilla ni siguiente; la grande y Anterior / Siguiente / Negro a la vista (sus flechas van en la fila de botones, no en los mandos).
@@ -116,7 +123,9 @@ const SCREENS = [
 ];
 
 // ---- Lo que se mide dentro de la página ----
-const MEASURE = (screen, touch) => `(() => {
+const MEASURE = (screen, touch, narrow) => {
+  const inside = typeof screen.inside === 'object' ? (narrow ? screen.inside.narrow : screen.inside.wide) : screen.inside;
+  return `(() => {
   const vw = innerWidth, vh = innerHeight;
   const box = (el) => el && el.getBoundingClientRect();
   const shown = (el) => { if (!el) return false; const r = box(el); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
@@ -133,36 +142,56 @@ const MEASURE = (screen, touch) => `(() => {
     if (small.length) out.pequenos = [...new Set(small)].slice(0, 6);
   }
   if (${JSON.stringify(Boolean(screen.plain))}) return out;
-  const nav = shown(q('.rail')) ? '.rail .rail-item:not(.soon)' : '.tabbar button';
-  const navItems = [...document.querySelectorAll(nav)];
-  // Con un solo módulo (función "Control del orden") no hay nada entre lo que navegar.
-  out.navegacion = navItems.length <= 1 || navItems.every(inView);
+  // El dock de módulos: a la vista y con sus iconos al alcance. Si no caben todos, se desliza, pero al menos cuatro se ven.
+  // La función "Control del orden" (un solo módulo) no lo lleva; el Presentador, tampoco (sin escenario).
+  const items = [...document.querySelectorAll('.dockbar .dock-item')];
+  const bar = q('.dockbar');
+  // Con una capa abierta (los mandos, una ventana) lo de debajo queda tapado a propósito: ahí solo cuenta la geometría.
+  const covered = Boolean(q('.controls-layer:not([hidden])') || q('.modal-backdrop'));
+  const topmost = (el) => { if (covered) return true; const r = box(el); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return Boolean(t) && el.contains(t); };
+  if (!${JSON.stringify(Boolean(screen.noDock))}) {
+    const seen = items.filter((b) => inView(b) && topmost(b)).length;
+    const slides = bar && (bar.scrollWidth > bar.clientWidth + 1 || bar.scrollHeight > bar.clientHeight + 1);
+    out.navegacion = items.length <= 1 || (inView(bar) && (seen === items.length || (slides && seen >= Math.min(4, items.length))));
+  }
   if (${JSON.stringify(Boolean(screen.noDock))}) {
     out.alAire = shown(q('.pr-live')) ? inView(q('.pr-live')) && [...document.querySelectorAll('.pr-main .transport .btn')].every(inView) : true;
-  } else if (${JSON.stringify(Boolean(screen.sheet))} && !shown(q('.rail'))) {
-    out.alAire = inView(q('.dock-body .monitor')) && [...document.querySelectorAll('.dock-body > .transport .btn')].every(inView);
-    const m = box(q('.dock-body .monitor'));
-    out.monitorProporcion = Math.abs(m.width / m.height - 16 / 9) < 0.08;
   } else {
-    // El panel entero está a la vista si lo está su monitor: con volumen permanente (función de
-    // alabanza), del panel plegado se ve solo el volumen.
-    const wideDock = shown(q('.dock-body .monitor'));
-    out.alAire = wideDock
-      ? inView(q('.dock-body .monitor')) && [...document.querySelectorAll('.dock-body > .transport .btn')].every(inView)
-      : inView(q('.dock-mini')) && [...document.querySelectorAll('.dock-mini .icon-btn')].every(inView);
+    const drawer = q('.drawer');
+    const dr = shown(drawer) ? box(drawer) : null;
+    if (!${JSON.stringify(narrow)}) {
+      // Escritorio y tableta horizontal: la barra de estado y los botones de transporte, a la vista y fuera del cajón.
+      const buttons = [...document.querySelectorAll('.transport-bar .btn')].filter(shown);
+      out.alAire = inView(q('.scene-status')) && buttons.length >= 4 && buttons.every((b) => inView(b) && topmost(b));
+      // Las piezas flotantes (barra de estado, función, dock, cajón, cola, «Preparado» y transporte) no se pisan.
+      const names = ['.scene-status', '.role-chip', '.dockbar', '.drawer', '.queue', '.prep', '.transport-bar'].filter((n) => shown(q(n)));
+      const hits = [];
+      names.forEach((a, i) => names.slice(i + 1).forEach((b) => { const x = box(q(a)), y = box(q(b)); if (x.left < y.right - 1 && y.left < x.right - 1 && x.top < y.bottom - 1 && y.top < x.bottom - 1) hits.push(a + ' con ' + b + ' (' + Math.round(Math.min(x.right, y.right) - Math.max(x.left, y.left)) + ' × ' + Math.round(Math.min(x.bottom, y.bottom) - Math.max(x.top, y.top)) + ' px)'); }));
+      out.solape = names.length >= 5 && hits.length === 0;
+      if (hits.length) out.solapan = hits;
+    } else {
+      // Celular: el recuadro de «Historias» por encima del cajón; con el cajón a pantalla completa, el estado arriba.
+      const frame = q('.story-frame');
+      out.alAire = dr && drawer.classList.contains('wide') ? inView(q('.drawer .scene-mini .live-pill')) : inView(frame) && (!dr || box(frame).bottom <= dr.top + 1);
+      if (shown(frame)) { const m = box(frame); out.monitorProporcion = Math.abs(m.width / m.height - 16 / 9) < 0.08; }
+    }
   }
-  ${screen.primary ? `out.accion = inView(q(${JSON.stringify(screen.primary)}));` : ''}
+  ${screen.primary ? `{ const a = q(${JSON.stringify(screen.primary)}); out.accion = inView(a) && topmost(a) && (${JSON.stringify(Boolean(screen.noDock))} || Boolean(a.closest('.drawer'))); }` : ''}
   ${screen.content ? `{ const c = [...document.querySelectorAll(${JSON.stringify(screen.content)})].find(shown); out.espacioContenido = c ? Math.round(Math.min(box(c).bottom, vh) - Math.max(box(c).top, 0)) : 0; }` : ''}
   ${screen.longTitles ? `{ const t = [...document.querySelectorAll('.orow .item-text strong')].find((e) => e.textContent.length > 60); out.tituloLargo = Boolean(t) && t.scrollHeight <= t.clientHeight + 1; }` : ''}
-  ${screen.inside ? `{ const e = q(${JSON.stringify(screen.inside)}); const r = box(e); out.dentro = shown(e) && r.left >= -1 && r.right <= vw + 1 && r.top >= -1 && r.bottom <= vh + 1 && [...e.querySelectorAll('button')].every((b) => !shown(b) || (box(b).left >= r.left - 1 && box(b).right <= r.right + 1)); }` : ''}
-  ${screen.controls ? `{ const c = q(${JSON.stringify(screen.controls)}); const r = box(c); out.mandos = shown(c) && r.left >= -1 && r.right <= vw + 1 && [...c.querySelectorAll('button, select')].every((b) => { const x = box(b); return shown(b) && x.left >= r.left - 1 && x.right <= r.right + 1; }); }` : ''}
+  ${inside ? `{ const e = q(${JSON.stringify(inside)}); const r = box(e); out.dentro = shown(e) && r.left >= -1 && r.right <= vw + 1 && r.top >= -1 && r.bottom <= vh + 1 && [...e.querySelectorAll('button')].every((b) => !shown(b) || (box(b).left >= r.left - 1 && box(b).right <= r.right + 1)); }` : ''}
+  ${screen.controls ? `{ const c = q(${JSON.stringify(screen.controls)}); const r = box(c);
+    // El volumen general no va en los mandos de la capa (vive en la barra de transporte): su CSS lo oculta a propósito.
+    const list = [...c.querySelectorAll('button, select')].filter((b) => !b.closest('.volume'));
+    out.mandos = shown(c) && list.length > 0 && r.left >= -1 && r.right <= vw + 1 && list.every((b) => { const x = box(b); return shown(b) && x.left >= r.left - 1 && x.right <= r.right + 1; }); }` : ''}
   return out;
 })()`;
+};
 
 // Espera a que la pantalla haya terminado de dibujarse (hasta 8 s), en vez de una pausa fija.
 async function ready(screen) {
   const done = screen.plain ? `document.querySelector(${JSON.stringify(screen.plain)})`
-    : `document.querySelector('.ws:not([hidden])') && (!document.querySelector('.ws:not([hidden]) .picker') || document.querySelector('.ws:not([hidden]) .verse')) && document.querySelector('.dock-ref')?.textContent`;
+    : `document.querySelector('.ws:not([hidden])') && (!document.querySelector('.ws:not([hidden]) .picker') || document.querySelector('.ws:not([hidden]) .verse')) && document.querySelector('.scene-caption')?.textContent`;
   for (let i = 0; i < 40; i += 1) {
     await sleep(200);
     if (await chrome.evaluate(`Boolean(${done})`)) break;
@@ -170,7 +199,7 @@ async function ready(screen) {
   await sleep(350);
 }
 
-const LABELS = { sinDesborde: 'sin desborde lateral', navegacion: 'navegación a la vista', alAire: '"Al aire" y mandos a la vista', monitorProporcion: 'monitor sin deformar', accion: 'acción principal a la vista', tituloLargo: 'títulos largos legibles', mandos: 'mandos en vivo completos y sin salirse', dentro: 'el recuadro cabe en la pantalla', dedos: 'botones para el dedo' };
+const LABELS = { sinDesborde: 'sin desborde lateral', navegacion: 'dock de módulos a la vista', alAire: 'lo que está al aire y sus botones a la vista', solape: 'cajón, cola, tarjeta «Preparado» y barras sin pisarse', monitorProporcion: 'recuadro de la proyección sin deformar', accion: 'acción principal a la vista y sin nada encima', tituloLargo: 'títulos largos legibles', mandos: 'mandos en vivo completos y sin salirse', dentro: 'el recuadro cabe en la pantalla', dedos: 'botones para el dedo' };
 const MIN_CONTENT = 150;
 
 // Un televisor de mentira, ya vinculado, para revisar su tarjeta y su control remoto.
@@ -218,9 +247,9 @@ try {
       await chrome.send('Page.navigate', { url: `${base}${pathname}?t=${Date.now()}${hash ? `#${hash}` : ''}` });
       await ready(screen);
       if (screen.prepare) { await chrome.evaluate(screen.prepare); await sleep(screen.settle || 500); }
-      const result = await chrome.evaluate(`JSON.stringify(${MEASURE(screen, device.touch)})`);
+      const result = await chrome.evaluate(`JSON.stringify(${MEASURE(screen, device.touch, narrow)})`);
       const m = JSON.parse(result || '{}');
-      const failures = Object.keys(LABELS).filter((k) => m[k] === false).map((k) => LABELS[k] + (k === 'dedos' ? `: ${m.pequenos.join(', ')}` : ''));
+      const failures = Object.keys(LABELS).filter((k) => m[k] === false).map((k) => LABELS[k] + (k === 'dedos' ? `: ${m.pequenos.join(', ')}` : k === 'solape' && m.solapan ? `: ${m.solapan.join('; ')}` : ''));
       if (m.espacioContenido !== undefined && m.espacioContenido < MIN_CONTENT) failures.push(`poco espacio para el contenido (${m.espacioContenido} px)`);
       problems += failures.length;
       const room = m.espacioContenido !== undefined ? ` · contenido ${m.espacioContenido} px` : '';

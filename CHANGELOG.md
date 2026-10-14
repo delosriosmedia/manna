@@ -4,6 +4,14 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.12.0 — 2026-10-14
+
+- **La pantalla de control cambia de forma**, segundo paso del rediseño «Escenario»: lo que está al aire ocupa todo el fondo y, encima, flotan los módulos (en un cajón que se abre desde el dock de la izquierda), la **cola del culto** a la derecha y una barra abajo con Anterior, Siguiente, lo que sigue, Solo fondo, Negro, los mandos y el volumen.
+- **Preparar y proyectar**: un toque en un elemento de la cola lo deja «Preparado» abajo a la derecha, e **Intro** (o «Proyectar») lo pone en pantalla; un doble toque lo proyecta directamente. Lo que está al aire muestra sus pasos para saltar a cualquiera.
+- **En el celular, «Historias»**: arriba se ve lo que está en pantalla, con una marca por cada paso; tocar a la derecha de la imagen avanza y a la izquierda vuelve. Debajo, Al aire / Solo fondo / Negro, el volumen y lo que sigue en tarjetas. Los módulos están todos en el dock de abajo (ya no hay «Más») y suben en un cajón que se cierra tocando fuera.
+- **El volumen de Manna está siempre a la vista** en todas las funciones.
+- Los mandos de lo que está al aire se abren con «Mandos» y se cierran tocando fuera o con Esc; Esc también cierra el módulo abierto.
+
 ## 1.11.0 — 2026-10-14
 
 - **Nueva piel «Escenario»**, primer paso del rediseño: el acento pasa a ser el cian de la M, la letra es Sora, los botones y las fichas son píldoras, y las ventanas, los menús y los avisos son de cristal oscuro. Todo sigue en su sitio: lo que cambia de lugar llega en los próximos pasos.

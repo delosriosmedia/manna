@@ -64,6 +64,10 @@
   .hymn-bar .btn { flex: 1 1 0; }
   .hymn-long { display: none; }
 }
+/* Tableta en horizontal: el cajón mide 610-760 px y la barra no cabe en una fila (fase 13, parte 4). */
+@media (min-width: 860px) and (max-width: 1179px) {
+  .hymn-bar { flex-wrap: wrap; }
+}
 /* Celular en vertical: el título y el sonido en una fila; las acciones en otra. */
 @media (max-width: 559px) {
   .hymn-sound { order: 1; }
