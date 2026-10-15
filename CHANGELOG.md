@@ -4,6 +4,12 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.14.0 — 2026-10-15
+
+- **PowerPoint en vivo (Windows)**: un PowerPoint lo puede pasar el propio PowerPoint del equipo principal, a pantalla completa en el proyector, con sus videos, animaciones y transiciones. «Siguiente» y «Anterior» se siguen dando desde cualquier celular (y pasan también las animaciones); si alguien la pasa en el equipo, los celulares lo ven; al terminar, Manna sigue con el orden del culto. Los celulares y los televisores ven la foto de cada diapositiva. Un PowerPoint subido desde esta versión viene así; en el menú de la presentación se cambia con «Pasar como imágenes» o «Pasar con PowerPoint». Si PowerPoint falla, se pasa como imágenes y la cola lo avisa.
+- Se guarda el PowerPoint original de cada presentación (para pasarla en vivo); se borra al eliminarla.
+- Las pruebas en Chrome tardan menos de 3 minutos (antes, 3,5): YouTube y el himnario pasaron al grupo «red».
+
 ## 1.13.1 — 2026-10-15
 
 - **Se lee mejor con diapositivas claras**: el texto secundario de lo que flota sobre la proyección (barras, cola, «Preparado», «Historias» y el cajón) es más claro, y la cola del culto, más opaca. Con una diapositiva blanca detrás ya se lee bien.

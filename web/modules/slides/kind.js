@@ -22,8 +22,10 @@ registerKind('slides', {
     const next = h('div', { class: 'slide-next' }, h('span', { class: 'slide-next-thumb' }, picture), h('span', { class: 'slide-next-text' }, h('small', {}, 'Sigue'), label));
     const info = h('div', { class: 'slide-info' }, h('div', { class: 'slide-count' }, where, left), next);
     // Los mandos del encuadre van debajo, tal cual; sin «Completa / Llenar»: una diapositiva va siempre entera.
+    // Si la pasa PowerPoint, en el proyector no hay encuadre: se dice en su lugar.
     const framing = h('div', { class: 'live-part' });
-    host.replaceChildren(info, framing);
+    const ppt = h('p', { class: 'slide-ppt muted' }, 'La pasa PowerPoint en el proyector, con sus videos y animaciones: «Siguiente» avanza también las animaciones.');
+    host.replaceChildren(info, framing, ppt);
     const view = pictureControls(framing, tools, { fits: false });
 
     return {
@@ -39,6 +41,8 @@ registerKind('slides', {
           picture.removeAttribute('src');
           label.textContent = 'Fin de la presentación';
         }
+        framing.hidden = Boolean(item.powerpoint);
+        ppt.hidden = !item.powerpoint;
         view.update(state, item);
       },
       destroy: () => view.destroy(),

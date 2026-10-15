@@ -22,10 +22,11 @@
 // órdenes y direcciones del servidor (las que no se pueden pulsar aquí están en UNTOUCHED, con su motivo).
 //
 // Corre en tres grupos a la vez, cada uno con su servidor, su nombre en la red y su Chrome (GROUPS, abajo):
-// «control» (Biblia, orden, escenario, ajustes, PIN, escuchar y salir), «biblioteca» (medios, himnario,
-// diapositivas, presentador, páginas web y el paso 5) y «red» (pasos 0 y 4). Al final se junta lo vigilado.
+// «control» (Biblia, orden, escenario, ajustes, PIN, escuchar y salir), «biblioteca» (imágenes, videos y audios,
+// diapositivas, presentador, páginas web y el paso 5) y «red» (pasos 0 y 4, YouTube e himnario). Al final se
+// junta lo vigilado.
 //
-// Uso:  node scripts/probar-chrome.mjs                 los tres grupos (unos 3 minutos)
+// Uso:  node scripts/probar-chrome.mjs                 los tres grupos (menos de 3 minutos)
 //       node scripts/probar-chrome.mjs biblioteca      solo los grupos nombrados
 //       node scripts/probar-chrome.mjs rapido          sin los pasos 2 a 4
 // Necesita Node 22 o superior (WebSocket integrado) y Chrome o Edge. No toca los datos reales:
@@ -55,8 +56,8 @@ const QUICK = process.argv.includes('rapido');
 // auditoría de pantallas usa 8124, 8126 y 8128). Cada grupo es este mismo guion con MANNA_PRUEBA_GRUPO.
 const GROUPS = {
   control: { port: 8123, label: 'Biblia, orden, escenario, ajustes, PIN, escuchar y salir' },
-  biblioteca: { port: 8131, label: 'Medios, himnario, diapositivas, presentador, páginas web y cierre' },
-  red: { port: 8133, label: 'Revisión del equipo y cambio de IP' },
+  biblioteca: { port: 8131, label: 'Imágenes, videos, diapositivas, presentador, páginas web y cierre' },
+  red: { port: 8133, label: 'Revisión del equipo, YouTube, himnario y cambio de IP' },
 };
 const GROUP = process.env.MANNA_PRUEBA_GRUPO || null;
 const inGroup = (name) => GROUP === name;
@@ -650,8 +651,10 @@ try {
   await run(`document.querySelector('.drawer-backdrop').click()`);
   await sleep(300);
   await tapEl(`document.querySelector('.story-zone.next')`);
+  await sleep(400);
   check('tocar la zona derecha del recuadro avanza', (await live()).ref === 'Salmos 23:1');
   await tapEl(`document.querySelector('.story-zone.prev')`);
+  await sleep(400);
   check('y la izquierda retrocede', (await live()).ref === 'Juan 3:19');
   const storyMode = (mode) => `document.querySelector('.story-modes [data-mode=${mode}]')`;
   const modeIs = (mode) => run(`return ${storyMode(mode)}.getAttribute('aria-pressed') === 'true' && ${storyMode(mode)}.classList.contains('on') && document.querySelectorAll('.story-modes [aria-pressed=true]').length === 1 && document.querySelector('.story-frame').dataset.state === ${JSON.stringify(mode)}`);
@@ -789,7 +792,7 @@ try {
 
   }
 
-  // ---- Grupo «biblioteca»: medios, himnario, diapositivas, presentador y páginas web ----
+  // ---- Grupo «biblioteca» (1): imágenes, videos y audios ----
   if (inGroup('biblioteca')) {
   // El Presentador necesita un versículo en el orden del culto (en el grupo «control» lo pone la Biblia).
   await run(`return await ${post('order.add', { kind: 'verses', data: { versionId: VERSION, ref: { book: 43, chapter: 3, verseStart: 19, verseEnd: 19 } } })}`);
@@ -1073,75 +1076,86 @@ try {
     await control('Pausar');
     check('y se gobierna con los mismos mandos', (await air()).live.clock.playing === false && await run(`return ${controls}.querySelectorAll('button').length >= 5 && document.querySelector('.scene-bg > .stage audio').paused`));
 
-    console.log('\n1. Interfaz · Medios (YouTube)');
-    if (!CAN_YOUTUBE) console.log('  (en este sistema no se puede usar el yt-dlp de mentira: esta parte se salta)');
-    else {
-      await tab('youtube');
-      const tube = `document.querySelector('.media-body[data-panel=youtube]')`;
-      const tubeBar = `document.querySelector('.media-bar[data-panel=youtube]')`;
-      const linkBox = `document.querySelector('.yt-add input')`;
-      const tubeCard = `${tube}.querySelector('.media-card[data-status=ready], .media-card[data-status=downloading]')`;
-      const tubesNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).media.youtube)`).then(JSON.parse);
-      const paste = async (value) => { await run(`const i = ${linkBox}; i.focus(); i.value = ${JSON.stringify(value)}; i.dispatchEvent(new Event('input'));`); await click(`document.querySelector('.yt-add .btn')`); await sleep(500); };
-      check('la pestaña YouTube pide el enlace en vez de un archivo, y explica para qué sirve', await run(`const head = document.querySelector('.ws[data-module=medios] .ws-head'); return ${tube}.querySelector('.empty').textContent.includes('Aún no hay videos de YouTube') && ${tube}.querySelector('.empty').textContent.includes('sin internet') && Boolean(${linkBox}) && ![...head.querySelectorAll('.btn')].some(b => b.textContent.includes('Subir') && getComputedStyle(b).display !== 'none') && document.querySelector('.ws-notice').hidden`));
-      expectError('no es un enlace de un video de YouTube');
-      await paste('https://vimeo.com/123456789');
-      check('lo que no es un enlace de YouTube se rechaza, y lo dice', (await text('#toast')).includes('no es un enlace de un video de YouTube') && (await tubesNow()).length === 0, await text('#toast'));
-      await paste('https://youtu.be/pruebaManna?si=compartido');
-      check('al pegar un enlace empieza a descargarse y lo muestra con su avance, sin detener la app', await until(`${tubeCard}?.dataset.status === 'downloading' && ${tubeCard}.querySelector('.media-status .bar')`, 10)
-        && (await text('#toast')).includes('Descargando') && await run(`return ${linkBox}.value === '' && ${tubeBar}.querySelector('.btn.primary').disabled`));
-      check('el título llega antes que el video, y el avance se mueve (también en las tareas del panel)', await until(`${tubeCard}.querySelector('strong').textContent === 'Saludo de la iglesia hermana' && Number(${tubeCard}.querySelector('.bar')?.getAttribute('aria-valuenow')) > 0 && [...document.querySelectorAll('.queue .scene-jobs .job strong')].some(s => s.textContent === 'Descargando «Saludo de la iglesia hermana»')`, 20),
-        await run(`return ${tubeCard}.querySelector('strong').textContent + ' · ' + ${tubeCard}.querySelector('.media-status small')?.textContent`));
-      check('queda listo, con su imagen, su duración y sus subtítulos', await until(`${tubeCard}.dataset.status === 'ready' && ${tubeCard}.querySelector('.media-thumb img')?.naturalWidth > 0 && ${tubeCard}.querySelector('.media-duration')?.textContent === '0:06' && ${tubeCard}.querySelector('.media-cc')`, 60));
-      const saved = (await tubesNow())[0];
-      const asked = JSON.parse(fs.readFileSync(ytAsked, 'utf8'));
-      check('a yt-dlp solo le llega la dirección que escribe Manna, con el identificador del video', asked.at(-1) === 'https://www.youtube.com/watch?v=pruebaManna' && asked.at(-2) === '--' && !asked.some((a) => a.includes('compartido')), asked.slice(-2).join(' '));
-      check('el video queda guardado en el equipo: después ya no hace falta internet', saved.url === `/media/youtube/${saved.id}.mp4` && await run(`return (await fetch(${JSON.stringify(saved.url)}, { headers: { Range: 'bytes=0-9' } })).status === 206`), saved.url);
-      await paste('https://www.youtube.com/watch?v=pruebaManna&t=30s');
-      check('el mismo video no se descarga dos veces', (await text('#toast')).includes('ya está en la biblioteca') && (await tubesNow()).length === 1);
+  }
+  }
 
-      // Al aire, como cualquier video.
-      await click(`${tubeCard}.querySelector('.media-pick')`);
-      await sleep(300);
-      await click(`${tubeBar}.querySelector('.btn.primary')`);
-      await sleep(1800);
-      const tubeView = () => run(`const v = document.querySelector('.scene-bg > .stage video'); return JSON.stringify({ src: v.getAttribute('src'), paused: v.paused, t: v.currentTime, tracks: [...v.textTracks].map(t => t.language + ':' + t.mode) })`).then(JSON.parse);
-      let onTube = await air();
-      let viewed = await tubeView();
-      check('se proyecta como un video más, reproduciéndose desde el equipo', onTube.item.kind === 'youtube' && onTube.item.title === 'Saludo de la iglesia hermana' && onTube.live.clock.playing === true
-        && viewed.src === saved.url && !viewed.paused && viewed.t > 0.3 && await run(`return Boolean(${tubeCard}.querySelector('.badge.live'))`), JSON.stringify(viewed));
-      await control('Pausar');
-      check('trae sus subtítulos en español y en inglés, y los mandos dejan elegir el idioma', onTube.item.subtitles.map((t) => t.lang).join() === 'es,en' && await run(`return [...${controls}.querySelectorAll('select option')].map(o => o.textContent).join() === 'Español,Inglés'`));
-      await control('Subtítulos');
-      onTube = await air();
-      viewed = await tubeView();
-      check('"Subtítulos" muestra los del primer idioma', onTube.live.subtitles === 'es' && viewed.tracks.join() === 'es:showing,en:hidden', viewed.tracks.join());
-      await run(`const s = ${controls}.querySelector('select'); s.value = 'en'; s.dispatchEvent(new Event('change'));`);
-      await sleep(700);
-      onTube = await air();
-      viewed = await tubeView();
-      check('y al cambiar de idioma cambian en pantalla', onTube.live.subtitles === 'en' && viewed.tracks.join() === 'es:hidden,en:showing', viewed.tracks.join());
-      const vtt = await run(`return await (await fetch(${JSON.stringify(onTube.item.subtitles[0].url)})).text()`);
-      check('los subtítulos automáticos de YouTube llegan limpios: cada línea, una sola vez', vtt.split('texto de prueba').length === 2 && !vtt.includes('<c>') && !vtt.includes('align:'), vtt.replace(/\n+/g, ' / ').slice(0, 110));
-      await control('Subtítulos');
-      check('y se pueden quitar', (await air()).live.subtitles === false);
-      await click(`[...${tubeBar}.querySelectorAll('.btn')].find(b => b.textContent.includes('Añadir'))`);
-      await sleep(600);
-      const tubeInOrder = (await air()).order.find((i) => i.kind === 'youtube');
-      check('se añade al orden del culto como elemento propio', Boolean(tubeInOrder) && tubeInOrder.title === 'Saludo de la iglesia hermana' && tubeInOrder.subtitle === 'YouTube · 0:06');
+  // ---- Grupo «red» (1): YouTube e himnario (aquí para que los tres grupos tarden parecido) ----
+  if (inGroup('red')) {
+  console.log('\n1. Interfaz · Medios (YouTube)');
+  if (!CAN_YOUTUBE) console.log('  (en este sistema no se puede usar el yt-dlp de mentira: esta parte se salta)');
+  else {
+    await goTo('medios');
+    await sleep(500);
+    const tab = async (id) => { await click(`document.querySelector('.media-tabs [data-tab=${id}]')`); await sleep(400); };
+    const controls = `document.querySelector('.controls-pop .live-controls')`;
+    const control = async (label) => { await openControls(); await click(`[...${controls}.querySelectorAll('button')].find(b => (b.textContent + ' ' + (b.getAttribute('aria-label') || '')).includes(${JSON.stringify(label)}))`); await sleep(700); };
+    const air = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ item: s.projection.item, live: s.live.state, order: s.order.items })`).then(JSON.parse);
+    const cardMenu = async (cardJs, label) => { await click(`${cardJs}.querySelector('.media-more')`); await sleep(300); await menuItem(label); await sleep(400); };
+    await tab('youtube');
+    const tube = `document.querySelector('.media-body[data-panel=youtube]')`;
+    const tubeBar = `document.querySelector('.media-bar[data-panel=youtube]')`;
+    const linkBox = `document.querySelector('.yt-add input')`;
+    const tubeCard = `${tube}.querySelector('.media-card[data-status=ready], .media-card[data-status=downloading]')`;
+    const tubesNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).media.youtube)`).then(JSON.parse);
+    const paste = async (value) => { await run(`const i = ${linkBox}; i.focus(); i.value = ${JSON.stringify(value)}; i.dispatchEvent(new Event('input'));`); await click(`document.querySelector('.yt-add .btn')`); await sleep(500); };
+    check('la pestaña YouTube pide el enlace en vez de un archivo, y explica para qué sirve', await run(`const head = document.querySelector('.ws[data-module=medios] .ws-head'); return ${tube}.querySelector('.empty').textContent.includes('Aún no hay videos de YouTube') && ${tube}.querySelector('.empty').textContent.includes('sin internet') && Boolean(${linkBox}) && ![...head.querySelectorAll('.btn')].some(b => b.textContent.includes('Subir') && getComputedStyle(b).display !== 'none') && document.querySelector('.ws-notice').hidden`));
+    expectError('no es un enlace de un video de YouTube');
+    await paste('https://vimeo.com/123456789');
+    check('lo que no es un enlace de YouTube se rechaza, y lo dice', (await text('#toast')).includes('no es un enlace de un video de YouTube') && (await tubesNow()).length === 0, await text('#toast'));
+    await paste('https://youtu.be/pruebaManna?si=compartido');
+    check('al pegar un enlace empieza a descargarse y lo muestra con su avance, sin detener la app', await until(`${tubeCard}?.dataset.status === 'downloading' && ${tubeCard}.querySelector('.media-status .bar')`, 10)
+      && (await text('#toast')).includes('Descargando') && await run(`return ${linkBox}.value === '' && ${tubeBar}.querySelector('.btn.primary').disabled`));
+    check('el título llega antes que el video, y el avance se mueve (también en las tareas del panel)', await until(`${tubeCard}.querySelector('strong').textContent === 'Saludo de la iglesia hermana' && Number(${tubeCard}.querySelector('.bar')?.getAttribute('aria-valuenow')) > 0 && [...document.querySelectorAll('.queue .scene-jobs .job strong')].some(s => s.textContent === 'Descargando «Saludo de la iglesia hermana»')`, 20),
+      await run(`return ${tubeCard}.querySelector('strong').textContent + ' · ' + ${tubeCard}.querySelector('.media-status small')?.textContent`));
+    check('queda listo, con su imagen, su duración y sus subtítulos', await until(`${tubeCard}.dataset.status === 'ready' && ${tubeCard}.querySelector('.media-thumb img')?.naturalWidth > 0 && ${tubeCard}.querySelector('.media-duration')?.textContent === '0:06' && ${tubeCard}.querySelector('.media-cc')`, 60));
+    const saved = (await tubesNow())[0];
+    const asked = JSON.parse(fs.readFileSync(ytAsked, 'utf8'));
+    check('a yt-dlp solo le llega la dirección que escribe Manna, con el identificador del video', asked.at(-1) === 'https://www.youtube.com/watch?v=pruebaManna' && asked.at(-2) === '--' && !asked.some((a) => a.includes('compartido')), asked.slice(-2).join(' '));
+    check('el video queda guardado en el equipo: después ya no hace falta internet', saved.url === `/media/youtube/${saved.id}.mp4` && await run(`return (await fetch(${JSON.stringify(saved.url)}, { headers: { Range: 'bytes=0-9' } })).status === 206`), saved.url);
+    await paste('https://www.youtube.com/watch?v=pruebaManna&t=30s');
+    check('el mismo video no se descarga dos veces', (await text('#toast')).includes('ya está en la biblioteca') && (await tubesNow()).length === 1);
 
-      // Un video que YouTube no deja bajar.
-      await paste('https://www.youtube.com/watch?v=privado0001');
-      const failedCard = `${tube}.querySelector('.media-card[data-status=error]')`;
-      check('si YouTube no deja descargarlo, la ficha dice por qué y ofrece reintentar', await until(`${failedCard}?.querySelector('.media-status small')?.textContent.includes('privado o se quitó')`, 30)
-        && await run(`return [...${failedCard}.querySelectorAll('.media-status .btn')].map(b => b.textContent).join() === 'Reintentar' && document.querySelectorAll('.queue .scene-jobs .job.error').length === 1`));
-      await click(`${failedCard}.querySelector('.media-status .btn')`);
-      check('"Reintentar" lo descarga de nuevo', await until(`${tube}.querySelectorAll('.media-card[data-status=downloading]').length === 1`, 10) && await until(`${failedCard}`, 30));
-      await cardMenu(failedCard, 'Eliminar');
-      await modalButton('Eliminar');
-      await sleep(700);
-      check('y al eliminarlo no queda ningún aviso suyo', (await tubesNow()).length === 1 && await run(`return !document.querySelector('.queue .scene-jobs .job.error')`));
-    }
+    // Al aire, como cualquier video.
+    await click(`${tubeCard}.querySelector('.media-pick')`);
+    await sleep(300);
+    await click(`${tubeBar}.querySelector('.btn.primary')`);
+    await sleep(1800);
+    const tubeView = () => run(`const v = document.querySelector('.scene-bg > .stage video'); return JSON.stringify({ src: v.getAttribute('src'), paused: v.paused, t: v.currentTime, tracks: [...v.textTracks].map(t => t.language + ':' + t.mode) })`).then(JSON.parse);
+    let onTube = await air();
+    let viewed = await tubeView();
+    check('se proyecta como un video más, reproduciéndose desde el equipo', onTube.item.kind === 'youtube' && onTube.item.title === 'Saludo de la iglesia hermana' && onTube.live.clock.playing === true
+      && viewed.src === saved.url && !viewed.paused && viewed.t > 0.3 && await run(`return Boolean(${tubeCard}.querySelector('.badge.live'))`), JSON.stringify(viewed));
+    await control('Pausar');
+    check('trae sus subtítulos en español y en inglés, y los mandos dejan elegir el idioma', onTube.item.subtitles.map((t) => t.lang).join() === 'es,en' && await run(`return [...${controls}.querySelectorAll('select option')].map(o => o.textContent).join() === 'Español,Inglés'`));
+    await control('Subtítulos');
+    onTube = await air();
+    viewed = await tubeView();
+    check('"Subtítulos" muestra los del primer idioma', onTube.live.subtitles === 'es' && viewed.tracks.join() === 'es:showing,en:hidden', viewed.tracks.join());
+    await run(`const s = ${controls}.querySelector('select'); s.value = 'en'; s.dispatchEvent(new Event('change'));`);
+    await sleep(700);
+    onTube = await air();
+    viewed = await tubeView();
+    check('y al cambiar de idioma cambian en pantalla', onTube.live.subtitles === 'en' && viewed.tracks.join() === 'es:hidden,en:showing', viewed.tracks.join());
+    const vtt = await run(`return await (await fetch(${JSON.stringify(onTube.item.subtitles[0].url)})).text()`);
+    check('los subtítulos automáticos de YouTube llegan limpios: cada línea, una sola vez', vtt.split('texto de prueba').length === 2 && !vtt.includes('<c>') && !vtt.includes('align:'), vtt.replace(/\n+/g, ' / ').slice(0, 110));
+    await control('Subtítulos');
+    check('y se pueden quitar', (await air()).live.subtitles === false);
+    await click(`[...${tubeBar}.querySelectorAll('.btn')].find(b => b.textContent.includes('Añadir'))`);
+    await sleep(600);
+    const tubeInOrder = (await air()).order.find((i) => i.kind === 'youtube');
+    check('se añade al orden del culto como elemento propio', Boolean(tubeInOrder) && tubeInOrder.title === 'Saludo de la iglesia hermana' && tubeInOrder.subtitle === 'YouTube · 0:06');
+
+    // Un video que YouTube no deja bajar.
+    await paste('https://www.youtube.com/watch?v=privado0001');
+    const failedCard = `${tube}.querySelector('.media-card[data-status=error]')`;
+    check('si YouTube no deja descargarlo, la ficha dice por qué y ofrece reintentar', await until(`${failedCard}?.querySelector('.media-status small')?.textContent.includes('privado o se quitó')`, 30)
+      && await run(`return [...${failedCard}.querySelectorAll('.media-status .btn')].map(b => b.textContent).join() === 'Reintentar' && document.querySelectorAll('.queue .scene-jobs .job.error').length === 1`));
+    await click(`${failedCard}.querySelector('.media-status .btn')`);
+    check('"Reintentar" lo descarga de nuevo', await until(`${tube}.querySelectorAll('.media-card[data-status=downloading]').length === 1`, 10) && await until(`${failedCard}`, 30));
+    await cardMenu(failedCard, 'Eliminar');
+    await modalButton('Eliminar');
+    await sleep(700);
+    check('y al eliminarlo no queda ningún aviso suyo', (await tubesNow()).length === 1 && await run(`return !document.querySelector('.queue .scene-jobs .job.error')`));
   }
 
   console.log('\n1. Interfaz · Himnario');
@@ -1240,7 +1254,10 @@ try {
     await press('ArrowDown');
     check('↓ pasa al himno siguiente sin tocar la proyección', await run(`return ${tile(10)}.classList.contains('selected') && ${hbar}.querySelector('.hymn-sel-n').textContent === '10'`));
   }
+  }
 
+  // ---- Grupo «biblioteca» (2): diapositivas, presentador y páginas web ----
+  if (inGroup('biblioteca')) {
   console.log('\n1. Interfaz · Diapositivas');
   {
     const ws = `document.querySelector('.ws[data-module=diapositivas]')`;
@@ -1345,6 +1362,31 @@ try {
       && await until(`/Diapositiva \\d de 3/.test(${converting}?.querySelector('.deck-status small')?.textContent || '')`, 15), await run(`return ${converting}?.querySelector('.deck-status small')?.textContent`));
     check('al terminar quedan sus tres diapositivas', await until(`${ws}.querySelectorAll('.deck[data-status=ready]').length === 2`, 40) && await (async () => { decks = await decksNow(); const made = decks.find((d) => d.source === 'powerpoint'); return made?.pages === 3 && made.ext === 'png' && await run(`return ${ws}.querySelector('.deck[data-id="${made.id}"]').classList.contains('selected') && ${ws}.querySelectorAll('.slide-pick').length === 3 && [...${ws}.querySelectorAll('.slide-thumb img')].every(i => i.getAttribute('src').endsWith('.png'))`); })());
     const made = decks.find((d) => d.source === 'powerpoint') || {};
+
+    // PowerPoint en vivo: lo pasa el propio PowerPoint (aquí, el de mentira, que apunta lo que recibe y tiene una
+    // animación en la diapositiva 2); Manna pone la foto de cada diapositiva.
+    const madeCard = `${ws}.querySelector('.deck[data-id="${made.id}"]')`;
+    const pptSaid = () => { try { return fs.readFileSync(path.join(tmp, 'powerpoint', 'pase.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l)).map((o) => [o.order, o.value].filter(Boolean).join(' ')); } catch { return []; } };
+    check('en Windows con PowerPoint, un PowerPoint nuevo se pasa en vivo, y la tarjeta lo dice', made.live === true && await run(`return ${madeCard}.querySelector('small').textContent.includes('PowerPoint en vivo')`), await run(`return ${madeCard}?.querySelector('small')?.textContent`));
+    await click(slide(1));
+    await sleep(400);
+    await press('Enter');
+    await sleep(800);
+    await openControls();
+    check('al proyectarla, PowerPoint empieza por esa diapositiva, y los mandos dicen que la pasa él (sin zoom)', pptSaid().at(-1) === 'ir 1' && (await onAir()).item.powerpoint === true
+      && await run(`const c = ${liveBox}; return !c.querySelector('.slide-ppt').hidden && c.querySelector('.slide-ppt').textContent.includes('PowerPoint') && c.querySelector('.live-part').hidden`), pptSaid().join(', '));
+    await press('ArrowRight');
+    await sleep(500);
+    const passed = (await onAir()).item.number;
+    await press('ArrowRight');
+    await sleep(500);
+    check('«Siguiente» lo da PowerPoint: pasa la diapositiva y, si tiene, sus animaciones', passed === 2 && (await onAir()).item.number === 2 && pptSaid().filter((o) => o === 'siguiente').length === 2, `${passed} → ${(await onAir()).item.number}: ${pptSaid().join(', ')}`);
+    await deckMenu(madeCard, 'Pasar como imágenes');
+    check('«Pasar como imágenes» la cierra en PowerPoint y vuelven el zoom y el encuadre', await until(`!document.querySelector('.controls-pop .live-controls .live-part').hidden`, 10) && pptSaid().at(-1) === 'cerrar' && (await decksNow()).find((d) => d.id === made.id)?.live === false
+      && await run(`return !${madeCard}.querySelector('small').textContent.includes('en vivo')`), pptSaid().join(', '));
+    await run(`return await ${post('projection.show', { kind: 'slides', data: { id: deck.id }, step: 2 })}`);
+    await sleep(500);
+
     await deckMenu(deckCard, 'Cambiar el nombre');
     await run(`${modal}.querySelector('input').value = 'Informe del trimestre';`);
     await modalButton('Guardar');

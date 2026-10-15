@@ -146,7 +146,7 @@ function mount(el, ctx) {
   function paintReset() {
     const f = framing();
     const v = f && { ...FULL_VIEW, ...f.view };
-    resetZoom.hidden = Boolean(pageId);
+    resetZoom.hidden = Boolean(pageId) || Boolean(state.projection?.item?.powerpoint);
     resetZoom.disabled = !v || (v.zoom <= 1 && Math.abs(v.x - 0.5) < 0.001 && Math.abs(v.y - 0.5) < 0.001);
   }
 
@@ -236,8 +236,11 @@ function mount(el, ctx) {
     const showing = p?.mode === 'live' && Boolean(p.item);
     live.classList.toggle('on-air', showing);
     black.classList.toggle('on', p?.mode === 'black');
-    // Una página no tiene siguiente ni rejilla, ni encuadre que mover.
-    toolButtons[1].hidden = Boolean(pg);
+    // Una página no tiene siguiente ni rejilla, ni encuadre que mover; si la pasa PowerPoint, no hay encuadre ni puntero.
+    const ppt = Boolean(p?.item?.powerpoint);
+    toolButtons[0].hidden = ppt;
+    toolButtons[1].hidden = Boolean(pg) || ppt;
+    if (ppt) tool = null;
     if (pg && tool === 'move') tool = 'point';
     paintTools();
     for (const part of [around, gridBox]) part.hidden = Boolean(pg);

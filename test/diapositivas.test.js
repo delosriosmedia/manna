@@ -10,7 +10,7 @@ import system from '../server/modules/system/index.js';
 import projection from '../server/modules/projection/index.js';
 import order from '../server/modules/order/index.js';
 import slides from '../server/modules/slides/index.js';
-import { collect, explain, exportPlan, isPresentation, MAC_SCRIPT, readLine, WIN_SCRIPT } from '../server/modules/slides/powerpoint.js';
+import { collect, explain, exportPlan, isPresentation, LIVE_SCRIPT, livePlan, MAC_SCRIPT, readLine, readLiveLine, WIN_SCRIPT } from '../server/modules/slides/powerpoint.js';
 import { fakePresentation, writeFakePowerPoint } from '../scripts/lib/powerpoint-falso.mjs';
 import { makePng } from '../scripts/lib/png.mjs';
 
@@ -44,6 +44,19 @@ test('las órdenes para PowerPoint nunca llevan la ruta pegada en el texto', () 
   assert.match(script, /\$abiertas -eq 0/);
   assert.match(script, /SlideShowTransition\.Hidden -eq 0/);
   assert.match(script, /"MANNA`ttotal`t"/);
+
+  // El pase en vivo: igual, codificado y con la ruta aparte; solo en Windows.
+  const live = livePlan('win32', { input });
+  assert.equal(Buffer.from(live.args.at(-1), 'base64').toString('utf16le'), LIVE_SCRIPT);
+  assert.equal(live.args.join(' ').includes('Datos de Manna'), false);
+  assert.equal(live.env.MANNA_PPT_ENTRADA, input);
+  assert.equal(livePlan('darwin', { input }), null, 'en Mac PowerPoint no deja elegir la pantalla');
+  assert.match(LIVE_SCRIPT, /Presentations\.Open\(\$env:MANNA_PPT_ENTRADA, -1, 0, -1\)/);
+  assert.match(LIVE_SCRIPT, /\$abiertas -eq 0/);
+  assert.match(LIVE_SCRIPT, /"MANNA`t\$que`t\$valor`t\$n"/);
+  assert.deepEqual(readLiveLine('MANNA\tdiapositiva\t4\t7\r'), { what: 'diapositiva', value: 4, text: '4', n: '7' });
+  assert.deepEqual(readLiveLine('MANNA\tfin\t\t'), { what: 'fin', value: 0, text: '', n: '' });
+  assert.equal(readLiveLine('WARNING: algo'), null);
 
   const mac = exportPlan('darwin', { input: '/tmp/a b.pptx', dir: '/tmp/salida' });
   assert.deepEqual([mac.file, mac.args[0], mac.args[1]], ['osascript', '-e', MAC_SCRIPT]);
@@ -217,6 +230,77 @@ test('un PowerPoint lo convierte el PowerPoint del equipo principal, como tarea 
     assert.equal((await s.state()).jobs.list.filter((j) => j.ref === broken.id && j.state === 'error').length, 1);
     assert.equal((await s.send('slides.remove', { id: broken.id })).http, 200);
     assert.equal((await s.state()).jobs.list.some((j) => j.ref === broken.id), false, 'al eliminarla se va su aviso');
+  } finally {
+    delete process.env.MANNA_POWERPOINT_PRUEBA;
+    await s.stop();
+  }
+});
+
+test('PowerPoint en vivo: la pasa el propio PowerPoint, que da los pasos (también las animaciones), y Manna lo sigue', async () => {
+  const dir = path.join(tmp, 'falso-vivo');
+  const fake = writeFakePowerPoint(dir, { slides: 3, pause: 0 });
+  const s = await start('vivo', { MANNA_POWERPOINT_PRUEBA: fake });
+  process.env.MANNA_POWERPOINT_PRUEBA = fake;
+  // Lo que recibió PowerPoint, en orden; el de mentira tiene una animación en la diapositiva 2.
+  const log = path.join(dir, 'pase.jsonl');
+  const orders = () => (fs.existsSync(log) ? fs.readFileSync(log, 'utf8').trim().split('\n').map((l) => JSON.parse(l)).map((o) => [o.order, o.value].filter(Boolean).join(' ')) : []);
+  const until = async (fn, ms = 5000) => { for (let t = 0; t < ms; t += 50) { if (await fn()) return true; await sleep(50); } return false; };
+  const onAir = async () => (await s.state()).projection.item;
+  const step = (delta) => s.send('projection.step', { delta });
+  try {
+    const added = await s.put('/api/slides/powerpoint?name=Misiones&ext=.pptx', fakePresentation());
+    const deck = await s.settle(added.id, 'ready');
+    assert.deepEqual([deck.live, deck.liveable], [true, true], 'en Windows con PowerPoint, una presentación nueva se pasa en vivo');
+    assert.deepEqual(fs.readdirSync(path.join(s.dataDir, 'presentaciones')), [`${deck.id}.pptx`], 'se guarda el original, fuera de lo que se sirve');
+    const inOrder = (await s.send('order.add', { kind: 'slides', data: { id: deck.id } })).result;
+    await s.send('order.add', { kind: 'testcard', data: {} });
+
+    await s.send('order.show', { id: inOrder.id, step: 0 });
+    assert.ok(await until(() => orders().includes('ir 1')), 'al ponerla al aire, PowerPoint empieza por la misma diapositiva');
+    assert.equal((await onAir()).powerpoint, true, 'y los mandos saben que la pasa PowerPoint');
+    await step(1);
+    assert.equal((await onAir()).number, 2, '«Siguiente» lo da PowerPoint y Manna pone su foto');
+    await step(1);
+    assert.equal((await onAir()).number, 2, 'una animación no cambia de diapositiva');
+    await step(1);
+    assert.equal((await onAir()).number, 3);
+    await step(-1);
+    assert.equal((await onAir()).number, 2, '«Anterior», igual');
+    await step(1);
+    await step(1);
+    assert.deepEqual(orders().filter((o) => o === 'siguiente' || o === 'anterior').length, 6);
+    assert.equal((await onAir()).kind, 'testcard', 'al acabar la presentación, Manna sigue con el orden del culto');
+    assert.ok(await until(() => orders().at(-1) === 'parar'), 'y PowerPoint deja de pasarla');
+
+    await step(-1);
+    assert.equal((await onAir()).number, 3);
+    assert.ok(await until(() => orders().at(-1) === 'ir 3'), 'al volver a ella, PowerPoint vuelve sin abrirla otra vez');
+    fs.writeFileSync(`${log}.mover`, '1');
+    assert.ok(await until(async () => (await onAir()).number === 1), 'si alguien la pasa en el equipo, los demás lo ven');
+    fs.writeFileSync(`${log}.mover`, 'fin');
+    assert.ok(await until(async () => (await onAir()).kind === 'testcard'), 'y si pasa de la última, Manna sigue con el orden');
+
+    await s.send('order.show', { id: inOrder.id, step: 0 });
+    assert.equal((await s.send('slides.live', { id: deck.id, on: false })).http, 200);
+    assert.ok(await until(() => orders().at(-1) === 'cerrar'), '«Pasar como imágenes» cierra la presentación en PowerPoint');
+    assert.deepEqual([(await onAir()).powerpoint, (await s.decks())[0].live], [false, false]);
+    await step(1);
+    assert.equal((await onAir()).number, 2, 'y Manna vuelve a pasarla como imágenes');
+    assert.equal(orders().at(-1), 'cerrar');
+
+    // Si PowerPoint no puede abrirla, va como imágenes, se avisa y el menú ofrece volver a intentarlo.
+    fs.writeFileSync(path.join(s.dataDir, 'presentaciones', `${deck.id}.pptx`), fakePresentation('ROTA'));
+    assert.equal((await s.send('slides.live', { id: deck.id, on: true })).http, 200);
+    assert.ok(await until(async () => (await s.decks())[0].live === false), 'al fallar, deja de ir en vivo');
+    assert.equal((await onAir()).powerpoint, false);
+    assert.equal((await s.state()).jobs.list.filter((j) => j.ref === deck.id && j.state === 'error' && j.error?.includes('se ve como imágenes')).length, 1, (await s.state()).jobs.list.map((j) => j.error).join());
+    await step(1);
+    assert.equal((await onAir()).number, 3, 'y se sigue pasando como imágenes');
+
+    assert.equal((await s.send('slides.remove', { id: deck.id })).http, 200);
+    assert.deepEqual(fs.readdirSync(path.join(s.dataDir, 'presentaciones')), [], 'al eliminarla se borra el original');
+    await s.as('proyeccion');
+    assert.equal((await s.send('slides.live', { id: deck.id, on: true })).http, 403);
   } finally {
     delete process.env.MANNA_POWERPOINT_PRUEBA;
     await s.stop();

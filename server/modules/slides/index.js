@@ -5,7 +5,7 @@ import { HttpError } from '../../core/router.js';
 import { readImageInfo } from '../../core/images.js';
 import { cleanName } from '../../core/names.js';
 import { applyView, initialView } from '../../core/view.js';
-import { createExporter, isPresentation, PRESENTATION_EXTENSIONS } from './powerpoint.js';
+import { createExporter, isPresentation, liveSupported, openLive, PRESENTATION_EXTENSIONS } from './powerpoint.js';
 
 // Módulo Diapositivas: presentaciones convertidas en imágenes, una por diapositiva. Así se ven
 // igual en cualquier pantalla y se gobiernan como una imagen (acercar, desplazar). A cambio se
@@ -20,8 +20,10 @@ import { createExporter, isPresentation, PRESENTATION_EXTENSIONS } from './power
 // Cada presentación es una carpeta data/media/diapositivas/<id>/ con 1.jpg, 2.jpg… y, si las hay,
 // sus miniaturas m1.jpg, m2.jpg…, más una ficha en data/diapositivas.json:
 //   { id, name, source: 'pdf' | 'powerpoint', pages, ext, thumbs, width, height, added,
-//     status: 'receiving' | 'converting' | 'ready' | 'error', error }
+//     status: 'receiving' | 'converting' | 'ready' | 'error', error, original, live }
 //   receiving: el navegador aún está enviando las páginas (no se publica)
+//   original:  el PowerPoint tal cual se subió (desde la 1.14), en data/presentaciones/: no se sirve
+//   live:      se pasa con el propio PowerPoint mientras está al aire (ver «PowerPoint en vivo», abajo)
 
 const FOLDER = 'diapositivas';
 const MAX_PAGES = 500;
@@ -39,11 +41,18 @@ export default function setup(app) {
   const exporter = createExporter(app);
   const decks = () => saved.data.decks;
   const dirOf = (deck) => path.join(base, deck.id);
+  // Los PowerPoint originales, fuera de data/media: lo que hay ahí se sirve a cualquiera de la red.
+  const originals = path.join(app.dataDir, 'presentaciones');
+  const originalOf = (deck) => (deck.original ? path.join(originals, deck.original) : null);
+  const dropOriginal = (deck) => { if (deck.original) fs.rmSync(originalOf(deck), { force: true }); };
 
   // Lo que quedó a medias al apagar: una subida sin terminar se borra; una conversión, se dice.
   saved.data.decks = decks().filter((deck) => {
     const keep = deck.status !== 'receiving' && (deck.status !== 'ready' || fs.existsSync(dirOf(deck)));
-    if (!keep) fs.rmSync(dirOf(deck), { recursive: true, force: true });
+    if (!keep) {
+      fs.rmSync(dirOf(deck), { recursive: true, force: true });
+      dropOriginal(deck);
+    }
     return keep;
   });
   for (const deck of decks()) {
@@ -56,6 +65,8 @@ export default function setup(app) {
   const view = (deck) => ({
     id: deck.id, name: deck.name, source: deck.source, pages: deck.pages, width: deck.width || 0, height: deck.height || 0, added: deck.added,
     status: deck.status, error: deck.error || null, base: `/media/${FOLDER}/${deck.id}/`, ext: deck.ext || 'jpg', thumbs: Boolean(deck.thumbs),
+    // Tras un fallo de PowerPoint va como imágenes, y el menú ofrece volver a intentarlo.
+    live: Boolean(deck.live) && !failed.has(deck.id), liveable: liveable(deck),
   });
   const publish = () => store.set('slides', { decks: decks().filter((d) => d.status !== 'receiving').sort((a, b) => b.added - a.added).map(view) });
   const commit = () => {
@@ -69,10 +80,109 @@ export default function setup(app) {
   };
   const ready = (id) => decks().find((d) => d.id === id && d.status === 'ready') || null;
 
+  // ---- PowerPoint en vivo (fase 12) ----
+  // Una presentación con `live` la pasa el propio PowerPoint (powerpoint.js, openLive) a pantalla completa en la
+  // pantalla de proyección mientras está al aire, encima de la ventana de Manna. Esa ventana, los celulares y los
+  // televisores siguen viendo la foto de la diapositiva por la que va, que también queda si PowerPoint falla.
+  // Solo en Windows, con PowerPoint y con la ventana de proyección abierta (con el PowerPoint de mentira de las
+  // pruebas, también sin ella). La presentación queda abierta tras el pase, para volver a ella enseguida; se
+  // cierra al pasar otra, al quitarle el modo o al apagar Manna.
+  const fake = Boolean(process.env.MANNA_POWERPOINT_PRUEBA);
+  const liveable = (deck) => Boolean(deck.original) && liveSupported() && app.tools.has('powerpoint');
+  const failed = new Set(); // las que PowerPoint no pudo pasar: van como imágenes hasta que se vuelva a pedir
+  const inPowerPoint = (deck) => Boolean(deck.live) && liveable(deck) && !failed.has(deck.id);
+  let session = null; // { deck, live, showing, at }: at = la diapositiva en que está PowerPoint (1…)
+
+  function wanted() {
+    const { item, mode, display } = store.get('projection') || {};
+    if (item?.kind !== 'slides' || mode !== 'live' || !(display?.open || fake)) return null;
+    const deck = ready(item.source.data?.id);
+    return deck && inPowerPoint(deck) ? { deck, number: item.number } : null;
+  }
+  // Lleva PowerPoint a lo que está al aire (o termina el pase si ya no le toca).
+  function sync() {
+    const want = wanted();
+    if (session && session.deck !== want?.deck && want) closeSession();
+    if (!want) {
+      if (session?.showing) {
+        const current = session;
+        current.showing = false;
+        current.live.send('parar').then((said) => answer(current, said));
+      }
+      return;
+    }
+    if (!session) {
+      const mine = { deck: want.deck, live: null, showing: false, at: 0 };
+      const job = app.jobs.start({ title: `Abriendo «${want.deck.name}» en PowerPoint`, owner: 'slides', ref: want.deck.id });
+      mine.live = openLive({ input: originalOf(want.deck), onEvent: (said) => heard(mine, said) });
+      if (!mine.live) { job.fail('Este equipo no puede pasarla con PowerPoint.'); return; }
+      mine.job = job;
+      session = mine;
+    }
+    if (session.showing && session.at === want.number) return;
+    const current = session;
+    current.showing = true;
+    current.at = want.number;
+    current.live.send('ir', want.number).then((said) => {
+      current.job?.done('Listo');
+      current.job = null;
+      // Manna ya eligió esa diapositiva: no hay nada que seguir.
+      if (said.what === 'diapositiva') current.at = said.value;
+      else answer(current, said);
+    });
+  }
+  function closeSession() {
+    session?.live.close();
+    session = null;
+  }
+  // Lo que contesta PowerPoint a una orden.
+  function answer(mine, said) {
+    if (mine !== session) return;
+    if (said.what === 'diapositiva') follow(mine, said.value);
+    else if (said.what === 'parado') mine.showing = false;
+    else if (!['fin', 'inicio'].includes(said.what)) fail(mine, said.what === 'error' ? said.text : `PowerPoint ${said.what === 'sinrespuesta' ? 'no contestó' : 'se cerró'}.`);
+  }
+  // Lo que dice PowerPoint por su cuenta: alguien pasó, cerró el pase o pasó de la última en el equipo.
+  function heard(mine, said) {
+    if (said.what === 'cerrado') {
+      if (mine === session) fail(mine, said.error || 'PowerPoint se cerró.');
+      return;
+    }
+    if (mine !== session) return;
+    if (said.what === 'diapositiva') follow(mine, said.value);
+    else if (said.what === 'parado') mine.showing = false;
+    // Al pasar de la última en el equipo (PowerPoint ya volvió a ella), Manna sigue con lo que venga en el orden.
+    else if (said.what === 'fin') {
+      follow(mine, mine.deck.pages);
+      Promise.resolve(app.run('projection.step', { delta: 1 })).catch(() => {});
+    }
+  }
+  // Pone al aire la foto de la diapositiva en que está PowerPoint.
+  function follow(mine, number) {
+    mine.at = number;
+    const { item } = store.get('projection');
+    if (item?.kind !== 'slides' || item.source.data?.id !== mine.deck.id || item.number === number || !number) return;
+    try { app.services.projection.present({ kind: 'slides', data: { id: mine.deck.id }, step: number - 1, orderId: item.source.orderId }); } catch { /* la presentación ya no está */ }
+  }
+  function fail(mine, why) {
+    console.error(`PowerPoint no pudo pasar «${mine.deck.name}»: ${String(why).trim()}`);
+    failed.add(mine.deck.id);
+    const job = mine.job || app.jobs.start({ title: `PowerPoint en vivo: «${mine.deck.name}»`, owner: 'slides', ref: mine.deck.id });
+    job.fail('PowerPoint no pudo pasarla: se ve como imágenes. Para volver a intentarlo, elige «Pasar con PowerPoint» en la presentación.');
+    mine.job = null;
+    if (mine === session) closeSession();
+    publish();
+    app.services.projection?.refresh();
+  }
+  store.on('change', (ns) => { if (ns === 'projection') sync(); });
+
   store.register('slides', { decks: [] });
   publish();
   saved.save();
-  app.onClose(() => exporter.close());
+  app.onClose(() => {
+    exporter.close();
+    closeSession();
+  });
 
   // ---- Tipo de contenido ----
   // data = { id }. Cada diapositiva es un paso; "siguiente" las recorre. Lo que se proyecta es
@@ -84,6 +194,8 @@ export default function setup(app) {
     return {
       id: deck.id, title: deck.name, reference: `Diapositiva ${n}`, number: n, pages: deck.pages,
       url: pageUrl(deck, n), thumb: thumbUrl(deck, n), width: deck.width, height: deck.height, fit: 'contain',
+      // La pasa PowerPoint: en el proyector no hay zoom ni puntero de Manna.
+      powerpoint: inPowerPoint(deck),
       // La que viene, para verla antes de pasar a ella.
       next: n < deck.pages ? { number: n + 1, thumb: thumbUrl(deck, n + 1) } : null,
     };
@@ -107,6 +219,15 @@ export default function setup(app) {
     },
     live: (item, previous) => initialView('contain', previous?.state),
     control: (state, patch) => applyView(state, { ...patch, fit: 'contain' }),
+    // Con PowerPoint en vivo, «siguiente» y «anterior» los da PowerPoint: así pasan también las animaciones. Al
+    // terminar la presentación (o antes de la primera), Manna sigue como siempre: lo que venga en el orden.
+    async step(item, delta) {
+      const mine = session;
+      if (!mine?.showing || mine.deck.id !== item.source.data?.id) return false;
+      const said = await mine.live.send(delta > 0 ? 'siguiente' : 'anterior');
+      answer(mine, said);
+      return said.what === 'diapositiva';
+    },
   });
 
   // ---- Subir un PDF, ya convertido en imágenes por el navegador ----
@@ -178,6 +299,7 @@ export default function setup(app) {
     const deck = {
       id, name: cleanName(ctx.query.get('name')) || 'Presentación', source: 'powerpoint',
       pages: 0, ext: 'jpg', thumbs: false, width: 0, height: 0, added: Date.now(), status: 'converting', error: null,
+      original: null, live: false,
     };
     decks().push(deck);
     commit();
@@ -188,8 +310,14 @@ export default function setup(app) {
       onDone(result) {
         const still = decks().includes(deck);
         try {
-          if (result.ok && still) adopt(deck, result.pages);
-          else if (still && !result.cancelled) Object.assign(deck, { status: 'error', error: result.error });
+          if (result.ok && still) {
+            adopt(deck, result.pages);
+            // Se guarda el original, para pasarla en vivo; en Windows con PowerPoint, así empieza.
+            fs.mkdirSync(originals, { recursive: true });
+            fs.renameSync(input, path.join(originals, `${id}${ext}`));
+            Object.assign(deck, { original: `${id}${ext}` });
+            deck.live = liveable(deck);
+          } else if (still && !result.cancelled) Object.assign(deck, { status: 'error', error: result.error });
         } catch (err) {
           Object.assign(deck, { status: 'error', error: err instanceof HttpError ? err.message : 'No se pudieron guardar las diapositivas.' });
         }
@@ -227,10 +355,26 @@ export default function setup(app) {
     app.services.projection?.refresh();
   });
 
+  // Pasarla con PowerPoint (on) o como imágenes. Volver a pedirlo tras un fallo lo intenta de nuevo.
+  app.action('slides.live', { permission: 'slides.edit' }, ({ id, on }) => {
+    const deck = find(id);
+    if (on && !liveSupported()) throw new HttpError(409, 'Pasar con PowerPoint solo se puede en un equipo principal con Windows.');
+    if (on && !app.tools.has('powerpoint')) throw new HttpError(409, 'Este equipo no tiene PowerPoint.');
+    if (on && !deck.original) throw new HttpError(409, 'De esta presentación no se guardó el PowerPoint original (se subió como PDF o antes de la versión 1.14). Súbela de nuevo como PowerPoint.');
+    deck.live = Boolean(on);
+    failed.delete(deck.id);
+    if (session?.deck === deck) closeSession();
+    commit();
+    app.services.projection?.refresh();
+    sync();
+  });
+
   app.action('slides.remove', { permission: 'slides.edit' }, ({ id }) => {
     const deck = find(id);
     exporter.cancel(deck.id);
     exporter.forget(deck.id);
+    if (session?.deck === deck) closeSession();
+    dropOriginal(deck);
     fs.rmSync(dirOf(deck), { recursive: true, force: true });
     saved.data.decks = decks().filter((d) => d.id !== id);
     commit();

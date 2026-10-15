@@ -225,6 +225,7 @@ body.has-prep .finder { max-height: calc(100dvh - 208px - var(--prep-h, 0px)); }
 .slide-count { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .slide-count strong { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slide-count small, .slide-next small { color: var(--ink-3); font-size: 12px; white-space: nowrap; }
+.slide-ppt { margin: 10px 0 0; color: var(--ink-3); font-size: 13px; line-height: 1.4; }
 .slide-next { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .slide-next-thumb { width: 96px; aspect-ratio: 16 / 9; flex-shrink: 0; background: #000; border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
 .slide-next-thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }

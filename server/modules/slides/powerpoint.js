@@ -183,6 +183,234 @@ export function explain(stderr, platform = process.platform) {
   return `PowerPoint no pudo convertir esta presentación${platform === 'darwin' ? ' (puede que esté esperando una respuesta en su ventana)' : ''}. Guárdala como PDF (Archivo → Exportar) y sube el PDF.`;
 }
 
+// ---- PowerPoint en vivo (solo Windows) ----
+// La presentación la pasa el propio PowerPoint a pantalla completa en la pantalla de proyección, sobre la
+// ventana de Manna: con sus videos, animaciones y transiciones. Mientras tanto queda abierto un PowerShell con
+// la presentación (su ventana del editor, minimizada), que recibe órdenes de una línea por la entrada estándar
+// ("orden<tab>valor<tab>n.º") y contesta por la salida ("MANNA<tab>qué<tab>valor<tab>n.º"):
+//   ir n        la diapositiva n de las visibles (empieza el pase si no estaba)   → diapositiva n
+//   siguiente   lo que sigue: una animación o la diapositiva siguiente           → diapositiva n, o fin
+//   anterior                                                                      → diapositiva n, o inicio
+//   parar       termina el pase; la presentación sigue abierta para volver pronto  → parado
+// Sin órdenes, mira cada medio segundo dónde va, para seguir lo que se haga en el propio equipo, y lo dice sin
+// n.º: diapositiva n (cambió), fin (alguien pasó de la última; se vuelve a ella tal como quedó) o parado (alguien
+// cerró el pase).
+// Al abrir dice "listo <visibles>"; cuando se le cierra la entrada, cierra la presentación (y PowerPoint, si no
+// estaba abierto antes). Las diapositivas ocultas no cuentan, igual que al convertir.
+// La ventana del pase se coloca con user32 en la primera pantalla que no es la principal (la misma regla que
+// display.js), en píxeles de este mismo proceso: así no importa la escala de cada pantalla.
+// La entrada se lee con un StreamReader propio: el lector de [Console]::In espera sin soltar aunque se le pida
+// en segundo plano, y no dejaría mirar el pase entre orden y orden.
+export const LIVE_SCRIPT = `
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -Namespace Manna -Name Ventana -MemberDefinition @'
+[DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+[DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr value);
+[DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int w, int h, uint flags);
+[DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+[DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr FindWindow(string cls, string title);
+'@
+try { if (-not [Manna.Ventana]::SetProcessDpiAwarenessContext([IntPtr](-4))) { [void][Manna.Ventana]::SetProcessDPIAware() } } catch { [void][Manna.Ventana]::SetProcessDPIAware() }
+function Decir($que, $valor, $n) { [Console]::Out.WriteLine("${MARK}\`t$que\`t$valor\`t$n"); [Console]::Out.Flush() }
+$ppt = New-Object -ComObject PowerPoint.Application
+$abiertas = $ppt.Presentations.Count
+$deck = $null
+$pase = $null
+$ultima = 0
+# Dónde va el pase: n (de las visibles), -1 si pasó de la última, 0 si no hay pase.
+function Donde {
+  if ($null -eq $script:pase) { return 0 }
+  try {
+    $vista = $script:pase.View
+    if ($vista.State -eq 5) { return -1 }
+    return [array]::IndexOf($visibles, [int]$vista.Slide.SlideIndex) + 1
+  } catch { return 0 }
+}
+function Empezar {
+  $pantalla = [System.Windows.Forms.Screen]::AllScreens | Where-Object { -not $_.Primary } | Select-Object -First 1
+  if ($null -eq $pantalla) { throw 'No hay una segunda pantalla.' }
+  $ajustes = $deck.SlideShowSettings
+  $ajustes.ShowType = 1
+  try { $ajustes.ShowPresenterView = 0 } catch {}
+  $script:pase = $ajustes.Run()
+  $b = $pantalla.Bounds
+  $ventana = [IntPtr]::Zero
+  try { $ventana = [IntPtr][long]$script:pase.HWND } catch {}
+  if ($ventana -eq [IntPtr]::Zero) { $ventana = [Manna.Ventana]::FindWindow('screenClass', $null) }
+  [void][Manna.Ventana]::SetWindowPos($ventana, [IntPtr](-1), $b.X, $b.Y, $b.Width, $b.Height, 0x40)
+  [void][Manna.Ventana]::SetForegroundWindow($ventana)
+}
+# Tras pasar de la última, el pase queda en negro: se vuelve a ella tal como quedó (o se empieza de nuevo en ella).
+function Volver {
+  try { $script:pase.View.GotoSlide($visibles[-1], 0) } catch {
+    try { $script:pase.View.Exit() } catch {}
+    Empezar
+    $script:pase.View.GotoSlide($visibles[-1])
+  }
+}
+function Atender($linea) {
+  $partes = $linea.Split("\`t")
+  $orden = $partes[0]
+  $n = $partes[2]
+  try {
+    $p = Donde
+    if ($orden -eq 'parar') {
+      if ($p -ne 0) { $script:pase.View.Exit() }
+      $script:pase = $null
+      $script:ultima = 0
+      Decir 'parado' '' $n
+      return
+    }
+    if ($p -eq -1) { Volver; $p = $visibles.Count }
+    if ($orden -eq 'ir') {
+      $destino = [int]$partes[1]
+      if ($p -eq 0) { Empezar }
+      if ((Donde) -ne $destino) { $script:pase.View.GotoSlide($visibles[$destino - 1]) }
+    } elseif ($p -le 0) {
+      Decir 'parado' '' $n
+      return
+    } else {
+      $vista = $script:pase.View
+      if ($orden -eq 'siguiente') {
+        if ($p -eq $visibles.Count -and $vista.GetClickIndex() -ge $vista.GetClickCount()) { Decir 'fin' '' $n; return }
+        $vista.Next()
+      } elseif ($orden -eq 'anterior') {
+        if ($p -eq 1 -and $vista.GetClickIndex() -le 0) { Decir 'inicio' '' $n; return }
+        $vista.Previous()
+      }
+    }
+    $p = Donde
+    if ($p -eq -1) { Volver; $p = $visibles.Count }
+    $script:ultima = $p
+    Decir 'diapositiva' $p $n
+  } catch {
+    Decir 'error' ($_.Exception.Message -replace '\\s+', ' ') $n
+  }
+}
+function Mirar {
+  if ($null -eq $script:pase) { return }
+  $p = Donde
+  if ($p -eq 0) { $script:pase = $null; $script:ultima = 0; Decir 'parado' '' ''; return }
+  if ($p -eq -1) { Volver; $script:ultima = $visibles.Count; Decir 'fin' '' ''; return }
+  if ($p -ne $script:ultima) { $script:ultima = $p; Decir 'diapositiva' $p '' }
+}
+try {
+  # Con su ventana (sin ella PowerPoint puede negarse a empezar el pase), pero minimizada.
+  $deck = $ppt.Presentations.Open($env:MANNA_PPT_ENTRADA, -1, 0, -1)
+  try { $deck.Windows.Item(1).WindowState = 2 } catch {}
+  $visibles = [int[]]@($deck.Slides | Where-Object { $_.SlideShowTransition.Hidden -eq 0 } | ForEach-Object { $_.SlideIndex })
+  Decir 'listo' $visibles.Count ''
+  $lector = New-Object System.IO.StreamReader ([Console]::OpenStandardInput())
+  $leyendo = $lector.ReadLineAsync()
+  while ($true) {
+    if ($leyendo.Wait(500)) {
+      $linea = $leyendo.Result
+      if ($null -eq $linea) { break }
+      Atender $linea.Trim()
+      $leyendo = $lector.ReadLineAsync()
+    } else {
+      try { Mirar } catch {}
+    }
+  }
+} finally {
+  try { if ((Donde) -ne 0) { $pase.View.Exit() } } catch {}
+  if ($null -ne $deck) { try { $deck.Close() } catch {} }
+  if ($abiertas -eq 0 -and $ppt.Presentations.Count -eq 0) { $ppt.Quit() }
+  [void][Runtime.InteropServices.Marshal]::ReleaseComObject($ppt)
+}
+`;
+
+// Dónde se puede pasar en vivo: Windows con PowerPoint, o el PowerPoint de mentira de las pruebas.
+export const liveSupported = (platform = process.platform) => platform === 'win32' || Boolean(process.env.MANNA_POWERPOINT_PRUEBA);
+
+export function livePlan(platform, { input, fake = null }) {
+  const env = { MANNA_PPT_ENTRADA: input };
+  if (fake) return { file: process.execPath, args: [fake], env: { ...env, MANNA_PPT_MODO: 'vivo' } };
+  if (platform === 'win32') return { file: 'powershell.exe', args: ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(LIVE_SCRIPT, 'utf16le').toString('base64')], env };
+  return null;
+}
+
+// Una línea del pase: { what, value, n } o null.
+export function readLiveLine(line) {
+  const [mark, what, value = '', n = ''] = String(line).trim().split('\t');
+  return mark === MARK && what ? { what, value: Number(value) || 0, text: value, n } : null;
+}
+
+const OPEN_LIMIT_MS = 90_000; // abrir una presentación con videos puede tardar
+const REPLY_LIMIT_MS = 10_000; // empezar el pase, lo que más tarda una orden
+
+// Abre una presentación para pasarla en vivo. Devuelve null si en este sistema no se puede, o
+//   { send(orden, valor) → Promise<{ what, value }>, close() }
+// `send` contesta { what: 'cerrado' } si el PowerShell ya no está y { what: 'sinrespuesta' } si no contestó a
+// tiempo (entonces se le da por colgado: una ventana de PowerPoint pidiendo algo lo deja así para siempre).
+// onEvent({ what, value }): lo que dice sin que se le pregunte, y { what: 'cerrado', error } al terminar.
+export function openLive({ input, onEvent, platform = process.platform }) {
+  const plan = livePlan(platform, { input, fake: process.env.MANNA_POWERPOINT_PRUEBA || null });
+  if (!plan) return null;
+  let child;
+  try {
+    child = spawn(plan.file, plan.args, { env: { ...process.env, ...plan.env }, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+  } catch (err) {
+    setTimeout(() => onEvent({ what: 'cerrado', error: err.message }));
+    return { send: async () => ({ what: 'cerrado' }), close() {} };
+  }
+  const waiting = new Map();
+  let count = 0;
+  let err = '';
+  let pending = '';
+  let gone = false;
+  let opened;
+  const ready = new Promise((resolve) => { opened = resolve; });
+  const openTimer = setTimeout(() => { if (!gone) { err += 'PowerPoint no abrió la presentación a tiempo.'; child.kill(); } }, OPEN_LIMIT_MS);
+  child.stdout.on('data', (chunk) => {
+    const lines = (pending + chunk).split('\n');
+    pending = lines.pop();
+    for (const line of lines) {
+      const said = readLiveLine(line);
+      if (!said) continue;
+      if (said.what === 'listo') { clearTimeout(openTimer); opened(true); } else if (said.n && waiting.has(said.n)) waiting.get(said.n)(said);
+      else onEvent(said);
+    }
+  });
+  child.stderr.on('data', (chunk) => { err = (err + chunk).slice(-3000); });
+  child.stdin.on('error', () => {}); // escribir a un PowerShell que acaba de cerrarse
+  const end = (error) => {
+    if (gone) return;
+    gone = true;
+    clearTimeout(openTimer);
+    opened(false);
+    for (const answer of waiting.values()) answer({ what: 'cerrado' });
+    onEvent({ what: 'cerrado', error: error || err.trim() });
+  };
+  child.on('error', (e) => end(e.message));
+  child.on('close', () => end());
+
+  return {
+    async send(order, value = '') {
+      if (!(await ready) || gone) return { what: 'cerrado' };
+      const n = String((count += 1));
+      return new Promise((resolve) => {
+        const timer = setTimeout(() => {
+          waiting.delete(n);
+          err += `PowerPoint no contestó a «${order}».`;
+          child.kill();
+          resolve({ what: 'sinrespuesta' });
+        }, REPLY_LIMIT_MS);
+        waiting.set(n, (said) => { clearTimeout(timer); waiting.delete(n); resolve(said); });
+        child.stdin.write(`${order}\t${value}\t${n}\n`);
+      });
+    },
+    // Se le cierra la entrada para que termine el pase y cierre la presentación; si no lo hace a tiempo, se corta.
+    close() {
+      if (gone) return;
+      child.stdin.end();
+      setTimeout(() => { if (!gone) child.kill(); }, 8000).unref();
+    },
+  };
+}
+
 // Convierte presentaciones, de una en una, como tareas con avance.
 //   run({ id, name, input, dir, onDone({ ok, pages: [{ file, thumb }], error, cancelled }) })
 //   dir: carpeta (vacía) donde quedan las imágenes; el archivo de entrada no se toca.

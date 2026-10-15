@@ -105,6 +105,8 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
     //   control?(state, patch, { content, now }) -> estado nuevo tras una orden; valida el patch
     //   hide?(state, { content, now })  -> estado nuevo cuando deja de verse ("Negro", "Solo fondo"): lo que suena se pausa
     //   endsAt?(state)            -> en qué instante (ms) termina lo que se reproduce, o null. Al llegar, pasa a "Solo fondo"
+    //   step?(item, d)            -> async: true si dio él mismo el paso (d = 1 o -1) al pulsar anterior / siguiente
+    //                                (PowerPoint en vivo); con false, Manna sigue como siempre
     kinds,
     kind(name, def) { kinds.set(name, def); },
     shutdown: null, // lo asigna server/app.js: apagado ordenado de todo el programa

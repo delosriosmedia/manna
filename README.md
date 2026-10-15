@@ -17,7 +17,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
   - **Imágenes** (anuncios, carteles, fotos): se suben desde el equipo principal o desde la galería del celular, con el nombre que quieras; se elige si la imagen se ve completa o llenando la pantalla; y, mientras está al aire, se acerca y se desplaza desde el panel.
   - **Videos y audios**: se suben o se copian a `Contenido/Medios/`. Lo habitual se usa tal cual y lo demás se convierte solo, en segundo plano. Al aire: pausa, saltos, barra de avance, subtítulos y el volumen de Manna. Todas las pantallas van a la par y suena una sola.
   - **YouTube**: se pega el enlace de un video y Manna lo descarga una vez, con su título, su imagen y sus subtítulos en español e inglés. Queda en la biblioteca y se proyecta sin anuncios, sin cortes y sin internet, con los mismos mandos que cualquier video.
-- **Diapositivas**: las presentaciones de la iglesia, en PDF o en PowerPoint, convertidas en imágenes. Se recorren con «Siguiente», el panel muestra la diapositiva que viene y cuántas quedan, y cada una se puede acercar como una imagen.
+- **Diapositivas**: las presentaciones de la iglesia, en PDF o en PowerPoint, convertidas en imágenes. Se recorren con «Siguiente», el panel muestra la diapositiva que viene y cuántas quedan, y cada una se puede acercar como una imagen. En Windows, un PowerPoint lo puede pasar **el propio PowerPoint en el proyector**, con sus videos y animaciones, y se sigue pasando desde cualquier celular.
 - **Páginas web**: presentaciones y juegos de internet (Canva, Google Slides, Genially, Kahoot) o un archivo HTML propio, a pantalla completa. Una dirección necesita internet durante el culto; si la página no se deja mostrar dentro de Manna, el proyector la abre en su propia ventana. Un archivo HTML se pasa con «Anterior» y «Siguiente» desde cualquier dispositivo.
 - **Fondos**: seis colores y las imágenes que subas, que quedan guardadas junto a ellos en Ajustes.
 - **Televisores** (en pausa y fuera de la barra, ver `docs/ESTADO.md`): un televisor Samsung de la misma red muestra la proyección desde su navegador, sin cables. Manna lo encuentra, le abre el navegador y le sirve de control remoto (teclas, puntero y texto); la primera vez le escribe la dirección por ti.
@@ -44,7 +44,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 | Google Chrome (o Edge en Windows) | Ventana de proyección a pantalla completa | Manna se abre; la proyección no se abre sola en la segunda pantalla |
 | ffmpeg | Convertir videos y audios, unir imagen y sonido de YouTube, sacar la pista instrumental de los himnos | Manna se abre; las funciones que lo usan no estarán disponibles |
 | yt-dlp | Descargar videos de YouTube | Igual |
-| Microsoft PowerPoint (opcional) | Convertir las presentaciones de PowerPoint en diapositivas | Se sube el PDF de la presentación, que no necesita ningún programa |
+| Microsoft PowerPoint (opcional) | Convertir las presentaciones de PowerPoint en diapositivas y, en Windows, pasarlas en vivo | Se sube el PDF de la presentación, que no necesita ningún programa |
 | cloudflared (opcional) | La conexión por internet (Ajustes) | Manna funciona igual en la red de la iglesia; la conexión por internet avisa de que falta |
 
 Solo Node.js se instala antes. Lo demás lo comprueba Manna cada vez que se abre: si falta algo, en vez del control muestra la **revisión del equipo**, que dice qué módulos funcionarán completos y cuáles no, para qué sirve cada programa, y ofrece **Abrir Manna** de todos modos e **Instalar por mí** (descarga ffmpeg, yt-dlp y cloudflared de sus sitios oficiales, comprobando su huella, a la carpeta `herramientas` de los datos de Manna, sin tocar el sistema) o los pasos para hacerlo a mano. La misma revisión está en **Ajustes → Programas del equipo principal**, y cada módulo avisa al abrirlo si le falta algo. Los demás dispositivos no instalan nada.
@@ -187,6 +187,14 @@ La pista instrumental necesita ffmpeg en el equipo principal: los videos traen d
 
 Cada diapositiva queda como una imagen: las **animaciones, las transiciones y los videos incrustados no se conservan**. Si una presentación lleva un video, súbelo aparte a Medios y ponlo en el orden del culto en su sitio. Las diapositivas se guardan en `data/media/diapositivas/` del equipo principal.
 
+**PowerPoint en vivo (solo Windows).** En un equipo principal con Windows y PowerPoint, un PowerPoint subido desde la versión 1.14 lo pasa **el propio PowerPoint**, a pantalla completa en el proyector, encima de la proyección de Manna: con sus **videos, animaciones y transiciones**. Así viene al subirlo; en el menú de la presentación (⋯) se cambia con **Pasar como imágenes** o **Pasar con PowerPoint**.
+
+- **Siguiente** y **Anterior**, desde cualquier dispositivo, los da PowerPoint: pasan también las animaciones. Al terminar la presentación, Manna sigue con lo que venga en el orden del culto.
+- Si alguien la pasa en el propio equipo (con el teclado o un control de presentaciones), los celulares lo ven.
+- Los celulares, las tabletas y la propia proyección de Manna (debajo de PowerPoint) ven la foto de la diapositiva por la que va. En este modo no hay zoom ni puntero, y el sonido de sus videos no lo gobierna el volumen de Manna.
+- Hace falta la pantalla de proyección abierta (el proyector conectado). Si PowerPoint falla, la presentación se ve como imágenes y la cola del culto lo avisa.
+- El PowerPoint original se guarda en `data/presentaciones/` del equipo principal.
+
 ### Páginas web
 
 1. En **Páginas web**, pulsa **Agregar página** y pega la dirección (por ejemplo, la de una presentación de Canva o la de un Kahoot). Manna la abre un momento para ver cómo se puede mostrar y te lo dice:
@@ -254,7 +262,7 @@ server/
     hymns/              el himnario: videos y letras de la carpeta de la iglesia, búsqueda por número,
                         título y letra, y la pista instrumental de cada himno
     slides/             presentaciones convertidas en diapositivas: recibir las páginas de un PDF, pedirle
-                        a PowerPoint que exporte las de una presentación (powerpoint.js) y proyectarlas
+                        a PowerPoint que exporte las de una presentación o que la pase en vivo (powerpoint.js) y proyectarlas
     web/                páginas web y archivos HTML: comprobar si una dirección se deja mostrar
                         dentro de otra página y servir los archivos encerrados
     tv/                 televisores de la red como pantalla: buscarlos, vincularlos, abrirles

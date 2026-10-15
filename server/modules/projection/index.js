@@ -151,10 +151,12 @@ export default function setup(app) {
     store.set('pointer', item && mode === 'live' && inside(x) && inside(y) ? { uid: item.uid, x, y } : { uid: 0, x: null, y: null });
   });
 
-  app.action('projection.step', { permission: 'projection.control' }, ({ delta }) => {
+  app.action('projection.step', { permission: 'projection.control' }, async ({ delta }) => {
     const { item } = get();
     if (!item) return null;
     const d = delta < 0 ? -1 : 1;
+    // El tipo puede dar el paso por su cuenta (PowerPoint en vivo pasa también las animaciones).
+    if (await app.kinds.get(item.kind)?.step?.(item, d)) return get().item;
     const { kind, data, step, orderId } = item.source;
     if (orderId && services.order?.has(orderId)) {
       const next = services.order.neighbor(orderId, step, d);
