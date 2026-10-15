@@ -78,7 +78,8 @@ const SCREENS = [
   { name: 'Biblia: libros', url: '/control#biblia', narrowOnly: true, prepare: `document.querySelector('.crumbs button').click()`, primary: '.abar .btn.primary', content: '.col-books' },
   // «Buscar en todo»: su recuadro cabe; con un resultado preparado, la tarjeta se ve encima y la búsqueda le deja sitio
   // (con un cajón abierto, que en el celular la ocultaría).
-  { name: 'Buscar en todo', url: '/control', inside: '.finder', settle: 1100, prepare: `(() => { document.querySelector('.finder-chip').click(); const i = document.querySelector('.finder-input input'); i.value = 'luz'; i.dispatchEvent(new Event('input')); })()` },
+  // closes: la capa abierta y su recuadro; tras medir, un toque fuera del recuadro debe cerrarla.
+  { name: 'Buscar en todo', url: '/control', inside: '.finder', closes: ['.finder-layer', '.finder'], settle: 1100, prepare: `(() => { document.querySelector('.finder-chip').click(); const i = document.querySelector('.finder-input input'); i.value = 'luz'; i.dispatchEvent(new Event('input')); })()` },
   { name: 'Buscar en todo, con algo preparado', url: '/control#biblia', inside: '.finder', prepared: true, settle: 1400, prepare: `(() => { document.querySelector('.finder-chip').click(); const i = document.querySelector('.finder-input input'); i.value = 'luz'; i.dispatchEvent(new Event('input')); setTimeout(() => document.querySelector('.finder-row').click(), 800); })()` },
   // prefs: preferencias de este dispositivo con las que se abre la pantalla (se quitan al terminar).
   { name: 'Biblia: comparar', url: '/control#biblia', prefs: { 'biblia.comparar': true }, primary: '.abar .btn.primary', content: '.col-verses', inside: '.cmp-bar' },
@@ -96,7 +97,7 @@ const SCREENS = [
   // El equipo de la auditoría "no tiene" navegador para la proyección: Ajustes lleva su aviso.
   { name: 'Ajustes, con aviso', url: '/control#ajustes', content: '.settings', inside: '.ws-notice' },
   // La capa de mandos abierta: su recuadro cabe en la pantalla y trae los mandos de lo que está al aire.
-  { name: 'Capa de mandos', url: '/control#orden', show: 'testcard', inside: '.controls-pop', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
+  { name: 'Capa de mandos', url: '/control#orden', show: 'testcard', inside: '.controls-pop', closes: ['.controls-layer', '.controls-pop'], controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
   { name: 'Control del orden', url: '/orden#orden', content: '.olist', longTitles: true },
   // La función de alabanza lleva el volumen de Manna siempre a la vista: en el celular, bajo la barra de "Al aire".
   { name: 'Servicio de alabanza', url: '/alabanza#himnario', content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: { wide: '.transport-bar .tb-volume', narrow: '.story-volume.big' }, settle: 700,
@@ -163,9 +164,52 @@ const MEASURE = (screen, touch, narrow) => {
     if (!shown(el) || el.closest(SIDEWAYS_OK) || el.closest('[hidden]')) return false;
     const x = getComputedStyle(el).overflowX;
     return (x === 'auto' || x === 'scroll') && el.scrollWidth > el.clientWidth + 1;
-  }).map((el) => (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : el.tagName.toLowerCase()) + ' +' + (el.scrollWidth - el.clientWidth) + 'px');
+  }).map((el) => (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(' ').filter(Boolean).join('.') : el.tagName.toLowerCase()) + ' +' + (el.scrollWidth - el.clientWidth) + 'px');
   out.deLado = sideways.length === 0;
   if (sideways.length) out.ladeados = [...new Set(sideways)].slice(0, 4);
+  // Contraste sobre fondos cambiantes: el texto de lo que flota sobre la proyección se lee con una imagen blanca
+  // detrás y con una negra. Se compone el color de cada capa (con su transparencia) y la sombra de arriba y de
+  // abajo sobre los dos extremos; el desenfoque del cristal no cambia la luminosidad.
+  {
+    // Sin barras invertidas ni comillas invertidas: todo esto vive dentro de un texto que se evalúa en la página.
+    const rgba = (c) => { if (!c || !c.startsWith('rgb')) return null; const v = c.slice(c.indexOf('(') + 1, c.indexOf(')')).split(/[ ,/]+/).filter(Boolean).map(Number); return [v[0], v[1], v[2], v[3] ?? 1]; };
+    const over = (top, under) => [0, 1, 2].map((i) => top[i] * top[3] + under[i] * (1 - top[3]));
+    const lum = (c) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+    const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+    const narrowNow = document.body.classList.contains('narrow');
+    const scrim = (y) => { if (narrowNow) return 0; if (document.body.classList.contains('drawer-open')) return 0.35; const f = y / vh; return f < 0.22 ? 0.55 * (1 - f / 0.22) : f > 0.7 ? 0.65 * ((f - 0.7) / 0.3) : 0; };
+    const low = [];
+    for (const el of document.querySelectorAll('.topbar *, .dockbar *, .queue *, .transport-bar *, .prep *, .drawer *, .story *')) {
+      const own = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim();
+      // Solo texto que se lee (con letras o cifras), no marcas decorativas como «·».
+      if (!shown(el) || el.closest('[hidden], [disabled], .soon, .stage') || !(own.toLowerCase() !== own.toUpperCase() || /[0-9]/.test(own))) continue;
+      const cs = getComputedStyle(el);
+      if (Number(cs.opacity) < 0.99) continue;
+      // Lo que otra capa tapa en ese momento (la cola bajo «Buscar en todo») no tiene que leerse ahí.
+      const mid = box(el);
+      const hit = document.elementFromPoint(mid.left + mid.width / 2, mid.top + mid.height / 2);
+      if (hit && !el.contains(hit) && !hit.contains(el)) continue;
+      // Lo que tiene un fondo propio opaco (un botón, la píldora «AL AIRE») no depende de lo que se proyecte.
+      const layers = [];
+      let solid = false;
+      for (let a = el; a && a !== document.body; a = a.parentElement) { const bg = rgba(getComputedStyle(a).backgroundColor); if (bg && bg[3] > 0) layers.push(bg); if (bg && bg[3] >= 1) { solid = true; break; } }
+      if (solid) continue;
+      const y = box(el).top + box(el).height / 2;
+      const ink = rgba(cs.color);
+      if (!ink) continue;
+      const size = parseFloat(cs.fontSize); const big = size >= 24 || (size >= 18.66 && Number(cs.fontWeight) >= 700);
+      // En el escritorio, detrás está la proyección tal cual; en el celular, su reflejo atenuado (.scene-ambient, al 35 %).
+      const bases = narrowNow ? [[89, 89, 89], [0, 0, 0]] : [[255, 255, 255], [0, 0, 0]];
+      const worst = Math.min(...bases.map((base) => {
+        let under = over([0, 0, 0, scrim(y)], base);
+        for (let i = layers.length - 1; i >= 0; i -= 1) under = over(layers[i], under);
+        return ratio(over(ink, under), under);
+      }));
+      if (worst < (big ? 3 : 4.5)) low.push('«' + el.textContent.trim().slice(0, 18) + '» (' + (el.closest('[class]')?.className || el.tagName) + ', ' + cs.color + ' sobre ' + layers.map((l) => l.join(' ')).join(' / ') + ') ' + worst.toFixed(1));
+    }
+    out.contraste = low.length === 0;
+    if (low.length) out.flojos = [...new Set(low)].slice(0, 5);
+  }
   if (${JSON.stringify(touch)}) {
     const small = [...document.querySelectorAll('button, a[href], select, summary, input:not([type=range]):not([type=color]):not([type=file])')]
       .filter((el) => shown(el) && !el.disabled && !el.closest('.soon') && !el.closest('[hidden]'))
@@ -236,7 +280,7 @@ async function ready(chrome, screen) {
   await sleep(350);
 }
 
-const LABELS = { buscarPreparado: 'la tarjeta «Preparado» encima de la búsqueda y sin pisarse con ella', sinDesborde: 'sin desborde lateral', navegacion: 'dock de módulos a la vista', alAire: 'lo que está al aire y sus botones a la vista', solape: 'cajón, cola, tarjeta «Preparado» y barras sin pisarse', monitorProporcion: 'recuadro de la proyección sin deformar', accion: 'acción principal a la vista y sin nada encima', tituloLargo: 'títulos largos legibles', mandos: 'mandos en vivo completos y sin salirse', dentro: 'el recuadro cabe en la pantalla', dedos: 'botones para el dedo', deLado: 'nada se desplaza de lado sin tener nada al lado' };
+const LABELS = { buscarPreparado: 'la tarjeta «Preparado» encima de la búsqueda y sin pisarse con ella', sinDesborde: 'sin desborde lateral', navegacion: 'dock de módulos a la vista', alAire: 'lo que está al aire y sus botones a la vista', solape: 'cajón, cola, tarjeta «Preparado» y barras sin pisarse', monitorProporcion: 'recuadro de la proyección sin deformar', accion: 'acción principal a la vista y sin nada encima', tituloLargo: 'títulos largos legibles', mandos: 'mandos en vivo completos y sin salirse', dentro: 'el recuadro cabe en la pantalla', dedos: 'botones para el dedo', deLado: 'nada se desplaza de lado sin tener nada al lado', contraste: 'el texto se lee sobre una proyección blanca y sobre una negra', cierraFuera: 'la capa se cierra al tocar fuera' };
 const MIN_CONTENT = 150;
 
 // Qué revisar: las palabras que se le pasan eligen tamaños (por su nombre o «360x640») y pantallas.
@@ -314,7 +358,15 @@ async function worker(list, n) {
         if (screen.prepare) { await chrome.evaluate(screen.prepare); await sleep(screen.settle || 500); }
         const result = await chrome.evaluate(`JSON.stringify(${MEASURE(screen, device.touch, narrow)})`);
         const m = JSON.parse(result || '{}');
-        const failures = Object.keys(LABELS).filter((k) => m[k] === false).map((k) => LABELS[k] + (k === 'dedos' ? `: ${m.pequenos.join(', ')}` : k === 'solape' && m.solapan ? `: ${m.solapan.join('; ')}` : k === 'deLado' ? `: ${m.ladeados.join(', ')}` : ''));
+        if (screen.closes) {
+          // Un toque de verdad fuera del recuadro, sobre el fondo de la capa.
+          const [layer, panel] = screen.closes;
+          const spot = JSON.parse(await chrome.evaluate(`JSON.stringify((() => { const l = document.querySelector(${JSON.stringify(layer)}); const p = document.querySelector(${JSON.stringify(panel)}).getBoundingClientRect(); for (let y = innerHeight - 6; y > 6; y -= 12) for (let x = 6; x < innerWidth; x += 24) { if (x >= p.left && x <= p.right && y >= p.top && y <= p.bottom) continue; if (document.elementFromPoint(x, y) === l) return { x, y }; } return null; })())`));
+          if (spot) for (const type of ['mousePressed', 'mouseReleased']) await chrome.send('Input.dispatchMouseEvent', { type, x: spot.x, y: spot.y, button: 'left', buttons: type === 'mousePressed' ? 1 : 0, clickCount: 1 });
+          await sleep(300);
+          m.cierraFuera = Boolean(spot) && await chrome.evaluate(`document.querySelector(${JSON.stringify(layer)}).hidden`);
+        }
+        const failures = Object.keys(LABELS).filter((k) => m[k] === false).map((k) => LABELS[k] + (k === 'dedos' ? `: ${m.pequenos.join(', ')}` : k === 'solape' && m.solapan ? `: ${m.solapan.join('; ')}` : k === 'deLado' ? `: ${m.ladeados.join(', ')}` : k === 'contraste' ? `: ${m.flojos.join('; ')}` : ''));
         if (m.espacioContenido !== undefined && m.espacioContenido < MIN_CONTENT) failures.push(`poco espacio para el contenido (${m.espacioContenido} px)`);
         problems += failures.length;
         const room = m.espacioContenido !== undefined ? ` · contenido ${m.espacioContenido} px` : '';

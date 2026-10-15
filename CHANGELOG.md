@@ -4,6 +4,12 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.13.1 — 2026-10-15
+
+- **Se lee mejor con diapositivas claras**: el texto secundario de lo que flota sobre la proyección (barras, cola, «Preparado», «Historias» y el cajón) es más claro, y la cola del culto, más opaca. Con una diapositiva blanca detrás ya se lee bien.
+- Los avisos en rojo claro se leen mejor sobre una fila elegida.
+- Las pruebas en Chrome corren en tres grupos a la vez: tardan la mitad (unos 3,5 minutos), y se puede pedir solo uno.
+
 ## 1.13.0 — 2026-10-15
 
 - **El Comparador pasa a la Biblia**: ya no es un módulo aparte, sino el botón **«Comparar»**, que deja elegir la segunda versión y la disposición en una fila bajo la cabecera. Lo que ya estaba en el orden del culto se proyecta igual.

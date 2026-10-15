@@ -37,7 +37,7 @@ node scripts/probar-chrome.mjs rapido
 node scripts/auditar-responsive.mjs
 ```
 
-El primero usa la revisión del equipo y la interfaz como un usuario (unos 5 min). El segundo la abre en nueve tamaños y comprueba que nada se desborda, que "Al aire" y la acción principal están a la vista, que los mandos en vivo caben y que los botones tienen tamaño para el dedo; con `capturas` guarda además una imagen de cada pantalla, y con palabras revisa solo esas pantallas y tamaños (`biblia 360x640`). Pueden correr a la vez entre ellos, pero no con otro servidor en los puertos 8123 a 8128 (el primero avisa si la demostración sigue abierta).
+El primero usa la revisión del equipo y la interfaz como un usuario (unos 3 min, en tres grupos a la vez; con un nombre, solo ese grupo: `control`, `biblioteca` o `red`). El segundo la abre en nueve tamaños y comprueba que nada se desborda, que "Al aire" y la acción principal están a la vista, que los mandos en vivo caben y que los botones tienen tamaño para el dedo; con `capturas` guarda además una imagen de cada pantalla, y con palabras revisa solo esas pantallas y tamaños (`biblia 360x640`). Pueden correr a la vez entre ellos, pero no con otro servidor en los puertos 8123 a 8133 (el primero avisa si la demostración sigue abierta).
 
 Después, a mano, lo que el cambio tenga de nuevo. Abre `http://localhost:8123/control` y revisa:
 

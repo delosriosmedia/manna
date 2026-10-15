@@ -21,11 +21,16 @@
 // no puede haber errores de JavaScript, y la interfaz tiene que haber usado, pulsando, todas las
 // órdenes y direcciones del servidor (las que no se pueden pulsar aquí están en UNTOUCHED, con su motivo).
 //
-// Uso:  node scripts/probar-chrome.mjs          (unos 3 minutos)
-//       node scripts/probar-chrome.mjs rapido   (pasos 0 y 1, menos de un minuto)
+// Corre en tres grupos a la vez, cada uno con su servidor, su nombre en la red y su Chrome (GROUPS, abajo):
+// «control» (Biblia, orden, escenario, ajustes, PIN, escuchar y salir), «biblioteca» (medios, himnario,
+// diapositivas, presentador, páginas web y el paso 5) y «red» (pasos 0 y 4). Al final se junta lo vigilado.
+//
+// Uso:  node scripts/probar-chrome.mjs                 los tres grupos (unos 3 minutos)
+//       node scripts/probar-chrome.mjs biblioteca      solo los grupos nombrados
+//       node scripts/probar-chrome.mjs rapido          sin los pasos 2 a 4
 // Necesita Node 22 o superior (WebSocket integrado) y Chrome o Edge. No toca los datos reales:
-// usa los puertos 8123 y 8125, el nombre "manna-prueba.local" y carpetas temporales de datos y de
-// biblias (la Reina-Valera 1909 del repositorio y una versión de prueba de dos versículos).
+// usa los puertos 8123, 8125, 8131 y 8133, los nombres "manna-prueba…local" y carpetas temporales de
+// datos y de biblias (la Reina-Valera 1909 del repositorio y una versión de prueba de dos versículos).
 import { spawn, spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -45,9 +50,62 @@ import { examplePoster } from './lib/png.mjs';
 import { checkContract, sourceFiles } from './lib/codigo.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PORT = 8123;
-const NAME = 'manna-prueba';
 const QUICK = process.argv.includes('rapido');
+// Los grupos, con su puerto (separados de dos en dos: si uno está ocupado, el servidor prueba el siguiente; la
+// auditoría de pantallas usa 8124, 8126 y 8128). Cada grupo es este mismo guion con MANNA_PRUEBA_GRUPO.
+const GROUPS = {
+  control: { port: 8123, label: 'Biblia, orden, escenario, ajustes, PIN, escuchar y salir' },
+  biblioteca: { port: 8131, label: 'Medios, himnario, diapositivas, presentador, páginas web y cierre' },
+  red: { port: 8133, label: 'Revisión del equipo y cambio de IP' },
+};
+const GROUP = process.env.MANNA_PRUEBA_GRUPO || null;
+const inGroup = (name) => GROUP === name;
+if (!GROUP) await runGroups();
+const PORT = GROUPS[GROUP].port;
+const NAME = GROUP === 'control' ? 'manna-prueba' : `manna-prueba-${GROUP}`;
+
+// Lanza los grupos pedidos (todos si no se nombra ninguno), enseña lo de cada uno al terminar y junta lo vigilado:
+// cada orden y dirección del servidor tuvo que usarla, pulsando, algún grupo.
+async function runGroups() {
+  const asked = Object.keys(GROUPS).filter((name) => process.argv.includes(name));
+  const names = asked.length ? asked : Object.keys(GROUPS);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-grupos-'));
+  const t0 = Date.now();
+  let bad = 0;
+  await Promise.all(names.map((name) => new Promise((resolve) => {
+    const out = [];
+    const child = killOnExit(spawn(process.execPath, [fileURLToPath(import.meta.url), ...process.argv.slice(2)], {
+      cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, MANNA_PRUEBA_GRUPO: name, MANNA_PRUEBA_VIGILANCIA: path.join(dir, `${name}.json`) },
+    }));
+    child.stdout.on('data', (d) => out.push(d));
+    child.stderr.on('data', (d) => out.push(d));
+    child.on('exit', (code) => {
+      if (code !== 0) bad += 1;
+      console.log(`\n===== Grupo «${name}»: ${GROUPS[name].label} (${Math.round((Date.now() - t0) / 1000)} s) =====`);
+      process.stdout.write(Buffer.concat(out).toString());
+      resolve();
+    });
+  })));
+  if (names.length === Object.keys(GROUPS).length && !QUICK) {
+    console.log('\nVigilancia de todos los grupos');
+    const reports = names.map((name) => { try { return JSON.parse(fs.readFileSync(path.join(dir, `${name}.json`), 'utf8')); } catch { return null; } });
+    if (reports.includes(null)) {
+      bad += 1;
+      console.log('✖ algún grupo terminó sin dejar lo que vigiló');
+    } else {
+      // Queda sin usar lo que no usó ningún grupo.
+      const unused = (key) => reports.map((r) => r[key]).reduce((a, b) => a.filter((x) => b.includes(x)));
+      for (const [key, label] of [['idle', 'la interfaz usó, pulsando, todas las órdenes del servidor'], ['quiet', 'y todas sus direcciones']]) {
+        const left = unused(key);
+        if (left.length) bad += 1;
+        console.log(`${left.length ? '✖' : '✔'} ${label}${left.length ? ` (${left.join(', ')})` : ''}`);
+      }
+    }
+  } else console.log('\n(Con solo algunos grupos, o en modo rápido, no se comprueba que se pulsaran todas las órdenes.)');
+  fs.rmSync(dir, { recursive: true, force: true });
+  console.log(bad ? `\n${bad} grupo(s) o comprobación(es) con fallos.` : '\nTodo correcto.');
+  process.exit(bad ? 1 : 0);
+}
 const VERSION = 'reina-valera-1909';
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-chrome-'));
 
@@ -71,7 +129,7 @@ const byName = `http://${NAME}.local:${PORT}`;
 
 // Con otro Manna en estos puertos (por ejemplo, el de demostración), la prueba hablaría con él
 // y fallaría de formas confusas: mejor decirlo de entrada.
-for (const port of [PORT, 8125]) {
+for (const port of [PORT, ...(inGroup('red') ? [8125] : [])]) {
   const busy = await fetch(`http://127.0.0.1:${port}/api/ping`, { signal: AbortSignal.timeout(700) }).then(() => true, () => false);
   if (busy) {
     console.error(`Ya hay un Manna abierto en el puerto ${port}. Ciérralo y vuelve a ejecutar la prueba.`);
@@ -345,13 +403,18 @@ chrome = await startChrome();
 await instrument();
 try {
   chrome.acceptDialogs = true;
-  if (process.platform !== 'win32') await reviewSection();
+  if (inGroup('red') && process.platform !== 'win32') await reviewSection();
 
   // ================= 1. La interfaz =================
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
   await chrome.send('Page.navigate', { url: `${local}/control#biblia` });
   await sleep(2500);
+  const modal = `document.querySelector('.modal')`;
+  // Lo que está al aire y el orden, según el servidor (lo usan varios grupos).
+  const shown = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ item: s.projection.item, live: s.live.state, order: s.order.items })`).then(JSON.parse);
 
+  // ---- Grupo «control» (1): Biblia, orden y escenario ----
+  if (inGroup('control')) {
   console.log('\n1. Interfaz · Biblia');
   await type('.ws[data-module=biblia] .search input', 'jn 3 16-17');
   await sleep(900);
@@ -659,7 +722,6 @@ try {
 
   console.log('\n1. Interfaz · Biblia: comparar versiones');
   const cmp = `document.querySelector('.ws[data-module=biblia]')`;
-  const shown = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ item: s.projection.item, live: s.live.state, order: s.order.items })`).then(JSON.parse);
   const headBtn = (label) => `[...${cmp}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes(${JSON.stringify(label)}))`;
   check('el Comparador ya no es un módulo del dock: es «Comparar», dentro de la Biblia', await run(`return !document.querySelector('.dock-item[data-id=comparador]')`));
   await goTo('biblia');
@@ -725,7 +787,12 @@ try {
     check('y «Lista» vuelve a la lista', await run(`return !${om}.querySelector('.olist').hidden && ${om}.querySelector('.omap').hidden`));
   }
 
-  const modal = `document.querySelector('.modal')`;
+  }
+
+  // ---- Grupo «biblioteca»: medios, himnario, diapositivas, presentador y páginas web ----
+  if (inGroup('biblioteca')) {
+  // El Presentador necesita un versículo en el orden del culto (en el grupo «control» lo pone la Biblia).
+  await run(`return await ${post('order.add', { kind: 'verses', data: { versionId: VERSION, ref: { book: 43, chapter: 3, verseStart: 19, verseEnd: 19 } } })}`);
   console.log('\n1. Interfaz · Medios (imágenes)');
   await goTo('medios');
   await sleep(500);
@@ -1683,6 +1750,10 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     }
   }
 
+  }
+
+  // ---- Grupo «control» (2): televisores, ajustes, mandos en vivo y alabanza ----
+  if (inGroup('control')) {
   console.log('\n1. Interfaz · Televisores');
   // El módulo está en pausa: no sale en la barra, pero sigue ahí y se entra por su dirección.
   check('Televisores, en pausa, no aparece en la barra de módulos', await run(`return !document.querySelector('.dock-item[data-id=televisores]')`));
@@ -1945,8 +2016,16 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   check('en el celular el volumen, grande, sigue a la vista bajo la proyección, sin abrir nada', await storyVolume() && await run(`return !document.querySelector('.scene-bg > .stage') && Boolean(document.querySelector('.story-frame > .stage')) && !document.body.classList.contains('drawer-open')`));
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
   await run(`await ${post('projection.volume', { volume: 1 })}`);
+  }
 
-  if (!QUICK) {
+  if (!QUICK && inGroup('control')) {
+    // El grupo «control» no pasa por Medios: sube un video corto para escucharlo después desde otro dispositivo.
+    if (HAS_FFMPEG) {
+      const clip = sample('saludo corto.mp4', ['-f', 'lavfi', '-i', 'testsrc=size=320x180:rate=15:duration=3', '-f', 'lavfi', '-i', 'sine=frequency=262:duration=3', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest']);
+      const login = await fetch(`http://127.0.0.1:${PORT}/api/session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'control' }) });
+      const cookie = (login.headers.get('set-cookie') || '').split(';')[0];
+      await fetch(`http://127.0.0.1:${PORT}/api/media/clips?name=${encodeURIComponent('Saludo corto')}&ext=.mp4&duration=3`, { method: 'POST', headers: { cookie }, body: fs.readFileSync(clip) });
+    }
     // ================= 2. Paso a la dirección con nombre =================
     console.log('\n2. Paso automático a la dirección con nombre');
     await chrome.send('Page.navigate', { url: `${byIp}/` });
@@ -2015,12 +2094,14 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     await sleep(800);
     await click(`document.querySelector('.media-tabs [data-tab=videos]')`);
     await sleep(500);
+    if (HAS_FFMPEG) {
     const clipUrl = await run(`const v = (await (await fetch('/api/state')).json()).media.videos.find((c) => c.url); if (!v) return ''; document.querySelector(\`.media-body[data-panel=videos] .media-card[data-id="\${v.id}"] .media-pick\`).click(); return v.url`);
     await sleep(400);
     await tapEl(`document.querySelector('.media-bar[data-panel=videos] .media-listen')`);
     await sleep(1000);
     heardBefore = await pv();
     check('en Medios, «Escuchar» oye aquí el video elegido', Boolean(clipUrl) && heardBefore.shown && heardBefore.src === clipUrl, JSON.stringify({ clipUrl, heardBefore }));
+    }
     // En el orden del culto, un himno se puede escuchar desde su elemento.
     await run(`return await ${post('order.add', { kind: 'song', data: { number: 5, track: 'vocal' } })}`);
     await goTo('orden');
@@ -2061,6 +2142,9 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     await sleep(1200);
     check('"cambiar de función" no pide confirmación', !asked() && (await chrome.evaluate('location.pathname')) === '/');
 
+  }
+
+  if (!QUICK && inGroup('red')) {
     // ================= 4. Cambio de IP =================
     console.log('\n4. Cambio de IP del equipo principal (IP vieja: 127.0.0.1, IP nueva: la de la red)');
     await stopServer(server);
@@ -2093,6 +2177,8 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     check('acepta órdenes sin volver a pedir el PIN', (await run(`return await ${post('projection.mode', { mode: 'black' })}`)) === 200);
   }
 
+  // ---- Grupo «biblioteca»: el cierre ----
+  if (inGroup('biblioteca')) {
   // ================= 5. Lo que cierra la sesión =================
   // Un Manna que "arrancó con el código de antes" (huella fingida): debe notarlo y decirlo.
   await stopServer(server);
@@ -2201,6 +2287,8 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   const gone = await fetch(`http://127.0.0.1:${PORT}/api/ping`, { signal: AbortSignal.timeout(800) }).then(() => false, () => true);
   check('"Apagar Manna" lo apaga y lo dice', gone && await run(`return document.querySelector('.goodbye h1')?.textContent === 'Manna está apagado'`));
 
+  }
+
   // ================= Lo vigilado durante toda la prueba =================
   console.log('\nVigilancia de toda la prueba');
   harvest();
@@ -2214,12 +2302,9 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   const quiet = offered.endpoints.filter(({ method, path: route }) => route.startsWith('/api/') && !UNTOUCHED[`${method} ${route}`]
     && ![...watched.requests].some((used) => used.startsWith(`${method} `) && offered.matches(route, used.slice(method.length + 1)))).map((e) => `${e.method} ${e.path}`).sort();
   const stale = Object.keys(UNTOUCHED).filter((name) => (name.includes(' ') ? !offered.endpoints.some((e) => `${e.method} ${e.path}` === name) : !offered.actions.has(name)));
-  if (QUICK) console.log(`  (modo rápido: quedan para la prueba completa ${[...idle, ...quiet].join(', ') || 'ninguna'})`);
-  else {
-    check('la interfaz usó, pulsando, todas las órdenes del servidor', idle.length === 0, idle.join(', '));
-    check('y todas sus direcciones', quiet.length === 0, quiet.join(', '));
-  }
   check('la lista de lo que no se puede pulsar aquí está al día', stale.length === 0, stale.join(', '));
+  // Lo que este grupo no usó: el guion que lanzó los grupos se queda con lo que no usó ninguno.
+  fs.writeFileSync(process.env.MANNA_PRUEBA_VIGILANCIA, JSON.stringify({ idle, quiet }));
 } finally {
   chrome.close();
   await stopServer(server);

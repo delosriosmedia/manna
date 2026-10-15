@@ -26,11 +26,11 @@ Solo modo oscuro: se usa junto a un proyector, y un panel claro deslumbra.
 | `--canvas` | `#05070a` | Suelo de la app. Nunca negro puro. |
 | `--s1` `--s2` `--s3` | `#0c0f14` `#131720` `#1b202a` | Escalera de superficies sólidas: paneles, controles, estado activo o pulsado. |
 | `--line` `--line-2` | `#1e2430` `#2b3341` | Líneas de 1 px: separadores y bordes. |
-| `--glass-1` `--glass-2` `--glass-3` | 55 %, 74 % y 92 % de opacidad | **Cristal** para lo que flota: barras y fichas, cajones, y hojas (ventanas, menús, avisos). Con `--glass-line` de borde y `--blur-1` / `--blur-2` de desenfoque. |
+| `--glass-1` `--glass-2` `--glass-3` | 55 %, 74 % y 92 % de opacidad | **Cristal** para lo que flota: barras y fichas, cajones (también la cola del culto), y hojas (ventanas, menús, avisos). Con `--glass-line` de borde y `--blur-1` / `--blur-2` de desenfoque. Lo que flota sobre la proyección, que puede ser una diapositiva blanca, lleva el texto secundario más claro (`--ink-3` pasa a `#cdd3dd` en barras, dock, cola, «Preparado» e «Historias», y a `#b9c1cd` en el cajón): así se lee a 4,5:1 sobre blanco y sobre negro (lo mide la auditoría). |
 | `--ink` `--ink-2` `--ink-3` | `#f1f4f8` `#c4cbd6` `#9aa3b2` | Texto principal, de lectura y secundario. |
 | `--ink-4` | `#5b6375` | Solo decorativo o deshabilitado: no alcanza el contraste mínimo. |
 | `--accent` `--accent-hover` | `#5ce8ff` `#8af0ff` | **El único acento**, el cian de la M: selección, acción principal, foco. |
-| `--live` `--live-ink` | `#e0383e` `#ff8a8e` | **Rojo: solo "al aire"** y acciones destructivas. |
+| `--live` `--live-ink` | `#e0383e` `#ffaaad` | **Rojo: solo "al aire"** y acciones destructivas. |
 
 Reglas:
 

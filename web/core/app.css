@@ -41,7 +41,7 @@
 
   /* Rojo: exclusivamente "al aire" y acciones destructivas. */
   --live: #e0383e;
-  --live-ink: #ff8a8e;
+  --live-ink: #ffaaad; /* claro para leerse también sobre una fila teñida de cian (4,5:1) */
   --live-soft: rgba(224, 56, 62, 0.16);
   --ok: #3fb27f;
 
