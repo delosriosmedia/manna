@@ -61,15 +61,13 @@ html.touch .media-more { width: 40px; height: 40px; right: 2px; bottom: 3px; }
 .up-row.done small { color: var(--ok); }
 .up-row.done .bar span { background: var(--ok); }
 
-@media (max-width: 1179px) {
+/* Cajón mediano: el campo de YouTube va en su propia línea, bajo las pestañas. */
+@container cajon (max-width: 899px) {
   .media-body { padding: 12px 16px 20px; }
-}
-/* Sora es más ancha: en tableta el campo de YouTube va en su propia línea, bajo las pestañas. */
-@media (min-width: 860px) and (max-width: 1179px) {
   .ws[data-module='medios'] .ws-head { flex-wrap: wrap; }
   .media-entry { order: 4; flex: 1 1 100%; max-width: none; }
 }
-@media (max-width: 859px) {
+@container cajon (max-width: 599px) {
   .media-body { padding: 10px 12px 16px; }
   .media-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .media-tabs { order: 3; flex: 1 1 100%; overflow-x: auto; }
@@ -78,3 +76,13 @@ html.touch .media-more { width: 40px; height: 40px; right: 2px; bottom: 3px; }
   .media-bar .fit { flex: 1; grid-auto-flow: column; justify-content: center; align-items: center; gap: 8px; font-size: 12px; }
   .media-bar .sel-ref { display: none; }
 }
+/* Celular en horizontal: el cajón es ancho pero bajo. La cabecera va en una sola fila (las pestañas se
+   deslizan) para dejar alto a la biblioteca. */
+@media (max-width: 859px) and (max-height: 480px) {
+  .ws[data-module='medios'] .ws-head { flex-wrap: nowrap; }
+  .media-tabs { flex: 1 1 100%; min-width: 0; overflow-x: auto; }
+}
+
+/* Cajón reducido del celular: las pestañas y la lista para elegir; subir y el enlace de YouTube, al ampliarlo. */
+.compact .ws[data-module='medios'] .ws-head > .btn, .compact .ws[data-module='medios'] .media-entry { display: none; }
+.compact .ws[data-module='medios'] .ws-head { padding: 8px 12px; }

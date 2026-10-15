@@ -1,6 +1,9 @@
 /* Módulo Biblia */
 .chips { display: flex; gap: 6px; align-items: center; padding: 10px 20px; border-bottom: 1px solid var(--line); color: var(--ink-3); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; white-space: nowrap; }
-.crumbs { display: none; }
+/* La ruta (Libros > libro > capítulo) solo se ve cuando va una columna cada vez. */
+.crumbs { display: none; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--line); color: var(--ink-4); flex-shrink: 0; overflow-x: auto; scrollbar-width: none; }
+.crumbs button { min-height: var(--control); padding: 0 8px; border-radius: var(--r-sm); color: var(--ink-3); font-weight: 500; white-space: nowrap; }
+.crumbs button.on { color: var(--ink); background: var(--s2); }
 
 /* Resultados de búsqueda: flotan bajo la cabecera, sin empujar el contenido.
    Van por niveles (frase exacta, todas las palabras, parecidas), con lo encontrado resaltado. */
@@ -45,41 +48,43 @@ html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
 .vn { min-width: 22px; text-align: right; font: 500 12px var(--mono); color: var(--ink-3); padding-top: 4px; }
 .verse.sel .vn { color: var(--accent); }
 
-/* Comparador: las dos versiones en la cabecera, y el texto de ambas junto a cada versículo. */
-.cmp-pick { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.cmp-pick .select { max-width: 180px; min-width: 0; }
-/* La cabecera lleva más cosas que la de Biblia: si no caben, el buscador baja a su propia fila. */
-.ws[data-module='comparador'] .ws-head .search { min-width: 170px; }
+/* Comparar: la segunda versión y la disposición, en una fila bajo la cabecera; el texto de ambas junto a
+   cada versículo. «Varios»: el aviso de qué versículo toca ahora. */
+/* La cabecera lleva versión, Comparar y Varios: si no cabe el buscador, baja a su propia fila. */
+.ws[data-module='biblia'] .ws-head { flex-wrap: wrap; }
+.ws[data-module='biblia'] .ws-head .search { min-width: 200px; }
+.cmp-bar, .multi-hint { display: flex; align-items: center; gap: 8px; padding: 8px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.cmp-bar .select { max-width: 240px; min-width: 0; flex: 0 1 auto; }
+.multi-hint { background: var(--accent-soft); color: var(--ink); font-size: 13px; }
 .verse.two, .verse-heads { display: grid; grid-template-columns: 22px minmax(0, 1fr) minmax(0, 1fr); gap: 4px 16px; }
 .verse-heads { padding: 0 12px 6px; color: var(--ink-3); font-size: 12px; }
 .verse-heads b { font-weight: 600; }
 .verse .absent { color: var(--ink-4); font-style: italic; }
+.verse.anchor { box-shadow: inset 0 0 0 1px var(--accent); }
 
 .abar { display: flex; align-items: center; gap: 8px; padding: 10px 20px; border-top: 1px solid var(--line); background: var(--s1); flex-shrink: 0; }
 .sel-ref { font-weight: 600; font-size: 14px; white-space: nowrap; }
 .abar .hint { flex: 1; min-width: 0; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 4px; }
 
-/* Tableta en horizontal: libros y capítulos comparten columna para dejar sitio al texto. */
-@media (max-width: 1179px) {
+/* Cajón mediano: libros y capítulos comparten columna para dejar sitio al texto. */
+@container cajon (max-width: 899px) {
   .picker, html.touch .picker { grid-template-columns: 264px minmax(0, 1fr); grid-template-rows: minmax(0, 3fr) minmax(0, 2fr); }
   html.touch .picker { grid-template-columns: 300px minmax(0, 1fr); }
   .col-books { grid-row: 1; grid-column: 1; border-bottom: 1px solid var(--line); }
   .col-chapters { grid-row: 2; grid-column: 1; }
   .col-verses { grid-row: 1 / span 2; grid-column: 2; }
   .col { padding: 12px; }
-  .chips { padding: 8px 16px; }
+  .chips, .cmp-bar, .multi-hint { padding: 8px 16px; }
   .abar { padding: 10px 16px; }
   .abar .hint { visibility: hidden; }
   .search-pop { left: 16px; right: 16px; }
-  .ws[data-module='comparador'] .ws-head { flex-wrap: wrap; }
 }
 
-/* Celular: una columna a la vez. Libro -> capítulo -> versículos, con la ruta arriba para volver. */
-@media (max-width: 859px) {
-  .chips { padding: 8px 12px; }
-  .crumbs { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--line); color: var(--ink-4); flex-shrink: 0; overflow-x: auto; scrollbar-width: none; }
-  .crumbs button { min-height: var(--control); padding: 0 8px; border-radius: var(--r-sm); color: var(--ink-3); font-weight: 500; white-space: nowrap; }
-  .crumbs button.on { color: var(--ink); background: var(--s2); }
+/* Cajón estrecho (el de 440 px, el del celular): una columna a la vez. Libro -> capítulo -> versículos,
+   con la ruta arriba para volver. */
+@container cajon (max-width: 599px) {
+  .chips, .cmp-bar, .multi-hint { padding: 6px 12px; }
+  .crumbs { display: flex; }
   .picker { display: block; }
   .col { display: none; height: 100%; border: 0; padding: 12px; }
   .picker[data-step='libros'] .col-books,
@@ -91,24 +96,47 @@ html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
   .abar .hint { display: none; }
   .sel-ref { flex: 1; text-align: center; }
   .abar .btn { flex: 1 1 40%; }
-  .search-pop { top: 108px; left: 8px; right: 8px; max-height: 75%; }
-  /* Comparador en celular: las versiones ocupan su propia fila y los dos textos van uno bajo otro. */
-  .cmp-pick { flex: 1 1 100%; order: 2; }
-  .cmp-pick .select { flex: 1; max-width: none; }
+  .search-pop { left: 8px; right: 8px; max-height: 75%; }
+  /* Al comparar en estrecho, la segunda versión ocupa la fila y los dos textos van uno bajo otro. */
+  .cmp-bar .select { flex: 1; max-width: none; }
+  .cmp-bar > .muted { display: none; }
+  /* Comparar y Varios, solo con su icono: caben con el título y la versión en una fila. */
+  .ws[data-module='biblia'] .ws-head h1 { flex: 0 0 auto; }
+  .ws[data-module='biblia'] .ws-head .select { flex: 1 1 0; min-width: 0; max-width: none; }
+  .ws[data-module='biblia'] .ws-head .btn { width: var(--control); padding: 0; justify-content: center; }
+  .ws[data-module='biblia'] .ws-head .btn > span { display: none; }
   .verse-heads { display: none; }
   .verse.two { grid-template-columns: 22px minmax(0, 1fr); gap: 4px 10px; }
   .verse.two > span:nth-child(3) { grid-column: 2; color: var(--ink-3); }
 }
 
-/* Celular en horizontal: la barra de acción en una sola fila. */
+/* Celular en horizontal: el cajón es ancho pero bajo. Una columna cada vez (como en estrecho), salvo al
+   comparar, que necesita los versículos a toda altura; sin recientes y la barra de acción en una fila. */
 @media (max-width: 859px) and (max-height: 480px) {
+  .ws:not(.comparing) .crumbs { display: flex; }
+  .ws:not(.comparing) .picker, html.touch .ws:not(.comparing) .picker { display: block; }
+  .ws:not(.comparing) .col { display: none; height: 100%; border: 0; padding: 12px; }
+  .ws:not(.comparing) .picker[data-step='libros'] .col-books,
+  .ws:not(.comparing) .picker[data-step='capitulos'] .col-chapters,
+  .ws:not(.comparing) .picker[data-step='versiculos'] .col-verses { display: block; }
+  .cmp-bar { padding: 4px 12px; }
+  .cmp-bar > .muted { display: none; }
   .chips { display: none; }
+  .ws[data-module='biblia'] .ws-head { flex-wrap: nowrap; }
+  .ws[data-module='biblia'] .ws-head .search { min-width: 0; }
   .abar { flex-wrap: nowrap; padding: 6px 12px; }
   .sel-ref { flex: 0 1 auto; }
-  /* El comparador cabe en una fila si los selectores se estrechan. */
-  .ws[data-module='comparador'] .ws-head { flex-wrap: nowrap; }
-  .cmp-pick { flex: 0 1 auto; order: 0; }
-  .cmp-pick .select { flex: 0 1 108px; max-width: 108px; }
-  .ws[data-module='comparador'] .ws-head .search { min-width: 150px; }
   .abar .btn { flex: 1 1 0; }
 }
+
+/* Cajón reducido del celular: la versión y el buscador en una fila, la cita y los versículos, y abajo «Añadir»
+   (solo el icono) y «Proyectar». «Comparar», «Varios», lo reciente y el paso de versículo a versículo, al ampliarlo. */
+.compact .ws[data-module='biblia'] .ws-head { flex-wrap: nowrap; padding: 8px 12px; }
+.compact .ws[data-module='biblia'] .ws-head > .btn, .compact .ws[data-module='biblia'] .chips { display: none; }
+.compact .ws[data-module='biblia'] .ws-head .select { flex: 0 1 42%; min-width: 0; }
+.compact .ws[data-module='biblia'] .ws-head .search { flex: 1 1 0; min-width: 0; order: 0; }
+.compact .ws[data-module='biblia'] .crumbs { padding-top: 4px; padding-bottom: 4px; }
+.compact .ws[data-module='biblia'] .abar { flex-wrap: nowrap; padding: 8px 12px; }
+.compact .ws[data-module='biblia'] .abar > .icon-btn, .compact .ws[data-module='biblia'] .abar .sel-ref, .compact .ws[data-module='biblia'] .abar .btn span { display: none; }
+.compact .ws[data-module='biblia'] .abar .btn:not(.primary) { width: var(--control); padding: 0; justify-content: center; flex: 0 0 auto; }
+.compact .ws[data-module='biblia'] .abar .btn.primary { flex: 1; }

@@ -4,6 +4,7 @@ import { icon } from '../../core/icons.js';
 import { formatTime } from '../../core/playback.js';
 import { prefs } from '../../core/prefs.js';
 import { TRACKS, trackName } from './kind.js';
+import { lyricsOf, openLyrics } from './lyrics.js';
 
 const SEARCH_PAUSE_MS = 160; // al escribir, se busca cuando los dedos paran un instante
 const VIEWS = [['grid', 'Todos', 'squares-four'], ['categories', 'Categorías', 'rows']];
@@ -42,7 +43,14 @@ function mount(el, ctx) {
   const number = h('strong', { class: 'hymn-sel-n' });
   const name = h('span', { class: 'hint' });
   const sound = TRACKS.map(([id, label]) => h('button', { class: 'chip', dataset: { track: id }, onclick: () => setTrack(id) }, label));
-  const lyricsButton = h('button', { class: 'btn', onclick: () => showLyrics() }, icon('rows', 16), h('span', { class: 'hymn-long' }, 'Letra'));
+  const lyricsButton = h('button', { class: 'btn hymn-lyrics-btn', onclick: () => showLyrics() }, icon('rows', 16), h('span', { class: 'hymn-long' }, 'Letra'));
+  // Oírlo solo en este dispositivo antes de proyectarlo o añadirlo (no en el equipo principal: ctx.listen es null).
+  const listenButton = ctx.listen && h('button', { class: 'btn hymn-listen', 'aria-label': 'Escuchar en este dispositivo', onclick: () => {
+    const hymn = current();
+    if (!hymn) return;
+    const pista = soundFor(hymn) === 'instrumental' && hymn.instrumentalUrl;
+    ctx.listen({ url: pista || hymn.url, title: `${hymn.number} · ${hymn.title}${pista ? ' (pista)' : ''}` });
+  } }, icon('speaker-high', 16), h('span', { class: 'hymn-long' }, 'Escuchar'));
   const project = guard(async () => {
     const hymn = current();
     if (hymn) await action('projection.show', { kind: 'song', data: { number: hymn.number, track: soundFor(hymn) } });
@@ -50,7 +58,7 @@ function mount(el, ctx) {
   const bar = h('div', { class: 'abar hymn-bar', hidden: true },
     h('span', { class: 'sel-ref' }, number), name,
     h('div', { class: 'hymn-sound', role: 'group', 'aria-label': 'Sonido' }, ...sound),
-    lyricsButton,
+    lyricsButton, listenButton,
     h('button', { class: 'btn', onclick: guard(async () => {
       const hymn = current();
       await action('order.add', { kind: 'song', data: { number: hymn.number, track: soundFor(hymn) } });
@@ -58,8 +66,25 @@ function mount(el, ctx) {
     }) }, icon('plus', 16), h('span', {}, 'Añadir', h('span', { class: 'hymn-long' }, ' al orden'))),
     h('button', { class: 'btn primary', onclick: () => project() }, icon('play', 16), 'Proyectar', h('kbd', {}, '↵')));
 
+  // ---- Ficha del elegido ----
+  // Al lado de la rejilla, si el cajón deja sitio (hymns.css): número, título, categoría, duración y letra.
+  // En un cajón estrecho no se ve, y la letra se abre con el botón «Letra» de la barra.
+  const card = h('aside', { class: 'hymn-card', 'aria-label': 'Himno elegido' });
+  let carded; // el número cuya ficha está dibujada
+  const drawCard = guard(async (hymn) => {
+    carded = hymn?.number ?? null;
+    if (!hymn) return card.replaceChildren(h('p', { class: 'muted' }, 'Elige un himno para ver aquí su letra.'));
+    const top = h('header', {}, h('strong', { class: 'hymn-card-n' }, String(hymn.number)),
+      h('span', { class: 'item-text' }, h('strong', {}, hymn.title), h('small', {}, [book.categories[hymn.category], hymn.duration && formatTime(hymn.duration)].filter(Boolean).join(' · '))));
+    if (!hymn.lyrics) return card.replaceChildren(top, h('p', { class: 'muted' }, 'Este himno no tiene letra en la carpeta del himnario.'));
+    card.replaceChildren(top);
+    const full = await api(`/api/hymns/${hymn.number}`);
+    if (carded === hymn.number) card.replaceChildren(top, lyricsOf(full));
+    return undefined;
+  });
+
   el.replaceChildren(h('div', { class: 'ws-head' }, h('h1', {}, 'Himnario'),
-    h('label', { class: 'search' }, icon('magnifying-glass', 16), input), views, notesButton), body, bar);
+    h('label', { class: 'search' }, icon('magnifying-glass', 16), input), views, notesButton), h('div', { class: 'hymns-main' }, body, card), bar);
 
   // ---- Elegir ----
   function select(n, { reveal = false } = {}) {
@@ -93,9 +118,22 @@ function mount(el, ctx) {
     const groups = book.categories.map((title, at) => ({ title, hymns: book.hymns.filter((hymn) => hymn.category === at) }));
     const loose = book.hymns.filter((hymn) => hymn.category == null);
     if (loose.length) groups.push({ title: book.categories.length ? 'Sin categoría' : 'Todos los himnos', hymns: loose });
-    return groups.filter((group) => group.hymns.length).map((group) => h('section', { class: 'hymn-group' },
-      h('header', {}, h('h2', {}, group.title), h('small', {}, `${group.hymns[0].number}–${group.hymns.at(-1).number} · ${group.hymns.length} ${group.hymns.length === 1 ? 'himno' : 'himnos'}`)),
-      h('div', { class: 'hymn-grid' }, ...group.hymns.map(tile))));
+    // Todas plegadas: se abre la que se toca y se pliega la que estaba abierta.
+    return groups.filter((group) => group.hymns.length).map((group) => {
+      const grid = h('div', { class: 'hymn-grid', hidden: true }, ...group.hymns.map(tile));
+      const head = h('button', { class: 'hymn-group-head', 'aria-expanded': 'false', onclick: () => {
+        const open = head.getAttribute('aria-expanded') !== 'true';
+        for (const other of body.querySelectorAll('.hymn-group-head[aria-expanded=true]')) {
+          other.setAttribute('aria-expanded', 'false');
+          other.nextElementSibling.hidden = true;
+        }
+        head.setAttribute('aria-expanded', String(open));
+        grid.hidden = !open;
+        if (open) head.scrollIntoView({ block: 'start' });
+      } },
+      h('h2', {}, group.title), h('small', {}, `${group.hymns[0].number}–${group.hymns.at(-1).number} · ${group.hymns.length} ${group.hymns.length === 1 ? 'himno' : 'himnos'}`), icon('caret-down', 18));
+      return h('section', { class: 'hymn-group' }, head, grid);
+    });
   }
 
   function drawResults() {
@@ -157,6 +195,7 @@ function mount(el, ctx) {
       lyricsButton.disabled = !hymn.lyrics;
       lyricsButton.title = hymn.lyrics ? 'Ver la letra de este himno' : 'No hay letra de este himno en la carpeta del himnario';
     }
+    if ((hymn?.number ?? null) !== carded) drawCard(hymn);
     if (el.isConnected && !el.hidden) {
       ctx.setPreview(hymn ? { kind: 'song', number: hymn.number, title: hymn.title, track: soundFor(hymn), duration: hymn.duration } : null);
     }
@@ -227,14 +266,7 @@ function mount(el, ctx) {
   });
 
   // ---- Ventanas ----
-  const showLyrics = guard(async () => {
-    const hymn = current();
-    if (!hymn) return;
-    const full = await api(`/api/hymns/${hymn.number}`);
-    const box = dialog(`${full.number} · ${full.title}`,
-      h('div', { class: 'hymn-lyrics' }, ...full.parts.map((part) => h('section', {}, part.label && h('h3', {}, part.label), ...part.lines.map((line) => h('p', {}, line))))),
-      h('div', { class: 'row', style: 'justify-content: flex-end; margin-top: 14px;' }, h('button', { class: 'btn primary', onclick: () => box.close() }, 'Cerrar')));
-  });
+  const showLyrics = guard(async () => { if (current()) await openLyrics(current().number); });
   function showNotes() {
     const report = book.report || { notes: [] };
     const box = dialog('Para revisar en el himnario',

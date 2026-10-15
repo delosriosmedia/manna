@@ -18,6 +18,8 @@
 //                             aire: una vista previa), el volumen general y si esta pantalla suena
 //     controls?(host, { send }) -> { update(state, item), destroy?() }
 //                             mandos en vivo. send(patch) ejecuta projection.control
+//     sound?(item, state) -> dirección | null
+//                             qué archivo se oye de lo que suena (para «Escuchar aquí», projection/listen.js)
 //   });
 //
 // El color del tipo va en .kind.k-<tipo> de core/app.css.

@@ -8,6 +8,9 @@ import { createStage } from './stage.js';
 import { createLiveControls } from './live.js';
 import { createDisplayToggle, describeLive, toggleMode } from './controls.js';
 import { createVolume } from './volume.js';
+import { createSearch } from './search.js';
+import { createListener } from './listen.js';
+import { createPreview } from './preview.js';
 
 // «Escenario» (fase 13 de docs/PLAN.md): lo que está al aire ocupa el fondo y, encima, en cristal,
 // lo que lo gobierna. Lo coloca core/shell.js; aquí solo se hacen las piezas y se mantienen al día.
@@ -18,6 +21,7 @@ import { createVolume } from './volume.js';
 //   prep       tarjeta «Preparado»: lo elegido, con Proyectar y Añadir al orden
 //   story      celular («Historias»): la proyección en su recuadro, con toques para pasar y lo que sigue
 //   controls   los mandos del tipo al aire (live.js); el shell los abre en una capa
+//   search     «Buscar en todo» (search.js), solo en las funciones que preparan el culto (canEdit)
 // Fuera del equipo principal, la proyección de fondo se dibuja ligera (thumbnail): un video muestra su
 // imagen y no se reproduce, para no gastar batería ni red.
 const step = (delta) => guard(() => action('projection.step', { delta }));
@@ -101,6 +105,7 @@ export function createEscenario(ctx) {
     await go();
     return true;
   });
+  const search = ctx.canEdit ? createSearch({ prepare, projectPrepared, canEdit: ctx.canEdit }) : null;
   const prepareOrder = (item, k = 0) => prepare({
     kind: item.kind, title: item.title, subtitle: item.steps > 1 ? `${item.subtitle} · paso ${k + 1}` : item.subtitle,
     orderId: item.id, step: k, project: () => action('order.show', { id: item.id, step: k }),
@@ -157,12 +162,16 @@ export function createEscenario(ctx) {
   const controlsButton = h('button', { class: 'btn', hidden: true, 'aria-haspopup': 'dialog', onclick: () => ctx.openControls?.() }, icon('sliders-horizontal', 16), 'Mandos');
   const noSound = h('button', { class: 'icon-btn no-sound', hidden: true, title: NO_SOUND, 'aria-label': 'No suena en ningún sitio', onclick: () => toast(NO_SOUND, 'error') }, icon('warning', 18));
   const volume = createVolume();
+  // «Escuchar aquí», en los dispositivos que no son el equipo principal (este ya suena para la iglesia).
+  const listener = ctx.isLocal ? null : createListener();
+  // «Escuchar antes de añadir», también solo fuera del equipo principal.
+  const preview = ctx.isLocal ? null : createPreview();
   const transport = h('div', { class: 'transport-bar glass', role: 'group', 'aria-label': 'Al aire' },
     h('button', { class: 'btn round', 'aria-label': 'Anterior', title: 'Anterior (←)', onclick: step(-1) }, icon('caret-left', 18)),
     h('button', { class: 'btn primary next', onclick: step(1) }, 'Siguiente', icon('caret-right', 18)),
     h('div', { class: 'up-next' }, h('small', {}, 'SIGUE'), upNext),
     clear, black, controlsButton,
-    h('div', { class: 'tb-volume' }, noSound, volume.el));
+    h('div', { class: 'tb-volume' }, noSound, volume.el), listener?.button());
 
   function nextText() {
     const items = orderItems();
@@ -199,7 +208,7 @@ export function createEscenario(ctx) {
       h('button', { class: 'icon-btn story-controls', 'aria-label': 'Mandos de lo que está al aire', onclick: () => ctx.openControls?.() }, icon('sliders-horizontal', 18))),
     h('p', { class: 'story-hint' }, 'Toca la imagen: a la derecha avanza, a la izquierda vuelve.'),
     h('div', { class: 'story-modes', role: 'group', 'aria-label': 'Qué se ve en la proyección' }, ...modes),
-    h('div', { class: `story-volume${ctx.role === 'alabanza' ? ' big' : ''}` }, storyVolume.el),
+    h('div', { class: `story-volume${ctx.role === 'alabanza' ? ' big' : ''}` }, storyVolume.el, listener?.button()),
     h('div', { class: 'story-next' }, h('div', { class: 'story-next-head' }, h('strong', {}, 'A continuación'), h('small', {}, 'Toca: prepara · doble toque: proyecta')), carousel));
 
   function renderStory(p) {
@@ -257,13 +266,15 @@ export function createEscenario(ctx) {
     upNext.textContent = nextText();
   });
   subscribe('live', (l) => stage.setLive(l));
+  // El punto rojo del Presentador también se ve en el fondo (y en el recuadro de «Historias»).
+  subscribe('pointer', (p) => stage.setPointer(p));
   subscribe('conexiones', ({ sonido }) => {
     stage.setSound(Boolean(sonido) && sonido === connectionId());
     noSound.hidden = Boolean(sonido);
   });
 
   return {
-    bg, status, mini, queue, transport, prep, story, controls,
+    bg, status, mini, queue, transport, prep, story, controls, search, preview,
     hasControls: () => !controlsButton.hidden,
     // En el celular la proyección va en el recuadro de «Historias»; en el escritorio, de fondo.
     place(narrow) {

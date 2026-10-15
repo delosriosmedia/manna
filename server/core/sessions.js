@@ -9,7 +9,9 @@ const LOCK_MS = 60_000;
 // lo piden una vez; el equipo servidor (localhost) nunca necesita PIN.
 export function createSessions({ storage, roles }) {
   const store = storage('sesiones', { pin: null, list: {} });
-  if (!store.data.pin) {
+  // El PIN es de 4 cifras (el teclado entra solo al teclear la cuarta). Uno de otro largo, de antes
+  // del 2026-10-15, se cambia por uno nuevo: se ve en «Dispositivos», en el equipo principal.
+  if (!/^\d{4}$/.test(store.data.pin || '')) {
     store.data.pin = String(crypto.randomInt(0, 10000)).padStart(4, '0');
     store.save();
   }
@@ -60,7 +62,7 @@ export function createSessions({ storage, roles }) {
   // Cambiar el PIN cierra todas las sesiones menos la de quien lo cambia (keep): los demás
   // dispositivos escriben el nuevo, y el equipo principal vuelve a entrar solo, sin PIN.
   function setPin(pin, keep = null) {
-    if (!/^\d{4,8}$/.test(pin || '')) throw new HttpError(400, 'El PIN debe tener entre 4 y 8 números.');
+    if (!/^\d{4}$/.test(pin || '')) throw new HttpError(400, 'El PIN debe tener 4 números.');
     store.data.pin = pin;
     for (const id of Object.keys(store.data.list)) if (id !== keep) delete store.data.list[id];
     store.save();

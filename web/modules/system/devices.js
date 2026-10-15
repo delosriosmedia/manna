@@ -62,7 +62,9 @@ export async function openDevicesDialog(isLocal) {
 
   if (isLocal) {
     const { pin } = await api('/api/system/pin');
-    const input = h('input', { class: 'input', inputMode: 'numeric', maxLength: 8, value: pin, 'aria-label': 'PIN' });
+    // Solo números y 4 cifras, como el teclado del PIN.
+    const input = h('input', { class: 'input', inputMode: 'numeric', pattern: '[0-9]*', maxLength: 4, value: pin, 'aria-label': 'PIN',
+      oninput: () => { input.value = input.value.replace(/\D/g, '').slice(0, 4); } });
     body.push(
       h('div', { class: 'label', style: 'margin-top: 16px;' }, 'PIN para las funciones de control'),
       h('div', { class: 'row' }, input, h('button', { class: 'btn', onclick: guard(async () => {

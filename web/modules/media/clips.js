@@ -71,6 +71,11 @@ export function createClipsPanel(ctx, kind) {
       await action('order.add', { kind, data: { id: clip.id } });
       toast(`«${clip.name}» añadido al orden del culto.`);
     }) }, icon('plus', 16), 'Añadir al orden'),
+    // Oírlo solo en este dispositivo antes de proyectarlo o añadirlo (no en el equipo principal).
+    ctx.listen && h('button', { class: 'btn media-listen', 'aria-label': 'Escuchar en este dispositivo', onclick: () => {
+      const clip = current();
+      if (clip?.url) ctx.listen({ url: clip.url, title: clip.name });
+    } }, icon('speaker-high', 16), 'Escuchar'),
     show);
 
   // Lo recién subido puede no haber llegado aún con el estado (la respuesta de la subida se

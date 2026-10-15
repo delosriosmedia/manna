@@ -1,7 +1,8 @@
-import { h } from '../../core/dom.js';
+import { guard, h } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { registerKind } from '../../core/kinds.js';
 import { clipControls, drawClip } from '../projection/clip.js';
+import { openLyrics } from './lyrics.js';
 
 // Tipo de contenido "himno": el video del himno, con el sonido cantado o con la pista
 // instrumental. Se reproduce con las piezas comunes de lo que suena (projection/clip.js); lo
@@ -35,15 +36,22 @@ registerKind('song', {
     });
   },
 
+  // Lo que se oye: cantado (el video) o la pista, según el mando.
+  sound: (item, live) => ((live?.track || item.track) === 'instrumental' ? item.instrumental : item.url),
+
   controls(host, tools) {
     const buttons = TRACKS.map(([id, label]) => h('button', { class: 'btn grow', dataset: { track: id }, onclick: () => tools.send({ track: id }) }, label));
-    const row = h('div', { class: 'transport song-tracks', role: 'group', 'aria-label': 'Sonido del himno' }, ...buttons);
+    let number = null;
+    // La letra entera, para leerla en este dispositivo (lo pidió el dueño para Alabanza).
+    const lyrics = h('button', { class: 'btn song-lyrics', onclick: guard(() => openLyrics(number)) }, icon('rows', 16), 'Letra');
+    const row = h('div', { class: 'transport song-tracks', role: 'group', 'aria-label': 'Sonido del himno' }, ...buttons, lyrics);
     // Debajo, los mandos de cualquier cosa que suena.
     const rest = h('div', { class: 'live-part' });
     host.replaceChildren(row, rest);
     const clip = clipControls(rest, tools);
     return {
       update(live, item) {
+        number = item.number;
         const current = live?.track || item.track;
         for (const button of buttons) {
           const id = button.dataset.track;

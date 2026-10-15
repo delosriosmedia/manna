@@ -1,4 +1,7 @@
 /* Módulo Ajustes: secciones separadas por líneas, título a la izquierda y controles a la derecha. */
+/* La fila de secciones: un botón por sección, que lleva a ella; se desliza de lado si no caben. */
+.set-nav { display: flex; gap: 6px; padding: 8px 20px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
+.set-nav .btn { flex-shrink: 0; }
 .settings { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 20px 32px; }
 .set { display: grid; grid-template-columns: 220px minmax(0, 420px); gap: 24px; padding: 20px 0; border-bottom: 1px solid var(--line); }
 .set:last-child { border-bottom: 0; }
@@ -27,10 +30,11 @@
 .about img { width: 84px; margin-left: -8px; }
 .goodbye h1 { font-size: 22px; }
 
-@media (max-width: 1179px) {
+@container cajon (max-width: 899px) {
   .set { grid-template-columns: 180px minmax(0, 1fr); gap: 16px; }
 }
-@media (max-width: 859px) {
+@container cajon (max-width: 599px) {
+  .set-nav { padding: 8px 12px; }
   .settings { padding: 0 12px 24px; }
   .set { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 16px 0; }
 }

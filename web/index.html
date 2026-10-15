@@ -12,27 +12,45 @@
   <script>if (matchMedia('(pointer: coarse)').matches || /[?&]tactil/.test(location.search)) document.documentElement.classList.add('touch');</script>
   <link rel="stylesheet" href="/core/app.css">
   <style>
-    main { max-width: 480px; margin: 0 auto; padding: 32px 16px; }
+    /* Inicio: las funciones como tarjetas de cristal sobre el resplandor de la M. */
+    main { max-width: 1040px; margin: 0 auto; padding: 56px 16px 40px; }
     header { margin-bottom: 28px; }
-    header .choose { margin-top: 22px; color: var(--ink-3); }
-    .role { display: block; width: 100%; text-align: left; padding: 14px 16px; margin-bottom: 8px; background: var(--s1); border: 1px solid var(--line); border-radius: var(--r-lg); transition: border-color 0.15s var(--ease), background 0.15s var(--ease); }
-    .role:hover { border-color: var(--line-2); background: var(--s2); }
+    .lockup img { width: 78px; filter: drop-shadow(0 0 22px rgba(0, 255, 255, 0.45)); }
+    .lockup .wordmark { font-size: 18px; font-weight: 700; letter-spacing: 0.26em; }
+    .lockup .version { margin-top: 2px; }
+    header h1 { margin-top: 18px; font-size: clamp(26px, 6vw, 34px); font-weight: 800; letter-spacing: -0.01em; }
+    #roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 12px; }
+    .role { display: flex; gap: 14px; align-items: flex-start; width: 100%; text-align: left; padding: 18px; background: var(--glass-1); border: 1px solid var(--glass-line); border-radius: var(--r-lg); -webkit-backdrop-filter: blur(var(--blur-1)); backdrop-filter: blur(var(--blur-1)); transition: border-color 0.15s var(--ease), transform 0.15s var(--ease); }
+    .role:hover { border-color: rgba(92, 232, 255, 0.45); transform: translateY(-1px); }
+    .role:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .role.current { border-color: var(--accent); }
-    .role-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    .role-head strong { font-size: 15px; font-weight: 600; }
-    .role p { margin-top: 4px; color: var(--ink-3); }
-    .tag { font-size: 11px; font-weight: 500; color: var(--ink-3); border: 1px solid var(--line-2); border-radius: 99px; padding: 2px 8px; white-space: nowrap; }
-    .role.current .tag { color: var(--accent); border-color: var(--accent); }
+    .role-icon { flex: 0 0 auto; width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+    .role-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .role-text strong { font-size: 16px; font-weight: 600; }
+    .role-text span { color: var(--ink-2); font-size: 13px; line-height: 1.45; }
+    .tag { flex: 0 0 auto; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: var(--r-pill); color: var(--accent-hover); background: var(--accent-soft); white-space: nowrap; }
+    .tag.asks { color: #f0bc66; background: rgba(240, 188, 102, 0.12); }
+
+    /* PIN: un teclado grande, también cómodo en el celular. */
+    .pin-pad { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .pin-pad > p { color: var(--ink-3); text-align: center; font-size: 13px; }
+    .pin-dots { display: flex; gap: 14px; padding: 6px 0; }
+    .pin-dots span { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--accent); }
+    .pin-dots span.on { background: var(--accent); }
+    .pin-pad.wrong .pin-dots span { border-color: var(--live-ink); }
+    .pin-error { min-height: 1.4em; color: var(--live-ink); font-size: 13px; }
+    .pin-keys { display: grid; grid-template-columns: repeat(3, 72px); gap: 10px; }
+    .pin-keys button { height: 64px; border-radius: 22px; border: 1px solid var(--glass-line); background: rgba(255, 255, 255, 0.05); font-size: 22px; font-weight: 600; display: grid; place-items: center; }
+    .pin-keys button:active { background: var(--accent-soft); }
   </style>
 </head>
-<body>
+<body class="glow">
   <main>
     <header class="lockup">
       <img src="/marca.svg" alt="">
-      <h1 class="wordmark">MANNA</h1>
-      <p class="tagline">Church projection app</p>
+      <p class="wordmark">MANNA</p>
       <p class="version" id="version"></p>
-      <p class="choose">Elige qué hará este dispositivo</p>
+      <h1>¿Qué vas a hacer hoy?</h1>
     </header>
     <div id="roles"></div>
   </main>

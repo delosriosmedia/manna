@@ -8,6 +8,7 @@ import { parseRange } from '../server/core/router.js';
 import { createStorage } from '../server/core/storage.js';
 import { applyClock, createClock, freezeClock, hasEnded, positionAt } from '../server/core/playback.js';
 import { createJobs, estimate } from '../server/core/jobs.js';
+import { createSessions } from '../server/core/sessions.js';
 
 // ---- Trozos de archivo (Range) ----
 
@@ -133,4 +134,17 @@ test('una tarea publica su avance, termina o falla, y se puede descartar', async
   job.done('Listo');
   assert.deepEqual([jobs.list()[0].state, jobs.list()[0].progress, jobs.list()[0].detail], ['done', 1, 'Listo']);
   jobs.close();
+});
+
+test('el PIN es de 4 cifras: uno más largo de antes se cambia por uno nuevo al arrancar', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-pin-'));
+  fs.writeFileSync(path.join(dir, 'sesiones.json'), JSON.stringify({ pin: '123456', list: {} }));
+  const storage = createStorage(dir);
+  createSessions({ storage, roles: [] });
+  storage.flushAll();
+  const { pin } = JSON.parse(fs.readFileSync(path.join(dir, 'sesiones.json'), 'utf8'));
+  assert.match(pin, /^\d{4}$/);
+  fs.writeFileSync(path.join(dir, 'sesiones.json'), JSON.stringify({ pin: '0420', list: {} }));
+  createSessions({ storage: createStorage(dir), roles: [] });
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dir, 'sesiones.json'), 'utf8')).pin, '0420', 'uno de 4 cifras se queda');
 });

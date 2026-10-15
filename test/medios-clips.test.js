@@ -260,8 +260,9 @@ test('un video que hay que convertir se puede usar al instante si el equipo prin
 });
 
 test('una conversión cede el paso a lo que se reproduce: se congela y sigue, o se corta y vuelve a empezar', needs, async () => {
-  // Un video que tarde unos segundos en convertirse.
-  const long = make('largo.avi', ['-f', 'lavfi', '-i', 'testsrc2=size=1280x720:rate=30:duration=45', '-c:v', 'mpeg4', '-q:v', '6']);
+  // Un video que tarde un poco en convertirse, pero no tanto: la conversión va a prioridad baja y, con el
+  // equipo ocupado, uno de 45 s en 720p llegó a tardar siete minutos.
+  const long = make('largo.avi', ['-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=30:duration=20', '-c:v', 'mpeg4', '-q:v', '6']);
   const info = readProbe(String(spawnSync('ffprobe', ['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', long]).stdout));
   const s = await start('ceder');
   try {
@@ -286,7 +287,7 @@ test('una conversión cede el paso a lo que se reproduce: se congela y sigue, o 
       converter.hold(false);
       assert.deepEqual(await done, { ok: true }, 'al dejar de reproducirse, termina');
       const check = spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', output]);
-      assert.ok(Math.abs(Number(String(check.stdout)) - 45) < 1, `la copia queda entera (${String(check.stdout).trim()} s)`);
+      assert.ok(Math.abs(Number(String(check.stdout)) - 20) < 1, `la copia queda entera (${String(check.stdout).trim()} s)`);
       converter.close();
     }
   } finally {

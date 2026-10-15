@@ -16,7 +16,8 @@ const TABS = [['orden', 'Del orden'], ['biblioteca', 'Biblioteca'], ['subir', 'S
 
 // Pantalla del presentador (función «Presentador de diapositivas»): una presentación cada vez, con
 // la diapositiva al aire en grande, la siguiente y todas en rejilla. Sobre la grande, el dedo señala
-// en la proyección (puntero) o mueve y acerca el encuadre. «Siguiente» no sale de la presentación.
+// en la proyección (puntero), mueve y acerca el encuadre o, sin herramienta, pasa como en «Historias»
+// (a la derecha avanza, a la izquierda vuelve). «Siguiente» no sale de la presentación.
 // También una página web (módulo Páginas web): la grande y el puntero; «Anterior» y «Siguiente» le
 // llegan como las flechas si es un archivo propio o va en su propia ventana.
 function mount(el, ctx) {
@@ -26,7 +27,8 @@ function mount(el, ctx) {
   let awaited = null;  // recién subida que aún no llegó con el estado
   let touched = false; // la persona ya eligió (o volvió a la lista): no se sigue sola a lo que esté al aire
   let tab = null;      // pestaña elegida; mientras no se elija, «Del orden» si tiene presentaciones
-  let tool = 'point';
+  // En el escritorio se empieza señalando; en el celular, tocando para pasar («Señalar» se enciende aparte).
+  let tool = wide.matches ? 'point' : null;
   const decks = () => state.slides?.decks || [];
   const deck = () => decks().find((d) => d.id === deckId && d.status === 'ready') || null;
   const pages = () => state.web?.pages || [];
@@ -61,7 +63,10 @@ function mount(el, ctx) {
   const stage = createStage(live);
   const onAir = h('p', { class: 'pr-onair', hidden: true });
   const toolButtons = [['point', 'hand-pointing', 'Señalar'], ['move', 'arrows-out-cardinal', 'Mover']].map(([id, glyph, label]) =>
-    h('button', { class: 'chip', dataset: { tool: id }, 'aria-pressed': 'false', onclick: () => { tool = id; paintTools(); } }, icon(glyph, 15), label));
+    h('button', { class: 'chip', dataset: { tool: id }, 'aria-pressed': 'false', onclick: () => { tool = tool === id ? null : id; paintTools(); } }, icon(glyph, 15), label));
+  // Vuelve a la imagen entera; solo se puede pulsar con algo acercado o desplazado.
+  const resetZoom = h('button', { class: 'chip', 'aria-label': 'Restablecer el zoom', title: 'Ver la diapositiva entera', onclick: guard(() => action('projection.control', { ...FULL_VIEW })) },
+    icon('arrow-counter-clockwise', 15), 'Restablecer');
   const hint = h('small', { class: 'pr-hint' });
   const prev = h('button', { class: 'btn big', 'aria-label': 'Anterior', onclick: () => go(-1) }, icon('caret-left', 18));
   const next = h('button', { class: 'btn big primary grow', onclick: () => go(1) });
@@ -71,16 +76,25 @@ function mount(el, ctx) {
   const nextEnd = h('span', { class: 'pr-end' }, 'Fin de la presentación');
   const nextView = h('button', { class: 'monitor pr-next', 'aria-label': 'Proyectar la siguiente', onclick: () => go(1) }, nextImg, nextEnd);
   const nextHead = h('div', { class: 'dock-label' }, 'Siguiente', nextLabel);
+  // La anterior, del mismo tamaño, a la izquierda de la siguiente.
+  const prevLabel = h('span', {});
+  const prevImg = h('img', { alt: '' });
+  const prevStart = h('span', { class: 'pr-start' }, 'Es la primera');
+  const prevView = h('button', { class: 'monitor pr-prev', 'aria-label': 'Proyectar la anterior', onclick: () => go(-1) }, prevImg, prevStart);
+  const around = h('div', { class: 'pr-around' },
+    h('div', {}, h('div', { class: 'dock-label' }, 'Anterior', prevLabel), prevView),
+    h('div', {}, nextHead, nextView));
   const controls = h('div', {});
   const grid = h('div', { class: 'slide-grid' });
   const gridBox = h('div', { class: 'pr-grid' }, grid);
+  // La grande ocupa todo lo que deja la columna de la derecha (la siguiente, los mandos y todas), sin
+  // nada encima: así se puede señalar en cualquier punto.
   const present = h('div', { class: 'pr-body' },
     h('div', { class: 'pr-main' },
-      h('div', { class: 'pr-tools' }, ...toolButtons, hint),
-      live, onAir,
+      h('div', { class: 'pr-tools' }, ...toolButtons, resetZoom, hint),
+      h('div', { class: 'pr-screen' }, live), onAir,
       h('div', { class: 'transport' }, prev, next, black)),
-    h('div', { class: 'pr-side' }, nextHead, nextView, controls),
-    gridBox);
+    h('div', { class: 'pr-side' }, around, controls, gridBox));
 
   el.replaceChildren(h('div', { class: 'ws-head' }, back, h('h1', {}, 'Presentador'), title), chooser, present, picker);
   el.classList.add('presenter');
@@ -123,8 +137,17 @@ function mount(el, ctx) {
       b.classList.toggle('on', b.dataset.tool === tool);
       b.setAttribute('aria-pressed', String(b.dataset.tool === tool));
     });
-    live.dataset.tool = tool;
-    hint.textContent = tool === 'point' ? `Toca la ${pageId ? 'página' : 'diapositiva'} para señalar en la pantalla` : 'Arrastra para mover; dos dedos para acercar';
+    live.dataset.tool = tool || 'pass';
+    paintReset();
+    const what = pageId ? 'página' : 'diapositiva';
+    hint.textContent = tool === 'point' ? `Toca la ${what} para señalar en la pantalla` : tool === 'move' ? 'Arrastra para mover; dos dedos para acercar' : `Toca la ${what}: a la derecha avanza, a la izquierda vuelve`;
+  }
+
+  function paintReset() {
+    const f = framing();
+    const v = f && { ...FULL_VIEW, ...f.view };
+    resetZoom.hidden = Boolean(pageId);
+    resetZoom.disabled = !v || (v.zoom <= 1 && Math.abs(v.x - 0.5) < 0.001 && Math.abs(v.y - 0.5) < 0.001);
   }
 
   function renderList() {
@@ -215,9 +238,9 @@ function mount(el, ctx) {
     black.classList.toggle('on', p?.mode === 'black');
     // Una página no tiene siguiente ni rejilla, ni encuadre que mover.
     toolButtons[1].hidden = Boolean(pg);
-    if (pg) tool = 'point';
+    if (pg && tool === 'move') tool = 'point';
     paintTools();
-    for (const part of [nextHead, nextView, gridBox]) part.hidden = Boolean(pg);
+    for (const part of [around, gridBox]) part.hidden = Boolean(pg);
     if (pg) {
       const air = pageOnAir();
       onAir.hidden = Boolean(air) || !p?.item;
@@ -240,6 +263,12 @@ function mount(el, ctx) {
     nextImg.hidden = !upcoming;
     nextEnd.hidden = Boolean(upcoming);
     if (upcoming && nextImg.getAttribute('src') !== thumbUrl(d, upcoming)) nextImg.src = thumbUrl(d, upcoming);
+    const before = n > 1 ? n - 1 : 0;
+    prevLabel.textContent = before ? `${before} de ${d.pages}` : '';
+    prevView.disabled = !before;
+    prevImg.hidden = !before;
+    prevStart.hidden = Boolean(before);
+    if (before && prevImg.getAttribute('src') !== thumbUrl(d, before)) prevImg.src = thumbUrl(d, before);
     renderGrid(d, n);
   }
 
@@ -250,6 +279,7 @@ function mount(el, ctx) {
   const frame = createSender(guard((patch) => action('projection.control', patch)));
   const fingers = new Map();
   let grip = null; // { x, y, center, width, height, zoom, spread }
+  let tap = null;  // sin herramienta: dónde empezó el toque, para pasar al soltar
   const framing = () => {
     const item = state.projection?.item;
     const view = state.live?.uid === item?.uid ? state.live?.state : null;
@@ -286,19 +316,24 @@ function mount(el, ctx) {
     try { live.setPointerCapture(e.pointerId); } catch { /* sin captura, se sigue igual */ }
     fingers.set(e.pointerId, e);
     if (tool === 'point') aim.push(stage.pointAt(e.clientX, e.clientY) || { x: null, y: null }, { replace: true });
-    else grab();
+    else if (tool === 'move') grab();
+    else tap = fingers.size === 1 ? { x: e.clientX, y: e.clientY } : null;
   });
   live.addEventListener('pointermove', (e) => {
     if (!fingers.has(e.pointerId)) return;
     fingers.set(e.pointerId, e);
     if (tool === 'point') aim.push(stage.pointAt(e.clientX, e.clientY) || { x: null, y: null }, { replace: true });
-    else drag();
+    else if (tool === 'move') drag();
   });
   const release = (e) => {
     if (!fingers.delete(e.pointerId)) return;
     if (tool === 'point') aim.push({ x: null, y: null }, { replace: true });
-    else if (fingers.size) grab();
-    else grip = null;
+    else if (tool === 'move') { if (fingers.size) grab(); else grip = null; }
+    else if (tap && e.type === 'pointerup' && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) < 12) {
+      const r = live.getBoundingClientRect();
+      go(e.clientX > r.left + r.width / 2 ? 1 : -1);
+    }
+    if (!fingers.size) tap = null;
   };
   live.addEventListener('pointerup', release);
   live.addEventListener('pointercancel', release);
@@ -313,7 +348,7 @@ function mount(el, ctx) {
     stage.render(p);
     render();
   });
-  subscribe('live', (l) => stage.setLive(l));
+  subscribe('live', (l) => { stage.setLive(l); paintReset(); });
   subscribe('pointer', (p) => stage.setPointer(p));
   subscribe('slides', render);
   subscribe('web', render);

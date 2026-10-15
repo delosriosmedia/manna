@@ -7,7 +7,7 @@ import { acceptsDeck, DECK_ACCEPT, hasPowerPoint, openDeckUpload } from './uploa
 
 const SOURCES = { pdf: 'PDF', powerpoint: 'PowerPoint' };
 // Con sitio para las dos columnas, siempre hay una presentación abierta.
-const wide = matchMedia('(min-width: 860px)');
+const NARROW = 600; // por debajo de este ancho del cajón, una cosa cada vez (lo mismo dice slides.css)
 const plural = (n) => `${n} ${n === 1 ? 'diapositiva' : 'diapositivas'}`;
 const pageUrl = (deck, n) => `${deck.base}${n}.${deck.ext}`;
 // Sin miniaturas (según cómo se convirtió) se usa la propia imagen.
@@ -182,7 +182,7 @@ function mount(el, ctx) {
     }
     if (deckId && !current()) deckId = null;
     const air = onAir();
-    if (!deckId && wide.matches && all.length) {
+    if (!deckId && el.clientWidth >= NARROW && all.length) {
       deckId = (all.find((d) => d.id === air?.id) || all[0]).id;
       page = air?.id === deckId ? air.number : 1;
     }

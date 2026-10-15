@@ -11,8 +11,9 @@ const SEARCH_MAX = 400;
 const SCOPES = [['all', 'Toda la Biblia'], ['ot', 'Antiguo Testamento'], ['nt', 'Nuevo Testamento']];
 
 // Elegir un pasaje de la Biblia: buscador, recientes, libros, capítulos y versículos, con la
-// selección y la barra para proyectarla o añadirla al orden. Lo usan las dos pantallas de este
-// módulo, Biblia y Comparador; cada una decide qué se hace con el pasaje elegido.
+// selección y la barra para proyectarla o añadirla al orden. La pantalla Biblia (workspace.js)
+// decide qué se hace con el pasaje elegido: un pasaje, o una comparación de dos versiones.
+// «Varios» elige un tramo con dos toques (el primer versículo y el último), para el dedo.
 //
 // Los pasajes se identifican por posición (libro, capítulo, versículo), así que cambiar de
 // versión mantiene el mismo pasaje.
@@ -53,12 +54,16 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
     selRef,
     h('button', { class: 'icon-btn sm', title: 'Añadir el versículo siguiente a la selección', 'aria-label': 'Añadir un versículo', onclick: () => extend(1) }, icon('plus', 16)),
     selHint,
-    ctx.canEdit && h('button', { class: 'btn', onclick: () => addToOrder() }, icon('plus', 15), 'Añadir al orden'),
+    ctx.canEdit && h('button', { class: 'btn', 'aria-label': 'Añadir al orden', onclick: () => addToOrder() }, icon('plus', 15), h('span', {}, 'Añadir al orden')),
     h('button', { class: 'btn primary', onclick: () => project() }, 'Proyectar', h('kbd', {}, '↵')));
 
-  const head = h('div', { class: 'ws-head' }, h('h1', {}, title), ...controls,
+  let multi = false;     // «Varios» encendido
+  let pending = null;    // con «Varios», el primer versículo del tramo, a la espera del último
+  const multiBtn = h('button', { class: 'btn', 'aria-pressed': 'false', title: 'Elegir varios versículos: toca el primero y el último', 'aria-label': 'Varios', onclick: () => setMulti(!multi) }, icon('rows', 16), h('span', {}, 'Varios'));
+  const multiHint = h('p', { class: 'multi-hint', role: 'status', hidden: true });
+  const head = h('div', { class: 'ws-head' }, h('h1', {}, title), ...controls, multiBtn,
     h('label', { class: 'search' }, icon('magnifying-glass', 16), searchInput, h('kbd', {}, '/')));
-  el.replaceChildren(head, results, recents, crumbs, picker, bar);
+  el.replaceChildren(head, multiHint, results, recents, crumbs, picker, bar);
 
   const currentBook = () => view.books.find((b) => b.n === view.book);
   const setStep = (step) => { picker.dataset.step = step; renderCrumbs(); };
@@ -80,6 +85,7 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
     const ch = b.chapters.includes(chapter) ? chapter : b.chapters[0];
     const secondId = second();
     const mine = asked += 1;
+    pending = null;
     const [data, other] = await Promise.all([
       api(`/api/bible/${view.versionId}/chapter/${b.n}/${ch}`),
       // La segunda versión puede no tener ese capítulo: entonces sus versículos faltan, sin más.
@@ -134,7 +140,7 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
       two && h('div', { class: 'verse-heads' }, h('span', {}), h('b', {}, abbrOf(view.versionId)), h('b', {}, abbrOf(view.secondId))),
       ...view.verses.map((v) => h('div', {
         class: `verse${two ? ' two' : ''}`, dataset: { n: v.n },
-        onclick: (e) => (e.shiftKey && view.sel ? select(view.sel.anchor, v.n) : select(v.n)),
+        onclick: (e) => pickVerse(v.n, e.shiftKey),
         ondblclick: () => { select(v.n); project(); },
       }, h('span', { class: 'vn' }, String(v.n)), h('span', {}, v.text),
       two && (view.others.has(v.n) ? h('span', {}, view.others.get(v.n)) : h('span', { class: 'absent' }, 'No está en esta versión')))),
@@ -162,7 +168,34 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
       const n = Number(node.dataset.n);
       node.classList.toggle('sel', Boolean(sel) && n >= sel.start && n <= sel.end);
       node.classList.toggle('live', Boolean(liveHere) && n >= live.verseStart && n <= live.verseEnd);
+      node.classList.toggle('anchor', n === pending);
     });
+  }
+
+  // ---- «Varios» ----
+  function setMulti(on) {
+    multi = on;
+    pending = null;
+    multiBtn.classList.toggle('on', on);
+    multiBtn.setAttribute('aria-pressed', String(on));
+    paintMulti();
+  }
+  function paintMulti() {
+    multiHint.hidden = !multi;
+    multiHint.textContent = pending == null ? 'Toca el primer versículo del tramo.' : `Desde el ${pending}: toca el último versículo del tramo.`;
+    paint();
+  }
+  function pickVerse(n, shift) {
+    if (shift && view.sel) select(view.sel.anchor, n);
+    else if (!multi) select(n);
+    else if (pending == null) {
+      pending = n;
+      select(n);
+    } else {
+      select(pending, n);
+      pending = null;
+    }
+    if (multi) paintMulti();
   }
 
   function renderRecents() {
@@ -209,7 +242,7 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
     const s = selection();
     const count = s.passage.verses.length;
     selRef.textContent = s.passage.reference;
-    selHint.textContent = count > 1 ? `${count} versículos seleccionados` : 'Mayús + clic para seleccionar varios';
+    selHint.textContent = count > 1 ? `${count} versículos seleccionados` : 'Mayús + clic o «Varios» para elegir un tramo';
     ctx.setPreview(s.preview);
   }
 

@@ -28,8 +28,8 @@ Un módulo es una carpeta en `server/modules/<id>/` cuyo `index.js` exporta `set
 - Un módulo **no importa archivos de otro módulo**. Si necesita algo de otro, usa `app.services.<nombre>` (lo que el otro publica) o `app.run('otro.accion', payload)`.
 - Nombres de acción: `modulo.verbo` (`projection.show`, `order.add`).
 - Nombres de permiso: `modulo.capacidad` (`projection.control`, `order.edit`).
-- Un módulo puede aportar más de una pantalla y más de un tipo de contenido. El de Biblia tiene dos pantallas (Biblia y Comparador) y dos tipos (`verses` y `compare`); lo que comparten vive en su carpeta (`web/modules/bible/passages.js`).
-- En la web, cada pantalla de un módulo es un archivo de `web/modules/<id>/` (lo habitual, `workspace.js`) y se lista en `web/modules/registry.js`. La estructura común (el «Escenario»: proyección de fondo, dock, cajón del módulo, cola del culto, «Preparado» y transporte) es `web/core/shell.js` con `web/modules/projection/escenario.js`; las páginas de `web/roles/` solo eligen qué módulos recibe cada función.
+- Un módulo puede aportar más de una pantalla y más de un tipo de contenido. El de Biblia tiene dos tipos (`verses` y `compare`) en una sola pantalla, que con «Comparar» elige el segundo; la parte que elige el pasaje vive aparte en su carpeta (`web/modules/bible/passages.js`).
+- En la web, cada pantalla de un módulo es un archivo de `web/modules/<id>/` (lo habitual, `workspace.js`) y se lista en `web/modules/registry.js`. La estructura común (el «Escenario»: proyección de fondo, dock, cajón del módulo, cola del culto, «Preparado», transporte y «Buscar en todo») es `web/core/shell.js` con `web/modules/projection/escenario.js`; las páginas de `web/roles/` solo eligen qué módulos recibe cada función.
 
 Para crear uno, usa la skill `/nuevo-modulo`.
 
@@ -73,7 +73,7 @@ Un contenido con muchos pasos no publica su lista en el estado: Diapositivas pub
 
 **Anterior / siguiente** (`projection.step`): si lo proyectado viene del orden (`source.orderId`), recorre los pasos del elemento y luego pasa al elemento vecino, saltando secciones (`order/logic.js`). Si no, decide el `neighbor` del tipo.
 
-**En la web**, un tipo es `web/modules/<id>/kind.js`, que llama a `registerKind(nombre, { icon, label, unit, title, key, background, draw, controls })` (contrato en `web/core/kinds.js`) y se lista en `web/modules/kinds.js`; su color va en `.kind.k-<tipo>` (`web/core/app.css`). El escenario (`web/modules/projection/stage.js`) solo pone el fondo y el modo: un tipo nuevo no lo toca.
+**En la web**, un tipo es `web/modules/<id>/kind.js`, que llama a `registerKind(nombre, { icon, label, unit, title, key, background, draw, controls, sound })` (`sound`: qué archivo se oye, para «Escuchar aquí» en un dispositivo que no es el equipo principal) (contrato en `web/core/kinds.js`) y se lista en `web/modules/kinds.js`; su color va en `.kind.k-<tipo>` (`web/core/app.css`). El escenario (`web/modules/projection/stage.js`) solo pone el fondo y el modo: un tipo nuevo no lo toca.
 
 ## Arranque y apagado
 

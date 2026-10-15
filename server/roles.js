@@ -4,7 +4,7 @@ export const ROLES = [
   {
     id: 'control',
     name: 'Control completo',
-    description: 'Biblia, orden del culto, ajustes y pantalla de proyección.',
+    description: 'Biblia, himnario, medios, diapositivas, páginas, el orden del culto y los ajustes.',
     path: '/control',
     requiresPin: true,
     permissions: ['*'],
@@ -12,7 +12,7 @@ export const ROLES = [
   {
     id: 'alabanza',
     name: 'Servicio de alabanza',
-    description: 'Himnario, videos y orden del culto con control permanente de volumen.',
+    description: 'Himnario, medios, orden y Biblia, con el volumen siempre a la vista.',
     path: '/alabanza',
     requiresPin: true,
     permissions: ['projection.control', 'order.edit', 'media.edit', 'jobs.manage'],
@@ -20,7 +20,7 @@ export const ROLES = [
   {
     id: 'presentador',
     name: 'Presentador de diapositivas',
-    description: 'Pasa diapositivas, señala con el dedo en la pantalla y acerca lo que haga falta.',
+    description: 'Pasa una presentación, señala con el dedo y acerca lo que haga falta.',
     path: '/presentador',
     requiresPin: true,
     permissions: ['projection.control', 'slides.edit'],
@@ -28,7 +28,7 @@ export const ROLES = [
   {
     id: 'orden',
     name: 'Control del orden',
-    description: 'Solo proyecta lo que ya está en el orden del culto. Pensado para el celular.',
+    description: 'Solo pasa el orden del culto, sin editarlo. Pensado para el celular.',
     path: '/orden',
     requiresPin: true,
     permissions: ['projection.control'],
@@ -36,7 +36,7 @@ export const ROLES = [
   {
     id: 'proyeccion',
     name: 'Pantalla de proyección',
-    description: 'Muestra lo mismo que la pantalla principal. No controla nada.',
+    description: 'Para un televisor o una pantalla más: solo muestra.',
     path: '/proyeccion',
     requiresPin: false,
     permissions: [],

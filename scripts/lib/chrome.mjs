@@ -68,10 +68,17 @@ export async function startChrome() {
     events.push(msg);
     if (msg.method === 'Page.javascriptDialogOpening' && chrome.acceptDialogs) send('Page.handleJavaScriptDialog', { accept: true });
   };
-  const send = (method, params = {}) => new Promise((resolve) => {
+  // Una orden que Chrome no contesta en 60 s hace fallar el guion en vez de dejarlo esperando: el 2026-10-15
+  // una ventana «¿Salir del sitio?» sin aceptar dejó la prueba colgada casi dos horas.
+  const send = (method, params = {}) => new Promise((resolve, reject) => {
     id += 1;
-    pending.set(id, resolve);
-    ws.send(JSON.stringify({ id, method, params }));
+    const mine = id;
+    const timer = setTimeout(() => {
+      pending.delete(mine);
+      reject(new Error(`Chrome no contestó a ${method} en 60 s (¿hay una ventana de aviso abierta en la página?)`));
+    }, 60_000);
+    pending.set(mine, (msg) => { clearTimeout(timer); pending.delete(mine); resolve(msg); });
+    ws.send(JSON.stringify({ id: mine, method, params }));
   });
   const evaluate = async (expression) =>
     (await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true })).result?.result?.value;

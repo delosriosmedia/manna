@@ -207,7 +207,9 @@ export default function setup(app) {
   app.services.hymns = { reload: load };
 
   // ---- Lo que pide la interfaz ----
-  const view = (hymn) => ({ number: hymn.number, title: hymn.title, category: hymn.category, duration: durationOf(hymn), lyrics: Boolean(hymn.parts), instrumental: hasTrack(hymn) });
+  // Con sus archivos (el video y, si se puede sacar, la pista), para escucharlo en un celular antes de añadirlo.
+  const view = (hymn) => ({ number: hymn.number, title: hymn.title, category: hymn.category, duration: durationOf(hymn), lyrics: Boolean(hymn.parts), instrumental: hasTrack(hymn),
+    url: urlOf(hymn), instrumentalUrl: whyNoTrack(hymn) ? null : trackUrl(hymn) });
 
   app.route('GET', '/api/hymns', (ctx) => {
     ctx.require('projection.control');

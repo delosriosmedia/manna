@@ -6,7 +6,7 @@
 - Toda lógica pura del servidor lleva prueba en `test/<tema>.test.js`: lectura de formatos, citas, búsquedas, validaciones, cálculos.
 - Lo que pasa por HTTP (rutas, acciones, permisos, archivos) se prueba contra el servidor de verdad en `test/servidor.test.js`: crea la app con datos temporales y la atiende con `app.handle`, sin llamar a `listen()`, así que no abre ventanas ni se anuncia en la red.
 - Las pruebas crean sus datos en carpetas temporales. No dependen de `Contenido/` ni de `data/`, ni de internet (las descargas se prueban contra un servidor en el propio equipo).
-- Un hook corre las pruebas automáticamente al editar `server/`, `web/`, `scripts/` o `test/`.
+- Un hook corre la revisión del código sin ejecutarlo (abajo; 1 s) al editar `server/`, `web/`, `scripts/` o `test/`. `npm test` entero (unos 30 s; varios minutos con el equipo ocupado) se corre al terminar cada cambio, no en cada edición.
 - **Revisión del código sin ejecutarlo** (`test/codigo.test.js`, con `scripts/lib/codigo.mjs`): falla si un archivo importa algo que el otro no ofrece, si una variable o un parámetro lleva el nombre de algo importado (así se rompió la subida del fondo: un campo `upload` tapaba la función `upload`), o si la interfaz envía una orden o pide una dirección que el servidor no tiene. Un fallo aquí se arregla cambiando el nombre o el código, no aflojando la regla.
 - Lo que Manna le pide a una ventana de Chrome por el protocolo de depuración (las flechas a una página web) se prueba con un Chrome sin ventana de verdad: `test/teclas.test.js` (se salta, diciéndolo, si el equipo no tiene Chrome ni Edge).
 - Lo que solo pasa entre arranques (notar una actualización, relevar a una copia anterior, reiniciar) se prueba con procesos de verdad sobre una copia del programa: `test/arranque.test.js`.
@@ -24,10 +24,20 @@ Usar siempre un servidor de prueba con `MANNA_DATA` temporal, `PORT=8123`, `MANN
 
 ## En un Chrome real
 
-- `node scripts/probar-chrome.mjs rapido` recorre la revisión del equipo y la interfaz como un usuario: Biblia y su búsqueda, orden del culto, mandos en vivo, ajustes y permisos (1 min). Usa sus propias biblias (la RV1909 y una versión de prueba de dos versículos), no las de `Contenido/Biblias/`. Ejecutarlo tras cualquier cambio en `web/`. Usa los puertos 8123 y 8125: si la demostración está abierta, se niega a empezar.
+- `node scripts/probar-chrome.mjs rapido` recorre la revisión del equipo y la interfaz como un usuario: Biblia y su búsqueda, orden del culto, módulos, mandos en vivo, ajustes y permisos (unos 5 min). Usa sus propias biblias (la RV1909 y una versión de prueba de dos versículos), no las de `Contenido/Biblias/`. Usa los puertos 8123 y 8125: si la demostración está abierta, se niega a empezar.
 - **Antes de ejecutarlo, cerrar toda pestaña que quedara abierta en `localhost:8123`** (la demostración, una prueba a mano), **también la del navegador integrado del asistente: detener el servidor no basta, hay que cerrar la pestaña** (`tabs_close`). Aunque su servidor ya no exista, la página se reconecta sola al de la prueba y cuenta como una pantalla más del equipo principal. Pasó dos veces el 2026-10-10: la pestaña se quedó con el sonido e hizo fallar «sin ventana de proyección, el sonido sale por el control» (se reconoce en el detalle del fallo: `"suena":"c1"` cuando la prueba es `c2`), y hubo que repetir la prueba entera, con su gasto de tiempo y de tokens. El orden que lo evita: mirar en el navegador → **cerrar la pestaña** → detener la demostración → ejecutar el guion.
-- `node scripts/probar-chrome.mjs` añade lo que un navegador integrado no puede comprobar: el paso a la dirección con nombre, el aviso al cerrar y la reconexión tras un cambio de IP (3 min). Ejecutarlo al tocar la conexión, las direcciones o la navegación entre páginas.
-- `node scripts/auditar-responsive.mjs` abre la app en nueve tamaños (celular, tableta, escritorio) y verifica las garantías de `DESIGN.md`. Ejecutarlo al tocar cualquier disposición.
+- `node scripts/probar-chrome.mjs` añade lo que un navegador integrado no puede comprobar: el paso a la dirección con nombre, el aviso al cerrar y la reconexión tras un cambio de IP (unos 6,5 min).
+- `node scripts/auditar-responsive.mjs` abre la app en nueve tamaños (celular, tableta, escritorio) y verifica las garantías de `DESIGN.md` (unos 4 min). Reparte los tamaños entre tres Chrome a la vez, cada uno con su servidor (puertos 8124, 8126 y 8128), y cada tamaño empieza sin preferencias guardadas, como un dispositivo nuevo: así el resultado no depende del orden. Comprueba también que ningún panel se desplace de lado sin tener nada al lado, y los cajones en su tamaño más pequeño. Con palabras revisa solo las pantallas y los tamaños cuyo nombre las lleva: `node scripts/auditar-responsive.mjs biblia 360x640 844x390 1280x720`.
+
+## Cuántas pruebas y cuándo
+
+Por niveles, para no esperar de más:
+
+- **En cada edición**: la revisión del código (el hook, 1 s).
+- **Al terminar un cambio**: `npm test` y, si toca la interfaz, la auditoría de las pantallas tocadas en los tres tamaños que más fallan (`360x640 844x390 1280x720`), en total unos 2 min.
+- **Al cerrar una parte o una fase, y antes de publicar**: todo una vez: `npm test`, `node scripts/probar-chrome.mjs` y la auditoría entera. Las dos últimas pueden correr a la vez (usan puertos distintos): unos 6,5 min en total.
+
+Una orden a Chrome que no se contesta en 60 s hace fallar el guion (`scripts/lib/chrome.mjs`), en vez de dejarlo esperando: el 2026-10-15 un «¿Salir del sitio?» sin aceptar dejó la prueba colgada casi dos horas. Una prueba que termina en una página con cambios la deja (o acepta el aviso) antes de seguir. Una prueba larga se lanza en segundo plano y se espera el aviso de que terminó. **Nunca se espera con un bucle que busque el proceso por su nombre** (`pgrep -f probar-chrome…`): la línea de órdenes de otra espera también lleva ese nombre, así que las esperas se encuentran entre sí y no terminan. Pasó el 2026-10-14 y el 2026-10-15, con esperas de hasta tres horas y media que el dueño tuvo que parar.
 
 Lo que habla con un equipo de la red (un televisor) se prueba contra uno de mentira: `scripts/lib/tv-falso.mjs` responde como un Samsung y apunta lo que recibe. Lo usan `test/tv.test.js` y los dos guiones de Chrome. Nunca se deja que una prueba salga a la red de verdad.
 

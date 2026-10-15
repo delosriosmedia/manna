@@ -5,6 +5,8 @@ import { createDisplayToggle, createStylePanel, createTestCardButton, describeDi
 import { openDevicesDialog } from '../system/devices.js';
 
 // Módulo Ajustes: lo que se prepara antes de la reunión y no hace falta tener a mano durante ella.
+// Arriba, una fila con sus secciones para ir directo a una; los programas del equipo principal (la
+// revisión del equipo) se instalan y se ponen al día desde su sección.
 function mount(el, ctx) {
   const styles = h('div', {});
   const displayText = h('p', { class: 'muted' });
@@ -21,29 +23,36 @@ function mount(el, ctx) {
   const netToggle = h('button', { class: 'btn', onclick: guard(() => action('internet.set', { on: !state.internet?.on })) });
   const netOwn = h('button', { class: 'btn', onclick: () => openOwnTunnel() });
 
-  const section = (title, hint, ...content) => h('section', { class: 'set' },
-    h('div', { class: 'set-title' }, h('h2', {}, title), hint && h('p', { class: 'muted' }, hint)),
-    h('div', { class: 'set-body' }, ...content));
+  const nav = h('nav', { class: 'set-nav', 'aria-label': 'Secciones de Ajustes' });
+  // short: el nombre corto en la fila de secciones.
+  const section = (short, title, hint, ...content) => {
+    const box = h('section', { class: 'set' },
+      h('div', { class: 'set-title' }, h('h2', {}, title), hint && h('p', { class: 'muted' }, hint)),
+      h('div', { class: 'set-body' }, ...content));
+    nav.append(h('button', { class: 'btn', onclick: () => box.scrollIntoView({ block: 'start', behavior: 'smooth' }) }, short));
+    return box;
+  };
 
   el.replaceChildren(
     h('div', { class: 'ws-head' }, h('h1', {}, 'Ajustes')),
+    nav,
     h('div', { class: 'settings' },
-      section('Apariencia de la proyección', 'Los cambios se ven al instante en el monitor "Al aire" y en todas las pantallas.', styles),
-      section('Proyector de este equipo', 'La ventana a pantalla completa en la segunda pantalla del equipo principal.',
+      section('Apariencia', 'Apariencia de la proyección', 'Los cambios se ven al instante en el monitor "Al aire" y en todas las pantallas.', styles),
+      section('Proyector', 'Proyector de este equipo', 'La ventana a pantalla completa en la segunda pantalla del equipo principal.',
         displayText, h('div', { class: 'row', style: 'flex-wrap: wrap;' }, createDisplayToggle(), createTestCardButton())),
-      section('Dispositivos', 'Celulares, tabletas y otros equipos de la misma red.',
+      section('Dispositivos', 'Dispositivos', 'Celulares, tabletas y otros equipos de la misma red.',
         screens, h('div', { class: 'row' }, h('button', { class: 'btn', onclick: guard(() => openDevicesDialog(ctx.isLocal)) }, icon('qr-code', 16), 'Conectar un dispositivo'))),
-      section('Conexión por internet', 'Para usar Manna desde fuera de la iglesia. Desde internet todo pide el PIN, también la pantalla de proyección.',
+      section('Internet', 'Conexión por internet', 'Para usar Manna desde fuera de la iglesia. Desde internet todo pide el PIN, también la pantalla de proyección.',
         net, netAddress, ctx.isLocal && h('div', { class: 'row', style: 'flex-wrap: wrap;' }, netToggle, netOwn)),
-      section('Programas del equipo principal', 'Lo que Manna usa para convertir videos, descargar de YouTube y abrir presentaciones.',
+      section('Programas', 'Programas del equipo principal', 'Lo que Manna usa para convertir videos, descargar de YouTube y abrir presentaciones. Ninguno que falte impide abrir Manna.',
         tools, h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => go('/requisitos') }, icon('check-circle', 16), 'Revisar el equipo'))),
-      section('Este dispositivo', null,
+      section('Este dispositivo', 'Este dispositivo', null,
         h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => go('/') }, icon('arrows-left-right', 16), 'Cambiar de función'))),
-      ctx.isLocal && section('Apagar o reiniciar', 'Manna funciona sin ventana propia. Al apagarlo se cierra la proyección y los demás dispositivos se desconectan. Reiniciarlo sirve para terminar una actualización: vuelve a abrirse solo.',
+      ctx.isLocal && section('Apagar', 'Apagar o reiniciar', 'Manna funciona sin ventana propia. Al apagarlo se cierra la proyección y los demás dispositivos se desconectan. Reiniciarlo sirve para terminar una actualización: vuelve a abrirse solo.',
         h('div', { class: 'row', style: 'flex-wrap: wrap;' },
           h('button', { class: 'btn', onclick: askRestart }, icon('arrow-clockwise', 16), 'Reiniciar Manna'),
           h('button', { class: 'btn danger', onclick: askShutdown }, icon('power', 16), 'Apagar Manna'))),
-      section('Acerca de', null,
+      section('Acerca de', 'Acerca de', null,
         h('div', { class: 'lockup about' },
           h('img', { src: '/marca.svg', alt: '' }),
           h('p', { class: 'wordmark' }, 'MANNA'),
@@ -65,6 +74,11 @@ function mount(el, ctx) {
       icon(t.found ? 'check-circle' : 'warning-circle', 18),
       h('span', { class: 'item-text' }, h('strong', {}, t.name),
         h('small', {}, t.found ? [t.detail !== t.name && t.detail, t.version && `versión ${t.version}`].filter(Boolean).join(' · ') || 'Instalado' : t.level === 'optional' ? 'No está (opcional)' : 'Falta')),
+      // Uno que falta y Manna sabe instalar, se instala desde aquí, en el equipo principal.
+      !t.found && t.installable && ctx.isLocal && h('button', { class: 'btn', disabled: t.installing, onclick: guard(async () => {
+        await action('tools.install', { id: t.id });
+        toast(`Instalando ${t.name}. El avance está en la cola del culto.`);
+      }) }, icon('download-simple', 15), t.installing ? 'Instalando…' : 'Instalar'),
       // Un programa que conviene tener al día (yt-dlp) se actualiza desde aquí, en el equipo principal.
       t.found && t.update && ctx.isLocal && h('button', { class: 'btn', title: t.update, disabled: t.installing, onclick: guard(async () => {
         await action('tools.install', { id: t.id });
@@ -143,6 +157,7 @@ function mount(el, ctx) {
 }
 
 export default {
-  id: 'ajustes', name: 'Ajustes', icon: 'gear-six', place: 'bottom', mount,
+  // full: en el celular se abre siempre completo (no tiene una versión reducida).
+  id: 'ajustes', name: 'Ajustes', icon: 'gear-six', place: 'bottom', full: true, mount,
   needs: [{ tools: ['navegador'], feature: 'abrir sola la proyección en la segunda pantalla de este equipo' }],
 };

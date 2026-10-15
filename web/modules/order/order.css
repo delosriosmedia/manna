@@ -3,6 +3,25 @@
 .order-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 6fr) minmax(300px, 5fr); }
 .olist { min-height: 0; overflow-y: auto; padding: 8px 12px 24px; }
 .oside { min-height: 0; overflow-y: auto; border-left: 1px solid var(--line); }
+.order-bar { display: flex; align-items: center; gap: 6px; padding: 8px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.order-bar small { margin-left: auto; color: var(--ink-3); font-size: 12px; white-space: nowrap; }
+
+/* Mapa del culto: una columna por elemento; se desliza de lado si no caben. */
+.omap { grid-column: 1 / -1; min-height: 0; overflow-y: auto; padding: 14px 20px 24px; }
+.omap-scroll { overflow-x: auto; padding-bottom: 6px; }
+.omap-grid { display: grid; gap: 4px; }
+.omap-label { align-self: center; color: var(--ink-3); font-size: 11px; }
+.omap-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; border-radius: var(--r); border: 1px solid var(--line); background: var(--s1); }
+.omap-item:hover { border-color: var(--line-2); }
+.omap-item.on { border-color: var(--accent); background: var(--accent-soft); }
+.omap-item.live { border-color: var(--live); background: var(--live-soft); }
+.omap-item strong { font: 600 12px var(--mono); }
+.omap-cell { display: grid; place-items: center; min-height: 34px; font: 600 13px var(--mono); }
+.omap-mark { color: var(--ink-4); }
+.omap-mark.done { color: var(--accent); }
+.omap-mark b { display: grid; place-items: center; min-width: 28px; height: 28px; border-radius: var(--r-sm); background: var(--live); color: #fff; }
+.omap-steps { display: grid; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.omap-cells { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .osection { display: flex; align-items: center; gap: 10px; padding: 14px 6px 6px 10px; min-height: 40px; color: var(--ink-3); font-size: 12px; font-weight: 500; }
 .osection > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -27,8 +46,10 @@
 .odetail-head h2 { overflow-wrap: anywhere; }
 .odetail-head .item-text small { white-space: normal; }
 .odetail.inline .odetail-head { display: none; }
-.odetail-tools { display: none; gap: 6px; margin-top: 12px; }
-.odetail-tools .btn { flex: 1; }
+.odetail-listen { margin-bottom: 12px; }
+/* Si no caben en una fila, bajan a otra: nunca empujan de lado (el Orden del celular se desplazaba sin nada al lado). */
+.odetail-tools { display: none; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.odetail-tools .btn { flex: 1 1 auto; min-width: 0; }
 
 .slides { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 .slide { display: block; text-align: left; }
@@ -40,14 +61,18 @@
 .slide.skeleton .monitor { background: var(--s2); border-color: var(--line); animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.5; } }
 
-/* Tableta y celular: una sola columna; los pasos se abren bajo el elemento elegido. Hasta que los
-   módulos se midan por su cajón (fase 13, parte 4), también con el cajón de menos de ~1000 px. */
-@media (max-width: 1463px) {
+/* Cajón de menos de 1000 px: una sola columna, para que los títulos largos se lean; los pasos se
+   abren bajo el elemento elegido (WIDE en workspace.js). */
+@container cajon (max-width: 999px) {
   .order-grid { display: block; overflow-y: auto; }
   .olist { overflow: visible; padding: 8px 12px 24px; }
+  .omap { overflow: visible; }
 }
-@media (max-width: 859px) {
+/* Cajón estrecho (el de 440 px, el del celular). */
+@container cajon (max-width: 599px) {
   .olist { padding: 4px 8px 20px; }
+  .order-bar { padding: 8px 12px; }
+  .omap { padding: 12px 12px 20px; }
   .orow { padding: 10px 4px 10px 6px; gap: 8px; }
   .orow .grip, .orow > .icon-btn[aria-label='Opciones'] { display: none; }
   .odetail.inline .odetail-tools { display: flex; }
@@ -56,3 +81,9 @@
   .orow .item-text small { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .slides { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
 }
+
+/* Cajón reducido del celular: solo la lista para pasar el culto. La cita rápida, «Añadir», el menú y el Mapa del
+   culto, al ampliarlo. */
+.compact .ws[data-module='orden'] .ws-head, .compact .ws[data-module='orden'] .order-bar, .compact .ws[data-module='orden'] .omap { display: none; }
+.compact .ws[data-module='orden'] .olist[hidden] { display: block; }
+.compact .ws[data-module='orden'] .odetail.inline .odetail-tools { display: none; }

@@ -7,7 +7,7 @@ import { createStage } from '../projection/stage.js';
 import { createLiveControls } from '../projection/live.js';
 
 const MAX_SLIDES = 60;
-const wide = matchMedia('(min-width: 1180px)');
+const WIDE = 1000; // desde este ancho del cajón, los pasos van en su columna (lo mismo dice order.css)
 
 // Línea secundaria de un elemento: tipo · detalle · cuántos pasos tiene.
 // Si lleva un nombre propio, primero va el que le da su contenido ("Juan 3:16"), para no perderlo.
@@ -18,8 +18,13 @@ function describe(item) {
 }
 
 // Módulo Orden del culto: la lista de todo lo que se va a proyectar, en orden, venga del
-// módulo que venga. A la izquierda, la lista; a la derecha, los pasos del elemento elegido.
+// módulo que venga. A la izquierda, la lista; a la derecha (o debajo del elegido, si el cajón es
+// estrecho), los pasos del elemento elegido. La otra vista, el «Mapa del culto», lo enseña de un
+// vistazo: una columna por elemento, cuántos pasos tiene y por dónde va.
 // Con canEdit se puede añadir, reordenar y quitar; sin él (función "Control del orden"), solo proyectar.
+// Los tipos que suenan: su elemento ofrece «Escuchar en este dispositivo».
+const SOUNDS = new Set(['song', 'video', 'audio', 'youtube']);
+
 function mount(el, ctx) {
   let items = [];
   let selectedId = null;
@@ -27,8 +32,14 @@ function mount(el, ctx) {
   let loaded = null;      // { key, steps, whole } del elemento seleccionado
   let collapsed = false;  // el usuario recogió el detalle a propósito: no se vuelve a abrir solo
   let opened = false;     // ya se mostró el orden por primera vez
+  let wide = false;       // el cajón deja sitio a la columna de los pasos
+  let view = prefs.get('orden.vista') === 'mapa' ? 'mapa' : 'lista';
 
   const list = h('div', { class: 'olist' });
+  const map = h('div', { class: 'omap' });
+  const summary = h('small', {});
+  const viewTabs = [['lista', 'Lista'], ['mapa', 'Mapa del culto']].map(([id, label]) =>
+    h('button', { class: 'btn', role: 'tab', dataset: { view: id }, onclick: () => setView(id) }, label));
   const detail = h('div', { class: 'odetail' });
   const side = h('div', { class: 'oside' });
   // Mandos del elemento que está al aire. Se crean una vez y se colocan en su detalle.
@@ -47,7 +58,8 @@ function mount(el, ctx) {
       ctx.canEdit && h('button', { class: 'icon-btn', 'aria-label': 'Más opciones', onclick: (e) => menu(e.currentTarget, [
         { label: 'Vaciar el orden', icon: 'trash', onclick: confirmClear },
       ]) }, icon('dots-three', 18))),
-    h('div', { class: 'order-grid' }, list, side));
+    h('div', { class: 'order-bar', role: 'tablist', 'aria-label': 'Vista' }, ...viewTabs, summary),
+    h('div', { class: 'order-grid' }, list, map, side));
 
   const run = (type, payload) => guard(() => action(type, payload))();
   const show = (id, step) => run('order.show', step === undefined ? { id } : { id, step });
@@ -58,7 +70,6 @@ function mount(el, ctx) {
     menu(anchor, [
       { label: 'Pasaje bíblico', icon: 'book-open-text', onclick: () => ctx.go('biblia') },
       { label: 'Himno', icon: 'music-notes', onclick: () => ctx.go('himnario') },
-      { label: 'Comparación de versiones', icon: 'columns', onclick: () => ctx.go('comparador') },
       { label: 'Imagen, video o audio', icon: 'image', note: 'Medios', onclick: () => ctx.go('medios') },
       { label: 'Diapositivas', icon: 'presentation-chart', note: 'PDF o PowerPoint', onclick: () => ctx.go('diapositivas') },
       { label: 'Sección', icon: 'rows', onclick: () => askTitle({ title: 'Nueva sección', onSave: (title) => run('order.addSection', { title }) }) },
@@ -127,6 +138,7 @@ function mount(el, ctx) {
         ctx.canEdit ? 'Añade pasajes desde la Biblia, o escribe una cita arriba y pulsa Enter.' : 'Se prepara desde un dispositivo con control completo.',
         ctx.canEdit && h('p', { style: 'margin-top: 14px;' }, h('button', { class: 'btn', onclick: () => ctx.go('biblia') }, icon('book-open-text', 16), 'Ir a la Biblia'))));
       side.hidden = true;
+      renderMap();
       return;
     }
     const liveIndex = items.findIndex((i) => i.id === live?.orderId);
@@ -156,23 +168,80 @@ function mount(el, ctx) {
       more);
     }));
     placeDetail();
+    renderMap();
+  }
+
+  // ---- Mapa del culto ----
+  // Una columna por elemento (sin secciones): su número y su tipo, cuántos pasos tiene y si ya pasó
+  // (marca cian) o está al aire (el paso, en rojo). Debajo, los pasos del elegido, para ir a uno.
+  function renderMap() {
+    const rows = content();
+    summary.textContent = rows.length ? `${rows.length} ${rows.length === 1 ? 'elemento' : 'elementos'} · ${rows.reduce((sum, i) => sum + (i.steps || 1), 0)} pasos` : '';
+    if (view !== 'mapa') return;
+    if (!rows.length) {
+      map.replaceChildren(h('div', { class: 'empty' }, h('strong', {}, 'El orden del culto está vacío'), 'Aquí se verá de un vistazo, con cuántos pasos tiene cada elemento y por dónde va.'));
+      return;
+    }
+    const at = rows.findIndex((i) => i.id === live?.orderId);
+    const focus = rows.find((i) => i.id === selectedId) || rows[at] || null;
+    const cells = (fn) => rows.map((item, i) => fn(item, i));
+    const grid = h('div', { class: 'omap-grid', style: `grid-template-columns: 64px repeat(${rows.length}, minmax(48px, 1fr)); min-width: ${64 + rows.length * 52}px` },
+      h('span', { class: 'omap-label' }, 'Elemento'),
+      ...cells((item, i) => h('button', {
+        class: `omap-item${i === at ? ' live' : ''}${item.id === focus?.id ? ' on' : ''}`, dataset: { id: item.id }, title: item.title, 'aria-label': `${i + 1}. ${item.title}`,
+        onclick: () => select(item.id), ondblclick: () => show(item.id),
+      }, kindBadge(item.kind), h('strong', {}, String(i + 1)))),
+      h('span', { class: 'omap-label' }, 'Pasos'),
+      ...cells((item) => h('span', { class: 'omap-cell' }, String(item.steps || 1))),
+      h('span', { class: 'omap-label' }, 'Hecho'),
+      ...cells((item, i) => (i < at ? h('span', { class: 'omap-cell omap-mark done', title: 'Ya pasó' }, icon('check', 14))
+        : i === at ? h('span', { class: 'omap-cell omap-mark' }, h('b', { title: 'Al aire' }, String((live.step ?? 0) + 1)))
+          : h('span', { class: 'omap-cell omap-mark' }, '·'))));
+    const now = focus && live?.orderId === focus.id ? (live.step ?? -1) : -1;
+    const steps = focus
+      ? h('div', { class: 'omap-steps' }, h('strong', {}, `Pasos de «${focus.title}»`),
+        h('div', { class: 'omap-cells' }, ...Array.from({ length: Math.min(focus.steps || 1, MAX_SLIDES) }, (_, k) => h('button', {
+          class: `step-cell${k === now ? ' on' : k < now ? ' done' : ''}`, 'aria-label': `Paso ${k + 1}`, onclick: () => show(focus.id, k),
+        }, String(k + 1)))),
+        h('p', { class: 'muted' }, 'Un toque elige un elemento; doble toque lo proyecta. Un paso lo proyecta desde ahí.'))
+      : h('p', { class: 'muted' }, 'Toca un elemento para ver sus pasos.');
+    const scroll = map.querySelector('.omap-scroll')?.scrollLeft || 0;
+    map.replaceChildren(h('div', { class: 'omap-scroll' }, grid), steps);
+    map.querySelector('.omap-scroll').scrollLeft = scroll;
+  }
+
+  function setView(id) {
+    view = id;
+    prefs.set('orden.vista', id);
+    viewTabs.forEach((b) => {
+      b.classList.toggle('on', b.dataset.view === id);
+      b.setAttribute('aria-selected', String(b.dataset.view === id));
+    });
+    list.hidden = id !== 'lista';
+    map.hidden = id !== 'mapa';
+    placeDetail();
+    renderMap();
   }
 
   // ---- Detalle: los pasos del elemento seleccionado ----
   // En pantallas anchas va en su columna; en estrechas, justo debajo de la fila elegida.
   function placeDetail() {
+    wide = el.clientWidth >= WIDE;
     const row = list.querySelector('.orow.selected');
-    side.hidden = !wide.matches;
-    detail.classList.toggle('inline', !wide.matches);
-    if (wide.matches) side.replaceChildren(detail);
+    side.hidden = !wide || view !== 'lista';
+    detail.classList.toggle('inline', !wide);
+    if (wide) side.replaceChildren(detail);
     else if (row) row.after(detail);
     else detail.remove();
   }
 
-  const markSelected = () => list.querySelectorAll('.orow').forEach((r) => {
-    r.classList.toggle('selected', r.dataset.id === selectedId);
-    r.setAttribute('aria-expanded', String(r.dataset.id === selectedId));
-  });
+  const markSelected = () => {
+    list.querySelectorAll('.orow').forEach((r) => {
+      r.classList.toggle('selected', r.dataset.id === selectedId);
+      r.setAttribute('aria-expanded', String(r.dataset.id === selectedId));
+    });
+    renderMap();
+  };
 
   function collapse() {
     collapsed = true;
@@ -209,6 +278,18 @@ function mount(el, ctx) {
       h('span', { class: 'slide-cap' }, h('span', {}, caption), isLive ? h('b', {}, 'Al aire') : null));
   }
 
+  // Lo que suena se puede oír solo en este dispositivo antes de pasarlo (no en el equipo principal: ctx.listen es null).
+  const listen = guard(async (item) => {
+    let url = null;
+    if (item.kind === 'song') {
+      const hymn = await api(`/api/hymns/${item.data.number}`);
+      url = (item.data.track === 'instrumental' && hymn.instrumentalUrl) || hymn.url;
+    } else {
+      url = Object.values(state.media || {}).flat().find((clip) => clip?.id === item.data.id)?.url;
+    }
+    if (url) ctx.listen({ url, title: item.title });
+  });
+
   function renderDetail(item) {
     if (!item) {
       detail.replaceChildren(h('div', { class: 'empty' }, h('strong', {}, 'Elige un elemento'), 'Aquí verás sus pasos: los versículos de un pasaje, las estrofas de un himno o las diapositivas de una presentación.'));
@@ -216,6 +297,8 @@ function mount(el, ctx) {
     }
     const head = h('div', { class: 'odetail-head' }, kindBadge(item.kind),
       h('div', { class: 'item-text' }, h('h2', {}, item.title), h('small', {}, describe(item))));
+    // Fuera de la cabecera, que en el celular no se ve (la fila ya dice qué es).
+    const listenButton = ctx.listen && SOUNDS.has(item.kind) && h('button', { class: 'btn odetail-listen', 'aria-label': 'Escuchar en este dispositivo', onclick: () => listen(item) }, icon('speaker-high', 16), 'Escuchar aquí');
     // En celular la fila no lleva el botón de opciones (el ancho es para el título): van aquí.
     const index = items.indexOf(item);
     const tools = ctx.canEdit && h('div', { class: 'odetail-tools' },
@@ -224,7 +307,7 @@ function mount(el, ctx) {
       h('button', { class: 'btn', disabled: index === items.length - 1, onclick: () => run('order.move', { id: item.id, toIndex: index + 1 }) }, icon('arrow-down', 16), 'Bajar'),
       h('button', { class: 'btn danger', onclick: () => run('order.remove', { id: item.id }) }, icon('trash', 16), 'Quitar'));
     if (!loaded) {
-      detail.replaceChildren(head, h('div', { class: 'slides' }, ...Array.from({ length: Math.min(item.steps || 1, 4) }, () => h('div', { class: 'slide skeleton' }, h('div', { class: 'monitor' })))));
+      detail.replaceChildren(...[head, listenButton].filter(Boolean), h('div', { class: 'slides' }, ...Array.from({ length: Math.min(item.steps || 1, 4) }, () => h('div', { class: 'slide skeleton' }, h('div', { class: 'monitor' })))));
       if (tools) detail.append(tools);
       return;
     }
@@ -237,7 +320,7 @@ function mount(el, ctx) {
     if (loaded.whole && item.steps <= (kindOf(item.kind)?.wholeUpTo || 0)) {
       slides.unshift(slide('Todo junto', loaded.whole, onAir && live.step == null, () => show(item.id, null)));
     }
-    detail.replaceChildren(...[head, onAir && liveControls, h('div', { class: 'slides' }, ...slides),
+    detail.replaceChildren(...[head, listenButton, onAir && liveControls, h('div', { class: 'slides' }, ...slides),
       loaded.steps.length > MAX_SLIDES && h('p', { class: 'muted', style: 'margin-top: 12px;' }, `Se muestran los primeros ${MAX_SLIDES} pasos. Usa "Siguiente" para recorrer el resto.`),
       !loaded.steps.length && h('p', { class: 'muted' }, 'Este elemento no tiene pasos que mostrar.'),
       tools,
@@ -309,9 +392,12 @@ function mount(el, ctx) {
     else if (selectedId) renderDetail(items.find((i) => i.id === selectedId));
   });
 
-  wide.addEventListener('change', () => { placeDetail(); });
+  // Se mide el cajón, no la pantalla: el mismo módulo va en uno estrecho, en uno ancho o en el celular.
+  new ResizeObserver(() => { if ((el.clientWidth >= WIDE) !== wide) placeDetail(); }).observe(el);
+  setView(view);
 
   return {
+    onShow: placeDetail,
     keys(e) {
       const rows = content();
       const index = rows.findIndex((i) => i.id === selectedId);

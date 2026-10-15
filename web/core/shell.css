@@ -44,16 +44,33 @@ body.drawer-open .scene-scrim { background: rgba(0, 0, 0, 0.35); }
 .dock-fill { flex: 1; min-height: 6px; }
 
 /* ---- Cajón del módulo abierto ---- */
-.drawer { position: fixed; left: 92px; top: 84px; bottom: 112px; z-index: 2; width: min(440px, calc(100vw - 120px)); border-radius: 26px; display: flex; flex-direction: column; overflow: hidden; backdrop-filter: blur(var(--blur-2)); -webkit-backdrop-filter: blur(var(--blur-2)); transition: width 0.2s var(--ease); }
-.drawer.wide { width: calc(100vw - 92px - 372px); }
-body.queue-closed .drawer.wide { width: calc(100vw - 92px - 88px); }
+/* Reducido, se puede ensanchar arrastrando su borde derecho (--drawer-w, desde shell.js) entre 360 px y la cola
+   (--drawer-max, lo mismo que mide ampliado): nunca la tapa. */
+.drawer { --drawer-max: calc(100vw - 92px - 372px); position: fixed; left: 92px; top: 84px; bottom: 112px; z-index: 2; width: clamp(360px, var(--drawer-w, 440px), var(--drawer-max)); border-radius: 26px; display: flex; flex-direction: column; overflow: hidden; backdrop-filter: blur(var(--blur-2)); -webkit-backdrop-filter: blur(var(--blur-2)); transition: width 0.2s var(--ease); }
+.drawer.wide { width: var(--drawer-max); }
+body.queue-closed .drawer { --drawer-max: calc(100vw - 92px - 88px); }
 /* «Preparado» va abajo a la derecha: el cajón no se mete debajo aunque la cola esté cerrada. */
-body.queue-closed.has-prep .drawer.wide { width: calc(100vw - 92px - 372px); }
+body.queue-closed.has-prep .drawer { --drawer-max: calc(100vw - 92px - 372px); }
 .drawer[hidden], .drawer-backdrop[hidden] { display: none; }
+.drawer.sizing { transition: none; }
+/* El borde que se arrastra: el derecho en el escritorio; arriba en el celular; a la izquierda en el celular en
+   horizontal. Solo en el cajón reducido. */
+.drawer-grip { position: absolute; z-index: 2; top: 0; bottom: 0; right: 0; width: 12px; cursor: ew-resize; touch-action: none; }
+.drawer-grip::after { content: ''; position: absolute; top: 50%; right: 3px; width: 4px; height: 44px; margin-top: -22px; border-radius: 4px; background: var(--glass-line); transition: background 0.15s var(--ease); }
+.drawer-grip:hover::after, .drawer-grip:focus-visible::after, .drawer.sizing .drawer-grip::after { background: var(--accent); }
+.drawer.wide .drawer-grip { display: none; }
+/* Cajón reducido del celular («compact», ver shell.js): solo lo esencial de cada módulo (sus reglas, en su .css)
+   y, en la cabecera, su nombre y el estado de lo que está al aire, sin repetir qué es (se ve encima; si el cajón
+   la tapa, el estado sigue a la vista). */
+.drawer.compact .drawer-head h2 { display: block; }
+.drawer.compact .scene-mini { flex: 0 0 auto; }
+.drawer.compact .scene-mini > :not(.live-pill) { display: none; }
+.drawer.compact .ws-head h1 { display: none; }
 .drawer-head { display: flex; align-items: center; gap: 6px; padding: 10px 10px 10px 20px; border-bottom: 1px solid var(--glass-line); flex-shrink: 0; }
 .drawer-head h2 { font-size: 15px; font-weight: 600; }
 .drawer-backdrop, .scene-mini { display: none; }
-.work { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+/* Los módulos se miden por su cajón, no por la pantalla: sus reglas de ancho van con @container cajon. */
+.work { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; container: cajon / inline-size; }
 .ws { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
 .ws-head { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
 .ws-head h1 { margin-right: 8px; white-space: nowrap; }
@@ -64,6 +81,12 @@ body.queue-closed.has-prep .drawer.wide { width: calc(100vw - 92px - 372px); }
 .ws-notice > .ic { color: var(--accent); }
 .ws-notice p { flex: 1 1 240px; min-width: 0; }
 .ws-notice strong { color: var(--ink); font-weight: 600; }
+/* Cajón estrecho (el de 440 px, el del celular): la cabecera de un módulo baja su buscador a otra fila. */
+@container cajon (max-width: 599px) {
+  .ws-head { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
+  .ws-head h1 { flex: 1; }
+  .ws-head .search { flex: 1 1 100%; order: 3; }
+}
 /* Aviso de que Manna se actualizó estando abierto: flota bajo la barra de arriba. */
 .update-bar { position: fixed; left: 50%; top: 72px; transform: translateX(-50%); z-index: 5; width: min(720px, calc(100vw - 32px)); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px 8px 16px; border-radius: var(--r-lg); border-color: var(--accent); color: var(--ink-2); }
 .update-bar[hidden] { display: none; }
@@ -117,6 +140,18 @@ html.touch .step-cell { min-width: 40px; height: 40px; }
 .up-next strong { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tb-volume { display: flex; align-items: center; gap: 4px; width: 200px; flex-shrink: 0; }
 .tb-volume .volume { flex: 1; min-width: 0; }
+/* «Escuchar antes de añadir» (projection/preview.js): una barra arriba, por encima del cajón, con su ×. */
+.preview-bar { position: fixed; left: 50%; top: 74px; transform: translateX(-50%); z-index: calc(var(--z-sheet) + 2); width: min(560px, calc(100vw - 24px)); display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: var(--r-pill); }
+.preview-bar[hidden] { display: none; }
+.preview-bar > .ic { color: var(--accent); flex-shrink: 0; }
+.pv-text { display: grid; min-width: 0; flex: 0 1 auto; }
+.pv-text small { color: var(--accent); font-size: 11px; }
+.pv-text strong { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.preview-bar input[type='range'] { flex: 1; min-width: 60px; accent-color: var(--accent); }
+.pv-time { font: 500 11px var(--mono); color: var(--ink-3); white-space: nowrap; }
+/* «Escuchar aquí» (projection/listen.js): encendido, en cian. */
+.listen-btn { flex: 0 0 auto; }
+.listen-btn.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 .tb-volume .vol-nobody { display: none; } /* ya lo dice el icono de aviso (.no-sound) de al lado; el párrafo ensanchaba la barra */
 .no-sound { color: var(--accent); }
 
@@ -129,6 +164,28 @@ html.touch .step-cell { min-width: 40px; height: 40px; }
 /* El volumen ya está a la vista (barra de transporte, o «Historias» en el celular). */
 .controls-pop .live-controls .volume { display: none; }
 .controls-pop .live-controls { border: 0; background: none; padding: 0; }
+
+/* ---- Buscar en todo (capa que se cierra al tocar fuera) ---- */
+.finder-chip { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: var(--r-pill); background: var(--glass-1); color: var(--ink-2); font-weight: 600; }
+.finder-chip:hover { border-color: var(--line-2); color: var(--ink); }
+.finder-layer { position: fixed; inset: 0; z-index: var(--z-sheet); background: rgba(3, 4, 6, 0.45); }
+.finder { position: absolute; left: 50%; top: 84px; transform: translateX(-50%); width: min(640px, calc(100vw - 32px)); max-height: calc(100dvh - 108px); display: flex; flex-direction: column; overflow: hidden; border-radius: var(--r-xl); background: var(--glass-3); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); }
+/* Lo preparado desde la búsqueda se ve encima de su capa, y la búsqueda le deja sitio. */
+body.finding .prep { z-index: calc(var(--z-sheet) + 1); }
+body.has-prep .finder { max-height: calc(100dvh - 208px - var(--prep-h, 0px)); }
+.finder-input { display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid var(--glass-line); color: var(--ink-3); flex-shrink: 0; }
+.finder-input:focus-within { color: var(--accent); }
+.finder-input input { flex: 1; min-width: 0; height: 56px; border: 0; background: none; color: var(--ink); font-size: 17px; outline: none; }
+.finder-list { overflow-y: auto; padding: 4px 6px 6px; }
+.finder-group { display: block; padding: 10px 10px 4px; color: var(--ink-3); font: 600 11px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.finder-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: var(--control); padding: 8px 10px; border-radius: var(--r); border: 1px solid transparent; text-align: left; }
+.finder-row:hover { background: var(--s2); }
+.finder-row.on { background: var(--accent-soft); border-color: var(--accent); }
+.finder-row .item-text strong { -webkit-line-clamp: 1; }
+.finder-row .item-text small { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.finder mark { background: var(--accent-soft); color: var(--ink); border-radius: 3px; padding: 0 1px; font-weight: 600; }
+.finder-empty { padding: 16px; color: var(--ink-3); }
+.finder-hint { padding: 8px 16px; border-top: 1px solid var(--glass-line); color: var(--ink-3); font-size: 12px; flex-shrink: 0; }
 
 /* ---- Celular: «Historias» ---- */
 .story { display: none; }
@@ -188,7 +245,7 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
 /* ============ Tableta en horizontal y portátil pequeño ============ */
 @media (max-width: 1179px) {
   .queue, .prep { width: 290px; }
-  .drawer.wide, body.queue-closed.has-prep .drawer.wide { width: calc(100vw - 92px - 322px); }
+  .drawer, body.queue-closed.has-prep .drawer { --drawer-max: calc(100vw - 92px - 322px); }
   .ws-head { padding: 12px 16px; }
   .tb-volume { width: 150px; }
   .transport-bar .btn.next { padding: 0 16px; }
@@ -201,7 +258,9 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .scene-ambient { opacity: 0.35; }
   .scene-scrim, .queue, .transport-bar { display: none; }
   .topbar { left: 12px; right: 12px; top: 10px; }
-  .scene-status { flex: 1; max-width: none; }
+  /* En el celular lo que está al aire se ve en «Historias»: arriba solo queda la M (y, en el equipo principal,
+     el botón del proyector), sin una píldora vacía. */
+  .scene-status { flex: 0 1 auto; max-width: none; }
   .topbar > .spacer { display: none; }
   /* Lo que está al aire se ve en el recuadro y, con un cajón abierto, en su cabecera. */
   .scene-status :is(.live-pill, .scene-caption) { display: none; }
@@ -230,7 +289,9 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .seg-btn { flex: 1; min-height: 44px; border-radius: var(--r-pill); color: var(--ink-2); font-weight: 600; }
   .seg-btn.on { background: var(--s3); color: var(--ink); }
   .seg-btn.on[data-mode='live'] { background: var(--live); color: #fff; }
-  .story-volume { padding: 4px 12px; border-radius: var(--r-pill); background: var(--glass-1); border: 1px solid var(--glass-line); }
+  .story-volume { display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 12px; border-radius: var(--r-pill); background: var(--glass-1); border: 1px solid var(--glass-line); }
+  .story-volume > .volume { flex: 1; min-width: 0; }
+  .story-volume.big { flex-wrap: wrap; }
   .story-volume.big { padding: 10px 14px; border-radius: var(--r-lg); }
   .story-next { display: grid; gap: 8px; }
   .story-next-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
@@ -247,11 +308,13 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .dock-name { display: block; font-size: 10px; font-weight: 600; white-space: nowrap; }
 
   .drawer-backdrop { display: block; position: fixed; inset: 0; z-index: 5; background: rgba(3, 4, 6, 0.5); }
-  .drawer, .drawer.wide, body.queue-closed .drawer.wide { left: 6px; right: 6px; top: calc(74px + min((100vw - 24px) * 9 / 16, 34dvh)); bottom: calc(74px + env(safe-area-inset-bottom)); width: auto; z-index: 5; border-radius: var(--r-xl); background: var(--glass-3); transition: top 0.2s var(--ease); }
+  /* Reducido, se agranda arrastrando su borde de arriba (--drawer-top) entre la barra de arriba y un mínimo de
+     un tercio de la pantalla o 400 px (lo que mida más), para que el módulo siga teniendo sitio. */
+  .drawer, .drawer.wide, body.queue-closed .drawer.wide { left: 6px; right: 6px; top: clamp(74px, var(--drawer-top, calc(74px + min((100vw - 24px) * 9 / 16, 34dvh))), calc(100dvh - 74px - max(33dvh, 400px))); bottom: calc(74px + env(safe-area-inset-bottom)); width: auto; z-index: 5; border-radius: var(--r-xl); background: var(--glass-3); transition: top 0.2s var(--ease); }
   .drawer.wide, body.queue-closed .drawer.wide { top: 10px; }
-  .ws-head { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
-  .ws-head h1 { flex: 1; }
-  .ws-head .search { flex: 1 1 100%; order: 3; }
+  .drawer-grip { left: 0; right: 0; bottom: auto; width: auto; height: 18px; cursor: ns-resize; }
+  .drawer-grip::after { top: 6px; right: auto; left: 50%; width: 44px; height: 4px; margin: 0 0 0 -22px; }
+  .drawer.compact .drawer-head { padding-top: 14px; }
 
   .prep { left: 10px; right: 10px; width: auto; bottom: calc(78px + env(safe-area-inset-bottom)); z-index: 7; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 8px 8px 8px 12px; }
   .prep-head, .prep-monitor { display: none; }
@@ -262,7 +325,20 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   body.drawer-open .prep { display: none; }
 
   .controls-pop { left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); transform: none; width: auto; max-height: 80dvh; }
+  .finder-chip { width: 44px; padding: 0; justify-content: center; flex-shrink: 0; }
+  .finder-chip :is(span, kbd) { display: none; }
+  .finder { top: 10px; width: calc(100vw - 12px); max-height: calc(100dvh - 20px); }
+  body.has-prep .finder { max-height: calc(100dvh - 104px - var(--prep-h, 0px) - env(safe-area-inset-bottom)); }
+  body.finding.drawer-open .prep { display: flex; }
   .escena #toast { bottom: calc(84px + env(safe-area-inset-bottom)); }
+  /* Dos filas: qué suena y sus botones; debajo, el avance y el tiempo. */
+  .preview-bar { top: 10px; z-index: 8; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: 'ic text toggle close' 'seek seek seek time'; gap: 4px 8px; border-radius: var(--r-lg); padding: 8px 8px 10px 12px; }
+  .preview-bar > .ic { grid-area: ic; }
+  .pv-text { grid-area: text; }
+  .pv-toggle { grid-area: toggle; }
+  .pv-close { grid-area: close; }
+  .pv-seek { grid-area: seek; }
+  .pv-time { grid-area: time; align-self: center; }
 }
 
 /* Celular en vertical: el aviso de un módulo ocupa lo justo. Cerrar va en la esquina, no en una fila aparte. */
@@ -289,7 +365,11 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .dockbar { left: 10px; right: auto; top: 50%; bottom: auto; transform: translateY(-50%); flex-direction: column; max-height: calc(100dvh - 20px); overflow-y: auto; }
   .dock-item { min-width: 0; width: 56px; height: 48px; }
   .dock-name { display: none; }
-  .drawer, .drawer.wide, body.queue-closed .drawer.wide { left: 46vw; right: 8px; top: 8px; bottom: 8px; }
+  /* Reducido, se ensancha arrastrando su borde izquierdo (--drawer-left), sin pasar del dock. */
+  .drawer, .drawer.wide, body.queue-closed .drawer.wide { left: clamp(80px, var(--drawer-left, 46vw), 60vw); right: 8px; top: 8px; bottom: 8px; }
+  .drawer-grip { left: 0; right: auto; top: 0; bottom: 0; width: 18px; height: auto; cursor: ew-resize; }
+  .drawer-grip::after { top: 50%; left: 6px; width: 4px; height: 44px; margin: -22px 0 0; }
+  .drawer.compact .drawer-head { padding-top: 0; }
   .drawer-head { padding: 0 4px 0 12px; }
   .ws-head { flex-wrap: nowrap; padding: 6px 12px; }
   .ws-head h1 { flex: 0 0 auto; }

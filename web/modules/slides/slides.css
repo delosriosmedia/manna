@@ -47,12 +47,13 @@ html.touch .deck-more { width: 40px; height: 40px; right: 2px; top: 4px; }
 .deck-up small.error { color: var(--live-ink); }
 .deck-up-note { margin-top: 10px; font-size: 12px; }
 
-@media (max-width: 1179px) {
+@container cajon (max-width: 899px) {
   .decks { grid-template-columns: minmax(200px, 250px) minmax(0, 1fr); }
   .deck-pages { padding: 12px 16px 20px; }
 }
-/* Celular y tableta en vertical: una cosa cada vez. Primero las presentaciones; al elegir una, sus diapositivas. */
-@media (max-width: 859px) {
+/* Cajón estrecho (el de 440 px, el del celular): una cosa cada vez. Primero las presentaciones; al elegir
+   una, sus diapositivas (NARROW en workspace.js). */
+@container cajon (max-width: 599px) {
   .decks { display: block; }
   .deck-list, .deck-pages { height: 100%; border-right: 0; padding: 10px 12px 16px; }
   .decks[data-view='list'] .deck-pages, .decks[data-view='pages'] .deck-list { display: none; }
@@ -60,10 +61,10 @@ html.touch .deck-more { width: 40px; height: 40px; right: 2px; top: 4px; }
   .ws.deck-open .ws-head h1, .deck-long { display: none; }
   .slide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 }
-/* Celular en horizontal: más columnas, que sobra ancho y falta alto. */
+/* Celular en horizontal: el cajón es ancho (presentaciones y diapositivas, lado a lado) pero bajo: más
+   columnas de diapositivas. */
 @media (max-width: 859px) and (max-height: 480px) {
-  .slide-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .deck-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .deck-pages .slide-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 /* ---- Presentador (presenter.js): elegir una presentación o pasarla ---- */
@@ -74,46 +75,65 @@ html.touch .deck-more { width: 40px; height: 40px; right: 2px; top: 4px; }
 html.touch .pr-tabs .chip { min-height: 40px; padding: 0 14px; }
 .pr-list { height: auto; overflow: visible; padding: 0; border-right: 0; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 .pr-list .deck-pick { padding-right: 8px; }
-/* La diapositiva al aire y la que sigue, a la derecha sus mandos, y debajo todas. */
-.pr-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, 30%); grid-template-rows: auto minmax(0, 1fr); gap: 14px 18px; padding: 14px 20px 16px; }
-.pr-main { display: grid; gap: 10px; align-content: start; min-width: 0; }
-.pr-side { grid-row: 1 / span 2; grid-column: 2; min-height: 0; overflow-y: auto; display: grid; gap: 10px; align-content: start; }
-.pr-grid { min-height: 0; overflow-y: auto; }
-.pr-grid .slide-grid { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
-.pr-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+/* La diapositiva al aire es la pantalla: ocupa todo lo que deja la columna de la derecha (la siguiente, los
+   mandos y todas), con las herramientas encima y los botones debajo, en cristal. */
+.pr-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; padding: 0 12px 12px; }
+.pr-main { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 10px; }
+.pr-side { min-height: 0; overflow-y: auto; display: grid; gap: 10px; align-content: start; padding: 12px; border-radius: var(--r-lg); background: var(--glass-2); border: 1px solid var(--glass-line); }
+.pr-grid .slide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.pr-tools, .presenter .transport { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px; border-radius: var(--r-pill); background: var(--glass-1); border: 1px solid var(--glass-line); }
+.pr-tools { justify-self: start; padding-right: 14px; }
+.presenter .transport { justify-self: center; width: min(100%, 560px); flex-wrap: nowrap; }
 .pr-tools .chip { display: inline-flex; align-items: center; gap: 6px; }
 html.touch .pr-tools .chip { min-height: 40px; padding: 0 14px; }
 .pr-hint { color: var(--ink-3); font-size: 12px; }
+/* La grande, 16:9 y lo más grande que quepa en su sitio (medido como contenedor). */
+.pr-screen { min-height: 0; container-type: size; display: grid; place-items: center; }
 /* El dedo sobre la grande no desplaza la página ni abre el menú de la imagen. */
-.pr-live { width: min(100%, calc(56dvh * 16 / 9)); justify-self: center; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: crosshair; }
+.pr-live { width: min(100cqw, 100cqh * 16 / 9); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: crosshair; }
 .pr-live[data-tool='move'] { cursor: grab; }
-.pr-onair { margin: 0; font-size: 12px; color: var(--ink-3); }
-.pr-next { display: grid; place-items: center; width: 100%; padding: 0; }
-.pr-next img { width: 100%; height: 100%; object-fit: contain; display: block; }
-.pr-end { color: var(--ink-3); font-size: 13px; }
+.pr-live[data-tool='pass'] { cursor: pointer; }
+.pr-onair { margin: 0; font-size: 12px; color: var(--ink-3); text-align: center; }
+/* La anterior y la siguiente, del mismo tamaño, una al lado de la otra. */
+.pr-around { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.pr-around > div { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.pr-around .dock-label { font-size: 12px; }
+.pr-next, .pr-prev { display: grid; place-items: center; width: 100%; padding: 0; }
+.pr-next img, .pr-prev img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.pr-end, .pr-start { color: var(--ink-3); font-size: 12px; text-align: center; padding: 0 6px; }
 .presenter .dock-label { margin-top: 0; }
 .presenter .slide-info { display: none; }
 /* Con una página web al aire, «Anterior» y «Siguiente» ya están debajo de la grande. */
 .presenter .web-keys { display: none; }
 
 @media (max-width: 1179px) {
-  .pr-body { grid-template-columns: minmax(0, 1fr) 250px; padding: 12px 16px 14px; }
+  .pr-body { grid-template-columns: minmax(0, 1fr) 250px; }
+  .pr-grid .slide-grid { grid-template-columns: minmax(0, 1fr); }
 }
-/* Celular y tableta en vertical: todo en una columna que se desplaza, con la grande y los botones arriba. */
+/* Celular y tableta en vertical: como «Historias», la grande arriba (tocarla pasa; con «Señalar», señala),
+   debajo los botones y después la siguiente y todas, en una columna que se desplaza. */
 @media (max-width: 859px) {
   .pr-choose { padding: 10px 12px 16px; }
   .pr-list { grid-template-columns: minmax(0, 1fr); }
   .presenter[data-view='present'] .ws-head h1 { display: none; }
-  .pr-body { display: flex; flex-direction: column; overflow-y: auto; gap: 12px; padding: 10px 12px 16px; }
+  .pr-body { display: flex; flex-direction: column; overflow-y: auto; gap: 12px; padding: 0 12px 16px; }
   .pr-body > * { flex-shrink: 0; }
+  .pr-main { display: flex; flex-direction: column; }
+  .pr-main > * { flex-shrink: 0; }
+  .pr-tools { order: 3; justify-content: center; align-self: center; }
+  .pr-screen { container-type: normal; display: block; }
   .pr-live { width: 100%; }
+  .presenter .transport { order: 2; width: 100%; }
+  .pr-onair { order: 1; }
   .pr-side { overflow: visible; }
-  .pr-next { width: 50%; justify-self: start; }
-  .pr-grid { overflow: visible; }
-  .pr-grid .slide-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .pr-grid .slide-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 /* Celular en horizontal: la grande, con sitio debajo para la fila de botones sin desplazarse. */
 @media (max-width: 859px) and (max-height: 480px) {
-  .pr-live { width: min(100%, calc(44dvh * 16 / 9)); }
+  .pr-live { width: min(100%, calc(44dvh * 16 / 9)); margin: 0 auto; }
   .pr-grid .slide-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
+
+/* Cajón reducido del celular: las presentaciones o las diapositivas de la elegida; subir, al ampliarlo. */
+.compact .ws[data-module='diapositivas'] .ws-head > .btn:not(.deck-back) { display: none; }
+.compact .ws[data-module='diapositivas'] .ws-head:not(:has(.deck-back:not([hidden]))) { display: none; }

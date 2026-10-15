@@ -3,7 +3,16 @@
 .hymn-views { display: flex; gap: 6px; }
 .hymn-views .chip { display: inline-flex; align-items: center; gap: 6px; min-height: var(--control); padding: 0 12px; }
 .hymn-notes { color: var(--accent); white-space: nowrap; }
-.hymns-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px 24px; }
+.hymns-main { flex: 1; min-height: 0; display: flex; }
+.hymns-body { flex: 1; min-width: 0; min-height: 0; overflow-y: auto; padding: 16px 20px 24px; }
+
+/* Ficha del elegido, al lado de la rejilla. Con ella a la vista, la letra no necesita su botón. */
+.hymn-card { width: 300px; flex-shrink: 0; overflow-y: auto; padding: 16px 18px 24px; border-left: 1px solid var(--line); }
+.hymn-card header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; }
+.hymn-card-n { font: 700 36px/1 var(--mono); color: var(--accent); }
+.hymn-card .item-text small { white-space: normal; }
+.hymn-card .hymn-lyrics { max-height: none; overflow: visible; padding-right: 0; }
+.hymn-bar .hymn-lyrics-btn { display: none; }
 
 .hymn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
 .hymn { position: relative; display: grid; grid-template-rows: auto 1fr; gap: 2px; align-content: start; min-height: 74px; padding: 8px 10px; text-align: left; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); transition: border-color 0.12s var(--ease); }
@@ -16,10 +25,12 @@
 .hymn-title { color: var(--ink-2); font-size: 12px; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
 /* Por categorías: el nombre grande y, debajo, sus himnos. */
-.hymn-group + .hymn-group { margin-top: 26px; }
-.hymn-group header { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.hymn-group-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; width: 100%; min-height: var(--control); padding: 10px 2px; text-align: left; border-bottom: 1px solid var(--line); }
+.hymn-group-head .ic { margin-left: auto; align-self: center; color: var(--ink-3); transition: transform 0.2s var(--ease); }
+.hymn-group-head[aria-expanded='true'] .ic { transform: rotate(180deg); color: var(--accent); }
+.hymn-group-head[aria-expanded='true'] + .hymn-grid { margin: 10px 0 18px; }
 .hymn-group h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
-.hymn-group header small { color: var(--ink-3); font: 500 12px var(--mono); white-space: nowrap; }
+.hymn-group-head small { color: var(--ink-3); font: 500 12px var(--mono); white-space: nowrap; }
 
 /* Lo encontrado: una fila por himno, con el renglón de la letra donde está. */
 .hymn-hits { display: grid; gap: 6px; max-width: 760px; }
@@ -49,10 +60,13 @@
 .hymn-lyrics p { line-height: 1.5; }
 .hymn-notes-list { display: grid; gap: 10px; margin-top: 12px; padding-left: 18px; line-height: 1.45; }
 
-@media (max-width: 1179px) {
+@container cajon (max-width: 899px) {
+  .hymn-card { display: none; }
+  .hymn-bar .hymn-lyrics-btn { display: inline-flex; }
   .hymns-body { padding: 12px 16px 20px; }
+  .hymn-bar { flex-wrap: wrap; }
 }
-@media (max-width: 859px) {
+@container cajon (max-width: 599px) {
   .hymns-body { padding: 10px 12px 16px; }
   .hymn-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
   .hymn-views { order: 4; }
@@ -64,15 +78,17 @@
   .hymn-bar .btn { flex: 1 1 0; }
   .hymn-long { display: none; }
 }
-/* Tableta en horizontal: el cajón mide 610-760 px y la barra no cabe en una fila (fase 13, parte 4). */
-@media (min-width: 860px) and (max-width: 1179px) {
-  .hymn-bar { flex-wrap: wrap; }
-}
-/* Celular en vertical: el título y el sonido en una fila; las acciones en otra. */
-@media (max-width: 559px) {
+/* Cajón del celular en vertical o estrecho: el título y el sonido en una fila; las acciones en otra. */
+@container cajon (max-width: 559px) {
   .hymn-sound { order: 1; }
   .hymn-bar .hint { order: 0; }
   .hymn-bar .btn { order: 2; }
   .hymn-bar .btn:not(.primary) { flex: 0 1 auto; }
   .hymn-bar::after { content: ''; order: 1; flex-basis: 100%; height: 0; }
 }
+
+/* Cajón reducido del celular: el buscador y los himnos; abajo, el elegido y «Proyectar». Las vistas, los avisos,
+   cantado o pista y la letra, al ampliarlo (cantado o pista también se cambia al aire). */
+.compact .ws[data-module='himnario'] .hymn-views, .compact .ws[data-module='himnario'] .hymn-notes,
+.compact .ws[data-module='himnario'] .hymn-sound, .compact .ws[data-module='himnario'] .hymn-lyrics-btn { display: none; }
+.compact .ws[data-module='himnario'] .ws-head { padding: 8px 12px; }

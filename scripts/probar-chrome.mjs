@@ -4,7 +4,7 @@
 //   0. La revisión del equipo: avisa de los programas que faltan y de qué módulos afecta, instala
 //      uno mostrando el avance y no bloquea la app; dentro, el módulo afectado también avisa.
 //      La descarga sale de un servidor de mentira en este mismo equipo.
-//   1. La interfaz: Biblia (búsqueda por niveles), comparador de versiones, orden del culto (con
+//   1. La interfaz: Biblia (búsqueda por niveles, comparar versiones, «Varios»), orden del culto (con
 //      nombres propios), himnario (uno inventado: buscar por número, título y letra, cantado y pista), medios (subir imágenes, ajuste, encuadre al aire en dos pantallas; videos
 //      y audios que van a la par; YouTube, con un yt-dlp de mentira), televisores (con uno de
 //      mentira), diapositivas (un PDF de verdad, convertido por el propio Chrome, y un PowerPoint
@@ -227,6 +227,15 @@ const clickAt = async (x, y, clicks = 1) => {
   for (let n = 1; n <= clicks; n += 1) for (const t of ['mousePressed', 'mouseReleased']) await chrome.send('Input.dispatchMouseEvent', { type: t, x, y, button: 'left', buttons: t === 'mouseReleased' ? 0 : 1, clickCount: n });
   await sleep(450);
 };
+// Arrastrar con el ratón de verdad, de (x1, y1) a (x2, y2), en cinco pasos.
+const dragMouse = async (x1, y1, x2, y2) => {
+  await chrome.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: x1, y: y1, button: 'left', buttons: 1, clickCount: 1 });
+  for (let i = 1; i <= 5; i += 1) await chrome.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: x1 + ((x2 - x1) * i) / 5, y: y1 + ((y2 - y1) * i) / 5, button: 'left', buttons: 1 });
+  await chrome.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: x2, y: y2, button: 'left', buttons: 0, clickCount: 1 });
+  await sleep(400);
+};
+const drawerBox = () => run(`const r = document.querySelector('.drawer').getBoundingClientRect(); return JSON.stringify({ left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width })`).then(JSON.parse);
+const gripAt = () => run(`const r = document.querySelector('.drawer-grip').getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2 })`).then(JSON.parse);
 const tapEl = async (js, clicks = 1) => {
   const c = JSON.parse(await run(`const e = ${js}; e.scrollIntoView({ block: 'nearest', inline: 'nearest' }); const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2 })`));
   await clickAt(c.x, c.y, clicks);
@@ -265,7 +274,8 @@ async function reviewSection() {
   const from = `http://127.0.0.1:${downloads.address().port}`;
   const review = startServer(null, {
     PORT: '8125', MANNA_NAME: 'manna-revision', MANNA_DATA: path.join(tmp, 'revision'), MANNA_FALTA: 'yt-dlp,navegador,cloudflared',
-    MANNA_DESCARGAS: JSON.stringify({ 'yt-dlp': { url: `${from}/yt-dlp-prueba`, sums: `${from}/SUMAS`, file: 'yt-dlp', size: '60 KB' } }),
+    // cloudflared «se descarga» del mismo sitio, pero su lista de huellas no lo nombra: «Instalar» se pulsa sin salir a internet y falla.
+    MANNA_DESCARGAS: JSON.stringify({ 'yt-dlp': { url: `${from}/yt-dlp-prueba`, sums: `${from}/SUMAS`, file: 'yt-dlp', size: '60 KB' }, cloudflared: { url: `${from}/cloudflared-prueba`, sums: `${from}/SUMAS`, file: 'cloudflared', size: '60 KB' } }),
   });
   try {
     await sleep(3000);
@@ -314,11 +324,14 @@ async function reviewSection() {
     // YouTube cambia a menudo y yt-dlp se queda atrás: Ajustes deja ponerlo al día con un botón.
     program = build('2026.02.02');
     const toolRow = `document.querySelector('.settings .tool[data-id="yt-dlp"]')`;
-    check('Ajustes ofrece actualizar yt-dlp, y solo ese programa', await run(`return document.querySelectorAll('.settings .tool .btn').length === 1 && ${toolRow}.querySelector('.btn').textContent === 'Actualizar' && ${toolRow}.textContent.includes('2026.01.01')`));
+    check('Ajustes ofrece actualizar yt-dlp e instalar lo que falta y Manna sabe instalar', await run(`return [...document.querySelectorAll('.settings .tool .btn')].map(b => b.closest('.tool').dataset.id + ':' + b.textContent).join() === 'yt-dlp:Actualizar,cloudflared:Instalar' && ${toolRow}.textContent.includes('2026.01.01')`), await run(`return [...document.querySelectorAll('.settings .tool .btn')].map(b => b.closest('.tool').dataset.id + ':' + b.textContent).join()`));
     await click(`${toolRow}.querySelector('.btn')`);
     await sleep(900);
     check('"Actualizar" lo descarga de nuevo, a la vista y sin detener la app', await run(`const b = ${toolRow}.querySelector('.btn'); return b.disabled && b.textContent === 'Actualizando…' && [...document.querySelectorAll('.queue .scene-jobs .job strong')].some(s => s.textContent === 'Descargando yt-dlp')`) && (await text('#toast')).includes('Actualizando yt-dlp'));
     check('y queda la versión nueva', await until(`${toolRow}.textContent.includes('2026.02.02') && !${toolRow}.querySelector('.btn').disabled`, 40), await run(`return ${toolRow}.textContent`));
+    expectError('falta su huella');
+    await click(`document.querySelector('.settings .tool[data-id="cloudflared"] .btn')`);
+    check('«Instalar» de Ajustes pone a descargar lo que falta, y dice si no se pudo', await until(`[...document.querySelectorAll('.queue .scene-jobs .job')].some(j => j.textContent.includes('Descargando cloudflared') && j.textContent.includes('falta su huella'))`, 25), await run(`return [...document.querySelectorAll('.queue .scene-jobs .job')].map(j => j.textContent).join(' | ')`));
     check('sin errores de JavaScript en la revisión', !chrome.events.some((e) => e.method === 'Runtime.exceptionThrown'));
   } finally {
     await stopServer(review);
@@ -483,6 +496,31 @@ try {
   await tapEl(`document.querySelector('.drawer-wide')`);
   const wide2 = await wideAt();
   check('el botón de ampliar alterna el cajón ancho y estrecho, y cambia su nombre', wide1.wide === !wide0.wide && wide2.wide === wide0.wide && wide1.label !== wide0.label && wide2.label === wide0.label, JSON.stringify([wide0, wide1, wide2]));
+  // El cajón estrecho se ensancha arrastrando su borde derecho, sin moverse y sin tapar la cola, y se recuerda.
+  if ((await wideAt()).wide) await tapEl(`document.querySelector('.drawer-wide')`);
+  const narrow0 = await drawerBox();
+  let g = await gripAt();
+  await dragMouse(g.x, g.y, g.x + 200, g.y);
+  const narrow1 = await drawerBox();
+  check('arrastrar el borde derecho del cajón estrecho lo ensancha, sin moverlo, y lo recuerda', Math.abs(narrow1.width - narrow0.width - 200) < 8 && narrow1.left === narrow0.left
+    && Math.abs(Number(await run(`return localStorage.getItem('manna.cajon.medida')`)) - narrow1.width) < 2, JSON.stringify([narrow0.width, narrow1.width]));
+  g = await gripAt();
+  await dragMouse(g.x, g.y, g.x + 2000, g.y);
+  const queueLeft = await run(`return document.querySelector('.queue').getBoundingClientRect().left`);
+  check('por mucho que se arrastre, no tapa la cola', (await drawerBox()).right <= queueLeft, `${(await drawerBox()).right} / ${queueLeft}`);
+  g = await gripAt();
+  await dragMouse(g.x, g.y, 0, g.y);
+  check('ni se hace más estrecho que 360 px', Math.round((await drawerBox()).width) === 360);
+  await run(`localStorage.removeItem('manna.cajon.medida'); document.querySelector('.drawer').style.removeProperty('--drawer-w')`);
+  // Tocar el fondo (la proyección) cierra el cajón también en el escritorio.
+  const bgAt = await run(`for (let y = 120; y < innerHeight - 140; y += 10) for (let x = innerWidth / 2; x < innerWidth - 400; x += 10) { const e = document.elementFromPoint(x, y); if (e && e.closest('.scene-bg')) return JSON.stringify({ x, y }); } return 'null'`).then(JSON.parse);
+  if (bgAt) await clickAt(bgAt.x, bgAt.y);
+  check('tocar el fondo, fuera del cajón, lo cierra', Boolean(bgAt) && !await drawerOpen(), JSON.stringify(bgAt));
+  // Lo que sigue empieza con el Orden abierto en el cajón ancho, como estaba (su icono lo cierra), y sin nada con el foco.
+  await goTo('orden');
+  await sleep(300);
+  if (!(await wideAt()).wide) await tapEl(`document.querySelector('.drawer-wide')`);
+  await run(`document.activeElement?.blur()`);
   await tapEl(`document.querySelector('.dock-item[data-id=orden]')`);
   await tapEl(`document.querySelector('.queue-head')`);
   check('la cabecera de la cola la pliega: sin filas a la vista, y lo recuerda en su estado', await run(`const q = document.querySelector('.queue'); return q.classList.contains('closed') && document.querySelector('.queue-head').getAttribute('aria-expanded') === 'false' && document.body.classList.contains('queue-closed') && document.querySelector('.queue-list').getClientRects().length === 0`));
@@ -525,6 +563,29 @@ try {
   check('con un cajón abierto, el fondo de atrás está a la vista para tocarlo', Boolean(outside) && await drawerOpen());
   if (outside) await clickAt(outside.x, outside.y);
   check('tocar fuera del cajón lo cierra', !await drawerOpen() && await run(`return document.querySelector('.drawer-backdrop').hidden`));
+  // De partida el cajón se abre reducido, con solo lo esencial: en la Biblia, la versión y el buscador en una fila, la
+  // cita, los versículos y abajo «Añadir» (el icono) y «Proyectar». Se agranda arrastrando su borde de arriba.
+  await goTo('biblia');
+  await sleep(700);
+  check('en el celular el cajón se abre reducido y la Biblia enseña solo lo esencial', await run(`const d = document.querySelector('.drawer'); const ws = d.querySelector('.ws[data-module=biblia]'); const head = ws.querySelector('.ws-head'); const sel = head.querySelector('.select').getBoundingClientRect(); const search = head.querySelector('.search').getBoundingClientRect(); const seen = (e) => Boolean(e) && e.getClientRects().length > 0;
+    return d.classList.contains('compact') && !d.classList.contains('wide') && d.querySelector('.drawer-head h2').textContent === 'Biblia' && Math.abs(sel.top - search.top) < 4 && ![...head.querySelectorAll(':scope > .btn')].some(seen) && seen(ws.querySelector('.abar .btn.primary')) && !seen(ws.querySelector('.abar .sel-ref')) && ws.querySelector('.col-verses').getBoundingClientRect().height > 150`));
+  const short0 = await drawerBox();
+  g = await gripAt();
+  await dragMouse(g.x, g.y, g.x, g.y - 120);
+  const short1 = await drawerBox();
+  check('arrastrar el borde de arriba lo agranda (sin moverse de abajo) y lo recuerda', Math.abs(short0.top - short1.top - 120) < 8 && short1.bottom === short0.bottom && Number(await run(`return localStorage.getItem('manna.cajon.alto')`)) > 0, JSON.stringify([short0.top, short1.top]));
+  g = await gripAt();
+  await dragMouse(g.x, g.y, g.x, 0);
+  check('y no tapa la barra de arriba', (await drawerBox()).top >= await run(`return document.querySelector('.topbar').getBoundingClientRect().bottom`));
+  await run(`localStorage.removeItem('manna.cajon.alto'); document.querySelector('.drawer').style.removeProperty('--drawer-top')`);
+  await goTo('ajustes');
+  await sleep(500);
+  check('Ajustes se abre siempre completo, sin el botón de reducir', await run(`const d = document.querySelector('.drawer'); return d.classList.contains('wide') && !d.classList.contains('compact') && document.querySelector('.drawer-wide').hidden`));
+  await goTo('biblia');
+  await sleep(300);
+  check('y al volver a otro módulo, el cajón vuelve a su tamaño reducido', await run(`return document.querySelector('.drawer').classList.contains('compact')`));
+  await run(`document.querySelector('.drawer-backdrop').click()`);
+  await sleep(300);
   await tapEl(`document.querySelector('.story-zone.next')`);
   check('tocar la zona derecha del recuadro avanza', (await live()).ref === 'Salmos 23:1');
   await tapEl(`document.querySelector('.story-zone.prev')`);
@@ -552,12 +613,61 @@ try {
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(600);
 
-  console.log('\n1. Interfaz · Comparador de versiones');
-  const cmp = `document.querySelector('.ws[data-module=comparador]')`;
+  console.log('\n1. Interfaz · Buscar en todo');
+  {
+    const layerOpen = () => run(`return !document.querySelector('.finder-layer').hidden && document.body.classList.contains('finding')`);
+    const seen = () => run(`return JSON.stringify([...document.querySelectorAll('.finder-list > *')].map(e => e.classList.contains('finder-group') ? '# ' + e.textContent : e.querySelector('strong')?.textContent))`).then(JSON.parse);
+    const ask = async (q) => { await run(`const i = document.querySelector('.finder-input input'); i.value = ${JSON.stringify(q)}; i.dispatchEvent(new Event('input'));`); await sleep(800); };
+    const ctrlK = async () => { for (const t of ['keyDown', 'keyUp']) await chrome.send('Input.dispatchKeyEvent', { type: t, key: 'k', code: 'KeyK', modifiers: 2, windowsVirtualKeyCode: 75 }); await sleep(300); };
+    await run(`document.activeElement?.blur()`);
+    await ctrlK();
+    check('Ctrl K abre «Buscar en todo», con el cursor en su campo', await layerOpen() && await run(`return document.activeElement === document.querySelector('.finder-input input')`));
+    await ask('jn 3 16');
+    let rows = await seen();
+    check('una cita sale en «Biblia»', rows[0] === '# Biblia' && rows[1] === 'Juan 3:16', JSON.stringify(rows));
+    await ask('de tal manera amo');
+    rows = await seen();
+    check('unas palabras buscan el texto de la Biblia, con lo hallado resaltado', rows[1] === 'Juan 3:16' && await run(`return document.querySelector('.finder-row mark')?.textContent === 'de tal manera amó'`), JSON.stringify(rows));
+    await ask('3');
+    rows = await seen();
+    check('un número busca el himno', rows.includes('# Himnario') && rows[rows.indexOf('# Himnario') + 1]?.startsWith('3 · '), JSON.stringify(rows));
+    await ask('sal 23 2');
+    await press('Enter');
+    check('Intro proyecta el primero y cierra la búsqueda', (await live()).ref === 'Salmos 23:2' && !await layerOpen());
+    await tapEl(`document.querySelector('.finder-chip')`);
+    await ask('3');
+    await tapEl(`[...document.querySelectorAll('.finder-row')].find(r => r.textContent.startsWith('3 · '))`);
+    check('un toque prepara: la tarjeta «Preparado» se ve encima de la búsqueda, sin proyectar', await layerOpen() && await run(`const p = document.querySelector('.prep'); const r = p.getBoundingClientRect(); return !p.hidden && document.elementFromPoint(r.left + r.width / 2, r.top + 12)?.closest('.prep') === p && p.querySelector('.prep-text strong').textContent.startsWith('3 · ') && !p.querySelector('.prep-actions .btn:not(.primary)').hidden`) && (await live()).ref === 'Salmos 23:2');
+    await clickAt(20, 780);
+    check('tocar fuera cierra la búsqueda, y lo preparado sigue en su tarjeta', !await layerOpen() && await run(`return !document.querySelector('.prep').hidden`));
+    const count = (await live()).order.length;
+    await tapEl(`document.querySelector('.prep-actions .btn:not(.primary)')`);
+    const added = await run(`return (await (await fetch('/api/state')).json()).order.items.at(-1)`);
+    check('«Añadir al orden» de la tarjeta añade el himno', (await live()).order.length === count + 1 && added?.kind === 'song' && added.data.number === 3);
+    if (added?.id) await run(`await ${post('order.remove', { id: 'ID' })}`.replace('"ID"', JSON.stringify(added.id)));
+    await run(`document.querySelector('.prep [aria-label="Quitar lo preparado"]').click()`);
+    await tapEl(`document.querySelector('.finder-chip')`);
+    await ask('jn 3 16');
+    await tapEl(`document.querySelector('.finder-row')`, 2);
+    check('doble clic en un resultado lo proyecta y cierra la búsqueda', (await live()).ref === 'Juan 3:16' && !await layerOpen() && await run(`return document.querySelector('.prep').hidden`));
+    await ctrlK();
+    await press('Escape');
+    check('Esc cierra la búsqueda', !await layerOpen());
+    await run(`await ${post('order.show', { id: 'ID' })}`.replace('"ID"', JSON.stringify(juan)));
+    await sleep(400);
+  }
+
+  console.log('\n1. Interfaz · Biblia: comparar versiones');
+  const cmp = `document.querySelector('.ws[data-module=biblia]')`;
   const shown = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ item: s.projection.item, live: s.live.state, order: s.order.items })`).then(JSON.parse);
-  await goTo('comparador');
+  const headBtn = (label) => `[...${cmp}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes(${JSON.stringify(label)}))`;
+  check('el Comparador ya no es un módulo del dock: es «Comparar», dentro de la Biblia', await run(`return !document.querySelector('.dock-item[data-id=comparador]')`));
+  await goTo('biblia');
+  await sleep(800);
+  check('«Comparar» empieza apagado: sin segunda versión a la vista', await run(`return ${cmp}.querySelector('.cmp-bar').hidden && !${cmp}.querySelector('.verse.two') && ${headBtn('Comparar')}.getAttribute('aria-pressed') === 'false'`));
+  await click(headBtn('Comparar'));
   await sleep(1500);
-  check('propone dos versiones distintas', await run(`const [a, b] = ${cmp}.querySelectorAll('.cmp-pick select'); return a.value === ${JSON.stringify(VERSION)} && b.value === 'version-de-prueba'`));
+  check('al encenderlo propone dos versiones distintas', await run(`return ${headBtn('Comparar')}.getAttribute('aria-pressed') === 'true' && !${cmp}.querySelector('.cmp-bar').hidden && ${cmp}.querySelector('.ws-head select').value === ${JSON.stringify(VERSION)} && ${cmp}.querySelector('.cmp-bar select').value === 'version-de-prueba'`));
   await run(`const i = ${cmp}.querySelector('.search input'); i.value = 'jn 3 16'; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));`);
   await sleep(1200);
   check('junto a cada versículo se lee el de la otra versión, y avisa si falta', await run(`const row = (n) => ${cmp}.querySelector('.verse[data-n="' + n + '"]'); return row(16).children.length === 3 && row(16).children[2].textContent.startsWith('Porque tanto amó') && Boolean(row(17).querySelector('.absent'))`));
@@ -581,6 +691,39 @@ try {
   on = await shown();
   const added = on.order.find((i) => i.kind === 'compare');
   check('se añade al orden como elemento propio, con sus dos versiones', Boolean(added) && added.subtitle === 'RV1909 · Versión de prueba' && added.data.layout === 'rows');
+  await click(headBtn('Comparar'));
+  await sleep(1200);
+  check('al apagarlo, la Biblia vuelve a una versión y la vista previa también', await run(`return ${cmp}.querySelector('.cmp-bar').hidden && !${cmp}.querySelector('.verse.two') && !document.querySelector('.prep-monitor .cmp')`));
+
+  console.log('\n1. Interfaz · Biblia: «Varios»');
+  await click(headBtn('Varios'));
+  await click(`${cmp}.querySelector('.verse[data-n="3"]')`);
+  check('con «Varios», el primer toque marca dónde empieza el tramo y lo dice', await run(`return ${headBtn('Varios')}.getAttribute('aria-pressed') === 'true' && ${cmp}.querySelector('.multi-hint').textContent.startsWith('Desde el 3') && ${cmp}.querySelector('.verse[data-n="3"]').classList.contains('anchor')`));
+  await click(`${cmp}.querySelector('.verse[data-n="5"]')`);
+  check('y el segundo lo cierra: del 3 al 5', await run(`return ${cmp}.querySelector('.sel-ref').textContent === 'Juan 3:3-5' && ${cmp}.querySelectorAll('.verse.sel').length === 3 && !${cmp}.querySelector('.verse.anchor') && ${cmp}.querySelector('.multi-hint').textContent.startsWith('Toca el primer')`));
+  await click(headBtn('Varios'));
+  check('apagado, un toque vuelve a elegir un solo versículo', await run(`${cmp}.querySelector('.verse[data-n="7"]').click(); return ${cmp}.querySelector('.multi-hint').hidden && ${cmp}.querySelector('.sel-ref').textContent === 'Juan 3:7'`));
+
+  console.log('\n1. Interfaz · Orden: Mapa del culto');
+  {
+    const om = `document.querySelector('.ws[data-module=orden]')`;
+    const col = (title) => `[...${om}.querySelectorAll('.omap-item')].find(c => c.title.includes(${JSON.stringify(title)}))`;
+    await run(`await ${post('order.show', { id: 'ID' })}`.replace('"ID"', JSON.stringify(juan)));
+    await goTo('orden');
+    await sleep(500);
+    await click(`${om}.querySelector('[data-view=mapa]')`);
+    await sleep(300);
+    const content = (await live()).order.length - 2;
+    check('el Mapa del culto pone una columna por elemento (sin secciones) y marca la que está al aire', await run(`return !${om}.querySelector('.omap').hidden && ${om}.querySelector('.olist').hidden && ${om}.querySelectorAll('.omap-item').length === ${content} && ${om}.querySelector('.omap-item.live').title === 'Juan 3:19' && /^${content} elementos · \\d+ pasos$/.test(${om}.querySelector('.order-bar small').textContent)`));
+    await tapEl(col('Salmos 23'));
+    check('un toque en una columna enseña sus pasos, sin proyectar', await run(`return ${col('Salmos 23')}.classList.contains('on') && ${om}.querySelector('.omap-steps strong').textContent.startsWith('Pasos de «Salmos 23') && ${om}.querySelectorAll('.omap-cells .step-cell').length === 3`) && (await live()).ref === 'Juan 3:19');
+    await tapEl(`${om}.querySelector('.omap-cells .step-cell[aria-label="Paso 2"]')`);
+    check('un paso del mapa lo proyecta, y lo anterior queda marcado como hecho', (await live()).ref === 'Salmos 23:2' && await run(`return ${col('Salmos 23')}.classList.contains('live') && ${om}.querySelectorAll('.omap-mark.done').length === 1 && ${om}.querySelector('.omap-mark b').textContent === '2'`));
+    await tapEl(col('Juan 3:19'), 2);
+    check('doble toque en una columna la proyecta', (await live()).ref === 'Juan 3:19');
+    await click(`${om}.querySelector('[data-view=lista]')`);
+    check('y «Lista» vuelve a la lista', await run(`return !${om}.querySelector('.olist').hidden && ${om}.querySelector('.omap').hidden`));
+  }
 
   const modal = `document.querySelector('.modal')`;
   console.log('\n1. Interfaz · Medios (imágenes)');
@@ -667,7 +810,7 @@ try {
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await sleep(500);
   const dockNames = `[...document.querySelectorAll('.dockbar .dock-item')].map(b => b.querySelector('.dock-name').textContent).join('|')`;
-  check('en el celular, el dock va abajo con todos los módulos y su nombre, sin «Más»', await run(`const r = document.querySelector('.dockbar').getBoundingClientRect(); return ${dockNames} === 'Orden|Biblia|Himnario|Medios|Comparador|Diapositivas|Páginas web|Ajustes' && getComputedStyle(document.querySelector('.dock-name')).display !== 'none' && r.bottom > innerHeight - 30 && r.top > innerHeight / 2 && !document.querySelector('.tabbar') && ![...document.querySelectorAll('.dockbar button')].some(b => b.textContent === 'Más') && document.querySelector('.dock-item.on').dataset.id === 'medios'`), await run(`return ${dockNames}`));
+  check('en el celular, el dock va abajo con todos los módulos y su nombre, sin «Más»', await run(`const r = document.querySelector('.dockbar').getBoundingClientRect(); return ${dockNames} === 'Orden|Biblia|Himnario|Medios|Diapositivas|Páginas web|Ajustes' && getComputedStyle(document.querySelector('.dock-name')).display !== 'none' && r.bottom > innerHeight - 30 && r.top > innerHeight / 2 && !document.querySelector('.tabbar') && ![...document.querySelectorAll('.dockbar button')].some(b => b.textContent === 'Más') && document.querySelector('.dock-item.on').dataset.id === 'medios'`), await run(`return ${dockNames}`));
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(400);
 
@@ -728,7 +871,9 @@ try {
     await control('Pausar');
     const copied = await until(`${arrived}.dataset.status === 'ready'`, 60);
     const settled = await instant();
-    check('al dejar de reproducirse se termina la copia, y llega a lo que está en pantalla sin interrumpirlo', copied && Boolean(settled.url?.endsWith('.mp4')) && settled.local === early.local && settled.uid === early.uid && settled.src === early.local && Math.abs(settled.t - (await air()).live.clock.position) < 0.5, JSON.stringify(settled));
+    // Al pausar, el video sigue un instante mientras se desvanece y el reproductor lo deja ahí (hasta SEEK_OVER + FADE_MS,
+    // 0,75 s, en projection/player.js). Con el equipo ocupado, el desvanecido dura más y pasaba de 0,5 s.
+    check('al dejar de reproducirse se termina la copia, y llega a lo que está en pantalla sin interrumpirlo', copied && Boolean(settled.url?.endsWith('.mp4')) && settled.local === early.local && settled.uid === early.uid && settled.src === early.local && Math.abs(settled.t - (await air()).live.clock.position) < 0.75, JSON.stringify(settled));
     await click(`${arrived}.querySelector('.media-more')`);
     await sleep(300);
     await menuItem('Eliminar');
@@ -953,6 +1098,14 @@ try {
     await modalButton('Entendido');
     await click(`${ws}.querySelector('.hymn-views [data-view=categories]')`);
     await sleep(400);
+    const openGroups = () => run(`return [...${ws}.querySelectorAll('.hymn-group')].map(g => g.querySelector('.hymn-grid').hidden ? '-' : '+').join('')`);
+    check('las categorías empiezan plegadas', await openGroups() === '---');
+    await click(`${ws}.querySelectorAll('.hymn-group-head')[1]`);
+    await sleep(300);
+    check('tocar una la despliega', await openGroups() === '-+-');
+    await click(`${ws}.querySelectorAll('.hymn-group-head')[0]`);
+    await sleep(300);
+    check('tocar otra la despliega y pliega la anterior', await openGroups() === '+--');
     check('la vista por categorías agrupa los himnos bajo el nombre de cada una', await run(`const g = [...${ws}.querySelectorAll('.hymn-group')]; return g.length === 3 && g.map(x => x.querySelector('h2').textContent).join('|') === 'Cantos de la mañana|Cantos del camino|Cantos de gratitud y esperanza para todos los días' && g.map(x => x.querySelectorAll('.hymn').length).join() === '3,4,6' && g[0].querySelector('small').textContent === '1–3 · 3 himnos'`), await run(`return [...${ws}.querySelectorAll('.hymn-group')].map(x => x.querySelector('h2').textContent + ' ' + x.querySelectorAll('.hymn').length).join(' | ')`));
     await click(`${ws}.querySelector('.hymn-views [data-view=grid]')`);
     await sleep(300);
@@ -975,6 +1128,11 @@ try {
     await sleep(500);
     check('«Letra» muestra la letra del himno, por partes', await run(`return ${modal}.querySelector('h2').textContent === ${JSON.stringify(`9 · ${hymnTitle(9)}`)} && [...${modal}.querySelectorAll('.hymn-lyrics h3')].map(h => h.textContent).join() === 'Estrofa 1,Coro,Estrofa 2' && ${modal}.querySelectorAll('.hymn-lyrics p').length === 10 && ${modal}.querySelector('.hymn-lyrics section:nth-child(2) p').textContent.startsWith(${JSON.stringify(HYMN_FACTS.chorus.text)})`));
     await modalButton('Cerrar');
+    // Con más sitio en el cajón, la ficha del elegido va al lado de la rejilla.
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false });
+    check('con el cajón ancho, la ficha del elegido va al lado de la rejilla, con su letra, y el botón «Letra» sobra', await until(`${ws}.querySelector('.hymn-card').getClientRects().length > 0 && ${ws}.querySelector('.hymn-card-n')?.textContent === '9' && ${ws}.querySelectorAll('.hymn-card .hymn-lyrics h3').length > 0 && ${hbar}.querySelector('.hymn-lyrics-btn').getClientRects().length === 0`, 15));
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+    check('en uno más estrecho, la ficha no se ve y vuelve «Letra»', await until(`${ws}.querySelector('.hymn-card').getClientRects().length === 0 && ${hbar}.querySelector('.hymn-lyrics-btn').getClientRects().length > 0`, 15));
     await click(tile(HYMN_FACTS.withoutLyrics));
     await sleep(300);
     check('un himno sin letra lo dice en su botón', await run(`const b = ${hbar}.querySelector('.btn'); return b.disabled && b.title.includes('No hay letra')`));
@@ -993,7 +1151,7 @@ try {
       let air = await onAir();
       check('Enter lo proyecta con la pista instrumental, reproduciéndose', air.item.kind === 'song' && air.item.number === 9 && air.live.track === 'instrumental' && air.live.clock.playing === true && /^\/api\/hymns\/9\/pista\.mp4/.test(air.src) && air.paused === false && air.t > 0.3
         && await run(`return ${tile(9)}.classList.contains('live') && document.querySelector('.scene-caption').textContent === ${JSON.stringify(`9 · ${hymnTitle(9)}`)}`), JSON.stringify({ src: air.src, t: air.t, track: air.live?.track }));
-      check('los mandos de un himno: cantado o pista, y los de cualquier cosa que suena', await run(`const c = ${liveBox}; return [...c.querySelectorAll('.song-tracks button')].map(b => b.textContent + (b.classList.contains('on') ? '*' : '')).join() === 'Cantado,Pista*' && Boolean(c.querySelector('.clip-seek input')) && Boolean(c.querySelector('.volume input')) && c.querySelector('.clip-seek .clip-time:last-child').textContent === '0:14'`), await run(`return ${liveBox}.textContent`));
+      check('los mandos de un himno: cantado o pista, y los de cualquier cosa que suena', await run(`const c = ${liveBox}; return [...c.querySelectorAll('.song-tracks button')].map(b => b.textContent + (b.classList.contains('on') ? '*' : '')).join() === 'Cantado,Pista*,Letra' && Boolean(c.querySelector('.clip-seek input')) && Boolean(c.querySelector('.volume input')) && c.querySelector('.clip-seek .clip-time:last-child').textContent === '0:14'`), await run(`return ${liveBox}.textContent`));
       await click(`${liveBox}.querySelector('.song-tracks [data-track=vocal]')`);
       await sleep(2200);
       air = await onAir();
@@ -1001,6 +1159,10 @@ try {
       await click(`[...${liveBox}.querySelectorAll('button')].find(b => b.textContent.includes('Pausar'))`);
       await sleep(700);
       check('y se pausa como cualquier video', (await onAir()).live.clock.playing === false);
+      await click(`${liveBox}.querySelector('.song-lyrics')`);
+      await sleep(600);
+      check('«Letra» abre la letra entera del himno al aire', await run(`const m = document.querySelector('.modal'); return Boolean(m) && m.querySelector('h2').textContent === ${JSON.stringify(`9 · ${hymnTitle(9)}`)} && m.querySelectorAll('.hymn-lyrics p').length > 2`));
+      await modalButton('Cerrar');
     }
     await click(tile(9));
     await sleep(300);
@@ -1176,7 +1338,8 @@ try {
     await click(`${pr}.querySelector('.btn.primary.grow')`);
     await sleep(500);
     check('«Siguiente» pasa a la 2, se ve en la grande y el recuadro «Siguiente» muestra la 3', (await num()) === 2 && await until(`${pr}.querySelector('.pr-live .img-view img')?.getAttribute('src')?.endsWith('/2.jpg')`, 10)
-      && await run(`return ${pr}.querySelector('.slide-pick[data-n="2"]').classList.contains('live') && !${pr}.querySelector('.slide-pick[data-n="1"]').classList.contains('live') && /3 de 4/.test(${pr}.querySelector('.pr-side .dock-label').textContent)`));
+      && await run(`return ${pr}.querySelector('.slide-pick[data-n="2"]').classList.contains('live') && !${pr}.querySelector('.slide-pick[data-n="1"]').classList.contains('live') && /3 de 4/.test(${pr}.querySelector('.pr-around > div:last-child .dock-label').textContent)`));
+    check('a la izquierda de la siguiente, del mismo tamaño, se ve la anterior (la 1)', await run(`const prev = ${pr}.querySelector('.pr-prev'); const next = ${pr}.querySelector('.pr-next'); const a = prev.getBoundingClientRect(); const b = next.getBoundingClientRect(); return /1 de 4/.test(${pr}.querySelector('.pr-around > div:first-child .dock-label').textContent) && !prev.disabled && /m?1\\.(jpg|png)$/.test(prev.querySelector('img').getAttribute('src')) && a.right <= b.left && Math.abs(a.width - b.width) < 2 && Math.abs(a.height - b.height) < 2`));
     await click(`${pr}.querySelector('.slide-pick[data-n="4"]')`);
     await sleep(500);
     check('tocar una miniatura la proyecta; en la última no hay más: «Siguiente» queda desactivado y se ve el fin', (await num()) === 4 && await run(`const e = ${pr}.querySelector('.pr-end'); return ${pr}.querySelector('.btn.primary.grow').disabled && !e.hidden && e.textContent === 'Fin de la presentación' && ${pr}.querySelector('.pr-next').disabled`));
@@ -1212,6 +1375,15 @@ try {
     await click(button('Vista completa'));
     await sleep(500);
     check('«Vista completa» devuelve el zoom a 1', (await snap()).view.zoom === 1);
+    const resetBtn = `${pr}.querySelector('.pr-tools [aria-label="Restablecer el zoom"]')`;
+    check('con la imagen entera, «Restablecer» (junto a «Mover») está apagado', await run(`return ${resetBtn}.disabled`));
+    await run(`return await ${post('projection.control', { zoom: 2, x: 0.6, y: 0.5 })}`);
+    await sleep(500);
+    check('con la imagen acercada, «Restablecer» se puede pulsar', await run(`return !${resetBtn}.disabled`));
+    await click(resetBtn);
+    await sleep(500);
+    const whole = (await snap()).view;
+    check('«Restablecer» deja la imagen entera y se apaga', whole.zoom === 1 && Math.abs(whole.x - 0.5) < 0.001 && await run(`return ${resetBtn}.disabled`), JSON.stringify(whole));
 
     // En el celular: la grande y la fila Anterior / Siguiente / Negro, sin desplazarse.
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
@@ -1220,9 +1392,27 @@ try {
     const inView = (selector) => run(`const e = ${pr}.querySelector(${JSON.stringify(selector)}); const r = e.getBoundingClientRect(); return r.width > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth`);
     check('en 375 px se ven sin desplazar la grande y Anterior / Siguiente / Negro, y la página no se ensancha', await inView('.pr-live') && await inView('.btn[aria-label=Anterior]') && await inView('.btn.primary.grow') && await inView(`.transport .btn:last-child`)
       && await run(`return ${pr}.dataset.view === 'present' && document.documentElement.scrollWidth <= innerWidth`), await run(`const r = ${pr}.querySelector('.transport').getBoundingClientRect(); return Math.round(r.bottom) + ' de ' + innerHeight`));
+    // En el celular se pasa tocando la grande, como en «Historias»; con «Señalar» encendido, el toque señala.
+    await click(`${pr}.querySelector('.slide-pick[data-n="2"]')`);
+    await sleep(600);
+    const tapAt = async (id, fx) => { await finger('pointerdown', id, fx, 0.5); await finger('pointerup', id, fx, 0.5); await sleep(600); return num(); };
+    const passed = [await num(), await tapAt(21, 0.8), await tapAt(22, 0.2)];
+    check('en el celular, tocar la grande a la derecha avanza y a la izquierda vuelve', passed.join() === '2,3,2', passed.join(' → '));
+    await click(`${pr}.querySelector('[data-tool=point]')`);
+    await finger('pointerdown', 23, 0.8, 0.5);
+    await sleep(500);
+    const pointed = (await snap()).pointer;
+    await finger('pointerup', 23, 0.8, 0.5);
+    await sleep(500);
+    check('con «Señalar» encendido, el toque señala en la proyección y no pasa', pointed.x != null && (await num()) === 2, JSON.stringify(pointed));
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
     await chrome.send('Page.navigate', { url: `${local}/control?p=${Date.now()}#diapositivas` });
     await sleep(2500);
+    // Lo que señala el Presentador también se ve en el fondo del control.
+    await run(`return await ${post('projection.pointer', { x: 0.4, y: 0.4 })}`);
+    await sleep(500);
+    check('el punto rojo del Presentador se ve en la proyección de fondo del control', await run(`const p = document.querySelector('.scene-bg .stage-pointer'); return Boolean(p) && !p.hidden && p.getClientRects().length > 0`));
+    await run(`return await ${post('projection.pointer', { x: null, y: null })}`);
   }
 
   console.log('\n1. Interfaz · Páginas web');
@@ -1575,6 +1765,9 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await sleep(500);
   check('los estilos de proyección se aplican', (await live()).size === 60);
   check('Ajustes lista los programas del equipo principal', await run(`return document.querySelectorAll('.tools .tool').length === 5 && Boolean(document.querySelector('.tools .tool[data-id=cloudflared]'))`));
+  await tapEl(`[...document.querySelectorAll('.set-nav .btn')].find(b => b.textContent === 'Programas')`);
+  await sleep(800);
+  check('la fila de secciones de Ajustes tiene una por sección y lleva a la elegida', await run(`const s = [...document.querySelectorAll('.settings .set')].find(x => x.querySelector('h2').textContent === 'Programas del equipo principal'); const c = document.querySelector('.settings').getBoundingClientRect(); const r = s.getBoundingClientRect(); return document.querySelectorAll('.set-nav .btn').length === document.querySelectorAll('.settings .set').length && Math.abs(r.top - c.top) < 30`));
 
   if (CAN_TUNNEL) {
     console.log('\n1. Interfaz · Ajustes: conexión por internet');
@@ -1620,6 +1813,17 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     check('una orden que llega desde internet no la apaga', outside !== 200 && (await netState()).on === true, `HTTP ${outside}`);
     await click(netBtn('Apagar'));
     check('«Apagar» la deja apagada', await until(`${net}.querySelector('.set-body > p').textContent === 'Apagada.' && ${net}.querySelector('.net-address').hidden && ${netBtn('Encender')}`) && (await netState()).status === 'off' && (await netState()).on === false);
+    // También desde el menú de la función (arriba a la derecha), sin ir a Ajustes.
+    const netItem = `[...document.querySelectorAll('.menu button')].find((b) => b.textContent.includes('Conexión por internet'))`;
+    const netIs = (status) => until(`(await (await fetch('/api/state')).json()).internet.status === ${JSON.stringify(status)}`);
+    await click(`document.querySelector('.role-chip')`);
+    await sleep(300);
+    check('el menú de la función ofrece la conexión por internet y dice que está apagada', await run(`return ${netItem}?.querySelector('small')?.textContent.startsWith('Apagada')`));
+    await click(netItem);
+    check('desde el menú se enciende', await netIs('on'));
+    await click(`document.querySelector('.role-chip')`);
+    await sleep(300);
+    check('el menú dice que está encendida, y desde ahí se apaga', await run(`return ${netItem}.querySelector('small').textContent.startsWith('Encendida')`) && (await click(netItem), await netIs('off')));
   }
 
   console.log('\n1. Interfaz · Ajustes: fondos de la proyección');
@@ -1705,16 +1909,16 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await sleep(250);
   await menuItem('Dispositivos');
   await sleep(700);
-  check('"Dispositivos" muestra un solo QR y el PIN', await run(`return document.querySelectorAll('.modal .qr').length === 1 && document.querySelector('.modal input').value.length >= 4`));
-  await run(`document.querySelector('.modal input').value = '246810';`);
+  check('"Dispositivos" muestra un solo QR y el PIN, de 4 números', await run(`const i = document.querySelector('.modal input'); const pin = i.value; i.value = '12a345'; i.dispatchEvent(new Event('input')); const typed = i.value; i.value = pin; return /^\\d{4}$/.test(pin) && document.querySelectorAll('.modal .qr').length === 1 && i.maxLength === 4 && typed === '1234'`));
+  await run(`document.querySelector('.modal input').value = '2468';`);
   await modalButton('Cambiar');
   await sleep(600);
-  check('el PIN se cambia desde el equipo principal', (await text('#toast')).startsWith('PIN cambiado') && await run(`return (await (await fetch('/api/system/pin')).json()).pin === '246810'`));
+  check('el PIN se cambia desde el equipo principal', (await text('#toast')).startsWith('PIN cambiado') && await run(`return (await (await fetch('/api/system/pin')).json()).pin === '2468'`));
   await click(`document.querySelector('.modal-header .icon-btn')`);
   check('sin errores de JavaScript', !chrome.events.some((e) => e.method === 'Runtime.exceptionThrown'));
   await chrome.send('Page.navigate', { url: `${local}/orden#orden` });
   await sleep(2200);
-  check('"Control del orden" no ofrece editar', await run(`return !document.querySelector('.ws-head .search') && !document.querySelector('.orow .grip') && !document.querySelector('.orow .icon-btn[aria-label=Opciones]')`));
+  check('"Control del orden" no ofrece editar ni «Buscar en todo»', await run(`return !document.querySelector('.finder-chip') && !document.querySelector('.ws-head .search') && !document.querySelector('.orow .grip') && !document.querySelector('.orow .icon-btn[aria-label=Opciones]')`));
   check('el servidor rechaza una edición desde esa función', (await run(`return await ${post('order.clear')}`)) === 403);
   check('esa función gobierna lo que está al aire, pero no instala programas', await run(`return !document.querySelector('.controls-pop .live-controls').hidden`) && (await run(`return await ${post('projection.control', { pattern: 'blanco' })}`)) === 200 && (await live()).pattern === 'blanco' && (await run(`return await ${post('tools.install', { id: 'yt-dlp' })}`)) === 403);
   check('tampoco puede encender ni cambiar la conexión por internet', (await run(`return await ${post('internet.set', { on: true })}`)) === 403 && (await run(`return await ${post('internet.own', { token: '' })}`)) === 403);
@@ -1748,6 +1952,93 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     await chrome.send('Page.navigate', { url: `${byIp}/` });
     await sleep(4000);
     check('entra por la IP y termina en el nombre', (await chrome.evaluate('location.origin')) === byName, await chrome.evaluate('location.origin'));
+
+    // Por la dirección de la red, este Chrome es «otro dispositivo»: el Inicio pide el PIN con su teclado.
+    console.log('\n2. Inicio y PIN desde otro dispositivo');
+    const roleCard = (name) => `[...document.querySelectorAll('.role')].find(b => b.querySelector('strong').textContent === ${JSON.stringify(name)})`;
+    check('el Inicio enseña cada función en una tarjeta con su icono, y las de control dicen «Pide PIN»', await run(`const cards = [...document.querySelectorAll('.role')]; return cards.length === 5 && cards.every(c => c.querySelector('.role-icon svg')) && ${roleCard('Control del orden')}.querySelector('.tag').textContent === 'Pide PIN' && ${roleCard('Pantalla de proyección')}.querySelector('.tag').textContent === 'Sin PIN'`));
+    const pinKey = (label) => click(`[...document.querySelectorAll('.pin-keys button')].find(b => b.getAttribute('aria-label') === ${JSON.stringify(label)})`);
+    await click(roleCard('Control del orden'));
+    await sleep(300);
+    await chrome.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', windowsVirtualKeyCode: 27 });
+    await sleep(300);
+    check('el teclado del PIN se cierra con Esc', await run(`return !document.querySelector('.pin-pad')`));
+    await click(roleCard('Control del orden'));
+    await sleep(300);
+    for (const k of ['1', '2', 'Borrar']) await pinKey(k);
+    check('el teclado tiene cuatro puntos, marca cada cifra y borra la última', await run(`return document.querySelectorAll('.pin-dots span').length === 4 && document.querySelectorAll('.pin-dots span.on').length === 1`));
+    await pinKey('Borrar');
+    const realPin = JSON.parse(fs.readFileSync(path.join(tmp, 'data', 'sesiones.json'), 'utf8')).pin;
+    const wrongPin = realPin === '1111' ? '2222' : '1111';
+    for (const k of wrongPin) await pinKey(k);
+    await sleep(600);
+    check('al teclear la cuarta cifra entra solo: un PIN equivocado lo dice, pone los puntos en rojo y vacía el teclado', await run(`const p = document.querySelector('.pin-pad'); return p.classList.contains('wrong') && p.querySelector('.pin-error').textContent === 'PIN incorrecto.' && !document.querySelector('.pin-dots span.on')`));
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
+    await sleep(300);
+    check('en 375 px el teclado cabe entero, con teclas grandes', await run(`const m = document.querySelector('.modal').getBoundingClientRect(); return m.left >= 0 && m.right <= innerWidth && m.top >= 0 && m.bottom <= innerHeight && [...document.querySelectorAll('.pin-keys button')].every(b => b.offsetHeight >= 44 && b.offsetWidth >= 44)`));
+    for (const k of realPin) await pinKey(k);
+    await sleep(1500);
+    check('con el PIN bueno entra en la función elegida', (await chrome.evaluate('location.pathname')) === '/orden');
+
+    // Desde otro dispositivo (Control completo, en el celular): «Escuchar aquí» lo que está al aire y escuchar
+    // antes de añadir, solo en este dispositivo. En el equipo principal estos botones no salen.
+    console.log('\n2. Escuchar en otro dispositivo');
+    await run(`return (await fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'control', pin: ${JSON.stringify(realPin)} }) })).status`);
+    await chrome.send('Page.navigate', { url: `${byName}/control?e=${Date.now()}` });
+    await sleep(2500);
+    await run(`return await ${post('projection.show', { kind: 'song', data: { number: 9, track: 'vocal' } })}`);
+    await sleep(1500);
+    const listenBtn = `document.querySelector('.story-volume .listen-btn')`;
+    check('junto al volumen sale «Escuchar aquí», apagado', await run(`const b = ${listenBtn}; return Boolean(b) && b.getAttribute('aria-pressed') === 'false' && b.getClientRects().length > 0`));
+    await tapEl(listenBtn);
+    await sleep(1500);
+    const heard = await run(`const a = document.querySelector('body > audio'); return JSON.stringify({ src: a?.getAttribute('src'), paused: a?.paused, muted: a?.muted, t: a?.currentTime })`).then(JSON.parse);
+    check('al tocarlo, este dispositivo oye el himno al aire, en su punto', /\/himnos\/009/.test(heard.src || '') && heard.paused === false && heard.muted === false && heard.t > 0.2, JSON.stringify(heard));
+    await tapEl(listenBtn);
+    await sleep(700);
+    check('y al volver a tocarlo deja de oírse', await run(`return document.querySelector('body > audio').paused && ${listenBtn}.getAttribute('aria-pressed') === 'false'`));
+    await goTo('himnario');
+    await sleep(1200);
+    await click(`document.querySelector('.ws[data-module=himnario] .hymn[data-n="3"]')`);
+    await sleep(400);
+    await tapEl(`document.querySelector('.hymn-listen')`);
+    await sleep(1200);
+    const pv = () => run(`const b = document.querySelector('.preview-bar'); const a = b.querySelector('audio'); return JSON.stringify({ shown: !b.hidden && b.getClientRects().length > 0, title: b.querySelector('strong').textContent, src: a.getAttribute('src'), paused: a.paused })`).then(JSON.parse);
+    let heardBefore = await pv();
+    check('en el Himnario, «Escuchar» lo oye solo aquí, en una barra arriba, sin proyectarlo', heardBefore.shown && heardBefore.title.startsWith('3 · ') && /\/himnos\/003/.test(heardBefore.src || '') && heardBefore.paused === false
+      && (await run(`return (await (await fetch('/api/state')).json()).projection.item.number`)) === 9, JSON.stringify(heardBefore));
+    await tapEl(`document.querySelector('.preview-bar .pv-close')`);
+    await sleep(300);
+    check('su × la cierra y deja de sonar', !(await pv()).shown && (await pv()).src === null);
+    // En Medios, un video ya convertido se puede escuchar aquí.
+    await goTo('medios');
+    await sleep(800);
+    await click(`document.querySelector('.media-tabs [data-tab=videos]')`);
+    await sleep(500);
+    const clipUrl = await run(`const v = (await (await fetch('/api/state')).json()).media.videos.find((c) => c.url); if (!v) return ''; document.querySelector(\`.media-body[data-panel=videos] .media-card[data-id="\${v.id}"] .media-pick\`).click(); return v.url`);
+    await sleep(400);
+    await tapEl(`document.querySelector('.media-bar[data-panel=videos] .media-listen')`);
+    await sleep(1000);
+    heardBefore = await pv();
+    check('en Medios, «Escuchar» oye aquí el video elegido', Boolean(clipUrl) && heardBefore.shown && heardBefore.src === clipUrl, JSON.stringify({ clipUrl, heardBefore }));
+    // En el orden del culto, un himno se puede escuchar desde su elemento.
+    await run(`return await ${post('order.add', { kind: 'song', data: { number: 5, track: 'vocal' } })}`);
+    await goTo('orden');
+    await sleep(1000);
+    await click(`[...document.querySelectorAll('.olist .orow')].find((r) => r.textContent.includes(${JSON.stringify(hymnTitle(5))}))`);
+    await sleep(800);
+    await tapEl(`document.querySelector('.odetail [aria-label="Escuchar en este dispositivo"]')`);
+    await sleep(1200);
+    heardBefore = await pv();
+    check('en el Orden, el elemento de un himno se puede escuchar aquí antes de pasarlo', heardBefore.shown && /\/himnos\/005/.test(heardBefore.src || ''), JSON.stringify(heardBefore));
+    await run(`document.querySelector('.drawer-backdrop').click()`);
+    await sleep(300);
+    check('al cerrar el cajón, la escucha se detiene', !(await pv()).shown);
+    // Se sale del control (aceptando el «¿Salir del sitio?») para que lo siguiente empiece sin ventanas abiertas.
+    chrome.acceptDialogs = true;
+    await chrome.send('Page.navigate', { url: `${byName}/` });
+    await sleep(1500);
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
 
     // ================= 3. Confirmación al salir =================
     console.log('\n3. Confirmación al salir del control');

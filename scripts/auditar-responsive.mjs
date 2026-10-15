@@ -13,6 +13,9 @@
 //   - los títulos largos del orden del culto se leen (no se cortan en una sola línea)
 //   - los mandos en vivo de lo que está al aire caben, en la capa «Mandos» y en el orden
 //   - los resultados de la búsqueda y el aviso de un módulo al que le falta un programa caben
+//   - «Buscar en todo» cabe y, con un resultado preparado, deja a la vista la tarjeta «Preparado» por encima
+//   - Biblia (también comparando dos versiones) y Orden (también el Mapa del culto) caben en el cajón ancho, en el
+//     estrecho de 440 px y en el celular: se miden por su cajón, no por la pantalla
 //   - la tarjeta de un televisor y su control remoto caben, con teclas para el dedo
 //   - la biblioteca de imágenes deja a la vista su acción principal, y los mandos de una imagen
 //     al aire caben en la capa de mandos
@@ -30,7 +33,11 @@
 //
 // Uso:  node scripts/auditar-responsive.mjs             resumen en la terminal
 //       node scripts/auditar-responsive.mjs capturas    además guarda una imagen de cada pantalla
-// Necesita Node 22 o superior y Chrome o Edge. Usa el puerto 8124 y datos temporales.
+//       node scripts/auditar-responsive.mjs biblia 360x640 844x390 1280x720
+//                                                       solo las pantallas y los tamaños cuyo nombre lleva
+//                                                       alguna de esas palabras (sin contar tildes)
+// Reparte los tamaños entre tres Chrome a la vez, cada uno con su servidor (puertos 8124, 8126 y 8128)
+// y sus datos temporales. Necesita Node 22 o superior y Chrome o Edge.
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -41,10 +48,10 @@ import { seedExample } from './lib/ejemplo.mjs';
 import { startFakeTv } from './lib/tv-falso.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PORT = 8124;
+// Separados de dos en dos: si un puerto está ocupado, el servidor prueba el siguiente.
+const PORTS = [8124, 8126, 8128];
 const SHOTS = process.argv.includes('capturas');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-responsive-'));
-const base = `http://localhost:${PORT}`;
 
 const DEVICES = [
   { name: 'Celular pequeño, vertical', w: 360, h: 640, touch: true },
@@ -69,8 +76,23 @@ const SCREENS = [
   { name: 'Biblia: búsqueda', url: '/control#biblia', inside: '.search-pop', settle: 1200,
     prepare: `(() => { const i = document.querySelector('.ws[data-module=biblia] .search input'); i.focus(); i.value = 'amor'; i.dispatchEvent(new Event('input')); })()` },
   { name: 'Biblia: libros', url: '/control#biblia', narrowOnly: true, prepare: `document.querySelector('.crumbs button').click()`, primary: '.abar .btn.primary', content: '.col-books' },
-  { name: 'Comparador', url: '/control#comparador', primary: '.abar .btn.primary', content: '.col-verses' },
+  // «Buscar en todo»: su recuadro cabe; con un resultado preparado, la tarjeta se ve encima y la búsqueda le deja sitio
+  // (con un cajón abierto, que en el celular la ocultaría).
+  { name: 'Buscar en todo', url: '/control', inside: '.finder', settle: 1100, prepare: `(() => { document.querySelector('.finder-chip').click(); const i = document.querySelector('.finder-input input'); i.value = 'luz'; i.dispatchEvent(new Event('input')); })()` },
+  { name: 'Buscar en todo, con algo preparado', url: '/control#biblia', inside: '.finder', prepared: true, settle: 1400, prepare: `(() => { document.querySelector('.finder-chip').click(); const i = document.querySelector('.finder-input input'); i.value = 'luz'; i.dispatchEvent(new Event('input')); setTimeout(() => document.querySelector('.finder-row').click(), 800); })()` },
+  // prefs: preferencias de este dispositivo con las que se abre la pantalla (se quitan al terminar).
+  { name: 'Biblia: comparar', url: '/control#biblia', prefs: { 'biblia.comparar': true }, primary: '.abar .btn.primary', content: '.col-verses', inside: '.cmp-bar' },
+  // wideOnly: solo donde hay escenario (860 px o más); ahí, el módulo en el cajón estrecho de 440 px.
+  { name: 'Biblia en el cajón estrecho', url: '/control#biblia', wideOnly: true, prefs: { 'cajon.ancho': false }, primary: '.abar .btn.primary', content: '.col-verses' },
   { name: 'Orden del culto', url: '/control#orden', content: '.olist', longTitles: true },
+  { name: 'Orden en el cajón estrecho', url: '/control#orden', wideOnly: true, prefs: { 'cajon.ancho': false }, content: '.olist', longTitles: true },
+  // El cajón reducido en su tamaño más pequeño: el más estrecho del escritorio (360 px) y, en el celular, el más bajo
+  // (o, en horizontal, el más estrecho) al que se puede arrastrar. Ahí cada módulo enseña solo lo esencial.
+  { name: 'Biblia en el cajón más pequeño', url: '/control#biblia', prefs: { 'cajon.ancho': false, 'cajon.medida': 300, 'cajon.completo': false, 'cajon.alto': 0.95, 'cajon.lado': 0.95 }, primary: '.abar .btn.primary', content: '.col-verses' },
+  { name: 'Orden en el cajón más pequeño', url: '/control#orden', prefs: { 'cajon.ancho': false, 'cajon.medida': 300, 'cajon.completo': false, 'cajon.alto': 0.95, 'cajon.lado': 0.95 }, content: '.olist', longTitles: true },
+  { name: 'Himnario en el cajón más pequeño', url: '/control#himnario', prefs: { 'cajon.ancho': false, 'cajon.medida': 300, 'cajon.completo': false, 'cajon.alto': 0.95, 'cajon.lado': 0.95 }, content: '.hymns-body', settle: 700 },
+  // El Mapa del culto, la cita rápida y el enlace de YouTube solo están con el cajón completo (en el celular).
+  { name: 'Orden: mapa del culto', url: '/control#orden', prefs: { 'orden.vista': 'mapa', 'cajon.completo': true }, content: '.omap' },
   // El equipo de la auditoría "no tiene" navegador para la proyección: Ajustes lleva su aviso.
   { name: 'Ajustes, con aviso', url: '/control#ajustes', content: '.settings', inside: '.ws-notice' },
   // La capa de mandos abierta: su recuadro cabe en la pantalla y trae los mandos de lo que está al aire.
@@ -88,7 +110,7 @@ const SCREENS = [
   { name: 'Medios: audios', url: '/control#medios', content: '.media-body[data-panel=audios]', settle: 500,
     prepare: `document.querySelector('.media-tabs [data-tab=audios]').click()` },
   // El equipo de la auditoría "no tiene" yt-dlp: las pestañas de Medios llevan su aviso encima.
-  { name: 'Medios: YouTube', url: '/control#medios', content: '.media-body[data-panel=youtube]', primary: '.media-bar[data-panel=youtube] .btn.primary', inside: '.yt-add', settle: 700,
+  { name: 'Medios: YouTube', url: '/control#medios', prefs: { 'cajon.completo': true }, content: '.media-body[data-panel=youtube]', primary: '.media-bar[data-panel=youtube] .btn.primary', inside: '.yt-add', settle: 700,
     prepare: `(() => { document.querySelector('.media-tabs [data-tab=youtube]').click(); document.querySelector('.media-body[data-panel=youtube] .media-card[data-status=ready] .media-pick').click(); })()` },
   { name: 'Al aire con un video de YouTube', url: '/control#orden', show: 'youtube', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
   { name: 'Al aire con un video', url: '/control#orden', show: 'video', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
@@ -96,8 +118,8 @@ const SCREENS = [
   { name: 'Al aire con una imagen', url: '/control#medios', show: 'image', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
   { name: 'Himnario', url: '/control#himnario', content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: '.hymn-bar', settle: 700,
     prepare: `document.querySelector('.ws[data-module=himnario] .hymn')?.click()` },
-  { name: 'Himnario: categorías', url: '/control#himnario', content: '.hymns-body', inside: '.hymn-group header', settle: 700,
-    prepare: `document.querySelector('.hymn-views [data-view=categories]').click()` },
+  { name: 'Himnario: categorías', url: '/control#himnario', content: '.hymns-body', inside: '.hymn-group-head', settle: 700,
+    prepare: `document.querySelector('.hymn-views [data-view=categories]').click(); setTimeout(() => document.querySelector('.hymn-group-head').click(), 200)` },
   { name: 'Himnario: búsqueda', url: '/control#himnario', content: '.hymns-body', inside: '.hymn-hit', settle: 1100,
     prepare: `(() => { document.querySelector('.hymn-views [data-view=grid]').click(); const i = document.querySelector('.ws[data-module=himnario] .search input'); i.value = 'renglon inventado'; i.dispatchEvent(new Event('input')); })()` },
   { name: 'Al aire con un himno', url: '/control#himnario', show: 'song', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
@@ -133,6 +155,17 @@ const MEASURE = (screen, touch, narrow) => {
   const q = (s) => document.querySelector(s);
   const out = {};
   out.sinDesborde = document.documentElement.scrollWidth <= vw + 1 && document.body.scrollWidth <= vw + 1;
+  // Nada se desplaza de lado si no tiene nada al lado (lo vio el dueño en el Orden del celular): ningún panel con
+  // desplazamiento horizontal cuyo contenido le sobre. Las tiras que se deslizan a propósito (el dock, las pestañas,
+  // lo reciente, «A continuación», el Mapa del culto, las secciones de Ajustes) quedan fuera.
+  const SIDEWAYS_OK = '.dockbar, .media-tabs, .chips, .story-next, .omap-scroll, .omap, .search-scope, .recent, .crumbs, .set-nav';
+  const sideways = [...document.querySelectorAll('body *')].filter((el) => {
+    if (!shown(el) || el.closest(SIDEWAYS_OK) || el.closest('[hidden]')) return false;
+    const x = getComputedStyle(el).overflowX;
+    return (x === 'auto' || x === 'scroll') && el.scrollWidth > el.clientWidth + 1;
+  }).map((el) => (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : el.tagName.toLowerCase()) + ' +' + (el.scrollWidth - el.clientWidth) + 'px');
+  out.deLado = sideways.length === 0;
+  if (sideways.length) out.ladeados = [...new Set(sideways)].slice(0, 4);
   if (${JSON.stringify(touch)}) {
     const small = [...document.querySelectorAll('button, a[href], select, summary, input:not([type=range]):not([type=color]):not([type=file])')]
       .filter((el) => shown(el) && !el.disabled && !el.closest('.soon') && !el.closest('[hidden]'))
@@ -147,7 +180,7 @@ const MEASURE = (screen, touch, narrow) => {
   const items = [...document.querySelectorAll('.dockbar .dock-item')];
   const bar = q('.dockbar');
   // Con una capa abierta (los mandos, una ventana) lo de debajo queda tapado a propósito: ahí solo cuenta la geometría.
-  const covered = Boolean(q('.controls-layer:not([hidden])') || q('.modal-backdrop'));
+  const covered = Boolean(q('.controls-layer:not([hidden])') || q('.finder-layer:not([hidden])') || q('.modal-backdrop'));
   const topmost = (el) => { if (covered) return true; const r = box(el); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return Boolean(t) && el.contains(t); };
   if (!${JSON.stringify(Boolean(screen.noDock))}) {
     const seen = items.filter((b) => inView(b) && topmost(b)).length;
@@ -172,10 +205,14 @@ const MEASURE = (screen, touch, narrow) => {
     } else {
       // Celular: el recuadro de «Historias» por encima del cajón; con el cajón a pantalla completa, el estado arriba.
       const frame = q('.story-frame');
-      out.alAire = dr && drawer.classList.contains('wide') ? inView(q('.drawer .scene-mini .live-pill')) : inView(frame) && (!dr || box(frame).bottom <= dr.top + 1);
+      // Con el cajón completo, o uno reducido que tapa el recuadro, el estado se ve en la cabecera del cajón.
+      const covered = dr && !(box(frame).bottom <= dr.top + 1 || box(frame).right <= dr.left + 1);
+      out.alAire = dr && (drawer.classList.contains('wide') || covered) ? inView(q('.drawer .scene-mini .live-pill')) : inView(frame);
       if (shown(frame)) { const m = box(frame); out.monitorProporcion = Math.abs(m.width / m.height - 16 / 9) < 0.08; }
     }
   }
+  ${screen.prepared ? `{ const f = q('.finder-layer:not([hidden]) .finder'), p = q('.prep'), a = box(f), b = box(p);
+    out.buscarPreparado = shown(f) && shown(p) && (a.bottom <= b.top + 1 || a.right <= b.left + 1 || b.right <= a.left + 1) && inView(p) && document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2)?.closest('.prep') === p; }` : ''}
   ${screen.primary ? `{ const a = q(${JSON.stringify(screen.primary)}); out.accion = inView(a) && topmost(a) && (${JSON.stringify(Boolean(screen.noDock))} || Boolean(a.closest('.drawer'))); }` : ''}
   ${screen.content ? `{ const c = [...document.querySelectorAll(${JSON.stringify(screen.content)})].find(shown); out.espacioContenido = c ? Math.round(Math.min(box(c).bottom, vh) - Math.max(box(c).top, 0)) : 0; }` : ''}
   ${screen.longTitles ? `{ const t = [...document.querySelectorAll('.orow .item-text strong')].find((e) => e.textContent.length > 60); out.tituloLargo = Boolean(t) && t.scrollHeight <= t.clientHeight + 1; }` : ''}
@@ -189,7 +226,7 @@ const MEASURE = (screen, touch, narrow) => {
 };
 
 // Espera a que la pantalla haya terminado de dibujarse (hasta 8 s), en vez de una pausa fija.
-async function ready(screen) {
+async function ready(chrome, screen) {
   const done = screen.plain ? `document.querySelector(${JSON.stringify(screen.plain)})`
     : `document.querySelector('.ws:not([hidden])') && (!document.querySelector('.ws:not([hidden]) .picker') || document.querySelector('.ws:not([hidden]) .verse')) && document.querySelector('.scene-caption')?.textContent`;
   for (let i = 0; i < 40; i += 1) {
@@ -199,76 +236,113 @@ async function ready(screen) {
   await sleep(350);
 }
 
-const LABELS = { sinDesborde: 'sin desborde lateral', navegacion: 'dock de módulos a la vista', alAire: 'lo que está al aire y sus botones a la vista', solape: 'cajón, cola, tarjeta «Preparado» y barras sin pisarse', monitorProporcion: 'recuadro de la proyección sin deformar', accion: 'acción principal a la vista y sin nada encima', tituloLargo: 'títulos largos legibles', mandos: 'mandos en vivo completos y sin salirse', dentro: 'el recuadro cabe en la pantalla', dedos: 'botones para el dedo' };
+const LABELS = { buscarPreparado: 'la tarjeta «Preparado» encima de la búsqueda y sin pisarse con ella', sinDesborde: 'sin desborde lateral', navegacion: 'dock de módulos a la vista', alAire: 'lo que está al aire y sus botones a la vista', solape: 'cajón, cola, tarjeta «Preparado» y barras sin pisarse', monitorProporcion: 'recuadro de la proyección sin deformar', accion: 'acción principal a la vista y sin nada encima', tituloLargo: 'títulos largos legibles', mandos: 'mandos en vivo completos y sin salirse', dentro: 'el recuadro cabe en la pantalla', dedos: 'botones para el dedo', deLado: 'nada se desplaza de lado sin tener nada al lado' };
 const MIN_CONTENT = 150;
 
-// Un televisor de mentira, ya vinculado, para revisar su tarjeta y su control remoto.
-const fakeTv = await startFakeTv();
-fs.mkdirSync(path.join(tmp, 'data'), { recursive: true });
-fs.writeFileSync(path.join(tmp, 'data', 'televisores.json'), JSON.stringify({
-  list: [{ id: 'tele', ip: '192.168.1.50', name: 'Televisor del salón de jóvenes', model: 'QN00PRUEBA', token: fakeTv.token }],
-}));
-// Tres páginas web, sin internet: se escriben ya "agregadas" (dos direcciones, una que se deja mostrar y otra
-// que no, y un archivo HTML), con nombres largos para ver que no desbordan.
-fs.mkdirSync(path.join(tmp, 'data', 'paginas'), { recursive: true });
-fs.writeFileSync(path.join(tmp, 'data', 'paginas', 'archivo1.html'), '<!doctype html><title>Juego</title><body>Juego de la iglesia</body>');
-fs.writeFileSync(path.join(tmp, 'data', 'paginas.json'), JSON.stringify({ pages: [
-  { id: 'enlace1', name: 'Presentación de la escuela sabática con un nombre muy largo para ver cómo se corta en el celular', source: 'url', url: 'http://localhost:9/design/ejemplo-de-una-direccion-larga/view', framable: true, added: 3 },
-  { id: 'enlace2', name: 'Concurso bíblico', source: 'url', url: 'https://kahoot.it/', framable: false, added: 2 },
-  { id: 'archivo1', name: 'Juego de la iglesia', source: 'file', url: null, framable: true, added: 1 },
-] }));
-// El ejemplo se escribe antes de arrancar: el servidor lee el orden y la biblioteca al abrirse.
-const example = seedExample(path.join(tmp, 'data'));
-const server = killOnExit(spawn(process.execPath, ['server/index.js'], {
-  cwd: ROOT, stdio: 'ignore',
-  env: { ...process.env, MANNA_NAME: 'manna-auditoria', MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_DATA: path.join(tmp, 'data'), PORT: String(PORT), MANNA_HIMNARIO: example.hymnal, MANNA_FALTA: 'navegador,yt-dlp', MANNA_TV_PRUEBA: JSON.stringify(fakeTv.endpoints) },
-}));
-const showInOrder = (id) => chrome.evaluate(`fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'order.show',payload:{id:${JSON.stringify(id)}}})}).then((r) => r.status)`);
-await sleep(3000);
-const chrome = await startChrome();
-chrome.acceptDialogs = true;
-let problems = 0;
-try {
-  await chrome.send('Page.navigate', { url: `${base}/control` });
-  await sleep(2000);
-  await showInOrder(example.live);
-
-  for (const device of DEVICES) {
-    const narrow = device.w < 860;
-    await chrome.send('Emulation.setDeviceMetricsOverride', { width: device.w, height: device.h, deviceScaleFactor: 1, mobile: device.touch });
-    await chrome.send('Emulation.setTouchEmulationEnabled', { enabled: device.touch });
-    console.log(`\n${device.name} (${device.w} × ${device.h})`);
-    for (const screen of SCREENS) {
-      if (screen.narrowOnly && !narrow) continue;
-      if (screen.show) await showInOrder(example[screen.show]);
-      if (screen.page) await chrome.evaluate(`fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'projection.show',payload:{kind:'web',data:{id:${JSON.stringify(screen.page)}}}})}).then((r) => r.status)`);
-      // La dirección cambia en cada visita para forzar una carga limpia de la página.
-      const [pathname, hash = ''] = screen.url.split('#');
-      await chrome.send('Page.navigate', { url: `${base}${pathname}?t=${Date.now()}${hash ? `#${hash}` : ''}` });
-      await ready(screen);
-      if (screen.prepare) { await chrome.evaluate(screen.prepare); await sleep(screen.settle || 500); }
-      const result = await chrome.evaluate(`JSON.stringify(${MEASURE(screen, device.touch, narrow)})`);
-      const m = JSON.parse(result || '{}');
-      const failures = Object.keys(LABELS).filter((k) => m[k] === false).map((k) => LABELS[k] + (k === 'dedos' ? `: ${m.pequenos.join(', ')}` : k === 'solape' && m.solapan ? `: ${m.solapan.join('; ')}` : ''));
-      if (m.espacioContenido !== undefined && m.espacioContenido < MIN_CONTENT) failures.push(`poco espacio para el contenido (${m.espacioContenido} px)`);
-      problems += failures.length;
-      const room = m.espacioContenido !== undefined ? ` · contenido ${m.espacioContenido} px` : '';
-      console.log(`  ${failures.length ? '✖' : '✔'} ${screen.name}${room}${failures.length ? `\n      ${failures.join('\n      ')}` : ''}`);
-      if (SHOTS) {
-        const png = await chrome.send('Page.captureScreenshot', { format: 'png' });
-        const file = path.join(tmp, `${device.w}x${device.h} ${screen.name.replace(/[:"]/g, '')}.png`);
-        fs.writeFileSync(file, Buffer.from(png.result.data, 'base64'));
-      }
-      if (screen.show || screen.page) await showInOrder(example.live);
-    }
-  }
-} finally {
-  chrome.close();
-  server.kill();
-  await fakeTv.stop();
-  await sleep(800);
-  if (!SHOTS) fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5 });
+// Qué revisar: las palabras que se le pasan eligen tamaños (por su nombre o «360x640») y pantallas.
+const fold = (text) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+const words = process.argv.slice(2).filter((a) => a !== 'capturas').map(fold);
+const sizeName = (d) => fold(`${d.name} ${d.w}x${d.h}`);
+const sizeWords = words.filter((w) => DEVICES.some((d) => sizeName(d).includes(w)));
+const screenWords = words.filter((w) => SCREENS.some((s) => fold(s.name).includes(w)));
+const unknown = words.filter((w) => !sizeWords.includes(w) && !screenWords.includes(w));
+if (unknown.length) {
+  console.error(`Ningún tamaño ni pantalla se llama así: ${unknown.join(', ')}`);
+  process.exit(2);
 }
+const devices = sizeWords.length ? DEVICES.filter((d) => sizeWords.some((w) => sizeName(d).includes(w))) : DEVICES;
+const screens = screenWords.length ? SCREENS.filter((s) => screenWords.some((w) => fold(s.name).includes(w))) : SCREENS;
+
+let problems = 0;
+
+// Un servidor con sus datos y un Chrome que revisa unos cuantos tamaños. Cada uno tiene lo suyo
+// porque las pantallas cambian lo que está al aire y las preferencias del navegador.
+async function worker(list, n) {
+  const port = PORTS[n];
+  const base = `http://localhost:${port}`;
+  const data = path.join(tmp, `datos-${n + 1}`);
+  // Un televisor de mentira, ya vinculado, para revisar su tarjeta y su control remoto.
+  const fakeTv = await startFakeTv();
+  fs.mkdirSync(data, { recursive: true });
+  fs.writeFileSync(path.join(data, 'televisores.json'), JSON.stringify({
+    list: [{ id: 'tele', ip: '192.168.1.50', name: 'Televisor del salón de jóvenes', model: 'QN00PRUEBA', token: fakeTv.token }],
+  }));
+  // Tres páginas web, sin internet: se escriben ya "agregadas" (dos direcciones, una que se deja mostrar y otra
+  // que no, y un archivo HTML), con nombres largos para ver que no desbordan.
+  fs.mkdirSync(path.join(data, 'paginas'), { recursive: true });
+  fs.writeFileSync(path.join(data, 'paginas', 'archivo1.html'), '<!doctype html><title>Juego</title><body>Juego de la iglesia</body>');
+  fs.writeFileSync(path.join(data, 'paginas.json'), JSON.stringify({ pages: [
+    { id: 'enlace1', name: 'Presentación de la escuela sabática con un nombre muy largo para ver cómo se corta en el celular', source: 'url', url: 'http://localhost:9/design/ejemplo-de-una-direccion-larga/view', framable: true, added: 3 },
+    { id: 'enlace2', name: 'Concurso bíblico', source: 'url', url: 'https://kahoot.it/', framable: false, added: 2 },
+    { id: 'archivo1', name: 'Juego de la iglesia', source: 'file', url: null, framable: true, added: 1 },
+  ] }));
+  // El ejemplo se escribe antes de arrancar: el servidor lee el orden y la biblioteca al abrirse.
+  const example = seedExample(data);
+  const server = killOnExit(spawn(process.execPath, ['server/index.js'], {
+    cwd: ROOT, stdio: 'ignore',
+    env: { ...process.env, MANNA_NAME: `manna-auditoria-${n + 1}`, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_DATA: data, PORT: String(port), MANNA_HIMNARIO: example.hymnal, MANNA_FALTA: 'navegador,yt-dlp', MANNA_TV_PRUEBA: JSON.stringify(fakeTv.endpoints) },
+  }));
+  await sleep(3000);
+  const chrome = await startChrome();
+  chrome.acceptDialogs = true;
+  const setPrefs = (prefs, remove = false) => chrome.evaluate(`for (const [k, v] of Object.entries(${JSON.stringify(prefs)})) ${remove ? "localStorage.removeItem('manna.' + k)" : "localStorage.setItem('manna.' + k, JSON.stringify(v))"}`);
+  const showInOrder = (id) => chrome.evaluate(`fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'order.show',payload:{id:${JSON.stringify(id)}}})}).then((r) => r.status)`);
+  try {
+    await chrome.send('Page.navigate', { url: `${base}/control` });
+    await sleep(2000);
+    await showInOrder(example.live);
+
+    for (const device of list) {
+      const narrow = device.w < 860;
+      await chrome.send('Emulation.setDeviceMetricsOverride', { width: device.w, height: device.h, deviceScaleFactor: 1, mobile: device.touch });
+      await chrome.send('Emulation.setTouchEmulationEnabled', { enabled: device.touch });
+      // Cada tamaño empieza sin preferencias guardadas, como un dispositivo nuevo: el cajón se abre a su
+      // tamaño de partida. Sin esto, cada tamaño heredaba lo que el anterior guardó (el celular pequeño deja el
+      // cajón a pantalla completa) y el resultado dependía del orden.
+      await chrome.evaluate('localStorage.clear()');
+      // Lo de cada tamaño se escribe de una vez al terminarlo, para que no se mezcle con el de los otros Chrome.
+      const lines = [`\n${device.name} (${device.w} × ${device.h})`];
+      for (const screen of screens) {
+        if ((screen.narrowOnly && !narrow) || (screen.wideOnly && narrow)) continue;
+        if (screen.prefs) await setPrefs(screen.prefs);
+        if (screen.show) await showInOrder(example[screen.show]);
+        if (screen.page) await chrome.evaluate(`fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'projection.show',payload:{kind:'web',data:{id:${JSON.stringify(screen.page)}}}})}).then((r) => r.status)`);
+        // La dirección cambia en cada visita para forzar una carga limpia de la página.
+        const [pathname, hash = ''] = screen.url.split('#');
+        await chrome.send('Page.navigate', { url: `${base}${pathname}?t=${Date.now()}${hash ? `#${hash}` : ''}` });
+        await ready(chrome, screen);
+        if (screen.prepare) { await chrome.evaluate(screen.prepare); await sleep(screen.settle || 500); }
+        const result = await chrome.evaluate(`JSON.stringify(${MEASURE(screen, device.touch, narrow)})`);
+        const m = JSON.parse(result || '{}');
+        const failures = Object.keys(LABELS).filter((k) => m[k] === false).map((k) => LABELS[k] + (k === 'dedos' ? `: ${m.pequenos.join(', ')}` : k === 'solape' && m.solapan ? `: ${m.solapan.join('; ')}` : k === 'deLado' ? `: ${m.ladeados.join(', ')}` : ''));
+        if (m.espacioContenido !== undefined && m.espacioContenido < MIN_CONTENT) failures.push(`poco espacio para el contenido (${m.espacioContenido} px)`);
+        problems += failures.length;
+        const room = m.espacioContenido !== undefined ? ` · contenido ${m.espacioContenido} px` : '';
+        lines.push(`  ${failures.length ? '✖' : '✔'} ${screen.name}${room}${failures.length ? `\n      ${failures.join('\n      ')}` : ''}`);
+        if (SHOTS) {
+          const png = await chrome.send('Page.captureScreenshot', { format: 'png' });
+          const file = path.join(tmp, `${device.w}x${device.h} ${screen.name.replace(/[:"]/g, '')}.png`);
+          fs.writeFileSync(file, Buffer.from(png.result.data, 'base64'));
+        }
+        if (screen.show || screen.page) await showInOrder(example.live);
+        if (screen.prefs) await setPrefs(screen.prefs, true);
+      }
+      console.log(lines.join('\n'));
+    }
+  } finally {
+    chrome.close();
+    server.kill();
+    await fakeTv.stop();
+  }
+}
+
+// Los tamaños se reparten alternos (1.º, 4.º y 7.º al primer Chrome…): todos tardan lo mismo.
+const groups = PORTS.map((_, n) => devices.filter((_, k) => k % PORTS.length === n)).filter((g) => g.length);
+const results = await Promise.allSettled(groups.map((list, n) => worker(list, n)));
+await sleep(800);
+if (!SHOTS) fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5 });
+const crash = results.find((r) => r.status === 'rejected');
+if (crash) throw crash.reason;
 
 if (SHOTS) console.log(`\nCapturas en: ${tmp}`);
 console.log(problems ? `\n${problems} problema(s) encontrados.` : '\nSin problemas en ninguna pantalla.');

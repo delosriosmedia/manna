@@ -30,6 +30,7 @@ export function createShell({ role, isLocal, modules, extras = [], createScene, 
   let current = null;
   const full = layout === 'full';
   const narrow = matchMedia('(max-width: 859px)');
+  const landscape = matchMedia('(max-width: 859px) and (max-height: 480px)');
 
   const notice = h('div', { class: 'ws-notice', role: 'status', hidden: true });
   const work = h('div', { class: 'work' });
@@ -37,18 +38,20 @@ export function createShell({ role, isLocal, modules, extras = [], createScene, 
   const scene = full ? null : createScene({ ...ctx, openControls: () => openControls() });
   ctx.setPreview = (item) => scene?.setPreview(item);
   ctx.prepare = (next) => scene?.prepare(next);
+  // Escuchar algo solo en este dispositivo antes de añadirlo ({ url, title }); null en el equipo principal.
+  ctx.listen = scene?.preview ? (what) => scene.preview.play(what) : null;
 
-  // ---- Barra de arriba: estado, función y versión ----
+  // ---- Barra de arriba: estado, «Buscar en todo», función y versión ----
   const version = h('small', { class: 'role-version' });
   subscribe('system', (s) => { version.textContent = s.version ? `Manna ${s.version}` : ''; });
   const ROLE_NAMES = { control: 'Control completo', alabanza: 'Servicio de alabanza', orden: 'Control del orden', presentador: 'Presentador' };
   const roleChip = h('button', { class: 'role-chip glass', 'aria-haspopup': 'menu', title: ROLE_NAMES[role] || role, onclick: (e) => menu(e.currentTarget, [
-    ...extras.map((x) => ({ label: x.name, icon: x.icon, onclick: x.onclick })),
+    ...extras.map((x) => ({ label: x.name, icon: x.icon, note: typeof x.note === 'function' ? x.note() : x.note, onclick: x.onclick })),
     extras.length && '-',
     { label: 'Cambiar de función', icon: 'arrows-left-right', onclick: () => go('/') },
   ].filter(Boolean)) }, h('span', { class: 'role-dot', 'aria-hidden': 'true' }), h('span', { class: 'role-text' }, h('strong', {}, ROLE_NAMES[role] || role), version));
   scene?.status.prepend(h('a', { class: 'brand-mark', href: '/', title: 'Cambiar la función de este dispositivo' }, h('img', { src: '/logo.svg', alt: 'Manna' })));
-  const top = h('header', { class: 'topbar' }, scene?.status, h('span', { class: 'spacer' }), roleChip);
+  const top = h('header', { class: 'topbar' }, scene?.status, h('span', { class: 'spacer' }), scene?.search?.button, roleChip);
 
   // ---- Dock de módulos y cajón ----
   const dockbar = h('nav', { class: 'dockbar glass', 'aria-label': 'Módulos' });
@@ -59,19 +62,31 @@ export function createShell({ role, isLocal, modules, extras = [], createScene, 
 
   const drawerTitle = h('h2', {});
   const wideButton = h('button', { class: 'icon-btn sm drawer-wide', onclick: () => setWide(!drawer.classList.contains('wide')) });
-  const drawer = h('section', { class: 'drawer glass', hidden: true, 'aria-labelledby': 'drawer-title' },
+  // El borde libre del cajón reducido, para hacerlo más grande o más pequeño sin moverlo (ver «Tamaño», abajo).
+  const grip = h('div', { class: 'drawer-grip', role: 'separator', tabindex: '0', 'aria-label': 'Cambiar el tamaño del cajón', title: 'Arrastra para cambiar el tamaño' });
+  const drawer = h('section', { class: 'drawer glass', hidden: true, 'aria-labelledby': 'drawer-title' }, grip,
     h('div', { class: 'drawer-head' }, Object.assign(drawerTitle, { id: 'drawer-title' }), scene?.mini, h('span', { class: 'spacer' }), wideButton,
       h('button', { class: 'icon-btn sm', 'aria-label': 'Cerrar el cajón', title: 'Cerrar (Esc)', onclick: () => closeDrawer() }, icon('x', 16))),
     notice, work);
   // En el celular el cajón sube desde abajo y se cierra al tocar fuera.
   const backdrop = h('div', { class: 'drawer-backdrop', hidden: true, onclick: () => closeDrawer() });
   const isOpen = () => !drawer.hidden;
-  // Cada disposición recuerda lo suyo: en el escritorio, cajón ancho o estrecho; en el celular, a media
-  // altura (se ve lo que está al aire encima) o a pantalla completa.
+  // Cada disposición recuerda lo suyo: en el escritorio, cajón ancho o estrecho; en el celular, reducido (se
+  // ve lo que está al aire encima, y el módulo enseña solo lo esencial: clase «compact») o a pantalla completa.
+  // De partida, ancho en el escritorio y reducido en el celular (decisión del dueño, 2026-10-15), salvo en uno
+  // bajo (menos de 700 px), donde reducido no deja sitio. Un módulo con `full` (Ajustes) se abre siempre completo
+  // en el celular.
   const wideKey = () => (narrow.matches ? 'cajon.completo' : 'cajon.ancho');
+  const forcedFull = () => narrow.matches && Boolean(usable.find((m) => m.id === current?.id)?.full);
+  const preferredWide = () => forcedFull() || prefs.get(wideKey(), !narrow.matches || innerHeight < 700);
   function setWide(wide) {
-    drawer.classList.toggle('wide', wide);
     prefs.set(wideKey(), wide);
+    paintSize(wide);
+  }
+  function paintSize(wide) {
+    drawer.classList.toggle('wide', wide);
+    drawer.classList.toggle('compact', narrow.matches && !wide);
+    wideButton.hidden = forcedFull();
     wideButton.replaceChildren(icon(wide ? 'arrows-in' : 'arrows-out', 16));
     const label = narrow.matches ? (wide ? 'Reducir el cajón' : 'Ampliar a pantalla completa') : (wide ? 'Hacer el cajón más estrecho' : 'Ampliar el cajón');
     wideButton.setAttribute('aria-label', label);
@@ -88,9 +103,66 @@ export function createShell({ role, isLocal, modules, extras = [], createScene, 
     document.body.classList.remove('drawer-open');
     paintDock();
     scene?.setPreview(null);
+    scene?.preview?.stop();
     document.title = 'Manna';
     history.replaceState(null, '', location.pathname);
   }
+  // ---- Tamaño del cajón reducido ----
+  // Se arrastra su borde libre: el derecho en el escritorio (el cajón sale del dock, a la izquierda), el de
+  // arriba en el celular y el izquierdo en el celular en horizontal. Nunca se mueve, y el CSS lo limita para
+  // que no tape la barra de arriba, el dock, la cola ni la barra de abajo. Cada disposición lo recuerda.
+  const sizeKey = () => (!narrow.matches ? 'cajon.medida' : landscape.matches ? 'cajon.lado' : 'cajon.alto');
+  const SIZE_VARS = ['--drawer-w', '--drawer-top', '--drawer-left'];
+  function applySize() {
+    for (const v of SIZE_VARS) drawer.style.removeProperty(v);
+    const saved = prefs.get(sizeKey(), null);
+    if (typeof saved !== 'number') return;
+    if (!narrow.matches) drawer.style.setProperty('--drawer-w', `${saved}px`);
+    else if (landscape.matches) drawer.style.setProperty('--drawer-left', `${Math.round(saved * innerWidth)}px`);
+    else drawer.style.setProperty('--drawer-top', `${Math.round(saved * innerHeight)}px`);
+  }
+  // `grab`: dónde se cogió el borde, para que siga al dedo sin saltar hasta él.
+  let grab = { dx: 0, dy: 0 };
+  function sizeTo(x, y) {
+    if (!narrow.matches) drawer.style.setProperty('--drawer-w', `${Math.round(x + grab.dx - drawer.getBoundingClientRect().left)}px`);
+    else if (landscape.matches) drawer.style.setProperty('--drawer-left', `${Math.round(x - grab.dx)}px`);
+    else drawer.style.setProperty('--drawer-top', `${Math.round(y - grab.dy)}px`);
+  }
+  // Se guarda lo que de verdad mide (ya limitado por el CSS), y se vuelve a poner así.
+  function saveSize() {
+    const r = drawer.getBoundingClientRect();
+    prefs.set(sizeKey(), !narrow.matches ? Math.round(r.width) : landscape.matches ? r.left / innerWidth : r.top / innerHeight);
+    applySize();
+  }
+  grip.addEventListener('pointerdown', (e) => {
+    if (drawer.classList.contains('wide')) return;
+    e.preventDefault();
+    try { grip.setPointerCapture(e.pointerId); } catch { /* sin captura, se sigue igual */ }
+    const r = drawer.getBoundingClientRect();
+    grab = { dx: narrow.matches ? e.clientX - r.left : r.right - e.clientX, dy: e.clientY - r.top };
+    drawer.classList.add('sizing');
+  });
+  grip.addEventListener('pointermove', (e) => { if (drawer.classList.contains('sizing')) sizeTo(e.clientX, e.clientY); });
+  const endSizing = () => {
+    if (!drawer.classList.contains('sizing')) return;
+    drawer.classList.remove('sizing');
+    grab = { dx: 0, dy: 0 };
+    saveSize();
+  };
+  grip.addEventListener('pointerup', endSizing);
+  grip.addEventListener('pointercancel', endSizing);
+  // Con el teclado: las flechas lo agrandan o lo achican de 24 en 24 px.
+  grip.addEventListener('keydown', (e) => {
+    const r = drawer.getBoundingClientRect();
+    const d = { ArrowRight: 24, ArrowLeft: -24, ArrowUp: -24, ArrowDown: 24 }[e.key];
+    if (!d || drawer.classList.contains('wide')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    sizeTo(r.right + d, r.top + d);
+    if (landscape.matches) sizeTo(r.left + d, 0);
+    saveSize();
+  });
+
   function paintDock() {
     dockbar.querySelectorAll('.dock-item').forEach((b) => {
       const on = isOpen() && b.dataset.id === current?.id;
@@ -179,6 +251,7 @@ export function createShell({ role, isLocal, modules, extras = [], createScene, 
     const changed = current?.id !== module.id;
     for (const [mid, m] of mounted) m.el.hidden = mid !== module.id;
     current = { id: module.id, api: mounted.get(module.id).api };
+    if (!full) paintSize(preferredWide());
     drawerTitle.textContent = module.name;
     document.title = `Manna · ${module.name}`;
     if (!full) openDrawer();
@@ -191,10 +264,16 @@ export function createShell({ role, isLocal, modules, extras = [], createScene, 
   }
 
   // ---- Atajos de teclado ----
-  // ← → y B / C gobiernan lo que está al aire desde cualquier módulo; Intro proyecta lo preparado;
-  // Esc cierra la capa de arriba (los mandos o el cajón). El resto lo decide el módulo abierto.
+  // Ctrl K (⌘ K) abre «Buscar en todo». ← → y B / C gobiernan lo que está al aire desde cualquier módulo;
+  // Intro proyecta lo preparado; Esc cierra la capa de arriba (los mandos, la búsqueda o el cajón).
+  // El resto lo decide el módulo abierto.
   const step = guard((delta) => action('projection.step', { delta }));
   document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && scene?.search && !document.querySelector('.modal-backdrop')) {
+      e.preventDefault();
+      scene.search.open();
+      return;
+    }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target.matches('input, select, textarea')) {
       if (e.key === 'Escape') e.target.blur();
@@ -203,6 +282,7 @@ export function createShell({ role, isLocal, modules, extras = [], createScene, 
     if (document.querySelector('.modal-backdrop, .menu')) return;
     if (e.key === 'Escape' && !full) {
       if (!controlsLayer.hidden) closeControls();
+      else if (scene.search?.isOpen()) scene.search.close();
       else if (isOpen()) closeDrawer();
       return;
     }
@@ -230,13 +310,16 @@ export function createShell({ role, isLocal, modules, extras = [], createScene, 
       document.body.classList.toggle('narrow', narrow.matches);
       scene.place(narrow.matches);
       backdrop.hidden = !narrow.matches || !isOpen();
-      // Hasta que cada módulo quepa en el cajón estrecho (parte 4 de la fase 13), en el escritorio se abre
-      // ancho; en un celular bajo no cabe a media altura y se abre completo.
-      setWide(prefs.get(wideKey(), !narrow.matches || innerHeight < 700));
+      paintSize(preferredWide());
+      applySize();
     };
     narrow.addEventListener('change', place);
-    document.body.append(scene.bg, h('div', { class: 'scene-scrim', 'aria-hidden': 'true' }), top, update, scene.story,
-      dockbar, scene.queue, backdrop, drawer, scene.prep, scene.transport, controlsLayer);
+    landscape.addEventListener('change', place);
+    // Tocar el fondo (la proyección) cierra el cajón también en el escritorio; la cola, «Preparado» y la barra
+    // de abajo siguen funcionando con el cajón abierto (decisión del dueño, 2026-10-15).
+    scene.bg.addEventListener('click', () => { if (isOpen()) closeDrawer(); });
+    document.body.append(...[scene.bg, h('div', { class: 'scene-scrim', 'aria-hidden': 'true' }), top, update, scene.story,
+      dockbar, scene.queue, backdrop, drawer, scene.prep, scene.transport, controlsLayer, scene.search?.layer, scene.preview?.bar].filter(Boolean));
     place();
   }
   mountConnectionBar();

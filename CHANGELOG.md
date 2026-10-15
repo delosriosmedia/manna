@@ -4,6 +4,30 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.13.0 — 2026-10-15
+
+- **El Comparador pasa a la Biblia**: ya no es un módulo aparte, sino el botón **«Comparar»**, que deja elegir la segunda versión y la disposición en una fila bajo la cabecera. Lo que ya estaba en el orden del culto se proyecta igual.
+- **«Varios» en la Biblia**: elige un tramo de versículos con dos toques, el primero y el último, sin teclado.
+- **Mapa del culto**: el Orden tiene una segunda vista que enseña todo el culto de un vistazo, con cuántos pasos tiene cada elemento, lo que ya pasó y por dónde va. Un paso se proyecta tocándolo.
+- **Los módulos se adaptan al ancho de su cajón**: todos caben en el estrecho de 440 px, en el ancho y en el celular.
+- **Himnario**: con el cajón ancho, la ficha del himno elegido va al lado de la rejilla, con su categoría, su duración y la letra.
+- **Ajustes por secciones**: una fila arriba lleva a cada sección, y desde «Programas» se instala lo que falta.
+- **Buscar en todo** (botón de la barra de arriba, o **Ctrl K**; ⌘ K en Mac): una sola búsqueda para versículos (una cita como «jn 3 16» o unas palabras), himnos (número, título o letra), imágenes, videos y audios, presentaciones y páginas web. Un toque prepara el resultado en la tarjeta «Preparado», con «Añadir al orden»; un doble toque o Intro lo proyecta. Se cierra al tocar fuera o con Esc. Está en el Control completo y en el Servicio de alabanza.
+- **Nueva pantalla de inicio**: cada función en una tarjeta con su icono, y el **PIN en un teclado grande**, cómodo en el celular. El PIN es de **4 números** y entra solo al teclear el cuarto (si alguien tenía uno más largo, Manna pone uno nuevo, que se ve en «Dispositivos»).
+- **Presentador**: la diapositiva al aire ocupa todo el sitio que deja la columna de la derecha, sin nada encima. En el celular se pasa **tocándola** (a la derecha avanza, a la izquierda vuelve), y con «Señalar» encendido el toque señala.
+- La revisión del equipo, con la piel nueva.
+- **Los módulos del celular se abren reducidos, con solo lo esencial**: en la Biblia, la versión, el buscador, la cita y los versículos (antes quedaba versículo y medio); en el Orden, solo la lista; en el Himnario, el buscador y los himnos. Lo demás aparece al ampliar el cajón. En un celular bajo se abre completo, y Ajustes, siempre.
+- **El cajón reducido se agranda o se achica arrastrando su borde**: el derecho en el escritorio, el de arriba en el celular, sin tapar nunca la cola ni las barras. Cada dispositivo recuerda su tamaño.
+- **Tocar el fondo cierra el cajón** también en el escritorio.
+- **Nada se desplaza de lado sin tener nada al lado** (pasaba en el Orden del celular).
+- **Himnario por categorías**: aparecen plegadas y se abre solo la que tocas.
+- **«Letra»** en los mandos de un himno al aire, para leerla entera en tu dispositivo.
+- **Presentador**: la diapositiva anterior al lado de la siguiente, y **«Restablecer»** el zoom junto a «Mover».
+- El punto rojo del Presentador también se ve en el fondo del control.
+- **Conexión por internet** desde el menú de la función (Control completo): se enciende y se apaga sin ir a Ajustes.
+- **Escuchar en el celular** (o en cualquier equipo que no sea el principal): «Escuchar aquí» oye lo que está al aire, y «Escuchar» en el Himnario, en Medios y en el Orden lo oye antes de añadirlo. Solo en ese dispositivo: no cambia nada de lo que suena en la iglesia.
+- Las pruebas tardan menos: la revisión de pantallas revisa tres tamaños a la vez y puede revisar solo algunas pantallas, y la prueba más lenta convierte un video más corto.
+
 ## 1.12.0 — 2026-10-14
 
 - **La pantalla de control cambia de forma**, segundo paso del rediseño «Escenario»: lo que está al aire ocupa todo el fondo y, encima, flotan los módulos (en un cajón que se abre desde el dock de la izquierda), la **cola del culto** a la derecha y una barra abajo con Anterior, Siguiente, lo que sigue, Solo fondo, Negro, los mandos y el volumen.

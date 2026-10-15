@@ -290,7 +290,9 @@ test('cambiar el PIN cierra las demás sesiones, también las abiertas sin PIN',
   const cookie = other.headers.get('set-cookie').split(';')[0];
   const state = () => fetch(new URL('/api/action', main.base), { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ type: 'projection.mode', payload: { mode: 'clear' } }) }).then((res) => res.status);
   assert.equal(await state(), 200);
-  assert.equal((await main.send('system.setPin', { pin: '13579' })).status, 200);
+  for (const wrong of ['123', '12345', '12a4']) assert.equal((await main.send('system.setPin', { pin: wrong })).status, 400, `«${wrong}» no vale: 4 números`);
+  assert.equal(await state(), 200, 'un PIN rechazado no cierra nada');
+  assert.equal((await main.send('system.setPin', { pin: '1357' })).status, 200);
   assert.equal(await state(), 401, 'la otra sesión ya no vale');
   assert.equal((await main.send('projection.mode', { mode: 'clear' })).status, 200, 'la de quien lo cambió, sí');
 });

@@ -17,7 +17,7 @@ paths:
 ## Búsqueda y comparación
 
 - El texto se busca en una sola versión: la Reina-Valera 1960 (`SEARCH_VERSION` en `library.js`), o la elegida si no está instalada. Las citas se resuelven en la versión elegida. Un resultado es una posición: se abre en la versión elegida.
-- El comparador (`compare.js`) es un segundo tipo de contenido del mismo módulo: `data = { versions: [a, b], ref, layout }`. Los pasos los marca la primera versión.
+- Comparar (botón de la Biblia) proyecta un segundo tipo de contenido del mismo módulo, `compare`: `data = { versions: [a, b], ref, layout }`. Los pasos los marca la primera versión.
 
 ## Formatos
 
