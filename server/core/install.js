@@ -72,7 +72,12 @@ function findInside(dir, name) {
   return null;
 }
 
-export async function installTool(spec, { dir, onProgress = () => {}, signal } = {}) {
+// Lo que se dice si el programa nuevo no arranca. El que había no se toca.
+export const NOT_RUNNABLE = 'se descargó, pero este equipo no lo dejó abrir (a veces el antivirus lo revisa la primera vez). El que había sigue igual. Vuelve a intentarlo en un minuto; si se repite, en Ajustes pulsa «Revisar el equipo» y sigue «Prefiero instalarlo a mano».';
+
+// check(archivo) → true si el programa recién bajado arranca: se prueba antes de reemplazar al que había,
+// para que una actualización que falla no deje sin programa.
+export async function installTool(spec, { dir, onProgress = () => {}, signal, check = null } = {}) {
   fs.mkdirSync(dir, { recursive: true });
   const work = fs.mkdtempSync(path.join(dir, '.descarga-'));
   try {
@@ -110,17 +115,21 @@ export async function installTool(spec, { dir, onProgress = () => {}, signal } =
         if (expected && spec.inner && crypto.createHash('sha256').update(fs.readFileSync(found)).digest('hex') !== expected) {
           throw new Error('La descarga llegó incompleta o dañada. Vuelve a intentarlo.');
         }
-        const target = path.join(dir, name);
-        fs.copyFileSync(found, target);
-        installed.push(target);
+        installed.push([found, path.join(dir, name)]);
       }
     } else {
-      const target = path.join(dir, spec.file);
-      fs.copyFileSync(download, target);
-      installed.push(target);
+      // Con su nombre (en Windows, sin «.exe» no se ejecuta).
+      const candidate = path.join(work, spec.file);
+      fs.renameSync(download, candidate);
+      installed.push([candidate, path.join(dir, spec.file)]);
     }
-    for (const file of installed) fs.chmodSync(file, 0o755);
-    return installed;
+    for (const [file] of installed) fs.chmodSync(file, 0o755);
+    if (check && !(await check(installed[0][0]))) throw new Error(NOT_RUNNABLE);
+    for (const [file, target] of installed) {
+      fs.copyFileSync(file, target);
+      fs.chmodSync(target, 0o755);
+    }
+    return installed.map(([, target]) => target);
   } finally {
     fs.rmSync(work, { recursive: true, force: true, maxRetries: 3 });
   }

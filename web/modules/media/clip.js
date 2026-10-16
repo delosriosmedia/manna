@@ -42,7 +42,6 @@ const video = {
   },
   controls: clipControls,
   // Fuera del equipo principal se oye la copia, la que reproduce cualquiera.
-  sound: (item) => item.url,
 };
 registerKind('video', video);
 registerKind('youtube', { ...video, icon: 'youtube-logo', label: 'YouTube' });
@@ -64,7 +63,6 @@ registerKind('audio', {
     });
   },
   controls: clipControls,
-  sound: (item) => item.url,
 });
 
 // Las pantallas del equipo principal comprueban qué videos pueden reproducir sin convertir.

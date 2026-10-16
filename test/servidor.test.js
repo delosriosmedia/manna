@@ -131,6 +131,27 @@ test('una subida se guarda en disco, respeta el límite y no deja archivos a med
   assert.equal((await main.state()).projection.styles.bgImage, url);
 });
 
+test('«Limpiar multimedia temporales» borra lo subido, también del orden del culto, y deja el fondo de Ajustes', async () => {
+  // Una página web hecha con un archivo (lo subido de esta prueba; Medios y Diapositivas lo borran con su misma orden).
+  const page = await (await main.request('/api/web?name=Concurso', { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: '<!doctype html><p>Concurso</p>'.padEnd(4000, ' ') })).json();
+  const background = await (await main.request('/api/projection/background', { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: makePng(16, 9, () => [10, 90, 200]) })).json();
+  const inOrder = (await main.send('order.add', { kind: 'web', data: { id: page.id } })).result;
+  assert.ok(inOrder);
+  await main.send('order.show', { id: inOrder.id, step: 0 });
+  const disk = await (await main.request('/api/system/disk')).json();
+  assert.ok(disk.groups.find((g) => g.id === 'pages').bytes >= 4000, JSON.stringify(disk.groups));
+  assert.ok(disk.free > 0 && disk.size >= disk.free, 'dice lo libre del disco');
+
+  const done = (await main.send('system.clean')).result;
+  assert.ok(done.removed >= 1 && done.failed === 0 && done.freed >= 4000, JSON.stringify(done));
+  const after = await main.state();
+  assert.equal(after.web.pages.some((p) => p.id === page.id), false);
+  assert.equal(after.order.items.some((i) => i.id === inOrder.id), false, 'se quita del orden del culto');
+  assert.equal(after.projection.item, null, 'lo que estaba al aire se va');
+  assert.ok(after.projection.backgrounds.some((b) => b.id === background.id), 'el fondo de Ajustes se queda');
+  assert.equal((await (await main.request('/api/system/disk')).json()).groups.find((g) => g.id === 'pages').bytes, 0);
+});
+
 test('las imágenes de fondo se conservan: se elige entre ellas, junto a los colores, y se eliminan', async () => {
   const upload = async (color) => (await main.request('/api/projection/background', { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: makePng(16, 9, () => color) })).json();
   const before = (await main.state()).projection.backgrounds;
@@ -142,6 +163,11 @@ test('las imágenes de fondo se conservan: se elige entre ellas, junto a los col
 
   // Pasar a un color no borra las imágenes.
   assert.equal((await main.send('projection.styles', { backgroundType: 'solid', bgColor: '#000000' })).status, 200);
+  // El tamaño de los subtítulos: entre 60 % y 200 %; lo demás no se guarda.
+  await main.send('projection.styles', { subtitleSize: 150 });
+  await main.send('projection.styles', { subtitleSize: 900 });
+  await main.send('projection.styles', { subtitleSize: 'enorme' });
+  assert.equal((await main.state()).projection.styles.subtitleSize, 150);
   ({ styles, backgrounds } = (await main.state()).projection);
   assert.deepEqual([styles.backgroundType, styles.bgImage], ['solid', '']);
   assert.equal(backgrounds.length, before.length + 2);

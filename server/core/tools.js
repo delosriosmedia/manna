@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFile, spawn } from 'node:child_process';
 import { HttpError } from './router.js';
-import { installTool } from './install.js';
+import { installTool, NOT_RUNNABLE } from './install.js';
 
 // Programas del equipo principal que Manna usa pero no incluye: el navegador de la proyección,
 // ffmpeg, yt-dlp y PowerPoint. Este es el único lugar que los busca, los instala y los ejecuta.
@@ -45,9 +45,9 @@ export function findBrowser() {
 }
 
 // Ejecuta un programa y devuelve lo que escribe, o null si falla. Siempre con lista de argumentos.
-function output(file, args) {
+function output(file, args, timeout = 8000) {
   return new Promise((resolve) => {
-    execFile(file, args, { timeout: 8000, windowsHide: true, encoding: 'utf8' }, (err, stdout, stderr) => {
+    execFile(file, args, { timeout, windowsHide: true, encoding: 'utf8' }, (err, stdout, stderr) => {
       resolve(err ? null : `${stdout}${stderr}`);
     });
   });
@@ -291,15 +291,17 @@ export function setupTools(app) {
     for (const old of app.jobs.list()) if (old.owner === 'tools' && old.ref === id) app.jobs.dismiss(old.id);
     const job = app.jobs.start({ title: `Descargando ${tool.name}`, detail: spec.size || '', owner: 'tools', ref: id });
     try {
-      await installTool(spec, { dir: toolsDir, onProgress: (progress) => job.update({ progress }) });
+      // Un programa recién bajado tarda en arrancar la primera vez en Windows (el antivirus lo revisa): se le da un minuto.
+      const check = async (file) => (await output(file, tool.version.args, 60_000)) != null;
+      await installTool(spec, { dir: toolsDir, onProgress: (progress) => job.update({ progress }), check });
       installing.delete(id);
       await scan();
-      if (!found.has(id)) throw new Error(`${tool.name} se descargó, pero este equipo no deja ejecutarlo. Instálalo a mano siguiendo los pasos.`);
+      if (!found.has(id)) throw new Error(`${tool.name} ${NOT_RUNNABLE}`);
       job.done('Instalado');
     } catch (err) {
       installing.delete(id);
       publish();
-      job.fail(err.message);
+      job.fail(err.message === NOT_RUNNABLE ? `${tool.name} ${NOT_RUNNABLE}` : err.message);
     }
   }
 

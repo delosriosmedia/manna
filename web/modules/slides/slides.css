@@ -78,7 +78,7 @@ html.touch .pr-tabs .chip { min-height: 40px; padding: 0 14px; }
 /* La diapositiva al aire es la pantalla: ocupa todo lo que deja la columna de la derecha (la siguiente, los
    mandos y todas), con las herramientas encima y los botones debajo, en cristal. */
 .pr-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; padding: 0 12px 12px; }
-.pr-main { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 10px; }
+.pr-main { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto auto; gap: 10px; }
 .pr-side { min-height: 0; overflow-y: auto; display: grid; gap: 10px; align-content: start; padding: 12px; border-radius: var(--r-lg); background: var(--glass-2); border: 1px solid var(--glass-line); }
 .pr-grid .slide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .pr-tools, .presenter .transport { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px; border-radius: var(--r-pill); background: var(--glass-1); border: 1px solid var(--glass-line); }
@@ -94,8 +94,8 @@ html.touch .pr-tools .chip { min-height: 40px; padding: 0 14px; }
 .pr-live[data-tool='move'] { cursor: grab; }
 .pr-live[data-tool='pass'] { cursor: pointer; }
 .pr-onair { margin: 0; font-size: 12px; color: var(--ink-3); text-align: center; }
-/* La anterior y la siguiente, del mismo tamaño, una al lado de la otra. */
-.pr-around { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+/* La anterior y la siguiente, del mismo tamaño, una al lado de la otra y pequeñas, debajo de la grande. */
+.pr-around { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: min(100%, 420px); justify-self: center; }
 .pr-around > div { display: grid; gap: 6px; align-content: start; min-width: 0; }
 .pr-around .dock-label { font-size: 12px; }
 .pr-next, .pr-prev { display: grid; place-items: center; width: 100%; padding: 0; }
@@ -103,6 +103,8 @@ html.touch .pr-tools .chip { min-height: 40px; padding: 0 14px; }
 .pr-end, .pr-start { color: var(--ink-3); font-size: 12px; text-align: center; padding: 0 6px; }
 .presenter .dock-label { margin-top: 0; }
 .presenter .slide-info { display: none; }
+/* El Presentador acerca y mueve sobre la diapositiva grande («Mover», «Restablecer»): sin el recuadro de zoom de los mandos. */
+.presenter .slide-framing { display: none; }
 /* Con una página web al aire, «Anterior» y «Siguiente» ya están debajo de la grande. */
 .presenter .web-keys { display: none; }
 
@@ -125,6 +127,7 @@ html.touch .pr-tools .chip { min-height: 40px; padding: 0 14px; }
   .pr-live { width: 100%; }
   .presenter .transport { order: 2; width: 100%; }
   .pr-onair { order: 1; }
+  .pr-around { order: 4; width: 100%; }
   .pr-side { overflow: visible; }
   .pr-grid .slide-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }

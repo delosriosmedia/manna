@@ -5,6 +5,7 @@ import { networkName } from '../../core/app.js';
 import { codeSignature } from '../../core/build.js';
 import { lanInterfaces, origin } from './network.js';
 import { createResponder } from './mdns.js';
+import { diskUsage } from './disk.js';
 
 const REFRESH_MS = 10_000;
 const CODE_CHECK_MS = 20_000;
@@ -143,6 +144,35 @@ export default function setup(app) {
     if (!ctx?.isLocal) throw new HttpError(403, 'Manna solo se puede reiniciar desde el equipo principal.');
     if (!app.restart) throw new HttpError(409, 'Esta copia de Manna no se puede reiniciar sola. Apágala y vuelve a abrirla.');
     setTimeout(() => app.restart(), 300);
+  });
+
+  // ---- Espacio en disco (Ajustes) ----
+  // Cuánto ocupa lo subido o descargado desde la app. Se calcula al pedirlo: recorrer las carpetas lleva un momento.
+  app.route('GET', '/api/system/disk', (ctx) => {
+    ctx.require('system.admin');
+    return diskUsage(app);
+  });
+  // «Limpiar multimedia temporales» (decisión 36): borra todo lo subido o descargado (YouTube, videos, audios,
+  // imágenes, presentaciones y páginas web hechas con un archivo), también lo que esté en el orden del culto, que
+  // los pierde. Cada cosa con la orden de borrar de su módulo. Nunca toca la carpeta Contenido (lo que viene de
+  // ella lleva source 'folder') ni las imágenes de fondo de Ajustes.
+  app.action('system.clean', { permission: 'system.admin' }, () => {
+    const before = diskUsage(app).total;
+    const media = store.get('media') || {};
+    const removals = [
+      ...['images', 'videos', 'audios', 'youtube'].flatMap((list) => (media[list] || []).filter((m) => m.source !== 'folder').map((m) => ['media.remove', m.id])),
+      ...(store.get('slides')?.decks || []).map((d) => ['slides.remove', d.id]),
+      ...(store.get('web')?.pages || []).filter((p) => p.source === 'file').map((p) => ['web.remove', p.id]),
+    ];
+    let failed = 0;
+    for (const [type, id] of removals) {
+      try { app.run(type, { id }); } catch (err) { failed += 1; console.error(`Limpiar: no se pudo borrar ${id} (${type}): ${err.message}`); }
+    }
+    app.services.order?.prune();
+    // Lo que estaba al aire y ya no existe deja la pantalla en el fondo.
+    const item = store.get('projection')?.item;
+    if (item && !app.kinds.get(item.kind)?.resolve(item.source.data, item.source.step)) app.run('projection.clear');
+    return { removed: removals.length - failed, failed, freed: Math.max(0, before - diskUsage(app).total) };
   });
 
   // Botón "Apagar Manna" del control. Solo desde el propio equipo principal.

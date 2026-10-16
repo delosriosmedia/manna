@@ -11,7 +11,7 @@ import system from '../server/modules/system/index.js';
 import projection from '../server/modules/projection/index.js';
 import order from '../server/modules/order/index.js';
 import media from '../server/modules/media/index.js';
-import { cleanVtt, createProgress, downloadArgs, explain, readLine, subtitleArgs, watchUrl, youtubeId } from '../server/modules/media/youtube.js';
+import { cleanVtt, createProgress, downloadArgs, explain, jsRuntime, readLine, subtitleArgs, watchUrl, youtubeId } from '../server/modules/media/youtube.js';
 import { writeFakeYtDlp } from '../scripts/lib/yt-dlp-falso.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -52,6 +52,14 @@ test('las órdenes de yt-dlp llevan la dirección que escribe Manna, nunca el te
   const subs = subtitleArgs({ id: 'dQw4w9WgXcQ', dir: '/t/yt' });
   assert.ok(subs.includes('--skip-download') && subs.includes('--write-auto-subs'));
   assert.equal(subs[subs.indexOf('--sub-langs') + 1], 'es,es-orig,en,en-orig');
+  // El intérprete de JavaScript para YouTube: el Node de Manna, si es la 22 o más nueva; antes de la dirección.
+  assert.equal(jsRuntime('24.1.0', 'C:\\Program Files\\nodejs\\node.exe'), 'node:C:\\Program Files\\nodejs\\node.exe');
+  assert.equal(jsRuntime('20.11.1', '/usr/bin/node'), null);
+  for (const list of [downloadArgs({ id: 'dQw4w9WgXcQ', dir: '/t', js: 'node:/n' }), subtitleArgs({ id: 'dQw4w9WgXcQ', dir: '/t', js: 'node:/n' })]) {
+    assert.deepEqual(list.slice(list.indexOf('--js-runtimes'), list.indexOf('--js-runtimes') + 2), ['--js-runtimes', 'node:/n']);
+    assert.ok(list.indexOf('--js-runtimes') < list.indexOf('--'));
+  }
+  assert.equal(downloadArgs({ id: 'dQw4w9WgXcQ', dir: '/t' }).includes('--js-runtimes'), false);
 });
 
 test('readLine y createProgress entienden lo que yt-dlp va diciendo', () => {

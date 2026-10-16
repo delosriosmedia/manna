@@ -192,6 +192,7 @@ export function explain(stderr, platform = process.platform) {
 //   siguiente   lo que sigue: una animación o la diapositiva siguiente           → diapositiva n, o fin
 //   anterior                                                                      → diapositiva n, o inicio
 //   parar       termina el pase; la presentación sigue abierta para volver pronto  → parado
+//   punto x y   el punto rojo de «Señalar» encima del pase, en fracciones de la diapositiva (sin valor, se quita) → punto
 // Sin órdenes, mira cada medio segundo dónde va, para seguir lo que se haga en el propio equipo, y lo dice sin
 // n.º: diapositiva n (cambió), fin (alguien pasó de la última; se vuelve a ella tal como quedó) o parado (alguien
 // cerró el pase).
@@ -213,6 +214,40 @@ Add-Type -Namespace Manna -Name Ventana -MemberDefinition @'
 [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr FindWindow(string cls, string title);
 '@
 try { if (-not [Manna.Ventana]::SetProcessDpiAwarenessContext([IntPtr](-4))) { [void][Manna.Ventana]::SetProcessDPIAware() } } catch { [void][Manna.Ventana]::SetProcessDPIAware() }
+Add-Type -ReferencedAssemblies System.Windows.Forms, System.Drawing -TypeDefinition @'
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+// El punto rojo de «Señalar», encima del pase: una ventana transparente que no recibe clics ni se queda con el
+// foco (si alguien hiciera clic en ella, PowerPoint saldría del pase). X e Y, en fracciones de la diapositiva.
+public class MannaPunto : Form {
+  public float X = -1, Y = -1;
+  public Rectangle Diapositiva;
+  public MannaPunto() {
+    FormBorderStyle = FormBorderStyle.None;
+    ShowInTaskbar = false;
+    TopMost = true;
+    StartPosition = FormStartPosition.Manual;
+    BackColor = Color.Magenta;
+    TransparencyKey = Color.Magenta;
+    DoubleBuffered = true;
+    AutoScaleMode = AutoScaleMode.None;
+  }
+  protected override CreateParams CreateParams {
+    get { CreateParams p = base.CreateParams; p.ExStyle |= 0x80000 | 0x20 | 0x8000000 | 0x80; return p; }
+  }
+  protected override bool ShowWithoutActivation { get { return true; } }
+  protected override void OnPaint(PaintEventArgs e) {
+    if (X < 0) return;
+    int r = Math.Max(10, Diapositiva.Height / 40);
+    int cx = Diapositiva.X + (int)(X * Diapositiva.Width);
+    int cy = Diapositiva.Y + (int)(Y * Diapositiva.Height);
+    using (SolidBrush borde = new SolidBrush(Color.White)) e.Graphics.FillEllipse(borde, cx - r - 3, cy - r - 3, 2 * r + 6, 2 * r + 6);
+    using (SolidBrush rojo = new SolidBrush(Color.FromArgb(235, 40, 50))) e.Graphics.FillEllipse(rojo, cx - r, cy - r, 2 * r, 2 * r);
+  }
+}
+'@
+$punto = New-Object MannaPunto
 function Decir($que, $valor, $n) { [Console]::Out.WriteLine("${MARK}\`t$que\`t$valor\`t$n"); [Console]::Out.Flush() }
 $ppt = New-Object -ComObject PowerPoint.Application
 $abiertas = $ppt.Presentations.Count
@@ -241,6 +276,17 @@ function Empezar {
   if ($ventana -eq [IntPtr]::Zero) { $ventana = [Manna.Ventana]::FindWindow('screenClass', $null) }
   [void][Manna.Ventana]::SetWindowPos($ventana, [IntPtr](-1), $b.X, $b.Y, $b.Width, $b.Height, 0x40)
   [void][Manna.Ventana]::SetForegroundWindow($ventana)
+  # La capa del punto, del tamaño de la pantalla y encima del pase; la diapositiva, entera dentro de ella.
+  $sw = $deck.PageSetup.SlideWidth
+  $sh = $deck.PageSetup.SlideHeight
+  $k = [math]::Min($b.Width / $sw, $b.Height / $sh)
+  $w = [int]($sw * $k)
+  $h = [int]($sh * $k)
+  $script:punto.Diapositiva = New-Object System.Drawing.Rectangle -ArgumentList ([int](($b.Width - $w) / 2)), ([int](($b.Height - $h) / 2)), $w, $h
+  $script:punto.X = -1
+  $script:punto.Bounds = $b
+  $script:punto.Show()
+  [void][Manna.Ventana]::SetWindowPos($script:punto.Handle, [IntPtr](-1), $b.X, $b.Y, $b.Width, $b.Height, 0x50)
 }
 # Tras pasar de la última, el pase queda en negro: se vuelve a ella tal como quedó (o se empieza de nuevo en ella).
 function Volver {
@@ -255,8 +301,19 @@ function Atender($linea) {
   $orden = $partes[0]
   $n = $partes[2]
   try {
+    if ($orden -eq 'punto') {
+      $xy = "$($partes[1])".Split(' ')
+      if ($xy.Count -eq 2) { $script:punto.X = [float]$xy[0]; $script:punto.Y = [float]$xy[1] } else { $script:punto.X = -1 }
+      # Un clic o un cambio de diapositiva sube el pase por encima: la capa vuelve arriba, sin moverse ni activarse.
+      [void][Manna.Ventana]::SetWindowPos($script:punto.Handle, [IntPtr](-1), 0, 0, 0, 0, 0x13)
+      $script:punto.Invalidate()
+      $script:punto.Update()
+      Decir 'punto' '' $n
+      return
+    }
     $p = Donde
     if ($orden -eq 'parar') {
+      $script:punto.Hide()
       if ($p -ne 0) { $script:pase.View.Exit() }
       $script:pase = $null
       $script:ultima = 0
@@ -292,7 +349,7 @@ function Atender($linea) {
 function Mirar {
   if ($null -eq $script:pase) { return }
   $p = Donde
-  if ($p -eq 0) { $script:pase = $null; $script:ultima = 0; Decir 'parado' '' ''; return }
+  if ($p -eq 0) { $script:pase = $null; $script:ultima = 0; $script:punto.Hide(); Decir 'parado' '' ''; return }
   if ($p -eq -1) { Volver; $script:ultima = $visibles.Count; Decir 'fin' '' ''; return }
   if ($p -ne $script:ultima) { $script:ultima = $p; Decir 'diapositiva' $p '' }
 }
@@ -304,17 +361,23 @@ try {
   Decir 'listo' $visibles.Count ''
   $lector = New-Object System.IO.StreamReader ([Console]::OpenStandardInput())
   $leyendo = $lector.ReadLineAsync()
+  # Cada décima de segundo atiende la capa del punto (una ventana necesita que alguien atienda sus mensajes) y
+  # cada medio segundo mira por dónde va el pase.
+  $vueltas = 0
   while ($true) {
-    if ($leyendo.Wait(500)) {
+    if ($leyendo.Wait(100)) {
       $linea = $leyendo.Result
       if ($null -eq $linea) { break }
-      Atender $linea.Trim()
+      Atender $linea.TrimEnd("\`r", "\`n")
       $leyendo = $lector.ReadLineAsync()
-    } else {
-      try { Mirar } catch {}
     }
+    # También con órdenes seguidas (el punto se mueve muchas veces por segundo).
+    [System.Windows.Forms.Application]::DoEvents()
+    $vueltas++
+    if ($vueltas % 5 -eq 0) { try { Mirar } catch {} }
   }
 } finally {
+  try { $punto.Close() } catch {}
   try { if ((Donde) -ne 0) { $pase.View.Exit() } } catch {}
   if ($null -ne $deck) { try { $deck.Close() } catch {} }
   if ($abiertas -eq 0 -and $ppt.Presentations.Count -eq 0) { $ppt.Quit() }

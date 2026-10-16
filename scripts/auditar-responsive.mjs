@@ -66,7 +66,9 @@ const DEVICES = [
 ];
 
 // Abre la capa «Mandos» (en el celular, con el botón de la tarjeta de lo al aire; en el resto, el de la barra de transporte).
-const OPEN_CONTROLS = `(matchMedia('(max-width: 859px)').matches ? document.querySelector('.story-controls') : document.querySelector('.transport-bar .btn[aria-haspopup=dialog]')).click()`;
+// En el escritorio los mandos van siempre a la vista en la barra de abajo (fase 14); en el celular, en su capa.
+const OPEN_CONTROLS = `if (matchMedia('(max-width: 859px)').matches) document.querySelector('.story-controls').click()`;
+const LIVE_CONTROLS = '.tb-extra .live-controls, .controls-pop .live-controls';
 
 // Pantallas a revisar. prepare: lo que hay que hacer tras cargar. primary: la acción principal.
 // page: se revisa con esa página web (id de data/paginas.json) al aire.
@@ -97,13 +99,13 @@ const SCREENS = [
   // El equipo de la auditoría "no tiene" navegador para la proyección: Ajustes lleva su aviso.
   { name: 'Ajustes, con aviso', url: '/control#ajustes', content: '.settings', inside: '.ws-notice' },
   // La capa de mandos abierta: su recuadro cabe en la pantalla y trae los mandos de lo que está al aire.
-  { name: 'Capa de mandos', url: '/control#orden', show: 'testcard', inside: '.controls-pop', closes: ['.controls-layer', '.controls-pop'], controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
+  { name: 'Capa de mandos', url: '/control#orden', show: 'testcard', narrowOnly: true, inside: '.controls-pop', closes: ['.controls-layer', '.controls-pop'], controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Control del orden', url: '/orden#orden', content: '.olist', longTitles: true },
   // La función de alabanza lleva el volumen de Manna siempre a la vista: en el celular, bajo la barra de "Al aire".
   { name: 'Servicio de alabanza', url: '/alabanza#himnario', content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: { wide: '.transport-bar .tb-volume', narrow: '.story-volume.big' }, settle: 700,
     prepare: `document.querySelector('.ws[data-module=himnario] .hymn')?.click()` },
   { name: 'Orden con mandos en vivo', url: '/control#orden', show: 'testcard', controls: '.odetail .live-controls' },
-  { name: 'Al aire con mandos en vivo', url: '/control#ajustes', show: 'testcard', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
+  { name: 'Al aire con mandos en vivo', url: '/control#ajustes', show: 'testcard', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Medios: imágenes', url: '/control#medios', content: '.media-body[data-panel=imagenes]', primary: '.media-bar[data-panel=imagenes] .btn.primary', inside: '.media-bar[data-panel=imagenes]', settle: 600,
     prepare: `(() => { document.querySelector('.media-tabs [data-tab=imagenes]').click(); document.querySelector('.media-body[data-panel=imagenes] .media-card .media-pick').click(); })()` },
   { name: 'Medios: videos', url: '/control#medios', content: '.media-body[data-panel=videos]', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.media-bar[data-panel=videos]', settle: 700,
@@ -113,26 +115,26 @@ const SCREENS = [
   // El equipo de la auditoría "no tiene" yt-dlp: las pestañas de Medios llevan su aviso encima.
   { name: 'Medios: YouTube', url: '/control#medios', prefs: { 'cajon.completo': true }, content: '.media-body[data-panel=youtube]', primary: '.media-bar[data-panel=youtube] .btn.primary', inside: '.yt-add', settle: 700,
     prepare: `(() => { document.querySelector('.media-tabs [data-tab=youtube]').click(); document.querySelector('.media-body[data-panel=youtube] .media-card[data-status=ready] .media-pick').click(); })()` },
-  { name: 'Al aire con un video de YouTube', url: '/control#orden', show: 'youtube', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
-  { name: 'Al aire con un video', url: '/control#orden', show: 'video', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
+  { name: 'Al aire con un video de YouTube', url: '/control#orden', show: 'youtube', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
+  { name: 'Al aire con un video', url: '/control#orden', show: 'video', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Orden con un video al aire', url: '/control#orden', show: 'video', controls: '.odetail .live-controls' },
-  { name: 'Al aire con una imagen', url: '/control#medios', show: 'image', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
+  { name: 'Al aire con una imagen', url: '/control#medios', show: 'image', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Himnario', url: '/control#himnario', content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: '.hymn-bar', settle: 700,
     prepare: `document.querySelector('.ws[data-module=himnario] .hymn')?.click()` },
   { name: 'Himnario: categorías', url: '/control#himnario', content: '.hymns-body', inside: '.hymn-group-head', settle: 700,
     prepare: `document.querySelector('.hymn-views [data-view=categories]').click(); setTimeout(() => document.querySelector('.hymn-group-head').click(), 200)` },
   { name: 'Himnario: búsqueda', url: '/control#himnario', content: '.hymns-body', inside: '.hymn-hit', settle: 1100,
     prepare: `(() => { document.querySelector('.hymn-views [data-view=grid]').click(); const i = document.querySelector('.ws[data-module=himnario] .search input'); i.value = 'renglon inventado'; i.dispatchEvent(new Event('input')); })()` },
-  { name: 'Al aire con un himno', url: '/control#himnario', show: 'song', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
+  { name: 'Al aire con un himno', url: '/control#himnario', show: 'song', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Orden con un himno al aire', url: '/control#orden', show: 'song', controls: '.odetail .live-controls' },
   { name: 'Diapositivas: presentaciones', url: '/control#diapositivas', content: '.decks', inside: '.deck' },
   { name: 'Diapositivas: una presentación', url: '/control#diapositivas', content: '.deck-pages', primary: '.deck-bar .btn.primary', inside: '.deck-bar', settle: 600,
     prepare: `document.querySelector('.ws[data-module=diapositivas] .deck-pick').click()` },
-  { name: 'Al aire con una diapositiva', url: '/control#diapositivas', show: 'slides', controls: '.controls-pop .live-controls', prepare: OPEN_CONTROLS },
+  { name: 'Al aire con una diapositiva', url: '/control#diapositivas', show: 'slides', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Orden con una diapositiva al aire', url: '/control#orden', show: 'slides', controls: '.odetail .live-controls' },
   // El Presentador no lleva escenario: noDock cambia ese control por la diapositiva grande y su fila de botones.
   { name: 'Presentador: elegir presentación', url: '/presentador', noDock: true, content: '.pr-choose', inside: '.pr-list .deck', settle: 600 },
-  { name: 'Presentador: presentando', url: '/presentador', show: 'slides', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', controls: '.pr-side .live-controls', settle: 800 },
+  { name: 'Presentador: presentando', url: '/presentador', show: 'slides', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', settle: 800 }, // sin mandos de encuadre: se acerca y se mueve sobre la diapositiva (fase 14)
   // Con una página web al aire (un archivo propio): sin rejilla ni siguiente; la grande y Anterior / Siguiente / Negro a la vista (sus flechas van en la fila de botones, no en los mandos).
   { name: 'Presentador: una página web', url: '/presentador', page: 'archivo1', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', settle: 800 },
   { name: 'Páginas web', url: '/control#paginas', content: '.web-list', inside: '.web-item', settle: 400 },
@@ -238,7 +240,8 @@ const MEASURE = (screen, touch, narrow) => {
     const dr = shown(drawer) ? box(drawer) : null;
     if (!${JSON.stringify(narrow)}) {
       // Escritorio y tableta horizontal: la barra de estado y los botones de transporte, a la vista y fuera del cajón.
-      const buttons = [...document.querySelectorAll('.transport-bar .btn')].filter(shown);
+      // Anterior y Siguiente abajo; «Solo fondo» y «Negro» arriba, junto al estado (fase 14).
+      const buttons = [...document.querySelectorAll('.tb-main .btn, .scene-modes .mode-chip')].filter(shown);
       out.alAire = inView(q('.scene-status')) && buttons.length >= 4 && buttons.every((b) => inView(b) && topmost(b));
       // Las piezas flotantes (barra de estado, función, dock, cajón, cola, «Preparado» y transporte) no se pisan.
       const names = ['.scene-status', '.role-chip', '.dockbar', '.drawer', '.queue', '.prep', '.transport-bar'].filter((n) => shown(q(n)));
@@ -261,7 +264,7 @@ const MEASURE = (screen, touch, narrow) => {
   ${screen.content ? `{ const c = [...document.querySelectorAll(${JSON.stringify(screen.content)})].find(shown); out.espacioContenido = c ? Math.round(Math.min(box(c).bottom, vh) - Math.max(box(c).top, 0)) : 0; }` : ''}
   ${screen.longTitles ? `{ const t = [...document.querySelectorAll('.orow .item-text strong')].find((e) => e.textContent.length > 60); out.tituloLargo = Boolean(t) && t.scrollHeight <= t.clientHeight + 1; }` : ''}
   ${inside ? `{ const e = q(${JSON.stringify(inside)}); const r = box(e); out.dentro = shown(e) && r.left >= -1 && r.right <= vw + 1 && r.top >= -1 && r.bottom <= vh + 1 && [...e.querySelectorAll('button')].every((b) => !shown(b) || (box(b).left >= r.left - 1 && box(b).right <= r.right + 1)); }` : ''}
-  ${screen.controls ? `{ const c = q(${JSON.stringify(screen.controls)}); const r = box(c);
+  ${screen.controls ? `{ const c = [...document.querySelectorAll(${JSON.stringify(screen.controls)})].find((e) => shown(e)) || q(${JSON.stringify(screen.controls)}); const r = box(c);
     // El volumen general no va en los mandos de la capa (vive en la barra de transporte): su CSS lo oculta a propósito.
     const list = [...c.querySelectorAll('button, select')].filter((b) => !b.closest('.volume'));
     out.mandos = shown(c) && list.length > 0 && r.left >= -1 && r.right <= vw + 1 && list.every((b) => { const x = box(b); return shown(b) && x.left >= r.left - 1 && x.right <= r.right + 1; }); }` : ''}

@@ -20,8 +20,10 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Diapositivas**: las presentaciones de la iglesia, en PDF o en PowerPoint, convertidas en imágenes. Se recorren con «Siguiente», el panel muestra la diapositiva que viene y cuántas quedan, y cada una se puede acercar como una imagen. En Windows, un PowerPoint lo puede pasar **el propio PowerPoint en el proyector**, con sus videos y animaciones, y se sigue pasando desde cualquier celular.
 - **Páginas web**: presentaciones y juegos de internet (Canva, Google Slides, Genially, Kahoot) o un archivo HTML propio, a pantalla completa. Una dirección necesita internet durante el culto; si la página no se deja mostrar dentro de Manna, el proyector la abre en su propia ventana. Un archivo HTML se pasa con «Anterior» y «Siguiente» desde cualquier dispositivo.
 - **Fondos**: seis colores y las imágenes que subas, que quedan guardadas junto a ellos en Ajustes.
+- **Espacio en disco** (Ajustes): cuánto ocupa lo subido o descargado desde Manna (YouTube, videos, imágenes, presentaciones…) y lo libre del disco. **Limpiar multimedia temporales** lo borra todo, también del orden del culto, tras confirmarlo; la carpeta Contenido (himnario, biblias y medios) y los fondos no se tocan.
+- **Tamaño de los subtítulos** (Ajustes → Apariencia): para los videos, YouTube y los himnos.
 - **Televisores** (en pausa y fuera de la barra, ver `docs/ESTADO.md`): un televisor Samsung de la misma red muestra la proyección desde su navegador, sin cables. Manna lo encuentra, le abre el navegador y le sirve de control remoto (teclas, puntero y texto); la primera vez le escribe la dirección por ti.
-- **Mandos en vivo**: lo que está al aire trae sus propios mandos en el panel y en el orden del culto. Los tienen las imágenes, los videos, las diapositivas y la **imagen de prueba** (Ajustes → Proyector de este equipo), que sirve para encuadrar el proyector o un televisor y comprobar, con su cronómetro, que todas las pantallas van a la par.
+- **Mandos en vivo**: lo que está al aire trae sus propios mandos, siempre a la vista en la barra de abajo (en el celular, en su hoja) y en el orden del culto. Con una imagen, una diapositiva o una página al aire, **Señalar** y **Mover** actúan sobre la propia proyección, como en el Presentador. Los tienen las imágenes, los videos, las diapositivas y la **imagen de prueba** (Ajustes → Proyector de este equipo), que sirve para encuadrar el proyector o un televisor y comprobar, con su cronómetro, que todas las pantallas van a la par.
 - **Revisión del equipo**: al abrirse, Manna comprueba que el equipo principal tiene los programas que necesita. Si falta alguno, dice qué módulos se ven afectados y lo instala con un botón. Nunca impide abrir la app.
 - **Preparado para crecer**: cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
 - **Funciones por dispositivo**: cada dispositivo elige al entrar, en una tarjeta por función; desde otro dispositivo, el PIN (4 números) se escribe en un teclado grande en pantalla y entra solo.
@@ -31,7 +33,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
   - **Control del orden**: solo pasa el orden del culto, sin editarlo. Pensado para el celular. Pide PIN.
   - **Pantalla de proyección**: espejo de la proyección principal. Sin PIN.
 - **Celular, tableta y escritorio**: en el celular, «Historias»: arriba lo que está en pantalla (tocar a la derecha avanza, a la izquierda vuelve), debajo los modos, el volumen y lo que sigue; los módulos, en el dock de abajo, suben en un cajón reducido con solo lo esencial, que se agranda arrastrando su borde o a pantalla completa con un toque, y se cierra tocando fuera. En el escritorio el cajón estrecho se ensancha arrastrando su borde derecho, y tocar el fondo lo cierra.
-- **Escuchar en el celular**: «Escuchar aquí» oye lo que está al aire en ese dispositivo (con audífonos), y «Escuchar» en el Himnario, en Medios y en el Orden lo oye antes de añadirlo, sin que lo note lo que suena en la iglesia.
+- **Escuchar en el celular**: «Escuchar aquí» oye lo que está al aire en ese dispositivo (con audífonos), y «Escuchar» en el Himnario (siempre cantado), en Medios y en el Orden lo oye antes de añadirlo, sin que lo note lo que suena en la iglesia.
 - **Proyección automática**: al iniciar, detecta la segunda pantalla del equipo principal y abre ahí la proyección a pantalla completa. Si no hay segunda pantalla, lo avisa y no la abre.
 - **Apariencia de la proyección**: tipografía, colores, sombra, fondos e imagen propia, con ajuste automático del tamaño del texto para que siempre quepa.
 - **Reconexión automática**: si un dispositivo pierde la red o queda en segundo plano, reconecta solo y se pone al día. Si Manna se reinicia, recupera lo que estaba en pantalla.
@@ -159,7 +161,7 @@ El sonido sale siempre por el equipo principal, por el dispositivo de audio que 
 2. La tarjeta muestra el avance. Mientras tanto puedes seguir usando Manna. Al terminar queda con su título, su imagen y su duración.
 3. Desde ahí es un video más: **Proyectar**, **Añadir al orden**, cambiarle el nombre o eliminarlo. Ya no necesita internet.
 4. Si el video tiene subtítulos en español o en inglés (los del autor o los automáticos de YouTube), Manna los trae. Con el video al aire, **Subtítulos** los muestra y la lista de al lado elige el idioma.
-5. Si la tarjeta dice que no se pudo descargar, explica por qué (es privado, se quitó, no hay internet) y ofrece **Reintentar**. Si falla con todos los videos, actualiza yt-dlp en **Ajustes → Programas del equipo principal → Actualizar**.
+5. Si la tarjeta dice que no se pudo descargar, explica por qué (es privado, se quitó, no hay internet) y ofrece **Reintentar**. Si falla con todos los videos, actualiza yt-dlp en **Ajustes → Programas del equipo principal → Actualizar**: el nuevo se prueba antes de reemplazar al que había, así que si no arranca, el anterior sigue funcionando. El motivo exacto de cada fallo queda en el registro de Manna (`manna.log`).
 
 Los videos se guardan en `data/media/youtube/` del equipo principal, a 1080p como mucho. Descargar de YouTube solo está permitido con videos propios o con permiso de su autor: úsalo con los de tu iglesia.
 
@@ -191,7 +193,7 @@ Cada diapositiva queda como una imagen: las **animaciones, las transiciones y lo
 
 - **Siguiente** y **Anterior**, desde cualquier dispositivo, los da PowerPoint: pasan también las animaciones. Al terminar la presentación, Manna sigue con lo que venga en el orden del culto.
 - Si alguien la pasa en el propio equipo (con el teclado o un control de presentaciones), los celulares lo ven.
-- Los celulares, las tabletas y la propia proyección de Manna (debajo de PowerPoint) ven la foto de la diapositiva por la que va. En este modo no hay zoom ni puntero, y el sonido de sus videos no lo gobierna el volumen de Manna.
+- Los celulares, las tabletas y la propia proyección de Manna (debajo de PowerPoint) ven la foto de la diapositiva por la que va. En este modo no hay zoom; «Señalar» sí: el punto rojo se ve encima del pase. El sonido de sus videos no lo gobierna el volumen de Manna.
 - Hace falta la pantalla de proyección abierta (el proyector conectado). Si PowerPoint falla, la presentación se ve como imágenes y la cola del culto lo avisa.
 - El PowerPoint original se guarda en `data/presentaciones/` del equipo principal.
 

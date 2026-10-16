@@ -1,11 +1,11 @@
 import { action, state, subscribe } from '../../core/api.js';
 import { h, guard } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
-import { createSender } from '../../core/sender.js';
 import { createStage } from '../projection/stage.js';
 import { createLiveControls } from '../projection/live.js';
 import { describeLive, toggleMode } from '../projection/controls.js';
-import { centerOf, FULL_VIEW, MAX_ZOOM, place } from '../projection/view.js';
+import { FULL_VIEW } from '../projection/view.js';
+import { attachGestures } from '../projection/gestures.js';
 import { DECK_ACCEPT, openDeckUpload } from './upload.js';
 
 const pageUrl = (deck, n) => `${deck.base}${n}.${deck.ext}`;
@@ -92,9 +92,9 @@ function mount(el, ctx) {
   const present = h('div', { class: 'pr-body' },
     h('div', { class: 'pr-main' },
       h('div', { class: 'pr-tools' }, ...toolButtons, resetZoom, hint),
-      h('div', { class: 'pr-screen' }, live), onAir,
+      h('div', { class: 'pr-screen' }, live), onAir, around,
       h('div', { class: 'transport' }, prev, next, black)),
-    h('div', { class: 'pr-side' }, around, controls, gridBox));
+    h('div', { class: 'pr-side' }, controls, gridBox));
 
   el.replaceChildren(h('div', { class: 'ws-head' }, back, h('h1', {}, 'Presentador'), title), chooser, present, picker);
   el.classList.add('presenter');
@@ -144,10 +144,8 @@ function mount(el, ctx) {
   }
 
   function paintReset() {
-    const f = framing();
-    const v = f && { ...FULL_VIEW, ...f.view };
     resetZoom.hidden = Boolean(pageId) || Boolean(state.projection?.item?.powerpoint);
-    resetZoom.disabled = !v || (v.zoom <= 1 && Math.abs(v.x - 0.5) < 0.001 && Math.abs(v.y - 0.5) < 0.001);
+    resetZoom.disabled = !gestures.framed();
   }
 
   function renderList() {
@@ -236,11 +234,11 @@ function mount(el, ctx) {
     const showing = p?.mode === 'live' && Boolean(p.item);
     live.classList.toggle('on-air', showing);
     black.classList.toggle('on', p?.mode === 'black');
-    // Una página no tiene siguiente ni rejilla, ni encuadre que mover; si la pasa PowerPoint, no hay encuadre ni puntero.
+    // Una página no tiene siguiente ni rejilla, ni encuadre que mover; si la pasa PowerPoint, no hay encuadre (el
+    // punto sí: lo dibuja una capa encima del pase).
     const ppt = Boolean(p?.item?.powerpoint);
-    toolButtons[0].hidden = ppt;
     toolButtons[1].hidden = Boolean(pg) || ppt;
-    if (ppt) tool = null;
+    if (ppt && tool === 'move') tool = null;
     if (pg && tool === 'move') tool = 'point';
     paintTools();
     for (const part of [around, gridBox]) part.hidden = Boolean(pg);
@@ -276,76 +274,8 @@ function mount(el, ctx) {
   }
 
   // ---- El dedo sobre la diapositiva grande ----
-  // Señalar: cada movimiento manda dónde está el dedo, en fracciones de la imagen; al soltar, se quita.
-  // Mover: un dedo desplaza el encuadre y dos acercan, igual que el recuadro de los mandos.
-  const aim = createSender((patch) => action('projection.pointer', patch).catch(() => {}), { every: 40 });
-  const frame = createSender(guard((patch) => action('projection.control', patch)));
-  const fingers = new Map();
-  let grip = null; // { x, y, center, width, height, zoom, spread }
-  let tap = null;  // sin herramienta: dónde empezó el toque, para pasar al soltar
-  const framing = () => {
-    const item = state.projection?.item;
-    const view = state.live?.uid === item?.uid ? state.live?.state : null;
-    return item && state.projection.mode === 'live' && view?.zoom ? { item, view } : null;
-  };
-  const spread = () => {
-    const [a, b] = [...fingers.values()];
-    return b ? Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) : 0;
-  };
-  function grab() {
-    const f = framing();
-    if (!f) { grip = null; return; }
-    const r = live.getBoundingClientRect();
-    const screen = { W: r.width, H: r.height, iw: f.item.width || 16, ih: f.item.height || 9 };
-    const view = { fit: f.item.fit, ...FULL_VIEW, ...f.view, ...grip?.sent };
-    const shown = place(screen, view);
-    const [first] = fingers.values();
-    grip = { screen, view, x: first.clientX, y: first.clientY, center: centerOf(screen, view), width: shown.width, height: shown.height, spread: spread(), sent: grip?.sent };
-  }
-  function drag() {
-    if (!grip) return;
-    if (fingers.size > 1 && grip.spread) {
-      const zoom = Math.max(1, Math.min(MAX_ZOOM, Math.round(grip.view.zoom * (spread() / grip.spread) * 100) / 100));
-      grip.sent = { ...grip.sent, zoom };
-      frame.push({ zoom });
-      return;
-    }
-    const [first] = fingers.values();
-    const target = centerOf(grip.screen, { ...grip.view, x: grip.center.x - (first.clientX - grip.x) / grip.width, y: grip.center.y - (first.clientY - grip.y) / grip.height });
-    grip.sent = { ...grip.sent, ...target };
-    frame.push(target);
-  }
-  live.addEventListener('pointerdown', (e) => {
-    try { live.setPointerCapture(e.pointerId); } catch { /* sin captura, se sigue igual */ }
-    fingers.set(e.pointerId, e);
-    if (tool === 'point') aim.push(stage.pointAt(e.clientX, e.clientY) || { x: null, y: null }, { replace: true });
-    else if (tool === 'move') grab();
-    else tap = fingers.size === 1 ? { x: e.clientX, y: e.clientY } : null;
-  });
-  live.addEventListener('pointermove', (e) => {
-    if (!fingers.has(e.pointerId)) return;
-    fingers.set(e.pointerId, e);
-    if (tool === 'point') aim.push(stage.pointAt(e.clientX, e.clientY) || { x: null, y: null }, { replace: true });
-    else if (tool === 'move') drag();
-  });
-  const release = (e) => {
-    if (!fingers.delete(e.pointerId)) return;
-    if (tool === 'point') aim.push({ x: null, y: null }, { replace: true });
-    else if (tool === 'move') { if (fingers.size) grab(); else grip = null; }
-    else if (tap && e.type === 'pointerup' && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) < 12) {
-      const r = live.getBoundingClientRect();
-      go(e.clientX > r.left + r.width / 2 ? 1 : -1);
-    }
-    if (!fingers.size) tap = null;
-  };
-  live.addEventListener('pointerup', release);
-  live.addEventListener('pointercancel', release);
-  live.addEventListener('wheel', (e) => {
-    const f = tool === 'move' && framing();
-    if (!f) return;
-    e.preventDefault();
-    frame.push({ zoom: Math.max(1, Math.min(MAX_ZOOM, Math.round(f.view.zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12) * 100) / 100)) });
-  }, { passive: false });
+  // Señalar, Mover (projection/gestures.js) o, sin herramienta, tocar para pasar: a la derecha avanza, a la izquierda vuelve.
+  const gestures = attachGestures(live, { stage, tool: () => tool, onTap: (side) => go(side) });
 
   subscribe('projection', (p) => {
     stage.render(p);

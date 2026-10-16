@@ -37,7 +37,6 @@ registerKind('song', {
   },
 
   // Lo que se oye: cantado (el video) o la pista, según el mando.
-  sound: (item, live) => ((live?.track || item.track) === 'instrumental' ? item.instrumental : item.url),
 
   controls(host, tools) {
     const buttons = TRACKS.map(([id, label]) => h('button', { class: 'btn grow', dataset: { track: id }, onclick: () => tools.send({ track: id }) }, label));

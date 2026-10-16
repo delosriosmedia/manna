@@ -37,6 +37,11 @@ export default function setup(app) {
   // Lo usa el módulo de proyección para avanzar por el orden.
   services.order = {
     has: (id) => items().some((i) => i.id === id),
+    // Quita los elementos cuyo contenido ya no existe (tras «Limpiar multimedia temporales»). Las secciones quedan.
+    prune() {
+      const kept = items().filter((i) => i.kind === 'section' || app.kinds.get(i.kind)?.describe(i.data));
+      if (kept.length !== items().length) update(kept);
+    },
     neighbor(id, step, delta) {
       const target = neighbor(items(), id, step, delta);
       const item = target && items().find((i) => i.id === target.id);

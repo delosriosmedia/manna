@@ -45,6 +45,20 @@ test('descarga un ejecutable, comprueba su huella y lo deja listo para ejecutars
   assert.deepEqual(fs.readdirSync(dir), ['mi-programa']);
 });
 
+test('una actualización que no arranca no reemplaza al programa que había', async () => {
+  files.set('/SUMAS', Buffer.from(`${sha(program)}  programa\n`));
+  const dir = path.join(tmp, 'actualizar');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'mi-programa'), 'el que funcionaba');
+  const tried = [];
+  await assert.rejects(installTool({ url: `${base}/programa`, sums: `${base}/SUMAS`, file: 'mi-programa' }, { dir, check: async (file) => { tried.push(path.basename(file)); return false; } }), /no lo dejó abrir.*El que había sigue igual/);
+  assert.deepEqual(tried, ['mi-programa'], 'se prueba con su nombre, antes de copiarlo');
+  assert.equal(fs.readFileSync(path.join(dir, 'mi-programa'), 'utf8'), 'el que funcionaba');
+  assert.deepEqual(fs.readdirSync(dir), ['mi-programa'], 'sin restos');
+  const installed = await installTool({ url: `${base}/programa`, sums: `${base}/SUMAS`, file: 'mi-programa' }, { dir, check: async () => true });
+  assert.deepEqual(fs.readFileSync(installed[0]), program, 'si arranca, sí lo reemplaza');
+});
+
 test('rechaza una descarga cuya huella no coincide y no deja nada instalado', async () => {
   files.set('/huella-mala', Buffer.from('f'.repeat(64)));
   const dir = path.join(tmp, 'danada');

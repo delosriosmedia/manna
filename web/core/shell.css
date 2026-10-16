@@ -13,22 +13,40 @@ body.app { height: 100dvh; overflow: hidden; }
 /* En el cajón, más opaco, basta un poco menos: lo justo para las filas teñidas (elegida en cian, al aire en rojo). */
 .drawer { --ink-3: #b9c1cd; }
 .glass { background: var(--glass-2); border: 1px solid var(--glass-line); backdrop-filter: blur(var(--blur-1)); -webkit-backdrop-filter: blur(var(--blur-1)); }
+/* Con un video en movimiento detrás (escenario.js) o si el sistema pide menos transparencias, el cristal no se
+   desenfoca: desenfocar lo que cambia en cada fotograma es lo que más gasta la tarjeta gráfica (medido el
+   2026-10-16). Para que se siga leyendo, es más opaco. */
+body.moving { --glass-1: rgba(10, 12, 16, 0.84); --glass-2: rgba(12, 14, 18, 0.9); --glass-3: rgba(14, 17, 22, 0.96); }
+body.moving * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+@media (prefers-reduced-transparency: reduce) {
+  body { --glass-1: rgba(10, 12, 16, 0.9); --glass-2: rgba(12, 14, 18, 0.94); --glass-3: rgba(14, 17, 22, 0.97); }
+  body * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+}
 
 /* ---- Proyección de fondo ---- */
 .scene-bg { position: fixed; inset: 0; z-index: 0; background: #000; overflow: hidden; }
 /* Lo que sobra alrededor de la proyección (16:9) se rellena con su propio fondo, desenfocado. */
 .scene-ambient { position: absolute; inset: -60px; filter: blur(48px) saturate(1.2); opacity: 0.45; }
 .scene-bg > .stage { position: absolute; left: 50%; top: 50%; width: min(100vw, 177.78dvh); aspect-ratio: 16 / 9; transform: translate(-50%, -50%); }
+/* Sin corte contra el color de detrás: la proyección se desvanece a los lados si la pantalla es más ancha que 16:9,
+   y arriba y abajo si es más alta. */
+@media (min-aspect-ratio: 16/9) { .scene-bg > .stage { -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent); } }
+@media (max-aspect-ratio: 16/9) { .scene-bg > .stage { -webkit-mask-image: linear-gradient(to bottom, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(to bottom, transparent, #000 8%, #000 92%, transparent); } }
 .scene-scrim { position: fixed; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(rgba(0, 0, 0, 0.55), transparent 22%, transparent 70%, rgba(0, 0, 0, 0.65)); }
 body.drawer-open .scene-scrim { background: rgba(0, 0, 0, 0.35); }
 
 /* ---- Barra de arriba ---- */
 .topbar { position: fixed; left: 20px; right: 20px; top: 18px; z-index: 3; display: flex; align-items: center; gap: 12px; pointer-events: none; }
 .topbar > * { pointer-events: auto; }
-.scene-status { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 460px; height: 44px; padding: 0 8px 0 6px; border-radius: var(--r-pill); background: var(--glass-1); }
+.scene-status { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 680px; height: 44px; padding: 0 8px 0 6px; border-radius: var(--r-pill); background: var(--glass-2); }
 .brand-mark { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--s1); box-shadow: 0 0 16px rgba(92, 232, 255, 0.35); }
 .brand-mark img { width: 18px; height: 18px; }
 .scene-caption { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* «Solo fondo» y «Negro», junto a lo que está al aire. */
+.scene-modes { display: flex; gap: 6px; flex-shrink: 0; }
+.mode-chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; font-weight: 600; }
+html.touch .mode-chip { height: 40px; padding: 0 14px; }
+.mode-chip kbd { font-size: 10px; }
 .live-pill { flex-shrink: 0; padding: 3px 10px; border-radius: var(--r-pill); background: var(--s3); color: var(--ink-2); font: 700 11px var(--mono); letter-spacing: 0.04em; white-space: nowrap; }
 .live-pill[data-state='live'] { background: var(--live); color: #fff; }
 .live-pill[data-state='black'] { background: #000; color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line-2); }
@@ -51,9 +69,9 @@ body.drawer-open .scene-scrim { background: rgba(0, 0, 0, 0.35); }
 /* ---- Cajón del módulo abierto ---- */
 /* Reducido, se puede ensanchar arrastrando su borde derecho (--drawer-w, desde shell.js) entre 360 px y la cola
    (--drawer-max, lo mismo que mide ampliado): nunca la tapa. */
-.drawer { --drawer-max: calc(100vw - 92px - 372px); position: fixed; left: 92px; top: 84px; bottom: 112px; z-index: 2; width: clamp(360px, var(--drawer-w, 440px), var(--drawer-max)); border-radius: 26px; display: flex; flex-direction: column; overflow: hidden; backdrop-filter: blur(var(--blur-2)); -webkit-backdrop-filter: blur(var(--blur-2)); transition: width 0.2s var(--ease); }
+.drawer { --drawer-max: calc(100vw - 92px - 372px); position: fixed; left: 92px; top: 84px; bottom: var(--tb-space); z-index: 2; width: clamp(360px, var(--drawer-w, 440px), var(--drawer-max)); border-radius: 26px; display: flex; flex-direction: column; overflow: hidden; backdrop-filter: blur(var(--blur-2)); -webkit-backdrop-filter: blur(var(--blur-2)); transition: width 0.2s var(--ease); }
 .drawer.wide { width: var(--drawer-max); }
-body.queue-closed .drawer { --drawer-max: calc(100vw - 92px - 88px); }
+body.queue-closed .drawer { --drawer-max: calc(100vw - 92px - 98px); }
 /* «Preparado» va abajo a la derecha: el cajón no se mete debajo aunque la cola esté cerrada. */
 body.queue-closed.has-prep .drawer { --drawer-max: calc(100vw - 92px - 372px); }
 .drawer[hidden], .drawer-backdrop[hidden] { display: none; }
@@ -100,13 +118,15 @@ body.queue-closed.has-prep .drawer { --drawer-max: calc(100vw - 92px - 372px); }
 .update-bar strong { color: var(--ink); font-weight: 600; }
 
 /* ---- Cola del culto ---- */
-.queue { position: fixed; right: 18px; top: 84px; z-index: 2; width: 340px; max-height: calc(100dvh - 84px - 112px); border-radius: 26px; background: var(--glass-2); display: flex; flex-direction: column; overflow: hidden; }
-body.has-prep .queue { max-height: calc(100dvh - 84px - 112px - var(--prep-h, 0px) - 12px); }
+.queue { position: fixed; right: 18px; top: 84px; z-index: 2; width: 340px; max-height: calc(100dvh - 84px - var(--tb-space)); border-radius: 26px; background: var(--glass-2); display: flex; flex-direction: column; overflow: hidden; }
+body.has-prep .queue { max-height: calc(100dvh - 84px - var(--tb-space) - var(--prep-h, 0px) - 12px); }
 .queue-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; text-align: left; flex-shrink: 0; }
 .queue-head strong { flex: 1; font-weight: 600; }
 .queue-head small { color: var(--ink-3); font: 500 12px var(--mono); }
-.queue.closed { width: 52px; border-radius: 26px; }
-.queue.closed .queue-head { padding: 14px; justify-content: center; }
+.queue-toggle { display: inline-flex; align-items: center; gap: 2px; color: var(--ink-2); }
+.queue-head:hover .queue-toggle { color: var(--accent); }
+.queue.closed { width: 62px; border-radius: 26px; }
+.queue.closed .queue-head { padding: 14px 12px; justify-content: flex-end; }
 .queue.closed :is(.queue-head strong, .queue-head small, .scene-jobs, .queue-list) { display: none; }
 .scene-jobs:not(:empty) { padding: 0 12px 8px; }
 .queue-list { overflow-y: auto; padding: 0 8px 10px; display: flex; flex-direction: column; gap: 2px; }
@@ -126,7 +146,7 @@ body.has-prep .queue { max-height: calc(100dvh - 84px - 112px - var(--prep-h, 0p
 html.touch .step-cell { min-width: 40px; height: 40px; }
 
 /* ---- Preparado ---- */
-.prep { position: fixed; right: 18px; bottom: 112px; z-index: 4; width: 340px; padding: 12px; border-radius: 24px; background: var(--glass-3); border-color: rgba(92, 232, 255, 0.4); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; gap: 10px; }
+.prep { position: fixed; right: 18px; bottom: var(--tb-space); z-index: 4; width: 340px; padding: 12px; border-radius: 24px; background: var(--glass-3); border-color: rgba(92, 232, 255, 0.4); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; gap: 10px; }
 .prep[hidden] { display: none; }
 .prep-head { display: flex; align-items: center; justify-content: space-between; }
 .prep-label { color: var(--accent); font: 700 11px var(--mono); letter-spacing: 0.06em; }
@@ -136,10 +156,42 @@ html.touch .step-cell { min-width: 40px; height: 40px; }
 .prep-actions .btn { flex: 1; justify-content: center; }
 
 /* ---- Barra de transporte ---- */
-.transport-bar { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 4; width: min(1000px, calc(100vw - 32px)); display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: var(--r-xl); background: var(--glass-1); backdrop-filter: blur(var(--blur-2)); -webkit-backdrop-filter: blur(var(--blur-2)); }
-.transport-bar .btn { height: 48px; flex-shrink: 0; }
-.transport-bar .btn.round { width: 48px; padding: 0; justify-content: center; }
-.transport-bar .btn.next { padding: 0 22px; font-size: 15px; }
+/* Su alto (--tb-h, lo mide escenario.js) más lo que la separa del borde y de lo de encima. Lleva mandos, como un
+   cajón: su cristal es el de la cola (más opaco), para que se lean sobre una diapositiva blanca. */
+body { --tb-space: calc(var(--tb-h, 68px) + 44px); }
+.transport-bar { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 4; width: min(1000px, calc(100vw - 32px)); display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 10px; border-radius: var(--r-xl); background: var(--glass-2); backdrop-filter: blur(var(--blur-2)); -webkit-backdrop-filter: blur(var(--blur-2)); }
+.tb-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.tb-main .btn { height: 48px; flex-shrink: 0; }
+.tb-main .btn.round { width: 48px; padding: 0; justify-content: center; }
+.tb-main .btn.next { padding: 0 22px; font-size: 15px; }
+/* Encima, siempre a la vista, los mandos de lo que está al aire y «Señalar» / «Mover». En filas que se reparten
+   el ancho: una fila de botones que no cabe baja a otra. */
+.tb-extra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 2px 4px 10px; border-bottom: 1px solid var(--glass-line); }
+.tb-extra[hidden] { display: none; }
+.tb-extra .live-controls { flex: 1 1 520px; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 0; border: 0; background: none; }
+.tb-extra .live-controls[hidden] { display: none; }
+.tb-extra .live-part { display: contents; }
+.tb-extra .transport { flex-wrap: wrap; }
+.tb-extra .btn { height: 40px; }
+.tb-extra .live-controls .btn.grow { flex: 0 0 auto; padding: 0 14px; }
+.tb-extra .clip-seek { flex: 1 1 260px; min-width: 200px; }
+.tb-extra .nav-row { flex: 1 1 200px; min-width: 160px; }
+/* El volumen general ya está abajo; y en la barra se acerca y se mueve sobre la proyección («Mover»), sin el recuadro.
+   «Vista completa» (de los mandos) hace lo que «Restablecer»: en la barra va solo el primero. */
+.tb-extra .live-controls .volume, .tb-extra .nav { display: none; }
+.tb-extra .scene-tools .tool-chip[aria-label='Restablecer el zoom'] { display: none; }
+.tb-extra .slide-info { display: flex; align-items: center; gap: 14px; flex: 0 1 auto; min-width: 0; }
+.tb-extra .slide-next-thumb { width: 72px; }
+.tb-extra .live-controls p { flex: 1 1 100%; margin: 0; }
+/* Señalar y Mover (escenario.js): en la barra del escritorio y bajo el recuadro de «Historias». */
+.scene-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.scene-tools[hidden] { display: none; }
+.tool-chip { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; font-weight: 600; }
+html.touch .tool-chip { height: 44px; padding: 0 14px; }
+.tool-chip[hidden] { display: none; }
+.scene-bg[data-tool] { touch-action: none; user-select: none; -webkit-user-select: none; }
+.scene-bg[data-tool='point'] { cursor: crosshair; }
+.scene-bg[data-tool='move'] { cursor: grab; }
 .up-next { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
 .up-next small { color: var(--ink-3); font: 700 10px var(--mono); letter-spacing: 0.08em; }
 .up-next strong { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -165,10 +217,11 @@ html.touch .step-cell { min-width: 40px; height: 40px; }
 .controls-layer[hidden] { display: none; }
 .controls-pop { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); width: min(420px, calc(100vw - 24px)); max-height: calc(100dvh - 140px); overflow-y: auto; border-radius: var(--r-xl); background: var(--glass-3); }
 .controls-pop .drawer-head { padding-left: 18px; }
-.scene-controls { padding: 12px; }
 /* El volumen ya está a la vista (barra de transporte, o «Historias» en el celular). */
 .controls-pop .live-controls .volume { display: none; }
-.controls-pop .live-controls { border: 0; background: none; padding: 0; }
+.controls-pop .live-controls { border: 0; background: none; padding: 6px 16px 18px; gap: 10px; }
+.controls-pop .drawer-head h2 { display: block; }
+.controls-pop .live-controls .transport { flex-wrap: wrap; }
 
 /* ---- Buscar en todo (capa que se cierra al tocar fuera) ---- */
 .finder-chip { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: var(--r-pill); background: var(--glass-1); color: var(--ink-2); font-weight: 600; }
@@ -178,19 +231,19 @@ html.touch .step-cell { min-width: 40px; height: 40px; }
 /* Lo preparado desde la búsqueda se ve encima de su capa, y la búsqueda le deja sitio. */
 body.finding .prep { z-index: calc(var(--z-sheet) + 1); }
 body.has-prep .finder { max-height: calc(100dvh - 208px - var(--prep-h, 0px)); }
-.finder-input { display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid var(--glass-line); color: var(--ink-3); flex-shrink: 0; }
+.finder-input { display: flex; align-items: center; gap: 12px; padding: 0 22px; border-bottom: 1px solid var(--glass-line); color: var(--ink-3); flex-shrink: 0; }
 .finder-input:focus-within { color: var(--accent); }
 .finder-input input { flex: 1; min-width: 0; height: 56px; border: 0; background: none; color: var(--ink); font-size: 17px; outline: none; }
-.finder-list { overflow-y: auto; padding: 4px 6px 6px; }
-.finder-group { display: block; padding: 10px 10px 4px; color: var(--ink-3); font: 600 11px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
-.finder-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: var(--control); padding: 8px 10px; border-radius: var(--r); border: 1px solid transparent; text-align: left; }
+.finder-list { overflow-y: auto; padding: 8px 12px 12px; }
+.finder-group { display: block; padding: 14px 12px 6px; color: var(--ink-3); font: 600 11px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.finder-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: var(--control); padding: 10px 12px; border-radius: var(--r); border: 1px solid transparent; text-align: left; }
 .finder-row:hover { background: var(--s2); }
 .finder-row.on { background: var(--accent-soft); border-color: var(--accent); }
 .finder-row .item-text strong { -webkit-line-clamp: 1; }
 .finder-row .item-text small { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .finder mark { background: var(--accent-soft); color: var(--ink); border-radius: 3px; padding: 0 1px; font-weight: 600; }
-.finder-empty { padding: 16px; color: var(--ink-3); }
-.finder-hint { padding: 8px 16px; border-top: 1px solid var(--glass-line); color: var(--ink-3); font-size: 12px; flex-shrink: 0; }
+.finder-empty { padding: 20px 22px; color: var(--ink-3); line-height: 1.55; }
+.finder-hint { padding: 12px 22px; border-top: 1px solid var(--glass-line); color: var(--ink-3); font-size: 12px; flex-shrink: 0; }
 
 /* ---- Celular: «Historias» ---- */
 .story { display: none; }
@@ -254,8 +307,10 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .drawer, body.queue-closed.has-prep .drawer { --drawer-max: calc(100vw - 92px - 322px); }
   .ws-head { padding: 12px 16px; }
   .tb-volume { width: 150px; }
-  .transport-bar .btn.next { padding: 0 16px; }
-  .transport-bar kbd { display: none; }
+  .tb-main .btn.next { padding: 0 16px; }
+  .transport-bar kbd, .mode-chip kbd { display: none; }
+  /* Con los mandos, la barra crece hacia arriba: que empiece a la derecha del dock para no pisarlo. */
+  .transport-bar { left: 96px; right: 16px; width: auto; transform: none; }
 }
 
 /* ============ Celular y tableta en vertical: «Historias» ============ */
@@ -269,7 +324,7 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .scene-status { flex: 0 1 auto; max-width: none; }
   .topbar > .spacer { display: none; }
   /* Lo que está al aire se ve en el recuadro y, con un cajón abierto, en su cabecera. */
-  .scene-status :is(.live-pill, .scene-caption) { display: none; }
+  .scene-status :is(.live-pill, .scene-caption, .scene-modes) { display: none; }
   .drawer-head { padding: 6px 6px 6px 14px; }
   .drawer-head h2 { display: none; }
   .scene-mini { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
@@ -288,6 +343,10 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .story-zone { position: absolute; top: 0; bottom: 0; z-index: 1; width: 50%; }
   .story-zone.prev { left: 0; width: 35%; }
   .story-zone.next { right: 0; width: 65%; }
+  /* Con «Señalar» o «Mover», el recuadro es para el dedo: sin las zonas de pasar. */
+  .story-frame[data-tool] .story-zone { display: none; }
+  .story-frame[data-tool] { touch-action: none; user-select: none; -webkit-user-select: none; }
+  .story .scene-tools { justify-content: center; }
   .story-caption { display: flex; align-items: center; gap: 10px; }
   .story-caption .item-text strong { font-size: 16px; -webkit-line-clamp: 2; }
   .story-hint { color: var(--ink-3); font-size: 12px; margin-top: -6px; }

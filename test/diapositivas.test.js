@@ -258,6 +258,11 @@ test('PowerPoint en vivo: la pasa el propio PowerPoint, que da los pasos (tambi�
     await s.send('order.show', { id: inOrder.id, step: 0 });
     assert.ok(await until(() => orders().includes('ir 1')), 'al ponerla al aire, PowerPoint empieza por la misma diapositiva');
     assert.equal((await onAir()).powerpoint, true, 'y los mandos saben que la pasa PowerPoint');
+    // «Señalar»: el punto lo dibuja una capa encima del pase (S39); al soltar, se quita.
+    await s.send('projection.pointer', { x: 0.25, y: 0.5 });
+    assert.ok(await until(() => orders().at(-1) === 'punto 0.2500 0.5000'), orders().slice(-2).join());
+    await s.send('projection.pointer', {});
+    assert.ok(await until(() => orders().at(-1) === 'punto'));
     await step(1);
     assert.equal((await onAir()).number, 2, '«Siguiente» lo da PowerPoint y Manna pone su foto');
     await step(1);

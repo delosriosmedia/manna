@@ -77,11 +77,12 @@ export function drawClip(host, { build, make, onItem = () => {}, sources = (item
       onItem(next, media);
     },
     // live null: esto es una vista previa o una miniatura, no lo que está al aire. No se carga nada.
-    live(live, { volume = 1, sound = false } = {}) {
+    // still: se queda en su imagen, sin reproducir (la proyección de fondo de un celular que no lo escucha).
+    live(live, { volume = 1, sound = false, loose = false, still = false } = {}) {
       state = live;
       const source = pick(item);
-      box.classList.toggle('on-air', Boolean(live && source));
-      if (!live || !source) {
+      box.classList.toggle('on-air', Boolean(live && source && !still));
+      if (!live || !source || still) {
         player.stop();
         return;
       }
@@ -90,7 +91,7 @@ export function drawClip(host, { build, make, onItem = () => {}, sources = (item
       if (playing && playing !== source) fresh();
       playing = source;
       player.load(source);
-      player.apply(live.clock, { volume, sound });
+      player.apply(live.clock, { volume, sound, loose });
       // Se muestran los subtítulos del idioma elegido (live.subtitles), o ninguno.
       [...(media.textTracks || [])].forEach((track, i) => {
         track.mode = live.subtitles && item.subtitles?.[i]?.lang === live.subtitles ? 'showing' : 'hidden';

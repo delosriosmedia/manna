@@ -44,3 +44,11 @@
 .net-address a { color: var(--accent); }
 .set .muted.warn { color: var(--live-ink); }
 .net-own { display: grid; gap: 8px; }
+
+/* Espacio en disco: una fila por lo que ocupa, con la cifra a la derecha, y el total. */
+.disk-list { display: grid; margin-bottom: 10px; }
+.disk-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.disk-row span { min-width: 0; color: var(--ink-2); }
+.disk-row strong { font: 600 13px var(--mono); white-space: nowrap; }
+.disk-row.total { border-bottom: 0; }
+.disk-row.total span { color: var(--ink); font-weight: 600; }

@@ -4,6 +4,30 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.16.0 — 2026-10-16
+
+- **Menos consumo**: con un video al aire, los paneles de cristal dejan de desenfocar lo que tienen detrás (es lo que más gasta la tarjeta gráfica) y se vuelven algo más opacos. En los celulares, la proyección de fondo ya no reproduce el video (muestra su imagen) salvo que se use «Escuchar aquí»: menos batería y menos red.
+- **Espacio en disco** en Ajustes, con **«Limpiar multimedia temporales»**: borra todo lo subido o descargado (YouTube, videos, audios, imágenes, presentaciones y páginas hechas con un archivo), también del orden del culto; nunca la carpeta Contenido ni los fondos.
+- **Tamaño de los subtítulos** en Ajustes → Apariencia.
+- **PowerPoint en vivo con «Señalar»**: el punto rojo se dibuja encima del pase de PowerPoint, sin mover el ratón del equipo (sin probar aún en Windows).
+
+- **Categorías del Himnario más limpias**: el nombre en una o dos líneas y, debajo, sus números y cuántos himnos tiene, con la flecha siempre en el mismo sitio; la abierta, en cian.
+- «Buscar en todo» con más margen interior.
+- **Cola del culto**: el botón de plegar se queda arriba a la derecha y cambia de forma (flecha hacia arriba para plegarla; la lista con una flecha hacia abajo para desplegarla).
+- La proyección de fondo del control se desvanece en los bordes en vez de cortarse.
+
+- **Mandos siempre a la vista**: en el escritorio, los mandos de lo que está al aire van fijos en la barra de abajo, encima de Anterior y Siguiente (un himno: Cantado/Pista, Letra, pausa y avance; un video: pausa, avance y subtítulos; una imagen o una diapositiva: acercar y «Vista completa»). Ya no hay que abrir «Mandos».
+- **«Solo fondo» y «Negro» arriba**, junto a «AL AIRE».
+- **«Señalar» y «Mover» también en Control completo, Control del orden y Alabanza**: con una imagen, una diapositiva o una página al aire, el dedo o el ratón señalan o mueven sobre la propia proyección (en el celular, sobre el recuadro de «Historias»).
+- La hoja de mandos del celular tiene márgenes y sus filas bajan si no caben.
+- Presentador en el escritorio: la anterior y la siguiente, pequeñas, debajo de la grande.
+
+- **YouTube en Windows**: yt-dlp usa el Node de Manna para resolver lo que YouTube le pide en JavaScript (en un equipo sin Deno faltaban formatos o fallaba la descarga). El motivo exacto de un fallo queda en el registro (`manna.log`).
+- **Actualizar un programa ya no lo rompe**: el nuevo se prueba (con un minuto de margen, porque en Windows el antivirus lo revisa la primera vez) antes de reemplazar al que funcionaba. Si no arranca, el aviso dice qué hacer.
+- **«Escuchar aquí» sin cortes**: suena la propia proyección de fondo del celular, que baja el archivo una sola vez, con una sincronización más tolerante.
+- «Escuchar» en el Himnario suena siempre cantado.
+- **Presentador con el ratón**: arrastrar sobre la diapositiva para señalar o mover ya no la arrastra como una imagen. Sin el recuadro de zoom viejo: se acerca y se mueve sobre la diapositiva («Mover», «Restablecer»).
+
 ## 1.15.0 — 2026-10-16
 
 - **Favoritos en el Himnario**: «Favorito», en la barra de abajo, deja el himno elegido en la nueva vista «Favoritos», con una estrella en su ficha. Los ven todos los dispositivos; los marcan Control completo y Servicio de alabanza.

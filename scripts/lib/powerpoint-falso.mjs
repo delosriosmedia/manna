@@ -44,6 +44,7 @@ if (process.env.MANNA_PPT_MODO === 'vivo') {
       const [order, value, n] = line.split('\\t');
       fs.appendFileSync(log, JSON.stringify({ order, value }) + '\\n');
       if (order === 'parar') { at = 0; reply('parado', '', n); continue; }
+      if (order === 'punto') { reply('punto', '', n); continue; }
       if (order === 'ir') { at = Number(value); click = 0; reply('diapositiva', at, n); continue; }
       if (!at) { reply('parado', '', n); continue; }
       if (order === 'siguiente') {

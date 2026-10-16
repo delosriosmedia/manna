@@ -97,6 +97,7 @@ export function createStylePanel(container) {
   const field = (label, input, value) => h('div', { class: 'field' }, h('div', { class: 'label' }, h('span', {}, label), value), input);
 
   const [size, sizeValue] = range('fontSize', 28, 84, 2, (v) => v, (v) => v, '');
+  const [cue, cueValue] = range('subtitleSize', 60, 200, 10, (v) => v, (v) => v, ' %');
   const [overlay, overlayValue] = range('overlayOpacity', 0, 90, 5, (v) => Math.round(v * 100), (v) => v / 100, ' %');
 
   // Fondo: los colores de siempre y, a su lado, las imágenes subidas, que se conservan.
@@ -158,6 +159,7 @@ export function createStylePanel(container) {
 
   container.replaceChildren(
     field('Tamaño del texto', size, sizeValue),
+    field('Tamaño de los subtítulos', cue, cueValue),
     field('Tipografía', select('fontFamily', [['sans', 'Moderna (sin remates)'], ['serif', 'Clásica (con remates)'], ['trebuchet', 'Trebuchet'], ['impact', 'Gruesa']])),
     h('div', { class: 'grid-2' }, field('Color del texto', color('textColor')), field('Color de la cita', color('refColor'))),
     h('div', { class: 'grid-2' },

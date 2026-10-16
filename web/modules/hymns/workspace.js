@@ -46,11 +46,10 @@ function mount(el, ctx) {
   const sound = TRACKS.map(([id, label]) => h('button', { class: 'chip', dataset: { track: id }, onclick: () => setTrack(id) }, label));
   const lyricsButton = h('button', { class: 'btn hymn-lyrics-btn', onclick: () => showLyrics() }, icon('rows', 16), h('span', { class: 'hymn-long' }, 'Letra'));
   // Oírlo solo en este dispositivo antes de proyectarlo o añadirlo (no en el equipo principal: ctx.listen es null).
+  // Siempre cantado: es para reconocer el himno (decisión del dueño), sea cual sea el sonido elegido para proyectar.
   const listenButton = ctx.listen && h('button', { class: 'btn hymn-listen', 'aria-label': 'Escuchar en este dispositivo', onclick: () => {
     const hymn = current();
-    if (!hymn) return;
-    const pista = soundFor(hymn) === 'instrumental' && hymn.instrumentalUrl;
-    ctx.listen({ url: pista || hymn.url, title: `${hymn.number} · ${hymn.title}${pista ? ' (pista)' : ''}` });
+    if (hymn) ctx.listen({ url: hymn.url, title: `${hymn.number} · ${hymn.title}` });
   } }, icon('speaker-high', 16), h('span', { class: 'hymn-long' }, 'Escuchar'));
   // Favorito: lo comparten todos los dispositivos. Solo lo marca quien puede editar (Control y Alabanza).
   const favButton = ctx.canEdit && h('button', { class: 'chip hymn-fav-btn', onclick: guard(async () => {

@@ -20,6 +20,7 @@ const DEFAULT_STYLES = {
   bgImage: '',
   overlayOpacity: 0.35,
   textShadow: 'strong',
+  subtitleSize: 100, // % del tamaño de siempre
 };
 
 const STYLE_RULES = {
@@ -33,6 +34,7 @@ const STYLE_RULES = {
   bgGradient: (v) => typeof v === 'string' && /^(radial|linear)-gradient\([#0-9a-z%,.\s()-]+\)$/i.test(v) && v.length < 200,
   overlayOpacity: (v) => Number.isFinite(v) && v >= 0 && v <= 1,
   textShadow: (v) => ['strong', 'soft', 'outline', 'none'].includes(v),
+  subtitleSize: (v) => Number.isFinite(v) && v >= 60 && v <= 200,
 };
 
 const BACKGROUND_LIMIT = 20 * 1024 * 1024;

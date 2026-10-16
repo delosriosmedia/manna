@@ -35,11 +35,17 @@ const FORMAT = 'bv*[height<=1080][vcodec^=avc1]+ba[acodec^=mp4a]/b[height<=1080]
 export const SUBTITLE_LANGS = [['es', 'Español'], ['en', 'Inglés']];
 const MARK = 'MANNA';
 
+// YouTube pide a yt-dlp que resuelva un acertijo en JavaScript; sin intérprete, faltan formatos o falla la
+// descarga. yt-dlp solo busca Deno por su cuenta (el Mac de desarrollo lo tiene; el equipo de la iglesia, no),
+// pero acepta Node desde la 22: se le da el mismo con el que corre Manna. null si es más viejo.
+export const jsRuntime = (version = process.versions.node, node = process.execPath) => (Number(String(version).split('.')[0]) >= 22 ? `node:${node}` : null);
+
 // Las órdenes de yt-dlp. dir: carpeta donde deja los archivos, con nombre fijo ("video.mp4").
-// ffmpegDir: dónde está ffmpeg, para unir imagen y sonido.
-export function downloadArgs({ id, dir, ffmpegDir = null }) {
+// ffmpegDir: dónde está ffmpeg, para unir imagen y sonido. js: el intérprete de JavaScript (jsRuntime).
+export function downloadArgs({ id, dir, ffmpegDir = null, js = null }) {
   return [
     '--ignore-config', '--no-playlist', '--no-warnings', '--newline', '--no-simulate', '--socket-timeout', '20', '--retries', '3',
+    ...(js ? ['--js-runtimes', js] : []),
     // Un directo no tiene final: no se puede guardar.
     '--match-filter', '!is_live',
     // No se le fuerza un "player_client": con «android,web» YouTube solo entrega 360p (visto el 2026-10-10).
@@ -56,10 +62,11 @@ export function downloadArgs({ id, dir, ffmpegDir = null }) {
 }
 
 // Los subtítulos se piden aparte: si YouTube no los da (pasa a menudo), el video ya está a salvo.
-export function subtitleArgs({ id, dir }) {
+export function subtitleArgs({ id, dir, js = null }) {
   const langs = SUBTITLE_LANGS.flatMap(([lang]) => [lang, `${lang}-orig`]);
   return [
     '--ignore-config', '--no-playlist', '--no-warnings', '--skip-download', '--socket-timeout', '20',
+    ...(js ? ['--js-runtimes', js] : []),
     '--write-subs', '--write-auto-subs', '--sub-langs', langs.join(','), '--sub-format', 'vtt',
     '-o', path.join(dir, 'video.%(ext)s'),
     '--', watchUrl(id),
@@ -181,7 +188,8 @@ export function createDownloader(app) {
     fs.mkdirSync(task.dir, { recursive: true });
     const progress = createProgress();
     const ffmpeg = app.tools.path('ffmpeg');
-    const result = await run(downloadArgs({ id: task.videoId, dir: task.dir, ffmpegDir: ffmpeg && path.dirname(ffmpeg) }), (line) => {
+    const js = jsRuntime();
+    const result = await run(downloadArgs({ id: task.videoId, dir: task.dir, ffmpegDir: ffmpeg && path.dirname(ffmpeg), js }), (line) => {
       const said = readLine(line);
       if (!said) return;
       if (said.title || said.duration) {
@@ -196,12 +204,16 @@ export function createDownloader(app) {
     if (ok) {
       // Los subtítulos, si los hay. Que fallen no estropea nada.
       job.update({ progress: 0.99, detail: 'Buscando subtítulos' });
-      await run(subtitleArgs({ id: task.videoId, dir: task.dir }), () => {});
+      await run(subtitleArgs({ id: task.videoId, dir: task.dir, js }), () => {});
     }
     running = null;
     if (ok) job.done('Listo');
     else if (current.cancelled || closed) job.done('Cancelado');
-    else job.fail(explain(result.err));
+    else {
+      // Lo que dijo yt-dlp, tal cual, al registro (data/manna.log): a la persona se le da explain().
+      console.error(`YouTube no pudo descargar ${task.videoId} (código ${result.code}): ${String(result.err).trim().split(/\r?\n/).slice(-8).join(' | ')}`);
+      job.fail(explain(result.err));
+    }
     task.onDone({ ok, cancelled: current.cancelled || closed, error: ok ? null : explain(result.err) });
     next();
   }

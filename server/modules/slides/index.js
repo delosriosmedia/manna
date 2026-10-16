@@ -174,7 +174,17 @@ export default function setup(app) {
     publish();
     app.services.projection?.refresh();
   }
-  store.on('change', (ns) => { if (ns === 'projection') sync(); });
+  store.on('change', (ns) => {
+    if (ns === 'projection') sync();
+    // «Señalar» sobre una presentación en vivo: el punto lo dibuja PowerPoint encima del pase (S39). Cambia muchas
+    // veces por segundo: no se espera la respuesta.
+    else if (ns === 'pointer' && session?.showing) {
+      const p = store.get('pointer');
+      const onAir = store.get('projection')?.item;
+      if (p.x != null && p.uid !== onAir?.uid) return;
+      session.live.send('punto', p.x == null ? '' : `${p.x.toFixed(4)} ${p.y.toFixed(4)}`);
+    }
+  });
 
   store.register('slides', { decks: [] });
   publish();
@@ -194,7 +204,7 @@ export default function setup(app) {
     return {
       id: deck.id, title: deck.name, reference: `Diapositiva ${n}`, number: n, pages: deck.pages,
       url: pageUrl(deck, n), thumb: thumbUrl(deck, n), width: deck.width, height: deck.height, fit: 'contain',
-      // La pasa PowerPoint: en el proyector no hay zoom ni puntero de Manna.
+      // La pasa PowerPoint: en el proyector no hay zoom de Manna; el puntero lo dibuja una capa encima del pase.
       powerpoint: inPowerPoint(deck),
       // La que viene, para verla antes de pasar a ella.
       next: n < deck.pages ? { number: n + 1, thumb: thumbUrl(deck, n + 1) } : null,

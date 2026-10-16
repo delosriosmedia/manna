@@ -1,4 +1,4 @@
-import { action, disconnect, state, subscribe } from '../../core/api.js';
+import { action, api, disconnect, state, subscribe } from '../../core/api.js';
 import { h, allowLeaving, dialog, go, guard, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { createDisplayToggle, createStylePanel, createTestCardButton, describeDisplay } from '../projection/controls.js';
@@ -23,6 +23,12 @@ function mount(el, ctx) {
   const netToggle = h('button', { class: 'btn', onclick: guard(() => action('internet.set', { on: !state.internet?.on })) });
   const netOwn = h('button', { class: 'btn', onclick: () => openOwnTunnel() });
 
+  // Espacio en disco: lo subido o descargado desde Manna, y el botón que lo borra todo.
+  const diskList = h('div', { class: 'disk-list' });
+  const diskFree = h('p', { class: 'muted' });
+  const cleanButton = h('button', { class: 'btn danger', onclick: () => askClean() }, icon('trash', 16), 'Limpiar multimedia temporales');
+  let disk = null;
+
   const nav = h('nav', { class: 'set-nav', 'aria-label': 'Secciones de Ajustes' });
   // short: el nombre corto en la fila de secciones.
   const section = (short, title, hint, ...content) => {
@@ -46,6 +52,8 @@ function mount(el, ctx) {
         net, netAddress, ctx.isLocal && h('div', { class: 'row', style: 'flex-wrap: wrap;' }, netToggle, netOwn)),
       section('Programas', 'Programas del equipo principal', 'Lo que Manna usa para convertir videos, descargar de YouTube y abrir presentaciones. Ninguno que falte impide abrir Manna.',
         tools, h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => go('/requisitos') }, icon('check-circle', 16), 'Revisar el equipo'))),
+      section('Disco', 'Espacio en disco', 'Lo que ocupa lo subido o descargado desde Manna. Lo de la carpeta Contenido (himnario, biblias y medios) no cuenta y nunca se borra.',
+        diskList, diskFree, h('div', { class: 'row' }, cleanButton)),
       section('Este dispositivo', 'Este dispositivo', null,
         h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => go('/') }, icon('arrows-left-right', 16), 'Cambiar de función'))),
       ctx.isLocal && section('Apagar', 'Apagar o reiniciar', 'Manna funciona sin ventana propia. Al apagarlo se cierra la proyección y los demás dispositivos se desconectan. Reiniciarlo sirve para terminar una actualización: vuelve a abrirse solo.',
@@ -137,6 +145,29 @@ function mount(el, ctx) {
         }) }, 'Reiniciar')));
   }
 
+  // ---- Espacio en disco ----
+  const sizeOf = (bytes) => (bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(1).replace('.', ',')} GB` : `${Math.max(bytes ? 1 : 0, Math.round(bytes / 1024 ** 2))} MB`);
+  async function loadDisk() {
+    disk = await api('/api/system/disk');
+    diskList.replaceChildren(...disk.groups.map((g) => h('div', { class: 'disk-row', dataset: { id: g.id } }, h('span', {}, g.label), h('strong', {}, sizeOf(g.bytes)))),
+      h('div', { class: 'disk-row total' }, h('span', {}, 'En total'), h('strong', {}, sizeOf(disk.total))));
+    diskFree.textContent = disk.free == null ? '' : `Libre en el disco del equipo principal: ${sizeOf(disk.free)}${disk.size ? ` de ${sizeOf(disk.size)}` : ''}.`;
+    cleanButton.disabled = !disk.total;
+  }
+  function askClean() {
+    const box = dialog('Limpiar multimedia temporales',
+      h('p', {}, `Se borrará todo lo subido o descargado desde Manna${disk ? ` (${sizeOf(disk.total)})` : ''}: videos de YouTube, videos, audios e imágenes subidos, presentaciones y páginas web hechas con un archivo. Lo que esté en el orden del culto también se quita de él.`),
+      h('p', { class: 'muted' }, 'No se toca la carpeta Contenido (himnario, biblias y medios) ni las imágenes de fondo. No se puede deshacer.'),
+      h('div', { class: 'row', style: 'justify-content: flex-end;' },
+        h('button', { class: 'btn', onclick: () => box.close() }, 'Cancelar'),
+        h('button', { class: 'btn danger', onclick: guard(async () => {
+          const done = await action('system.clean');
+          box.close();
+          toast(done.failed ? `Se liberaron ${sizeOf(done.freed)}; ${done.failed} no se pudieron borrar.` : `Listo: se liberaron ${sizeOf(done.freed)}.`, done.failed ? 'error' : 'info');
+          await loadDisk();
+        }) }, 'Limpiar')));
+  }
+
   function askShutdown() {
     const box = dialog('Apagar Manna',
       h('p', {}, 'Se cerrará la proyección y los demás dispositivos se desconectarán.'),
@@ -154,6 +185,8 @@ function mount(el, ctx) {
             h('p', { class: 'muted' }, 'Ya puedes cerrar esta pestaña. Para volver a abrirlo, usa el icono Manna.')));
         }) }, 'Apagar Manna')));
   }
+
+  return { onShow: guard(loadDisk) };
 }
 
 export default {
