@@ -1,5 +1,8 @@
 /* Módulo Himnario: todos los himnos en una rejilla de fichas (número grande y título), enteros o
    agrupados por categorías, con el buscador arriba y la acción abajo. */
+/* Con tres vistas, el buscador no se encoge: si no caben en una fila, las vistas bajan a otra. */
+.ws[data-module='himnario'] .ws-head { flex-wrap: wrap; }
+.ws[data-module='himnario'] .ws-head .search { flex: 1 1 220px; }
 .hymn-views { display: flex; gap: 6px; }
 .hymn-views .chip { display: inline-flex; align-items: center; gap: 6px; min-height: var(--control); padding: 0 12px; }
 .hymn-notes { color: var(--accent); white-space: nowrap; }
@@ -21,6 +24,9 @@
 .hymn.live { border-color: var(--live); box-shadow: inset 0 0 0 1px var(--live); }
 .hymn-n { font: 700 18px/1.1 var(--mono); color: var(--ink); }
 .hymn.selected .hymn-n { color: var(--accent); }
+.hymn-star { position: absolute; top: 8px; right: 8px; color: var(--accent); line-height: 0; }
+.hymn.live .hymn-star { display: none; }
+.hymn-fav-btn { display: inline-flex; align-items: center; gap: 6px; min-height: var(--control); padding: 0 12px; }
 .hymn.live::after { content: 'Al aire'; position: absolute; top: 7px; right: 7px; padding: 1px 7px; border-radius: 99px; background: var(--live); color: #fff; font-size: 10px; font-weight: 600; line-height: 1.6; }
 .hymn-title { color: var(--ink-2); font-size: 12px; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
@@ -90,5 +96,6 @@
 /* Cajón reducido del celular: el buscador y los himnos; abajo, el elegido y «Proyectar». Las vistas, los avisos,
    cantado o pista y la letra, al ampliarlo (cantado o pista también se cambia al aire). */
 .compact .ws[data-module='himnario'] .hymn-views, .compact .ws[data-module='himnario'] .hymn-notes,
-.compact .ws[data-module='himnario'] .hymn-sound, .compact .ws[data-module='himnario'] .hymn-lyrics-btn { display: none; }
+.compact .ws[data-module='himnario'] .hymn-sound, .compact .ws[data-module='himnario'] .hymn-lyrics-btn,
+.compact .ws[data-module='himnario'] .hymn-fav-btn { display: none; }
 .compact .ws[data-module='himnario'] .ws-head { padding: 8px 12px; }

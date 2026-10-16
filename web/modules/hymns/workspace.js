@@ -7,7 +7,7 @@ import { TRACKS, trackName } from './kind.js';
 import { lyricsOf, openLyrics } from './lyrics.js';
 
 const SEARCH_PAUSE_MS = 160; // al escribir, se busca cuando los dedos paran un instante
-const VIEWS = [['grid', 'Todos', 'squares-four'], ['categories', 'Categorías', 'rows']];
+const VIEWS = [['grid', 'Todos', 'squares-four'], ['categories', 'Categorías', 'rows'], ['favorites', 'Favoritos', 'star']];
 
 // Módulo Himnario: los himnos en video de la carpeta de la iglesia. Se llega a uno por su número,
 // por su título o por un trozo de su letra; se elige si suena cantado o solo la pista, y se
@@ -15,13 +15,14 @@ const VIEWS = [['grid', 'Todos', 'squares-four'], ['categories', 'Categorías', 
 function mount(el, ctx) {
   let book = { version: -1, hymns: [], categories: [], report: null }; // lo que dice /api/hymns
   let selected = null;                                   // número del himno elegido
-  let view = prefs.get('himnario.vista') === 'categories' ? 'categories' : 'grid';
+  let view = VIEWS.some(([id]) => id === prefs.get('himnario.vista')) ? prefs.get('himnario.vista') : 'grid';
   let track = prefs.get('himnario.sonido') === 'instrumental' ? 'instrumental' : 'vocal';
   let found = null;  // resultados de la búsqueda, o null si no se está buscando
   let rows = [];     // los himnos de los resultados, en el orden en que se ven
   let active = -1;   // resultado señalado con las flechas
   let drawn = '';    // qué hay dibujado en el cuerpo, para no rehacer 600 botones sin motivo
   const current = () => book.hymns.find((hymn) => hymn.number === selected) || null;
+  const favorites = () => state.hymns?.favorites || [];
   const onAir = () => {
     const item = state.projection?.item;
     return state.projection?.mode === 'live' && item?.kind === 'song' ? item.number : null;
@@ -51,6 +52,11 @@ function mount(el, ctx) {
     const pista = soundFor(hymn) === 'instrumental' && hymn.instrumentalUrl;
     ctx.listen({ url: pista || hymn.url, title: `${hymn.number} · ${hymn.title}${pista ? ' (pista)' : ''}` });
   } }, icon('speaker-high', 16), h('span', { class: 'hymn-long' }, 'Escuchar'));
+  // Favorito: lo comparten todos los dispositivos. Solo lo marca quien puede editar (Control y Alabanza).
+  const favButton = ctx.canEdit && h('button', { class: 'chip hymn-fav-btn', onclick: guard(async () => {
+    const hymn = current();
+    if (hymn) await action('hymns.favorite', { number: hymn.number, on: !favorites().includes(hymn.number) });
+  }) }, icon('star', 16), h('span', { class: 'hymn-long' }, 'Favorito'));
   const project = guard(async () => {
     const hymn = current();
     if (hymn) await action('projection.show', { kind: 'song', data: { number: hymn.number, track: soundFor(hymn) } });
@@ -58,7 +64,7 @@ function mount(el, ctx) {
   const bar = h('div', { class: 'abar hymn-bar', hidden: true },
     h('span', { class: 'sel-ref' }, number), name,
     h('div', { class: 'hymn-sound', role: 'group', 'aria-label': 'Sonido' }, ...sound),
-    lyricsButton, listenButton,
+    lyricsButton, listenButton, favButton,
     h('button', { class: 'btn', onclick: guard(async () => {
       const hymn = current();
       await action('order.add', { kind: 'song', data: { number: hymn.number, track: soundFor(hymn) } });
@@ -115,6 +121,11 @@ function mount(el, ctx) {
         'Copia los videos de los himnos a la carpeta Contenido/Himnario/videos del equipo principal, uno por himno y con su número delante: «001 Título.mp4». Aparecen aquí solos.')];
     }
     if (view === 'grid') return [h('div', { class: 'hymn-grid' }, ...book.hymns.map(tile))];
+    if (view === 'favorites') {
+      const chosen = book.hymns.filter((hymn) => favorites().includes(hymn.number));
+      return chosen.length ? [h('div', { class: 'hymn-grid' }, ...chosen.map(tile))]
+        : [h('div', { class: 'empty' }, h('strong', {}, 'Aún no hay favoritos'), 'Elige un himno y toca «Favorito» en la barra de abajo: aquí quedan a mano los que más se cantan.')];
+    }
     const groups = book.categories.map((title, at) => ({ title, hymns: book.hymns.filter((hymn) => hymn.category === at) }));
     const loose = book.hymns.filter((hymn) => hymn.category == null);
     if (loose.length) groups.push({ title: book.categories.length ? 'Sin categoría' : 'Todos los himnos', hymns: loose });
@@ -171,6 +182,11 @@ function mount(el, ctx) {
       button.classList.toggle('selected', n === selected);
       button.classList.toggle('live', live);
       button.setAttribute('aria-pressed', n === selected);
+      const fav = favorites().includes(n);
+      if (fav !== Boolean(button.querySelector('.hymn-star'))) {
+        if (fav) button.append(h('span', { class: 'hymn-star', 'aria-label': 'Favorito' }, icon('star', 12)));
+        else button.querySelector('.hymn-star').remove();
+      }
     }
     body.querySelectorAll('.hymn-hit').forEach((button, i) => button.classList.toggle('active', i === active));
     for (const chip of views.children) {
@@ -192,6 +208,12 @@ function mount(el, ctx) {
         chip.title = id !== 'instrumental' ? 'El himno con las voces' : usable ? 'Solo la música, para que cante la iglesia'
           : hasFfmpeg() ? 'Este himno no trae pista instrumental' : 'Para la pista hace falta ffmpeg en el equipo principal';
       }
+      if (favButton) {
+        const fav = favorites().includes(hymn.number);
+        favButton.classList.toggle('on', fav);
+        favButton.setAttribute('aria-pressed', fav);
+        favButton.title = fav ? 'Quitar de favoritos' : 'Marcar como favorito: queda en la vista «Favoritos»';
+      }
       lyricsButton.disabled = !hymn.lyrics;
       lyricsButton.title = hymn.lyrics ? 'Ver la letra de este himno' : 'No hay letra de este himno en la carpeta del himnario';
     }
@@ -203,7 +225,7 @@ function mount(el, ctx) {
 
   function render() {
     if (selected && !current()) selected = null;
-    const key = found ? `buscar|${input.value}|${found.total}` : `${view}|${book.version}`;
+    const key = found ? `buscar|${input.value}|${found.total}` : `${view}|${book.version}${view === 'favorites' ? `|${favorites().join()}` : ''}`;
     if (key !== drawn) {
       drawn = key;
       body.replaceChildren(...(found ? drawResults() : drawLibrary()));

@@ -166,12 +166,12 @@ Los videos se guardan en `data/media/youtube/` del equipo principal, a 1080p com
 ### Himnario
 
 1. Copia los videos de los himnos a `Contenido/Himnario/videos/` del equipo principal, uno por himno y con su número delante (`001 Título.mp4`), y el archivo de letras a `Contenido/Himnario/letras/`. Aparecen solos en **Himnario**.
-2. Busca el himno: escribe su **número**, parte de su **título** o un trozo de su **letra**. O recórrelos en **Todos** o por **Categorías**.
+2. Busca el himno: escribe su **número**, parte de su **título** o un trozo de su **letra**. O recórrelos en **Todos**, por **Categorías** o en **Favoritos**.
 3. Elige el sonido: **Cantado** (con las voces) o **Pista** (solo la música, para que cante la iglesia). Manna recuerda lo último que elegiste en ese dispositivo.
 4. **Proyectar** (o doble clic, o Enter), o **Añadir al orden**. Con el teclado: el número, Enter y Enter.
 5. Con el himno al aire, el panel tiene **Cantado / Pista** (se puede cambiar sin perder el punto), pausa, volver al principio, saltos, barra de avance y el volumen de Manna.
 
-**Letra** muestra la del himno elegido. El botón **avisos** aparece si en la carpeta hay algo que revisar: videos que faltan, himnos sin letra o letras cuyo título no es el de su video (esas no se usan, para que nunca salga la letra de un himno en otro).
+**Favorito** (en la barra de abajo, desde Control completo y Servicio de alabanza) deja el himno elegido en la vista **Favoritos**, con una estrella, para todos los dispositivos; otro toque lo quita. **Letra** muestra la del himno elegido. El botón **avisos** aparece si en la carpeta hay algo que revisar: videos que faltan, himnos sin letra o letras cuyo título no es el de su video (esas no se usan, para que nunca salga la letra de un himno en otro).
 
 La pista instrumental necesita ffmpeg en el equipo principal: los videos traen dos pistas de sonido y el navegador solo reproduce la primera, así que Manna prepara al momento una copia con la segunda. Sin ffmpeg, los himnos se proyectan cantados.
 

@@ -1253,6 +1253,19 @@ try {
     check('un himno se añade al orden del culto con el sonido elegido', Boolean(inOrder) && inOrder.title === hymnTitle(9) && inOrder.subtitle === (HAS_FFMPEG ? 'N.º 9 · Pista' : 'N.º 9 · Cantado') && inOrder.steps === 1, JSON.stringify(inOrder || null));
     await press('ArrowDown');
     check('↓ pasa al himno siguiente sin tocar la proyección', await run(`return ${tile(10)}.classList.contains('selected') && ${hbar}.querySelector('.hymn-sel-n').textContent === '10'`));
+    // Favoritos: los que más se cantan, a un toque y los mismos en todos los dispositivos.
+    const favBtn = `${hbar}.querySelector('.hymn-fav-btn')`;
+    const favsNow = () => run(`return (await (await fetch('/api/state')).json()).hymns.favorites.join()`);
+    await click(favBtn);
+    await sleep(500);
+    check('«Favorito» marca el himno elegido para todos, y su ficha lleva una estrella', await favsNow() === '10' && await run(`return ${favBtn}.getAttribute('aria-pressed') === 'true' && Boolean(${tile(10)}.querySelector('.hymn-star'))`), await favsNow());
+    await click(`${ws}.querySelector('.hymn-views [data-view=favorites]')`);
+    await sleep(400);
+    check('la vista «Favoritos» muestra solo esos', await run(`return ${ws}.querySelectorAll('.hymns-body .hymn').length === 1 && Boolean(${tile(10)})`));
+    await click(favBtn);
+    await sleep(500);
+    check('y al quitarlo, la vista lo dice', await favsNow() === '' && await run(`return ${ws}.querySelector('.hymns-body .empty')?.textContent.includes('Aún no hay favoritos') && !${ws}.querySelector('.hymn-star')`));
+    await click(`${ws}.querySelector('.hymn-views [data-view=grid]')`);
   }
   }
 

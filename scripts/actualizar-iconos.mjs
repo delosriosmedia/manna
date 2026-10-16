@@ -30,6 +30,8 @@ const ICONS = [
   'globe',
   // escenario (fase 13)
   'sliders-horizontal', 'arrows-in',
+  // himnario: favoritos
+  'star',
 ];
 
 const base = `https://unpkg.com/@phosphor-icons/core@${VERSION}`;

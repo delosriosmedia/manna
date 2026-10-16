@@ -24,7 +24,7 @@ const PROBE_PAUSE_MS = 2000;
 
 export default function setup(app) {
   const { store } = app;
-  store.register('hymns', { ready: false, version: 0, count: 0, issues: 0 });
+  store.register('hymns', { ready: false, version: 0, count: 0, issues: 0, favorites: [] });
   if (!app.hymnsDir) return;
 
   const videosDir = path.join(app.hymnsDir, 'videos');
@@ -33,8 +33,11 @@ export default function setup(app) {
   for (const dir of [videosDir, lyricsDir]) fs.mkdirSync(dir, { recursive: true });
   // Lo que se sabe de cada archivo de video (cuánto dura, cuántas pistas de sonido trae), para no
   // mirarlo con ffprobe cada vez: { [nombre]: { size, modified, duration, tracks } }.
-  const saved = app.storage('himnario', { files: {} });
+  // Y los favoritos: números de himno, los mismos para todos los dispositivos.
+  const saved = app.storage('himnario', { files: {}, favorites: [] });
   saved.data.files ||= {};
+  saved.data.favorites ||= [];
+  store.set('hymns', { favorites: [...saved.data.favorites] });
 
   let catalog = buildCatalog([]);
   let search = createHymnSearch([]);
@@ -210,6 +213,16 @@ export default function setup(app) {
   // Con sus archivos (el video y, si se puede sacar, la pista), para escucharlo en un celular antes de añadirlo.
   const view = (hymn) => ({ number: hymn.number, title: hymn.title, category: hymn.category, duration: durationOf(hymn), lyrics: Boolean(hymn.parts), instrumental: hasTrack(hymn),
     url: urlOf(hymn), instrumentalUrl: whyNoTrack(hymn) ? null : trackUrl(hymn) });
+
+  // Favoritos: los himnos que más se cantan, a un toque. Un número que deja de estar en la carpeta se conserva,
+  // por si vuelve; la interfaz solo muestra los que hay.
+  app.action('hymns.favorite', { permission: 'hymns.favorite' }, ({ number, on }) => {
+    const { number: n } = find(number);
+    const rest = saved.data.favorites.filter((x) => x !== n);
+    saved.data.favorites = on ? [...rest, n].sort((a, b) => a - b) : rest;
+    saved.save();
+    store.set('hymns', { favorites: [...saved.data.favorites] });
+  });
 
   app.route('GET', '/api/hymns', (ctx) => {
     ctx.require('projection.control');

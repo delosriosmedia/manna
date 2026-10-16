@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.15.0 — 2026-10-16
+
+- **Favoritos en el Himnario**: «Favorito», en la barra de abajo, deja el himno elegido en la nueva vista «Favoritos», con una estrella en su ficha. Los ven todos los dispositivos; los marcan Control completo y Servicio de alabanza.
+
 ## 1.14.0 — 2026-10-15
 
 - **PowerPoint en vivo (Windows)**: un PowerPoint lo puede pasar el propio PowerPoint del equipo principal, a pantalla completa en el proyector, con sus videos, animaciones y transiciones. «Siguiente» y «Anterior» se siguen dando desde cualquier celular (y pasan también las animaciones); si alguien la pasa en el equipo, los celulares lo ven; al terminar, Manna sigue con el orden del culto. Los celulares y los televisores ven la foto de cada diapositiva. Un PowerPoint subido desde esta versión viene así; en el menú de la presentación se cambia con «Pasar como imágenes» o «Pasar con PowerPoint». Si PowerPoint falla, se pasa como imágenes y la cola lo avisa.

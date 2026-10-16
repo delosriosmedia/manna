@@ -200,7 +200,7 @@ test('el himnario se arma con lo que hay en la carpeta y dice lo que conviene re
   try {
     const book = await s.get('/api/hymns');
     assert.equal(book.http, 200);
-    assert.deepEqual((await s.state()).hymns, { ready: true, version: book.version, count: 11, issues: 4 });
+    assert.deepEqual((await s.state()).hymns, { ready: true, version: book.version, count: 11, issues: 4, favorites: [] });
     assert.deepEqual(book.hymns.map((h) => h.number), [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12]);
     assert.deepEqual(book.hymns.slice(0, 2).map((h) => [h.title, h.category, h.lyrics, h.duration, h.instrumental]), [[hymnTitle(1), 0, true, null, null], [hymnTitle(2), 0, true, null, null]], 'sin ffmpeg no se sabe cuánto duran');
     assert.equal(book.hymns.find((h) => h.number === 13)?.title, undefined);
@@ -229,7 +229,19 @@ test('el himnario se arma con lo que hay en la carpeta y dice lo que conviene re
     assert.equal((await s.get('/api/hymns/search?q=canto')).http, 401);
     await s.as('orden');
     assert.equal((await s.get('/api/hymns/2')).http, 200, 'quien opera el orden sí puede leerla');
+    assert.equal((await s.send('hymns.favorite', { number: 2, on: true })).http, 403, 'pero no marca favoritos');
+    await s.as('alabanza');
+    assert.equal((await s.send('hymns.favorite', { number: 9, on: true })).http, 200, 'el Servicio de alabanza sí');
     await s.as('control');
+
+    // Favoritos: los mismos para todos los dispositivos, en orden y sin repetirse; solo himnos que hay.
+    await s.send('hymns.favorite', { number: 2, on: true });
+    await s.send('hymns.favorite', { number: 9, on: true });
+    assert.deepEqual((await s.state()).hymns.favorites, [2, 9]);
+    await s.send('hymns.favorite', { number: 9, on: false });
+    assert.deepEqual((await s.state()).hymns.favorites, [2]);
+    assert.equal((await s.send('hymns.favorite', { number: 7, on: true })).http, 404, 'uno sin video no');
+    assert.equal((await s.send('hymns.favorite', { number: 'x', on: true })).http, 404);
 
     // Al orden y al aire, cantado. Sin ffmpeg no hay pista.
     const item = (await s.send('order.add', { kind: 'song', data: { number: 2 } })).result;

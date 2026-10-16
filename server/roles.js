@@ -15,7 +15,7 @@ export const ROLES = [
     description: 'Himnario, medios, orden y Biblia, con el volumen siempre a la vista.',
     path: '/alabanza',
     requiresPin: true,
-    permissions: ['projection.control', 'order.edit', 'media.edit', 'jobs.manage'],
+    permissions: ['projection.control', 'order.edit', 'media.edit', 'jobs.manage', 'hymns.favorite'],
   },
   {
     id: 'presentador',
