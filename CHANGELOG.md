@@ -7,6 +7,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 ## 1.18.0 — 2026-10-16
 
 - **La barra de abajo se aparta sola** en el escritorio, tras unos segundos sin mover el ratón ni pulsar una tecla, como en un reproductor de video: así se ve entera la proyección. Cualquier movimiento la trae.
+- **Node.js para YouTube**: YouTube pide Node.js 22 o más nuevo. Si el del equipo principal es más viejo, la revisión del equipo ofrece instalar el oficial, solo para YouTube y sin tocar el del equipo, y Manna lo pone al día solo.
 - **YouTube se arregla solo más a menudo**: si una descarga falla por algo que no es del video, Manna la reintenta sola dos veces, y antes pone al día yt-dlp si hay una versión nueva. También lo comprueba al abrirse con el icono.
 - **Se quita «Escuchar aquí»** (oír en el celular lo que está al aire): en un celular de verdad se oía a saltos. «Escuchar» antes de añadir sigue igual.
 - En el Presentador del celular ya no queda una barra vacía sobre las diapositivas.

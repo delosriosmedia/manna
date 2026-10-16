@@ -329,9 +329,26 @@ test('cambiar el PIN cierra las demás sesiones, también las abiertas sin PIN',
 test('la revisión del equipo lista los programas y dice con qué página abrir', async () => {
   const { tools } = await main.state();
   assert.equal(tools.checked, true);
-  assert.deepEqual(tools.list.map((t) => t.id), ['navegador', 'ffmpeg', 'yt-dlp', 'cloudflared', 'powerpoint']);
+  assert.deepEqual(tools.list.map((t) => t.id), ['navegador', 'ffmpeg', 'yt-dlp', 'node', 'cloudflared', 'powerpoint']);
+  // Con el Node.js de las pruebas (22 o más nuevo) no hace falta otro para YouTube.
+  assert.equal(tools.list.find((t) => t.id === 'node').found, true);
   assert.equal(tools.pending, tools.list.filter((t) => t.level === 'feature' && !t.found).length);
   assert.equal(main.app.tools.entry(), tools.pending ? '/requisitos' : '/control');
+});
+
+test('Node.js para YouTube: uno anterior a la 22 es como si no estuviera', { skip: process.platform === 'win32' && 'el Node.js de mentira es un guion de shell' }, async () => {
+  const own = path.join(tmp, 'node-viejo', 'herramientas');
+  fs.mkdirSync(own, { recursive: true });
+  fs.writeFileSync(path.join(own, 'node'), '#!/bin/sh\necho v20.11.0\n', { mode: 0o755 });
+  // MANNA_FALTA: no se mira el del sistema, solo el de la carpeta de Manna.
+  const box = await start('node-viejo', { MANNA_FALTA: 'node' });
+  try {
+    const node = (await box.state()).tools.list.find((t) => t.id === 'node');
+    assert.equal(node.found, false);
+    assert.equal(node.level, 'feature');
+  } finally {
+    await box.stop();
+  }
 });
 
 test('aunque falten programas, ni siquiera el navegador, ninguna página se bloquea', async () => {

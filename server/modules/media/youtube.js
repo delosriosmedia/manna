@@ -118,7 +118,7 @@ export function explain(stderr, js = jsRuntime()) {
   if (/does not pass filter|is_live/i.test(text)) return 'Es una emisión en directo: se podrá descargar cuando termine.';
   if (/getaddrinfo|network is unreachable|timed out|Unable to download webpage|Temporary failure in name resolution|nodename nor servname/i.test(text)) return 'No hay conexión a internet en el equipo principal. Hace falta para descargar; después ya no.';
   // Sin intérprete de JavaScript, YouTube suele negar el video: la causa más probable es un Node.js viejo.
-  if (!js) return 'No se pudo descargar ese video. YouTube necesita Node.js 22 o más nuevo en el equipo principal: instala la versión LTS desde nodejs.org y vuelve a abrir Manna.';
+  if (!js) return 'No se pudo descargar ese video. YouTube necesita Node.js 22 o más nuevo: instálalo desde Ajustes, en «Programas del equipo principal» (Node.js para YouTube).';
   return 'No se pudo descargar ese video. Si pasa con todos, actualiza yt-dlp desde Ajustes: YouTube cambia a menudo.';
 }
 
@@ -190,7 +190,9 @@ export function createDownloader(app) {
     running = queue.shift();
     const { task, job } = running;
     const current = running;
-    const js = jsRuntime();
+    // El Node.js que mueve a Manna, si es de la 22 o más nuevo; si no, el propio que instaló Manna («Node.js para YouTube»).
+    const own = app.tools.path('node');
+    const js = jsRuntime() || (own ? `node:${own}` : null);
     const video = path.join(task.dir, 'video.mp4');
     let result;
     let ok = false;
@@ -230,9 +232,9 @@ export function createDownloader(app) {
     else {
       // Lo que dijo yt-dlp, tal cual, al registro (data/manna.log): a la persona se le da explain().
       console.error(`YouTube no pudo descargar ${task.videoId} (código ${result.code}): ${String(result.err).trim().split(/\r?\n/).slice(-8).join(' | ')}`);
-      job.fail(explain(result.err));
+      job.fail(explain(result.err, js));
     }
-    task.onDone({ ok, cancelled: current.cancelled || closed, error: ok ? null : explain(result.err) });
+    task.onDone({ ok, cancelled: current.cancelled || closed, error: ok ? null : explain(result.err, js) });
     next();
   }
 

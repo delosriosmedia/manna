@@ -78,6 +78,16 @@ test('avisa con claridad si la descarga no existe o no hay conexión', async () 
   await assert.rejects(installTool({ url: 'http://127.0.0.1:9/x', file: 'x' }, { dir }), /tiene internet/);
 });
 
+test('pick: elige en la lista de huellas el archivo cuyo nombre lleva la versión (Node.js) y lo comprueba', async () => {
+  const node = Buffer.from('#!/bin/sh\necho v24.9.9\n');
+  files.set('/node/node-v24.9.9-win-x64.exe', node);
+  files.set('/node/SHASUMS256.txt', Buffer.from(`${'1'.repeat(64)}  node-v24.9.9-darwin-arm64.tar.gz\n${sha(node)}  node-v24.9.9-win-x64.exe\n`));
+  const dir = path.join(tmp, 'elegido');
+  const installed = await installTool({ sums: `${base}/node/SHASUMS256.txt`, pick: 'node-v[0-9.]+-win-x64\\.exe', file: 'node' }, { dir });
+  assert.deepEqual(fs.readFileSync(installed[0]), node);
+  await assert.rejects(installTool({ sums: `${base}/node/SHASUMS256.txt`, pick: 'node-v[0-9.]+-linux-x64\\.zip', file: 'node' }, { dir: path.join(tmp, 'sin-elegir') }), /No se encontró la descarga/);
+});
+
 test('saca de un .zip solo los archivos pedidos, estén en la carpeta que estén', async (t) => {
   const source = path.join(tmp, 'origen', 'ffmpeg-1.0', 'bin');
   fs.mkdirSync(source, { recursive: true });

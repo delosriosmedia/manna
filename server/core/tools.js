@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFile, spawn } from 'node:child_process';
 import { HttpError } from './router.js';
-import { installTool, NOT_RUNNABLE } from './install.js';
+import { installTool, NOT_RUNNABLE, pickName } from './install.js';
 
 // Programas del equipo principal que Manna usa pero no incluye: el navegador de la proyección,
 // ffmpeg, yt-dlp y PowerPoint. Este es el único lugar que los busca, los instala y los ejecuta.
@@ -108,6 +108,8 @@ const YT_LATEST = 'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest';
 const CF = 'https://github.com/cloudflare/cloudflared/releases/latest/download';
 // cloudflared no publica una lista de huellas aparte: van en el texto de cada versión («nombre: huella»).
 const CF_SUMS = 'https://api.github.com/repos/cloudflare/cloudflared/releases/latest';
+// Node.js de la línea 24 (LTS): el nombre lleva la versión, así que se elige en su lista de huellas (pick).
+const NODE = 'https://nodejs.org/dist/latest-v24.x';
 const OFFICIAL = {
   ffmpeg: {
     win32: {
@@ -120,6 +122,9 @@ const OFFICIAL = {
   'yt-dlp': {
     win32: { url: `${YT}/yt-dlp.exe`, sums: `${YT}/SHA2-256SUMS`, latest: YT_LATEST, file: 'yt-dlp.exe', size: '18 MB' },
     darwin: { url: `${YT}/yt-dlp_macos`, sums: `${YT}/SHA2-256SUMS`, latest: YT_LATEST, file: 'yt-dlp', size: '37 MB' },
+  },
+  node: {
+    win32: { sums: `${NODE}/SHASUMS256.txt`, pick: 'node-v[0-9.]+-win-x64\\.zip', extract: ['node.exe'], size: '36 MB' },
   },
   cloudflared: {
     win32: { url: `${CF}/cloudflared-windows-amd64.exe`, sums: CF_SUMS, release: true, file: 'cloudflared.exe', size: '65 MB' },
@@ -191,6 +196,20 @@ const CATALOG = [
     },
   },
   {
+    id: 'node',
+    name: 'Node.js para YouTube',
+    level: 'feature',
+    purpose: 'YouTube pide resolver un acertijo en JavaScript antes de dejar descargar, y yt-dlp lo resuelve con Node.js 22 o más nuevo. Si el que mueve a Manna es más viejo, Manna usa uno propio, solo para eso, y lo pone al día solo.',
+    link: 'https://nodejs.org/es/download',
+    binaries: ['node'],
+    // El del equipo vale si es de la 22 o más nuevo; si no, se instala uno propio en data/herramientas.
+    min: 22,
+    version: { args: ['--version'], pattern: /^v(\S+)/ },
+    manual: {
+      other: { steps: ['Descarga Node.js con el botón: elige la versión LTS e instálala normalmente.', 'Cierra Manna y vuelve a abrirlo con su icono.'] },
+    },
+  },
+  {
     id: 'cloudflared',
     name: 'cloudflared',
     level: 'optional',
@@ -247,7 +266,10 @@ export function setupTools(app) {
     // Que el archivo exista no basta: tiene que poder ejecutarse.
     const text = await output(main, tool.version.args);
     if (text == null) return null;
-    return { files, version: tool.version.pattern.exec(text)?.[1] || null, detail: null, own: main.startsWith(toolsDir + path.sep) };
+    const version = tool.version.pattern.exec(text)?.[1] || null;
+    // Uno más viejo que lo que hace falta (Node.js antes de la 22) es como si no estuviera.
+    if (tool.min && !(Number(version?.split('.')[0]) >= tool.min)) return null;
+    return { files, version, detail: null, own: main.startsWith(toolsDir + path.sep) };
   }
 
   function publish() {
@@ -311,12 +333,18 @@ export function setupTools(app) {
   // la misma versión, no hace nada. Nunca en las pruebas (MANNA_FALTA lo oculta). Devuelve si lo cambió.
   async function freshen(id) {
     const spec = downloads[id];
-    const have = found.get(id)?.version;
-    if (!spec?.latest || !have || hidden.has(id) || installing.has(id)) return false;
+    const hit = found.get(id);
+    const have = hit?.version;
+    if (!(spec?.latest || spec?.pick) || !have || hidden.has(id) || installing.has(id)) return false;
+    // El Node.js del equipo (el que mueve a Manna) no se sustituye: solo se pone al día el propio de Manna.
+    if (CATALOG.find((t) => t.id === id)?.min && !hit.own) return false;
     let tag;
     try {
-      const res = await fetch(spec.latest, { headers: { 'User-Agent': 'Manna', Accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(8000) });
-      tag = res.ok ? String((await res.json()).tag_name || '') : '';
+      if (spec.pick) tag = /\d+\.\d+\.\d+/.exec(await pickName(spec, AbortSignal.timeout(8000)))?.[0] || '';
+      else {
+        const res = await fetch(spec.latest, { headers: { 'User-Agent': 'Manna', Accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(8000) });
+        tag = res.ok ? String((await res.json()).tag_name || '') : '';
+      }
     } catch { return false; }
     if (!tag || tag === have) return false;
     console.log(`${id}: hay una versión nueva (${have} → ${tag}); se pone al día.`);

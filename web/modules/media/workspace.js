@@ -78,6 +78,6 @@ export default {
   needs: [
     // Cada aviso sale solo en las pestañas a las que afecta.
     { tools: ['ffmpeg'], parts: ['videos', 'audios'], feature: 'convertir los videos y audios que el navegador no reproduce (los MP4 y MP3 habituales sí funcionan)' },
-    { tools: ['yt-dlp', 'ffmpeg'], parts: ['youtube'], feature: 'descargar videos de YouTube' },
+    { tools: ['yt-dlp', 'ffmpeg', 'node'], parts: ['youtube'], feature: 'descargar videos de YouTube' },
   ],
 };

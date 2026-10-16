@@ -344,7 +344,7 @@ async function reviewSection() {
     await sleep(2000);
     const card = `document.querySelector('.req[data-id="yt-dlp"]')`;
     const mod = (id) => `document.querySelector('#modules .mod[data-id=${id}]')`;
-    check('la revisión lista los cinco programas y marca los que faltan', await run(`return document.querySelectorAll('.req').length === 5 && ${card}.classList.contains('missing') && document.querySelector('.req[data-id=navegador]').classList.contains('missing') && document.querySelector('.req[data-id=cloudflared]').classList.contains('missing')`));
+    check('la revisión lista los seis programas y marca los que faltan', await run(`return document.querySelectorAll('.req').length === 6 && ${card}.classList.contains('missing') && document.querySelector('.req[data-id=navegador]').classList.contains('missing') && document.querySelector('.req[data-id=cloudflared]').classList.contains('missing') && !document.querySelector('.req[data-id=node]').classList.contains('missing')`));
     check('explica para qué sirve y cómo instalarlo a mano', await run(`return ${card}.textContent.includes('YouTube') && Boolean(${card}.querySelector('details code'))`));
     check('dice qué módulos funcionarán completos y cuáles no', await run(`return ${mod('biblia')}.textContent.includes('Completo') && !${mod('biblia')}.classList.contains('limited') && ${mod('medios')}.classList.contains('limited') && ${mod('medios')}.textContent.includes('YouTube: falta yt-dlp') && ${mod('ajustes')}.textContent.includes('falta Google Chrome')`));
     check('no bloquea: Manna se puede abrir aunque falten programas', await run(`const a = document.querySelector('#footer a'); return a.textContent === 'Abrir Manna' && a.getAttribute('href') === '/control' && document.querySelector('#lead').textContent.startsWith('Manna funciona')`));
@@ -1971,7 +1971,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await run(`const s = [...document.querySelectorAll('.settings .field')].find(f => f.textContent.includes('Tamaño de los subtítulos')).querySelector('input[type=range]'); s.value = 150; s.dispatchEvent(new Event('input'));`);
   await sleep(500);
   check('«Tamaño de los subtítulos» se guarda y agranda los de la proyección', await run(`const s = await (await fetch('/api/state')).json(); return s.projection.styles.subtitleSize === 150 && document.querySelector('.scene-screen').style.getPropertyValue('--cue') === '1.5'`));
-  check('Ajustes lista los programas del equipo principal', await run(`return document.querySelectorAll('.tools .tool').length === 5 && Boolean(document.querySelector('.tools .tool[data-id=cloudflared]'))`));
+  check('Ajustes lista los programas del equipo principal', await run(`return document.querySelectorAll('.tools .tool').length === 6 && Boolean(document.querySelector('.tools .tool[data-id=cloudflared]')) && Boolean(document.querySelector('.tools .tool[data-id=node]'))`));
   await tapEl(`[...document.querySelectorAll('.set-nav .btn')].find(b => b.textContent === 'Programas')`);
   await sleep(800);
   check('la fila de secciones de Ajustes tiene una por sección y lleva a la elegida', await run(`const s = [...document.querySelectorAll('.settings .set')].find(x => x.querySelector('h2').textContent === 'Programas del equipo principal'); const c = document.querySelector('.settings').getBoundingClientRect(); const r = s.getBoundingClientRect(); return document.querySelectorAll('.set-nav .btn').length === document.querySelectorAll('.settings .set').length && Math.abs(r.top - c.top) < 30`));

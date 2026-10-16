@@ -17,6 +17,8 @@ import { pipeline } from 'node:stream/promises';
 //   release   true: sums es una versión de GitHub (su API) y las huellas van en su texto como "<nombre>: <sha256>"
 //   inner     true: la huella publicada es la del programa de dentro del archivo, no la del archivo
 //   sha256    dirección de un archivo que contiene solo el sha256
+//   pick      sin url: el nombre lleva la versión (Node.js), así que se elige en la lista sums el que cuadra con esta
+//             expresión, y se descarga de la misma carpeta que la lista
 // }
 // Devuelve las rutas de los archivos instalados.
 
@@ -51,6 +53,14 @@ async function expectedHash(spec, signal) {
   return hash.toLowerCase();
 }
 
+// El nombre del archivo que cuadra con spec.pick en la lista de huellas (el más nuevo de esa línea de versiones).
+export async function pickName(spec, signal) {
+  const list = await (await get(spec.sums, signal)).text();
+  const name = new RegExp(`(?:^|\\s)(${spec.pick})\\s*$`, 'm').exec(list)?.[1];
+  if (!name) throw new Error('No se encontró la descarga en la lista oficial. Instálalo a mano siguiendo los pasos.');
+  return name;
+}
+
 function unzip(archive, dir) {
   return new Promise((resolve, reject) => {
     // tar viene con Windows 10 y 11 y con macOS, y sabe abrir archivos .zip.
@@ -78,6 +88,7 @@ export const NOT_RUNNABLE = 'se descargó, pero este equipo no lo dejó abrir (a
 // check(archivo) → true si el programa recién bajado arranca: se prueba antes de reemplazar al que había,
 // para que una actualización que falla no deje sin programa.
 export async function installTool(spec, { dir, onProgress = () => {}, signal, check = null } = {}) {
+  if (spec.pick) spec = { ...spec, url: new URL(await pickName(spec, signal), spec.sums).href };
   fs.mkdirSync(dir, { recursive: true });
   const work = fs.mkdtempSync(path.join(dir, '.descarga-'));
   try {
