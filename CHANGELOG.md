@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.18.2 — 2026-10-16
+
+- **yt-dlp ya no aparece como «Falta» en Mac** después de instalarlo: el de Mac tarda unos segundos en arrancar y Manna lo daba por ausente antes de que respondiera (y avisaba de que «este equipo no lo dejó abrir»).
+
 ## 1.18.1 — 2026-10-16
 
 - Por dentro: código repetido unificado y una función sin usar quitada, tras revisar el grafo del proyecto. Nada cambia para quien usa Manna, salvo que un video o audio subido sin nombre ya no se propone como «Imagen» sino como «Sin nombre».

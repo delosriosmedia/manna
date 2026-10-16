@@ -263,8 +263,9 @@ export function setupTools(app) {
       if (!files[binary]) return null;
     }
     const main = files[tool.binaries[0]];
-    // Que el archivo exista no basta: tiene que poder ejecutarse.
-    const text = await output(main, tool.version.args);
+    // Que el archivo exista no basta: tiene que poder ejecutarse. Con margen: yt-dlp en Mac se desempaqueta en cada
+    // arranque y tarda unos 9 s en decir su versión (con 8 s parecía que faltaba).
+    const text = await output(main, tool.version.args, 30_000);
     if (text == null) return null;
     const version = tool.version.pattern.exec(text)?.[1] || null;
     // Uno más viejo que lo que hace falta (Node.js antes de la 22) es como si no estuviera.
