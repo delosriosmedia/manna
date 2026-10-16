@@ -12,7 +12,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Búsqueda**: por cita (`Juan 3:16-18`, `1 co 13 4`, `sal 23`) o por texto, mientras escribes. El texto se busca en la Reina-Valera 1960 (o en la versión elegida, si no está instalada) y el resultado se abre en la versión que tengas elegida. Los resultados salen por niveles (frase exacta, todas las palabras, parecidas), con lo encontrado resaltado, y se pueden limitar al Antiguo o al Nuevo Testamento.
 - **Comparar** (en la Biblia): el mismo pasaje en dos versiones, lado a lado o una sobre otra, cada una con su sigla. Se elige igual que cualquier pasaje, se proyecta, se añade al orden como elemento propio, y la disposición se puede cambiar mientras está al aire.
 - **Orden del culto**: la lista ordenada de todo lo que se va a proyectar, con secciones (Apertura, Mensaje…). Cada elemento muestra su tipo y sus pasos; "Siguiente" recorre los pasos y luego pasa al elemento que sigue. A cualquier elemento se le puede poner un nombre propio ("Lectura bíblica"). Se comparte entre todos los dispositivos.
-- **Himnario**: los himnos en video de tu iglesia, en una rejilla por número o agrupados por categorías. Se llega a uno por su número, por su título o por un trozo de su letra; se elige si suena **cantado o solo la pista**, y se gobierna como cualquier video. Con el cajón ancho, la letra del elegido se lee al lado.
+- **Himnario**: los himnos en video de tu iglesia, en una rejilla por número o agrupados por categorías (bajo su sección, como en el índice del himnario). Se llega a uno por su número, por su título o por un trozo de su letra; se elige si suena **cantado o solo la pista**, y se gobierna como cualquier video. Con el cajón ancho, la letra del elegido se lee al lado. **Letras sin música**: los mismos himnos en diapositivas, que se pasan a mano mientras se canta; tras la última, «Siguiente» vuelve a la portada del mismo himno.
 - **Medios**: la biblioteca de la iglesia, en pestañas.
   - **Imágenes** (anuncios, carteles, fotos): se suben desde el equipo principal o desde la galería del celular, con el nombre que quieras; se elige si la imagen se ve completa o llenando la pantalla; y, mientras está al aire, se acerca y se desplaza desde el panel.
   - **Videos y audios**: se suben o se copian a `Contenido/Medios/`. Lo habitual se usa tal cual y lo demás se convierte solo, en segundo plano. Al aire: pausa, saltos, barra de avance, subtítulos y el volumen de Manna. Todas las pantallas van a la par y suena una sola.
@@ -89,6 +89,7 @@ Todo lo que pone cada iglesia va en una sola carpeta, `Contenido` (en Documentos
 | `Contenido/Biblias/` | Las versiones de la Biblia, en `.xmm` o `.xml` |
 | `Contenido/Himnario/videos/` | Los himnos en video, uno por archivo: `001 Cantad alegres al Señor.mp4` |
 | `Contenido/Himnario/letras/` | Las letras de los himnos y sus categorías, en un archivo de texto `.md` (cómo se escribe, en su `LEEME.txt`) |
+| `Contenido/Himnario/diapositivas/` | Los himnos en diapositivas, para «Letras sin música»: una carpeta por himno con el nombre de su video (`001 Cantad alegres al Señor`) y dentro `01.jpg` (la portada), `02.jpg`… |
 | `Contenido/Medios/` | Videos y audios para proyectar. También se pueden subir desde la app; para archivos grandes, copiarlos aquí es lo más rápido |
 
 Al actualizar Manna con el instalador, el contenido y los datos no se tocan. Nada de `Contenido/` se publica en GitHub, salvo las instrucciones y la Reina-Valera 1909.
@@ -174,6 +175,8 @@ Los videos se guardan en `data/media/youtube/` del equipo principal, a 1080p com
 5. Con el himno al aire, el panel tiene **Cantado / Pista** (se puede cambiar sin perder el punto), pausa, volver al principio, saltos, barra de avance y el volumen de Manna.
 
 **Favorito** (en la barra de abajo, desde Control completo y Servicio de alabanza) deja el himno elegido en la vista **Favoritos**, con una estrella, para todos los dispositivos; otro toque lo quita. **Letra** muestra la del himno elegido. El botón **avisos** aparece si en la carpeta hay algo que revisar: videos que faltan, himnos sin letra o letras cuyo título no es el de su video (esas no se usan, para que nunca salga la letra de un himno en otro).
+
+**Letras sin música** es otra pestaña con los himnos que tienen diapositivas en `Contenido/Himnario/diapositivas/`. Se proyectan como una presentación: **Proyectar** pone la portada y cada «Siguiente» pasa una diapositiva, a mano; tras la última vuelve a la portada del mismo himno (no salta al siguiente del orden ni a otro himno), y en la portada «Anterior» se queda en ella. Con el cajón ancho, la ficha muestra todas sus diapositivas y tocar una la proyecta. Se añade al orden como elemento propio, sin sonido.
 
 La pista instrumental necesita ffmpeg en el equipo principal: los videos traen dos pistas de sonido y el navegador solo reproduce la primera, así que Manna prepara al momento una copia con la segunda. Sin ffmpeg, los himnos se proyectan cantados.
 
@@ -261,8 +264,8 @@ server/
     media/              biblioteca de imágenes, videos y audios: subir, reconocer, convertir con ffmpeg,
                         subtítulos, descargar de YouTube con yt-dlp (youtube.js), y la reproducción
                         a la par en todas las pantallas
-    hymns/              el himnario: videos y letras de la carpeta de la iglesia, búsqueda por número,
-                        título y letra, y la pista instrumental de cada himno
+    hymns/              el himnario: videos, letras y diapositivas de la carpeta de la iglesia, búsqueda por
+                        número, título y letra, la pista instrumental y las letras sin música
     slides/             presentaciones convertidas en diapositivas: recibir las páginas de un PDF, pedirle
                         a PowerPoint que exporte las de una presentación o que la pase en vivo (powerpoint.js) y proyectarlas
     web/                páginas web y archivos HTML: comprobar si una dirección se deja mostrar

@@ -4,6 +4,8 @@ import path from 'node:path';
 import { HttpError } from '../../core/router.js';
 import { listFiles, watchFolder } from '../../core/folders.js';
 import { applyClock, createClock, freezeClock } from '../../core/playback.js';
+import { readImageInfo } from '../../core/images.js';
+import { applyView, initialView } from '../../core/view.js';
 import { buildCatalog, createHymnSearch, ranges, TRACK_NAMES, TRACKS, VIDEO_EXTENSIONS } from './catalog.js';
 import { parseLyrics } from './lyrics.js';
 
@@ -17,6 +19,10 @@ import { parseLyrics } from './lyrics.js';
 //
 // La lista de himnos no va en el estado (son cientos): la interfaz la pide a /api/hymns y vuelve a
 // pedirla cuando cambia `hymns.version`.
+//
+// «Letras sin música» (Contenido/Himnario/diapositivas): las diapositivas del himnario original, una carpeta por
+// himno con el nombre de su video («001 Título») y dentro 01.jpg (la portada), 02.jpg… en el orden en que se canta.
+// Se proyectan como un tipo propio, `lyrics`, que se pasa a mano y no sale del himno (ver abajo).
 
 const LYRICS_EXTENSIONS = ['.md', '.txt', '.markdown'];
 const MAX_DURATION = 6 * 3600;
@@ -29,6 +35,7 @@ export default function setup(app) {
 
   const videosDir = path.join(app.hymnsDir, 'videos');
   const lyricsDir = path.join(app.hymnsDir, 'letras');
+  const slidesDir = path.join(app.hymnsDir, 'diapositivas');
   const tracksDir = path.join(app.tmpDir, 'himnos');
   for (const dir of [videosDir, lyricsDir]) fs.mkdirSync(dir, { recursive: true });
   // Lo que se sabe de cada archivo de video (cuánto dura, cuántas pistas de sonido trae), para no
@@ -99,7 +106,27 @@ export default function setup(app) {
     return merged;
   }
 
+  // Las diapositivas de cada himno: número → { dir, files } (las imágenes, en orden). Las de un número sin video no
+  // se usan: el himno no existe.
+  let slidesOf = new Map();
+  const sizes = new Map(); // número → { width, height } de su portada, mirado una vez
+  function readSlides() {
+    const found = new Map();
+    let dirs = [];
+    try { dirs = fs.readdirSync(slidesDir, { withFileTypes: true }).filter((d) => d.isDirectory()); } catch { return found; }
+    for (const d of dirs) {
+      const number = Number(/^(\d+)\s/.exec(d.name)?.[1]);
+      if (!number || found.has(number)) continue;
+      let files = [];
+      try { files = fs.readdirSync(path.join(slidesDir, d.name)).filter((f) => /^\d+\.(jpe?g|png)$/i.test(f)).sort((a, b) => parseInt(a, 10) - parseInt(b, 10)); } catch { continue; }
+      if (files.length) found.set(number, { dir: d.name, files });
+    }
+    return found;
+  }
+
   function load() {
+    slidesOf = readSlides();
+    sizes.clear();
     catalog = buildCatalog(listFiles(videosDir, VIDEO_EXTENSIONS), readLyrics());
     byNumber = new Map(catalog.hymns.map((h) => [h.number, h]));
     search = createHymnSearch(catalog.hymns);
@@ -193,7 +220,8 @@ export default function setup(app) {
 
   // ---- Arranque y vigilancia ----
   app.mount('/himnos/', videosDir);
-  const stops = [watchFolder(videosDir, load), watchFolder(lyricsDir, load)];
+  app.mount('/himnos-letras/', slidesDir);
+  const stops = [watchFolder(videosDir, load), watchFolder(lyricsDir, load), watchFolder(slidesDir, load)];
   store.on('listening', load);
   // Al instalarse ffmpeg ya se puede mirar cuánto dura cada himno y ofrecer la pista.
   let hadFfmpeg = app.tools.has('ffmpeg');
@@ -212,6 +240,7 @@ export default function setup(app) {
   // ---- Lo que pide la interfaz ----
   // Con sus archivos (el video y, si se puede sacar, la pista), para escucharlo en un celular antes de añadirlo.
   const view = (hymn) => ({ number: hymn.number, title: hymn.title, category: hymn.category, duration: durationOf(hymn), lyrics: Boolean(hymn.parts), instrumental: hasTrack(hymn),
+    slides: slidesOf.get(hymn.number)?.files.length || 0, slidesBase: slidesOf.has(hymn.number) ? `/himnos-letras/${encodeURIComponent(slidesOf.get(hymn.number).dir)}/` : null, slideFiles: slidesOf.get(hymn.number)?.files || [],
     url: urlOf(hymn), instrumentalUrl: whyNoTrack(hymn) ? null : trackUrl(hymn) });
 
   // Favoritos: los himnos que más se cantan, a un toque. Un número que deja de estar en la carpeta se conserva,
@@ -300,5 +329,46 @@ export default function setup(app) {
     hide: (state, { now }) => ({ ...state, clock: applyClock(state.clock, { playing: false }, now) }),
     // Al terminar, la proyección pasa sola a "Solo fondo".
     endsAt: ({ clock }) => (clock.playing && clock.duration != null ? clock.at + (clock.duration - clock.position) * 1000 : null),
+  });
+
+  // ---- Letras sin música ----
+  // data = { number }. Cada diapositiva es un paso (la primera, la portada) y se proyecta como una imagen (acercar,
+  // desplazar). Se pasa a mano y no sale del himno (decisión 37): desde la última, «Siguiente» vuelve a la portada;
+  // desde la portada, «Anterior» se queda. Ni en el orden del culto pasa al elemento siguiente: eso se toca en la cola.
+  const slideUrl = (s, i) => `/himnos-letras/${encodeURIComponent(s.dir)}/${encodeURIComponent(s.files[i])}`;
+  const sizeOf = (number, s) => {
+    if (!sizes.has(number)) sizes.set(number, readImageInfo(path.join(slidesDir, s.dir, s.files[0])) || { width: 4, height: 3 });
+    return sizes.get(number);
+  };
+  app.kind('lyrics', {
+    label: 'Letra del himno',
+    describe(data) {
+      const hymn = byNumber.get(Number(data?.number));
+      const s = hymn && slidesOf.get(hymn.number);
+      if (!s) return null;
+      return { title: hymn.title, subtitle: `N.º ${hymn.number} · Letra sin música`, steps: s.files.length, data: { number: hymn.number } };
+    },
+    resolve(data, step) {
+      const hymn = byNumber.get(Number(data?.number));
+      const s = hymn && slidesOf.get(hymn.number);
+      if (!s) return null;
+      const i = Math.max(0, Math.min(s.files.length - 1, Number.isInteger(step) ? step : 0));
+      const next = (i + 1) % s.files.length;
+      const { width, height } = sizeOf(hymn.number, s);
+      return {
+        number: hymn.number, title: hymn.title, reference: i === 0 ? 'Portada' : `Diapositiva ${i + 1}`, index: i + 1, pages: s.files.length,
+        url: slideUrl(s, i), thumb: slideUrl(s, i), width, height, fit: 'contain',
+        // La que viene: tras la última, otra vez la portada.
+        next: s.files.length > 1 ? { index: next + 1, thumb: slideUrl(s, next) } : null,
+      };
+    },
+    live: (item, previous) => initialView('contain', previous?.state),
+    control: (state, patch) => applyView(state, { ...patch, fit: 'contain' }),
+    // El paso lo da el propio tipo: projection.step se lo pregunta antes que al orden del culto.
+    step(item, delta) {
+      const target = delta > 0 ? item.index % item.pages : item.index - 2;
+      if (target >= 0) app.services.projection.present({ kind: 'lyrics', data: item.source.data, step: target, orderId: item.source.orderId });
+      return true;
+    },
   });
 }

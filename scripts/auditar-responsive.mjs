@@ -19,7 +19,7 @@
 //   - la tarjeta de un televisor y su control remoto caben, con teclas para el dedo
 //   - la biblioteca de imágenes deja a la vista su acción principal, y los mandos de una imagen
 //     al aire caben en la capa de mandos
-//   - el himnario (todos, por categorías y lo encontrado al buscar) deja a la vista «Proyectar» y el
+//   - el himnario (todos, por categorías, letras sin música y lo encontrado al buscar) deja a la vista «Proyectar» y el
 //     sonido elegido, y los mandos de un himno al aire (cantado o pista, avance, volumen) caben
 //   - en Diapositivas, las presentaciones y las diapositivas de la elegida dejan a la vista
 //     «Proyectar», y los mandos de una diapositiva al aire (por dónde va, la que sigue, acercar) caben
@@ -123,6 +123,8 @@ const SCREENS = [
     prepare: `document.querySelector('.ws[data-module=himnario] .hymn')?.click()` },
   { name: 'Himnario: categorías', url: '/control#himnario', content: '.hymns-body', inside: '.hymn-group-head', settle: 700,
     prepare: `document.querySelector('.hymn-views [data-view=categories]').click(); setTimeout(() => document.querySelector('.hymn-group-head').click(), 200)` },
+  { name: 'Himnario: letras sin música', url: '/control#himnario', content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: '.hymn-bar', settle: 900,
+    prepare: `document.querySelector('.hymn-views [data-view=letras]').click(); setTimeout(() => document.querySelector('.ws[data-module=himnario] .hymns-body .hymn')?.click(), 200)` },
   { name: 'Himnario: búsqueda', url: '/control#himnario', content: '.hymns-body', inside: '.hymn-hit', settle: 1100,
     prepare: `(() => { document.querySelector('.hymn-views [data-view=grid]').click(); const i = document.querySelector('.ws[data-module=himnario] .search input'); i.value = 'renglon inventado'; i.dispatchEvent(new Event('input')); })()` },
   { name: 'Al aire con un himno', url: '/control#himnario', show: 'song', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },

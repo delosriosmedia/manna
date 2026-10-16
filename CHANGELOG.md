@@ -4,6 +4,12 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.17.0 — 2026-10-16
+
+- **Himnario corregido**: Manna lee el himnario revisado por la iglesia (613 himnos, todos con su letra y sin avisos).
+- **Categorías como en el índice del himnario**: las de una misma sección van bajo su nombre.
+- **Letras sin música**, una pestaña nueva del Himnario: los himnos en diapositivas (de la carpeta `Contenido/Himnario/diapositivas`), que se pasan a mano mientras se canta. Tras la última diapositiva, «Siguiente» vuelve a la portada del mismo himno: no salta a otro himno ni al siguiente del orden. Con el cajón ancho se ven todas las diapositivas del himno y tocar una la proyecta. Se pueden añadir al orden del culto.
+
 ## 1.16.0 — 2026-10-16
 
 - **Menos consumo**: con un video al aire, los paneles de cristal dejan de desenfocar lo que tienen detrás (es lo que más gasta la tarjeta gráfica) y se vuelven algo más opacos. En los celulares, la proyección de fondo ya no reproduce el video (muestra su imagen) salvo que se use «Escuchar aquí»: menos batería y menos red.

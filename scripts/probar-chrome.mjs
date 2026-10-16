@@ -1196,6 +1196,7 @@ try {
     await sleep(300);
     check('tocar otra la despliega y pliega la anterior', await openGroups() === '+--');
     check('la vista por categorías agrupa los himnos bajo el nombre de cada una', await run(`const g = [...${ws}.querySelectorAll('.hymn-group')]; return g.length === 3 && g.map(x => x.querySelector('h2').textContent).join('|') === 'Cantos de la mañana|Cantos del camino|Cantos de gratitud y esperanza para todos los días' && g.map(x => x.querySelectorAll('.hymn').length).join() === '3,4,6' && g[0].querySelector('small').textContent === '1–3 · 3 himnos'`), await run(`return [...${ws}.querySelectorAll('.hymn-group')].map(x => x.querySelector('h2').textContent + ' ' + x.querySelectorAll('.hymn').length).join(' | ')`));
+    check('las categorías de una misma sección van bajo su nombre', await run(`const s = [...${ws}.querySelectorAll('.hymn-section')]; return s.length === 1 && s[0].textContent === 'El día' && s[0].nextElementSibling.classList.contains('hymn-group')`));
     await click(`${ws}.querySelector('.hymn-views [data-view=grid]')`);
     await sleep(300);
 
@@ -1273,6 +1274,38 @@ try {
     await click(favBtn);
     await sleep(500);
     check('y al quitarlo, la vista lo dice', await favsNow() === '' && await run(`return ${ws}.querySelector('.hymns-body .empty')?.textContent.includes('Aún no hay favoritos') && !${ws}.querySelector('.hymn-star')`));
+
+    // Letras sin música: las diapositivas de cada himno, que se pasan a mano y vuelven a la portada.
+    await click(`${ws}.querySelector('.hymn-views [data-view=letras]')`);
+    await sleep(400);
+    check('«Letras sin música» muestra solo los himnos con diapositivas', await run(`return [...${ws}.querySelectorAll('.hymns-body .hymn')].map(b => b.dataset.n).join() === '1,2,3,9'`), await run(`return [...${ws}.querySelectorAll('.hymns-body .hymn')].map(b => b.dataset.n).join()`));
+    await click(tile(9));
+    await sleep(400);
+    check('elegido uno, no hay sonido que elegir ni escuchar', await run(`return ${hbar}.querySelector('.hymn-sound').hidden && ${hbar}.querySelector('.hymn-lyrics-btn').hidden && [...${hbar}.querySelectorAll('.hymn-act')].every(b => !b.disabled)`));
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false });
+    check('con el cajón ancho, su ficha muestra las diapositivas, empezando por la portada', await until(`${ws}.querySelectorAll('.hymn-card .hymn-slide').length === 4 && ${ws}.querySelector('.hymn-card .hymn-slide').title === 'Portada'`, 15));
+    await click(`${ws}.querySelector('.hymn-card .hymn-slide[data-i="2"]')`);
+    await sleep(700);
+    let words = (await onAir()).item;
+    check('tocar una diapositiva la proyecta', words.kind === 'lyrics' && words.number === 9 && words.index === 3 && words.pages === 4, JSON.stringify(words));
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+    await click(`${hbar}.querySelector('.btn.primary.hymn-act')`);
+    await sleep(700);
+    words = (await onAir()).item;
+    check('«Proyectar» la pone desde la portada', words.kind === 'lyrics' && words.index === 1 && words.reference === 'Portada', JSON.stringify(words));
+    for (let i = 0; i < 3; i++) { await press('ArrowRight'); await sleep(500); }
+    check('se pasa a mano, una a una, hasta la última', (await onAir()).item.index === 4);
+    await press('ArrowRight');
+    await sleep(600);
+    words = (await onAir()).item;
+    check('tras la última, «Siguiente» vuelve a la portada del mismo himno', words.kind === 'lyrics' && words.number === 9 && words.index === 1, JSON.stringify(words));
+    await press('ArrowLeft');
+    await sleep(600);
+    check('y en la portada, «Anterior» se queda en ella', (await onAir()).item.index === 1);
+    await click(`[...${hbar}.querySelectorAll('.btn')].find(b => b.textContent.includes('Añadir'))`);
+    await sleep(600);
+    const wordsInOrder = (await onAir()).order.find((i) => i.kind === 'lyrics');
+    check('se añade al orden del culto como letra sin música, con sus diapositivas', Boolean(wordsInOrder) && wordsInOrder.title === hymnTitle(9) && wordsInOrder.subtitle === 'N.º 9 · Letra sin música' && wordsInOrder.steps === 4, JSON.stringify(wordsInOrder || null));
     await click(`${ws}.querySelector('.hymn-views [data-view=grid]')`);
   }
 

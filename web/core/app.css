@@ -184,6 +184,7 @@ input[type='file'].input { padding: 6px; height: auto; }
 .kind { width: 28px; height: 28px; border-radius: var(--r-sm); display: grid; place-items: center; flex-shrink: 0; background: var(--s3); color: var(--ink-2); }
 .kind.k-verses { background: rgba(110, 168, 254, 0.14); color: #8fbcff; }
 .kind.k-song { background: rgba(192, 140, 245, 0.14); color: #cda6f7; }
+.kind.k-lyrics { background: rgba(192, 140, 245, 0.14); color: #cda6f7; }
 .kind.k-image { background: rgba(92, 200, 161, 0.14); color: #7ad6b4; }
 .kind.k-video { background: rgba(242, 119, 122, 0.14); color: #f59a9c; }
 .kind.k-audio { background: rgba(245, 158, 111, 0.14); color: #f5b38f; }

@@ -7,6 +7,9 @@ Contenido/Himnario/videos/*
 !Contenido/Himnario/videos/LEEME.txt
 Contenido/Himnario/letras/*
 !Contenido/Himnario/letras/LEEME.txt
+Contenido/Himnario/diapositivas/
+Contenido/Himnario/documentos/
+Contenido/Himnario/*.md
 Contenido/Medios/*
 !Contenido/Medios/LEEME.txt
 # Por si quedan las carpetas de versiones anteriores (solo en la raíz)

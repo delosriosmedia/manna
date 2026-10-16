@@ -1,0 +1,22 @@
+HIMNARIO ADVENTISTA (CARPETA Contenido/Himnario DE MANNA)
+
+Esta carpeta es el himnario completo, himnos 1 a 613, revisado y corregido en octubre de 2026.
+
+QUÉ HAY
+
+  videos/                        Un video por himno: "001 Cantad alegres al Señor.mp4".
+                                 Cada video trae dos pistas de sonido: cantada e instrumental.
+  letras/                        "Letras Himnario.md": la letra de cada himno y su categoría.
+  diapositivas/                  Las diapositivas del himnario original: una carpeta por himno,
+                                 con el mismo nombre que su video. 01.jpg es la portada
+                                 (número y título) y las demás, la letra en orden.
+  Categorías del himnario.md     Cómo están agrupados los himnos y la lista de cada categoría.
+  HIMNARIO_NUEVO.md              Qué cambió respecto al himnario anterior y cómo está organizada
+                                 la carpeta (para quien actualice Manna).
+  documentos/                    El informe de la revisión del himnario.
+
+Manna lee "videos", "letras" y "diapositivas" (estas, en la pestaña "Letras sin música"),
+sin reiniciar. Lo demás no lo lee y no estorba.
+En la carpeta "letras" no pongas otros archivos .md ni .txt: Manna los leería como letras.
+
+Los videos, las letras y las diapositivas tienen derechos de autor: no se publican en GitHub.

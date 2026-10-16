@@ -195,6 +195,44 @@ async function start(name, { env = {}, count = 12 } = {}) {
   return api;
 }
 
+test('Letras sin música: las diapositivas de un himno se pasan a mano y no salen de él, ni en el orden del culto', async () => {
+  const s = await start('letras', { env: { MANNA_FALTA: 'ffmpeg' } });
+  try {
+    const book = await s.get('/api/hymns');
+    const nine = book.hymns.find((h) => h.number === 9);
+    assert.deepEqual([nine.slides, nine.slideFiles], [4, ['01.png', '02.png', '03.png', '04.png']]);
+    assert.equal(book.hymns.find((h) => h.number === 10).slides, 0, 'uno sin diapositivas');
+    assert.equal((await s.request(`${nine.slidesBase}02.png`)).headers.get('content-type'), 'image/png', 'se sirven de su carpeta');
+    // En el orden, entre dos elementos: «Siguiente» no pasa al de después.
+    const before = (await s.send('order.add', { kind: 'song', data: { number: 2 } })).result;
+    const item = (await s.send('order.add', { kind: 'lyrics', data: { number: 9 } })).result;
+    await s.send('order.add', { kind: 'song', data: { number: 3 } });
+    assert.deepEqual([item.title, item.subtitle, item.steps], [hymnTitle(9), 'N.º 9 · Letra sin música', 4]);
+    assert.equal((await s.send('order.add', { kind: 'lyrics', data: { number: 10 } })).http, 404, 'sin diapositivas no hay letra que añadir');
+    const shown = (await s.send('order.show', { id: item.id, step: 0 })).result;
+    assert.deepEqual([shown.kind, shown.index, shown.pages, shown.reference, shown.url, shown.next.index], ['lyrics', 1, 4, 'Portada', `${nine.slidesBase}01.png`, 2]);
+    const air = async () => (await s.state()).projection.item;
+    await s.send('projection.step', { delta: -1 });
+    assert.deepEqual([(await air()).kind, (await air()).index], ['lyrics', 1], '«Anterior» en la portada se queda en ella');
+    for (const expected of [2, 3, 4]) {
+      await s.send('projection.step', { delta: 1 });
+      assert.equal((await air()).index, expected);
+    }
+    assert.equal((await air()).next.index, 1, 'tras la última, sigue la portada');
+    await s.send('projection.step', { delta: 1 });
+    assert.deepEqual([(await air()).kind, (await air()).index, (await air()).source.orderId], ['lyrics', 1, item.id], 'desde la última vuelve a la portada, sin salir del elemento');
+    await s.send('projection.step', { delta: -1 });
+    assert.equal((await air()).index, 1);
+    // Fuera del orden, igual.
+    await s.send('projection.show', { kind: 'lyrics', data: { number: 9 }, step: 3 });
+    await s.send('projection.step', { delta: 1 });
+    assert.equal((await air()).index, 1);
+    assert.ok(before);
+  } finally {
+    await s.stop();
+  }
+});
+
 test('el himnario se arma con lo que hay en la carpeta y dice lo que conviene revisar', async () => {
   const s = await start('lista', { env: { MANNA_FALTA: 'ffmpeg' } });
   try {
@@ -207,7 +245,7 @@ test('el himnario se arma con lo que hay en la carpeta y dice lo que conviene re
     assert.equal(book.hymns.find((h) => h.number === 4).lyrics, false, 'la letra con otro título no se usa');
     assert.deepEqual(book.hymns.filter((h) => h.category === 1).map((h) => h.number), [4, 5, 6, 8], 'el 6 no viene en las letras, pero está entre dos de la misma categoría');
     assert.equal(book.hymns.find((h) => h.number === 4).title, hymnTitle(4), 'y se queda el título del video');
-    assert.deepEqual(book.categories, ['Cantos de la mañana', 'Cantos del camino', 'Cantos de gratitud y esperanza para todos los días']);
+    assert.deepEqual(book.categories, ['El día: Cantos de la mañana', 'El día: Cantos del camino', 'Cantos de gratitud y esperanza para todos los días'], 'con su sección delante, como el índice por temas');
     assert.deepEqual([book.report.total, book.report.withLyrics, book.report.missing, book.report.mismatched, book.report.withoutLyrics, book.report.withoutVideo], [11, 9, [7], [4], [4, 6], [7]]);
     assert.equal(book.report.notes.length, 4);
     assert.match(book.report.notes.join(' '), /Faltan los videos de un himno: 7\..*otro título que su video.*: 4\..*No hay letra para un himno: 6\..*sin video.*: 7\./);

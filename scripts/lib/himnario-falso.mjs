@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { examplePoster } from './png.mjs';
 
 // Un himnario de mentira para las pruebas, la auditoría y la demostración: videos hechos en el
 // momento con ffmpeg (con dos pistas de sonido, como los de verdad: un tono para "cantado" y otro
@@ -15,17 +16,21 @@ import path from 'node:path';
 //   - el himno 6 no tiene letra
 //   - el himno 7 no tiene video (falta), pero sí letra
 //   - los tres primeros van escritos de una forma y el resto de otra, como en un archivo exportado
+//   - categorías con sección («El día: Cantos de la mañana»), como el índice por temas, y una sin sección
+//   - carpeta/diapositivas con las de los himnos 1, 2, 3 y 9 (imágenes de colores: portada y letra)
 // Sin ffmpeg los videos quedan vacíos: sirven para ver la lista, pero no se reproducen.
 
 const TITLES = ['Canto de la mañana clara', 'Luz que no se apaga', 'Camino del valle', 'Voces del monte', 'Río de alegría serena',
   'Bajo el mismo cielo', 'Manos que siembran', 'La casa de puertas abiertas', 'Puente de paz', 'Sendero de luz', 'Aurora de un día nuevo',
   'Canción del sembrador', '¡Despierta, pueblo!', 'Gratitud al amanecer', 'El pozo del camino', 'Donde nace el río'];
-const CATEGORIES = ['Cantos de la mañana', 'Cantos del camino', 'Cantos de gratitud y esperanza para todos los días'];
+const CATEGORIES = ['El día: Cantos de la mañana', 'El día: Cantos del camino', 'Cantos de gratitud y esperanza para todos los días'];
 // Frases que solo están en un sitio, para que las pruebas las busquen.
 export const HYMN_FACTS = {
   phrase: { text: 'brilla la lámpara encendida', number: 2, label: 'Estrofa 2' },
   chorus: { text: 'cantan los montes y responden', number: 9, label: 'Coro' },
   mismatched: 4, single: 5, withoutLyrics: 6, withoutVideo: 7,
+  // Cuántas diapositivas tiene cada himno con «Letras sin música» (la primera, la portada).
+  slides: { 1: 3, 2: 3, 3: 3, 9: 4 },
 };
 
 const plain = (text) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[¡!¿?,]/g, '');
@@ -79,5 +84,13 @@ export function seedHymnal(dir, { count = 12, seconds = 3 } = {}) {
     for (const [label, text] of lyricsOf(n)) lines.push(`\\*\\*${label}\\*\\*`, '', ...text.flatMap((line) => [line, '']));
   }
   fs.writeFileSync(path.join(lyrics, 'Letras de prueba.md'), lines.join('\r\n'));
+
+  // Las diapositivas: una carpeta por himno, con el nombre de su video, y 01.png (la portada), 02.png…
+  const COLORS = [[[29, 78, 216], [147, 51, 234]], [[15, 118, 110], [202, 138, 4]], [[190, 18, 60], [234, 88, 12]], [[30, 41, 59], [100, 116, 139]]];
+  for (const [n, pages] of Object.entries(HYMN_FACTS.slides)) {
+    const folder = path.join(dir, 'diapositivas', fileName(Number(n)).replace(/\.mp4$/, ''));
+    fs.mkdirSync(folder, { recursive: true });
+    for (let i = 1; i <= pages; i += 1) fs.writeFileSync(path.join(folder, `${String(i).padStart(2, '0')}.png`), examplePoster(320, 240, COLORS[(i - 1) % COLORS.length]));
+  }
   return { dir, count, hasVideo: Boolean(two), facts: HYMN_FACTS };
 }

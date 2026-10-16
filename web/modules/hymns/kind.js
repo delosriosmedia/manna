@@ -2,6 +2,7 @@ import { guard, h } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { registerKind } from '../../core/kinds.js';
 import { clipControls, drawClip } from '../projection/clip.js';
+import { drawPicture, pictureControls } from '../projection/picture.js';
 import { openLyrics } from './lyrics.js';
 
 // Tipo de contenido "himno": el video del himno, con el sonido cantado o con la pista
@@ -65,3 +66,41 @@ registerKind('song', {
     };
   },
 });
+
+// Tipo «Letra del himno» (Letras sin música): las diapositivas del himnario original, una por paso, como una
+// imagen que se acerca y se desplaza. Se pasa a mano y no sale del himno: tras la última viene otra vez la portada
+// (lo decide el servidor). Sus mandos: por cuál va, la que sigue y el encuadre.
+registerKind('lyrics', {
+  icon: 'images',
+  label: 'Letra del himno',
+  unit: ['diapositiva', 'diapositivas'],
+  title: (item) => `${item.number} · ${item.title} · ${item.index} de ${item.pages}`,
+  key: (item) => item.url,
+  background: false,
+  draw: drawPicture,
+
+  controls(host, tools) {
+    const where = h('strong', {});
+    const left = h('small', {});
+    const picture = h('img', { alt: '' });
+    const label = h('span', {});
+    const next = h('div', { class: 'slide-next' }, h('span', { class: 'slide-next-thumb' }, picture), h('span', { class: 'slide-next-text' }, h('small', {}, 'Sigue'), label));
+    const framing = h('div', { class: 'live-part slide-framing' });
+    host.replaceChildren(h('div', { class: 'slide-info' }, h('div', { class: 'slide-count' }, where, left), next), framing);
+    const view = pictureControls(framing, tools, { fits: false });
+    return {
+      update(state, item) {
+        where.textContent = item.index === 1 ? `Portada · ${item.pages} en total` : `Diapositiva ${item.index} de ${item.pages}`;
+        left.textContent = item.index === item.pages ? 'Es la última' : `Quedan ${item.pages - item.index}`;
+        next.classList.toggle('none', !item.next);
+        if (item.next) {
+          if (picture.getAttribute('src') !== item.next.thumb) picture.src = item.next.thumb;
+          label.textContent = item.next.index === 1 ? 'La portada, otra vez' : `Diapositiva ${item.next.index}`;
+        }
+        view.update(state, item);
+      },
+      destroy: () => view.destroy(),
+    };
+  },
+});
+

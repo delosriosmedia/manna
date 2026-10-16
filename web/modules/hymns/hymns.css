@@ -103,3 +103,13 @@
 .compact .ws[data-module='himnario'] .hymn-sound, .compact .ws[data-module='himnario'] .hymn-lyrics-btn,
 .compact .ws[data-module='himnario'] .hymn-fav-btn { display: none; }
 .compact .ws[data-module='himnario'] .ws-head { padding: 8px 12px; }
+
+/* Sección del índice por temas (El culto, Jesucristo…): encabeza sus categorías, más pequeña y en mayúsculas. */
+.hymn-section { margin: 18px 8px 4px; color: var(--ink-3); font: 600 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.hymn-section:first-child { margin-top: 4px; }
+
+/* «Letras sin música»: las diapositivas del elegido, al lado de la rejilla; tocar una la proyecta desde ahí. */
+.hymn-slides { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.hymn-slide { display: grid; gap: 4px; padding: 0; text-align: center; color: var(--ink-3); font-size: 11px; }
+.hymn-slide img { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #000; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.hymn-slide:hover img { border-color: var(--accent); }
