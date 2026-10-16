@@ -32,7 +32,6 @@ const THUMB_LIMIT = 500 * 1024;
 const FILE_LIMIT = 2 * 1024 ** 3; // un PowerPoint con videos dentro puede pesar mucho
 const SOURCES = { pdf: 'PDF', powerpoint: 'PowerPoint' };
 const EXT = { jpeg: 'jpg', png: 'png' };
-const plural = (n) => `${n} ${n === 1 ? 'diapositiva' : 'diapositivas'}`;
 
 export default function setup(app) {
   const { store } = app;

@@ -1,9 +1,9 @@
 import { action, state, subscribe, upload } from '../../core/api.js';
 import { h, dialog, guard, menu, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
+import { nameFromFile } from '../../core/names.js';
 
 // "Informe_final-2.html" -> "Informe final 2"
-const nameFromFile = (fileName) => fileName.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Página';
 const ADDED = (page) => (page.framable
   ? `«${page.name}» agregada: se verá en todas las pantallas.`
   : `«${page.name}» agregada. No se deja mostrar dentro de Manna: el proyector la abrirá en su propia ventana.`);
@@ -30,7 +30,7 @@ function mount(el, ctx) {
     const file = picker.files[0];
     picker.value = '';
     if (!file) return;
-    const page = await upload(`/api/web?name=${encodeURIComponent(nameFromFile(file.name))}`, file, { headers: { 'Content-Type': 'text/html' } });
+    const page = await upload(`/api/web?name=${encodeURIComponent(nameFromFile(file.name, 'Página'))}`, file, { headers: { 'Content-Type': 'text/html' } });
     toast(`«${page.name}» agregada.`);
     choose(page.id);
   }));

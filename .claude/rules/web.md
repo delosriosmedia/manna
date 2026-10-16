@@ -17,7 +17,7 @@ paths:
 - Ventanas y menús: `dialog()` y `menu()` de `web/core/dom.js`. Nunca `alert()` ni `confirm()`.
 - Iconos: `icon('nombre')` de `web/core/icons.js`. Una sola familia (Phosphor); sin emojis. Para añadir uno, `scripts/actualizar-iconos.mjs`.
 - Estilos: fichas de `web/core/app.css` (`--s1`, `--ink-2`, `--accent`…). No escribir colores ni radios sueltos. Cada módulo trae su propio `.css`.
-- Preparar una imagen antes de subirla (reducirla, hacerle miniatura): `prepareImage()` de `web/core/images.js`. Fechas dichas como las diría una persona ("hoy, 20:34"): `whenLabel()` de `web/core/time.js`.
+- Preparar una imagen antes de subirla (reducirla, hacerle miniatura): `prepareImage()` de `web/core/images.js`. El nombre que se propone para algo subido sale de su archivo con `nameFromFile(nombre, respaldo)` de `web/core/names.js`. Fechas dichas como las diría una persona ("hoy, 20:34"): `whenLabel()` de `web/core/time.js`.
 - Si el servidor vuelve con otro código, la página se recarga sola (`onServerUpdate` en `web/core/api.js`); un módulo no tiene que hacer nada.
 - Preferencias de este dispositivo (versión elegida, último módulo): `prefs` de `web/core/prefs.js`. Lo compartido vive en el servidor.
 

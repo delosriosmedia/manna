@@ -4,7 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { Store } from './store.js';
 import { createStorage } from './storage.js';
-import { createRouter, HttpError } from './router.js';
+import { createRouter, HttpError, LOOPBACK } from './router.js';
 import { createSessions } from './sessions.js';
 import { createRealtime } from './realtime.js';
 import { createJobs } from './jobs.js';
@@ -32,7 +32,6 @@ const SECURE_PORT = 443;
 // Nombre con el que Manna se anuncia en la red ("manna" -> manna.local).
 export const networkName = () => (process.env.MANNA_NAME || 'manna').toLowerCase().replace(/[^a-z0-9-]/g, '') || 'manna';
 
-const LOOPBACK = new Set(['127.0.0.1', '::1']);
 const MAX_ARRIVALS = 200;
 
 // El "app" es lo que recibe cada módulo: estado compartido, rutas, acciones y almacenamiento.

@@ -2,6 +2,7 @@
 //   { id, kind, title, subtitle, steps, data }   contenido proyectable de cualquier módulo
 //   { id, kind: 'section', title }               separador ("Apertura", "Mensaje"); no se proyecta
 // Si el dueño le puso un nombre propio, lleva además `original`: el título que le da su contenido.
+import { cleanName } from '../../core/names.js';
 
 const isContent = (item) => item.kind !== 'section' && item.steps > 0;
 
@@ -34,14 +35,13 @@ export function neighbor(items, id, step, delta) {
   return null;
 }
 
-const clean = (value, max) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
 
 // Cambia el nombre de un elemento. described: el título que le da su contenido hoy (si aún existe).
 // Un nombre vacío, o igual al de su contenido, devuelve el elemento a su nombre original.
 export function renameItem(item, title, described) {
-  if (item.kind === 'section') return { ...item, title: clean(title, 60) || item.title };
+  if (item.kind === 'section') return { ...item, title: cleanName(title, 60) || item.title };
   const original = item.original || described || item.title;
-  const name = clean(title, 120);
+  const name = cleanName(title, 120);
   const { original: _dropped, ...rest } = item;
   return !name || name === original ? { ...rest, title: original } : { ...rest, title: name, original };
 }

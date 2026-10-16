@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { HttpError } from '../../core/router.js';
+import { cleanName } from '../../core/names.js';
 import { migrateLegacy, moveItem, neighbor, renameItem } from './logic.js';
 
 const MAX_STEPS_SHOWN = 200;
@@ -32,7 +33,6 @@ export default function setup(app) {
     if (!item) throw new HttpError(404, 'Ese elemento ya no está en el orden del culto.');
     return item;
   };
-  const text = (value, max = 120) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
 
   // Lo usa el módulo de proyección para avanzar por el orden.
   services.order = {
@@ -58,7 +58,7 @@ export default function setup(app) {
   });
 
   app.action('order.addSection', { permission: 'order.edit' }, ({ title }) => {
-    const item = { id: crypto.randomUUID(), kind: 'section', title: text(title, 60) || 'Sección' };
+    const item = { id: crypto.randomUUID(), kind: 'section', title: cleanName(title, 60) || 'Sección' };
     update([...items(), item]);
     return item;
   });

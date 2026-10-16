@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- Por dentro: código repetido unificado y una función sin usar quitada, tras revisar el grafo del proyecto. Nada cambia para quien usa Manna, salvo que un video o audio subido sin nombre ya no se propone como «Imagen» sino como «Sin nombre».
+
 ## 1.18.0 — 2026-10-16
 
 - **La barra de abajo se aparta sola** en el escritorio, tras unos segundos sin mover el ratón ni pulsar una tecla, como en un reproductor de video: así se ve entera la proyección. Cualquier movimiento la trae.

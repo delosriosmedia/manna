@@ -4,6 +4,8 @@
 // cambió) y 'ping' (latido).
 // El latido lleva la hora del servidor: con ella cada pantalla ajusta su reloj y la
 // reproducción va a la par en todas (ver web/core/playback.js).
+import { plainAddress } from './listener.js';
+
 const PING_MS = 10_000;
 
 export function createRealtime({ store, router }) {
@@ -49,7 +51,7 @@ export function createRealtime({ store, router }) {
     });
     res.write('retry: 1500\n\n');
     serial += 1;
-    const client = { res, id: `c${serial}`, able: true, local: ctx.isLocal, role: (ctx.query.get('rol') || 'otro').slice(0, 20), ip: String(ctx.ip || '').replace(/^::ffff:/, '') };
+    const client = { res, id: `c${serial}`, able: true, local: ctx.isLocal, role: (ctx.query.get('rol') || 'otro').slice(0, 20), ip: plainAddress(ctx.ip) };
     clients.add(client);
     send(res, 'hello', { id: client.id, local: client.local });
     send(res, 'state', store.snapshot());
@@ -64,7 +66,7 @@ export function createRealtime({ store, router }) {
   // Una pantalla dice si puede sonar o no. Solo vale para su propia conexión.
   router.route('POST', '/api/events/sound', async (ctx) => {
     const { id, able } = await ctx.json();
-    const ip = String(ctx.ip || '').replace(/^::ffff:/, '');
+    const ip = plainAddress(ctx.ip);
     const client = [...clients].find((c) => c.id === id && c.ip === ip);
     if (client && client.able !== Boolean(able)) {
       client.able = Boolean(able);

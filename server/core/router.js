@@ -44,7 +44,7 @@ const MIME = {
   '.flac': 'audio/flac',
 };
 
-const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+export const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 // Un túnel o un proxy abierto en este mismo equipo (cloudflared) entrega desde 127.0.0.1 lo que en
 // realidad llega de fuera, y lo marca con estas cabeceras: eso no es el equipo principal.
 const FORWARDED = ['x-forwarded-for', 'x-forwarded-proto', 'forwarded', 'x-real-ip', 'cf-connecting-ip', 'cf-ray'];

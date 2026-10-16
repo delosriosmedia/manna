@@ -1,12 +1,11 @@
 import { upload } from '../../core/api.js';
 import { h, dialog, toast } from '../../core/dom.js';
 import { isImageFile, prepareImage } from '../../core/images.js';
+import { nameFromFile } from '../../core/names.js';
 
 // Subir imágenes a la biblioteca: se les pone nombre y se envían de una en una, con su avance.
 // Reducirlas y hacerles la miniatura es cosa de web/core/images.js.
 
-// "IMG_2024-anuncios_octubre.jpg" -> "IMG 2024 anuncios octubre"
-export const nameFromFile = (fileName) => fileName.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Imagen';
 
 // Ventana para poner nombre a lo elegido y subirlo, con el avance de cada imagen.
 // onDone(ids) recibe las que quedaron en la biblioteca.
@@ -17,7 +16,7 @@ export function openUpload(files, { onDone = () => {} } = {}) {
     return;
   }
   const rows = list.map((file) => {
-    const name = h('input', { class: 'input', value: nameFromFile(file.name), maxLength: 80, 'aria-label': 'Nombre de la imagen' });
+    const name = h('input', { class: 'input', value: nameFromFile(file.name, 'Imagen'), maxLength: 80, 'aria-label': 'Nombre de la imagen' });
     const picture = h('div', { class: 'up-thumb' });
     const fill = h('span', { style: 'width: 0%;' });
     const bar = h('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': 0 }, fill);
@@ -66,7 +65,7 @@ export function openUpload(files, { onDone = () => {} } = {}) {
       row.el.classList.remove('error');
       row.status.textContent = 'Subiendo…';
       try {
-        const image = await upload(`/api/media/images?name=${encodeURIComponent(row.name.value.trim() || nameFromFile(row.file.name))}`, row.ready.blob,
+        const image = await upload(`/api/media/images?name=${encodeURIComponent(row.name.value.trim() || nameFromFile(row.file.name, 'Imagen'))}`, row.ready.blob,
           { headers: { 'Content-Type': row.ready.type }, onProgress: (f) => progress(row, f) });
         // Sin miniatura la biblioteca muestra la imagen entera: no es motivo para dar la subida por mala.
         await upload(`/api/media/images/${image.id}/thumb`, row.ready.thumb, { headers: { 'Content-Type': 'image/jpeg' } }).catch(() => {});

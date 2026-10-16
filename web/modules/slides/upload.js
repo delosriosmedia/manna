@@ -1,6 +1,7 @@
 import { action, state, upload } from '../../core/api.js';
 import { h, dialog, toast } from '../../core/dom.js';
 import { openPdf } from './pdf.js';
+import { nameFromFile } from '../../core/names.js';
 
 // Subir una presentación. Un PDF lo convierte este navegador en imágenes y las envía una a una;
 // un PowerPoint se envía entero y lo convierte el PowerPoint del equipo principal.
@@ -12,7 +13,6 @@ export const isPdf = (file) => file.type === 'application/pdf' || extensionOf(fi
 export const isPresentation = (file) => PRESENTATION_TYPES.includes(extensionOf(file.name));
 export const acceptsDeck = (file) => isPdf(file) || isPresentation(file);
 // "Informe_tesoreria-3T (final).pdf" -> "Informe tesoreria 3T (final)"
-const nameFromFile = (fileName) => fileName.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Presentación';
 export const hasPowerPoint = () => Boolean((state.tools?.list || []).find((t) => t.id === 'powerpoint')?.found);
 
 const LOST = 'Las animaciones, las transiciones y los videos incrustados no se conservan: cada diapositiva queda como una imagen.';
@@ -36,7 +36,7 @@ export function openDeckUpload(file, { onDone = () => {} } = {}) {
     return;
   }
 
-  const name = h('input', { class: 'input', value: nameFromFile(file.name), maxLength: 80, 'aria-label': 'Nombre de la presentación' });
+  const name = h('input', { class: 'input', value: nameFromFile(file.name, 'Presentación'), maxLength: 80, 'aria-label': 'Nombre de la presentación' });
   const fill = h('span', { style: 'width: 0%;' });
   const bar = h('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': 0 }, fill);
   const status = h('small', { class: 'deck-up-status' }, pdf ? 'Leyendo el PDF…' : 'La convertirá el PowerPoint del equipo principal. Puede tardar un momento.');
@@ -80,7 +80,7 @@ export function openDeckUpload(file, { onDone = () => {} } = {}) {
   }
 
   async function sendPdf() {
-    const title = name.value.trim() || nameFromFile(file.name);
+    const title = name.value.trim() || nameFromFile(file.name, 'Presentación');
     const { id } = await upload(`/api/slides?name=${encodeURIComponent(title)}&pages=${doc.pages}`, '');
     try {
       for (let n = 1; n <= doc.pages; n += 1) {
@@ -102,7 +102,7 @@ export function openDeckUpload(file, { onDone = () => {} } = {}) {
   }
 
   async function sendPresentation() {
-    const title = name.value.trim() || nameFromFile(file.name);
+    const title = name.value.trim() || nameFromFile(file.name, 'Presentación');
     status.textContent = 'Subiendo…';
     const deck = await upload(`/api/slides/powerpoint?name=${encodeURIComponent(title)}&ext=${encodeURIComponent(extensionOf(file.name))}`, file, { onProgress: progress });
     return deck.id;

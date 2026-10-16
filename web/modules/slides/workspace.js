@@ -4,14 +4,11 @@ import { icon } from '../../core/icons.js';
 import { describeJob } from '../../core/jobs.js';
 import { whenLabel } from '../../core/time.js';
 import { acceptsDeck, DECK_ACCEPT, hasPowerPoint, openDeckUpload } from './upload.js';
+import { pageUrl, plural, thumbUrl } from './deck.js';
 
 const SOURCES = { pdf: 'PDF', powerpoint: 'PowerPoint' };
 // Con sitio para las dos columnas, siempre hay una presentación abierta.
 const NARROW = 600; // por debajo de este ancho del cajón, una cosa cada vez (lo mismo dice slides.css)
-const plural = (n) => `${n} ${n === 1 ? 'diapositiva' : 'diapositivas'}`;
-const pageUrl = (deck, n) => `${deck.base}${n}.${deck.ext}`;
-// Sin miniaturas (según cómo se convirtió) se usa la propia imagen.
-const thumbUrl = (deck, n) => (deck.thumbs ? `${deck.base}m${n}.jpg` : pageUrl(deck, n));
 
 // Módulo Diapositivas: las presentaciones de la iglesia (PDF o PowerPoint), convertidas en
 // imágenes. A la izquierda, las presentaciones; a la derecha, las diapositivas de la elegida.

@@ -7,10 +7,8 @@ import { describeLive, toggleMode } from '../projection/controls.js';
 import { FULL_VIEW } from '../projection/view.js';
 import { attachGestures } from '../projection/gestures.js';
 import { DECK_ACCEPT, openDeckUpload } from './upload.js';
+import { pageUrl, plural, thumbUrl } from './deck.js';
 
-const pageUrl = (deck, n) => `${deck.base}${n}.${deck.ext}`;
-const thumbUrl = (deck, n) => (deck.thumbs ? `${deck.base}m${n}.jpg` : pageUrl(deck, n));
-const plural = (n) => `${n} ${n === 1 ? 'diapositiva' : 'diapositivas'}`;
 const wide = matchMedia('(min-width: 860px)');
 const TABS = [['orden', 'Del orden'], ['biblioteca', 'Biblioteca'], ['subir', 'Subir']];
 

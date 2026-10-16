@@ -1,6 +1,6 @@
 import { upload } from '../../core/api.js';
 import { h, dialog, toast } from '../../core/dom.js';
-import { nameFromFile } from './upload.js';
+import { nameFromFile } from '../../core/names.js';
 
 // Subir videos y audios. A diferencia de las imágenes, el archivo se envía tal cual: convertirlo,
 // si hace falta, es cosa del equipo principal. Antes de enviar se le pregunta al navegador cuánto
@@ -62,7 +62,7 @@ export function openClipUpload(files, kind, { onDone = () => {} } = {}) {
     return;
   }
   const rows = list.map((file) => {
-    const name = h('input', { class: 'input', value: nameFromFile(file.name), maxLength: 80, 'aria-label': `Nombre del ${word}` });
+    const name = h('input', { class: 'input', value: nameFromFile(file.name, 'Sin nombre'), maxLength: 80, 'aria-label': `Nombre del ${word}` });
     const fill = h('span', { style: 'width: 0%;' });
     const bar = h('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': 0 }, fill);
     const status = h('small', {}, megabytes(file.size));
@@ -93,7 +93,7 @@ export function openClipUpload(files, kind, { onDone = () => {} } = {}) {
       row.status.textContent = 'Preparando…';
       try {
         const known = await inspect(row.file, kind);
-        const query = new URLSearchParams({ name: row.name.value.trim() || nameFromFile(row.file.name), ext: extensionOf(row.file.name) });
+        const query = new URLSearchParams({ name: row.name.value.trim() || nameFromFile(row.file.name, 'Sin nombre'), ext: extensionOf(row.file.name) });
         if (known.duration) query.set('duration', known.duration.toFixed(3));
         const clip = await upload(`/api/media/clips?${query}`, row.file, { headers: { 'Content-Type': 'application/octet-stream' }, onProgress: (f) => progress(row, f) });
         if (known.thumb && !clip.poster) await upload(`/api/media/clips/${clip.id}/thumb`, known.thumb, { headers: { 'Content-Type': 'image/jpeg' } }).catch(() => {});
