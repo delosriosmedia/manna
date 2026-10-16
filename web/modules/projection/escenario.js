@@ -9,9 +9,10 @@ import { createLiveControls } from './live.js';
 import { createDisplayToggle, describeLive, toggleMode } from './controls.js';
 import { createVolume } from './volume.js';
 import { createSearch } from './search.js';
-import { createListener } from './listen.js';
 import { createPreview } from './preview.js';
 import { attachGestures } from './gestures.js';
+
+const BAR_IDLE_MS = 2500; // sin mover el ratón ni pulsar una tecla, la barra de abajo se aparta
 
 // «Escenario» (fase 13 de docs/PLAN.md): lo que está al aire ocupa el fondo y, encima, en cristal,
 // lo que lo gobierna. Lo coloca core/shell.js; aquí solo se hacen las piezas y se mantienen al día.
@@ -36,7 +37,7 @@ export function createEscenario(ctx) {
   const ambient = h('div', { class: 'scene-ambient', 'aria-hidden': 'true' });
   const bg = h('div', { class: 'scene-bg', 'aria-hidden': 'true' }, ambient, screen);
   // En un dispositivo remoto, lo que suena va sin apuro: si alguien lo escucha aquí, no se oye a saltos.
-  const stage = createStage(screen, { thumbnail: !ctx.isLocal, loose: !ctx.isLocal });
+  const stage = createStage(screen, { thumbnail: !ctx.isLocal });
 
   // ---- Estado al aire ----
   const pills = [];
@@ -214,16 +215,27 @@ export function createEscenario(ctx) {
   const barExtra = h('div', { class: 'tb-extra' }, barTools, barControls);
   const noSound = h('button', { class: 'icon-btn no-sound', hidden: true, title: NO_SOUND, 'aria-label': 'No suena en ningún sitio', onclick: () => toast(NO_SOUND, 'error') }, icon('warning', 18));
   const volume = createVolume();
-  // «Escuchar aquí», en los dispositivos que no son el equipo principal (este ya suena para la iglesia).
-  const listener = ctx.isLocal ? null : createListener(stage);
-  // «Escuchar antes de añadir», también solo fuera del equipo principal.
+  // «Escuchar antes de añadir», solo fuera del equipo principal (este ya suena para la iglesia).
   const preview = ctx.isLocal ? null : createPreview();
   const transport = h('div', { class: 'transport-bar glass', role: 'group', 'aria-label': 'Al aire' }, barExtra,
     h('div', { class: 'tb-main' },
       h('button', { class: 'btn round', 'aria-label': 'Anterior', title: 'Anterior (←)', onclick: step(-1) }, icon('caret-left', 18)),
       h('button', { class: 'btn primary next', onclick: step(1) }, 'Siguiente', icon('caret-right', 18)),
       h('div', { class: 'up-next' }, h('small', {}, 'SIGUE'), upNext),
-      h('div', { class: 'tb-volume' }, noSound, volume.el), listener?.button()));
+      h('div', { class: 'tb-volume' }, noSound, volume.el)));
+  // Con ratón y en pantalla ancha (shell.css), la barra se aparta tras unos segundos sin mover el ratón ni pulsar
+  // una tecla, como en un reproductor de video, para que la proyección se vea entera; cualquier movimiento la trae.
+  let idle = null;
+  const wake = () => {
+    document.body.classList.remove('bar-idle');
+    clearTimeout(idle);
+    idle = setTimeout(() => {
+      // No se aparta mientras se usa: el ratón encima, algo suyo con el foco, o un menú o una ventana abiertos.
+      if (transport.matches(':hover') || transport.contains(document.activeElement) || document.querySelector('.menu, .modal-backdrop')) wake();
+      else document.body.classList.add('bar-idle');
+    }, BAR_IDLE_MS);
+  };
+  for (const type of ['mousemove', 'pointerdown', 'keydown', 'wheel']) document.addEventListener(type, wake, { passive: true });
   // Lo que ocupa la barra (crece con los mandos): el cajón, la cola y «Preparado» le dejan sitio.
   new ResizeObserver(() => { if (transport.offsetHeight) document.body.style.setProperty('--tb-h', `${transport.offsetHeight}px`); }).observe(transport);
 
@@ -264,7 +276,7 @@ export function createEscenario(ctx) {
     h('p', { class: 'story-hint' }, 'Toca la imagen: a la derecha avanza, a la izquierda vuelve.'),
     toolSet(),
     h('div', { class: 'story-modes', role: 'group', 'aria-label': 'Qué se ve en la proyección' }, ...modes),
-    h('div', { class: `story-volume${ctx.role === 'alabanza' ? ' big' : ''}` }, storyVolume.el, listener?.button()),
+    h('div', { class: `story-volume${ctx.role === 'alabanza' ? ' big' : ''}` }, storyVolume.el),
     h('div', { class: 'story-next' }, h('div', { class: 'story-next-head' }, h('strong', {}, 'A continuación'), h('small', {}, 'Toca: prepara · doble toque: proyecta')), carousel));
 
   function renderStory(p) {

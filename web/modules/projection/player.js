@@ -13,10 +13,6 @@ import { positionAt } from '../../core/playback.js';
 // onAudible(false | true): el navegador no deja sonar a esta página (aún nadie la ha tocado), o ya sí.
 const SEEK_OVER = 0.45;   // con más desfase que esto se salta al punto
 const NUDGE_OVER = 0.07;  // con menos no se toca; entre medias se acelera o frena un poco
-// Sin apuro (apply con loose, un dispositivo remoto por wifi): saltar vacía lo que ya bajó y se oye a cortes;
-// se deja pasar hasta un segundo y medio, y mientras se espera a que llegue más, no se salta.
-const LOOSE_SEEK_OVER = 1.5;
-const LOOSE_NUDGE_OVER = 0.3;
 const EVERY_MS = 400;
 export const FADE_MS = 300;
 
@@ -35,7 +31,6 @@ function park(media) {
 export function createPlayer(media, { onDuration = () => {}, onAudible = () => {} } = {}) {
   let clock = null;
   let sound = false;
-  let loose = false;
   let volume = 1;
   let timer = null;
   let fade = null;     // desvanecido en curso: { timer }
@@ -93,10 +88,8 @@ export function createPlayer(media, { onDuration = () => {}, onAudible = () => {
     const target = positionAt(clock);
     const ended = clock.duration != null && target >= clock.duration;
     const shouldPlay = clock.playing && !ended;
-    const ready = media.readyState >= (loose ? 3 : 1) && !media.seeking;
+    const ready = media.readyState >= 1 && !media.seeking;
     const drift = media.currentTime - target;
-    const seekOver = loose ? LOOSE_SEEK_OVER : SEEK_OVER;
-    const nudgeOver = loose ? LOOSE_NUDGE_OVER : NUDGE_OVER;
 
     if (shouldPlay) {
       cancelFade();
@@ -104,10 +97,10 @@ export function createPlayer(media, { onDuration = () => {}, onAudible = () => {
       media.volume = level();
       if (!media.paused) media.muted = !audible();
       if (ready) {
-        if (Math.abs(drift) > seekOver) {
+        if (Math.abs(drift) > SEEK_OVER) {
           media.currentTime = target;
           media.playbackRate = 1;
-        } else media.playbackRate = Math.abs(drift) < nudgeOver ? 1 : drift > 0 ? 0.95 : 1.05;
+        } else media.playbackRate = Math.abs(drift) < NUDGE_OVER ? 1 : drift > 0 ? 0.95 : 1.05;
       }
       if (media.paused) start();
       return;
@@ -159,11 +152,10 @@ export function createPlayer(media, { onDuration = () => {}, onAudible = () => {
     load(url) {
       if (media.getAttribute('src') !== url) media.src = url;
     },
-    apply(next, { volume: general = 1, sound: mine = false, loose: relaxed = false } = {}) {
+    apply(next, { volume: general = 1, sound: mine = false } = {}) {
       clock = next;
       volume = general;
       sound = mine;
-      loose = relaxed;
       sync();
       if (!timer) timer = setInterval(sync, EVERY_MS);
     },

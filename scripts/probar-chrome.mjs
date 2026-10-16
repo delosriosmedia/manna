@@ -546,6 +546,19 @@ try {
   const queueDetail = () => run(`return JSON.stringify({ rows: [...document.querySelectorAll('.queue-item')].map(r => r.className + ':' + r.querySelector('strong').textContent), sections: document.querySelectorAll('.queue-section').length, pos: document.querySelector('.queue-head small').textContent })`);
   check('la cola del culto lista el orden, marca lo que está al aire y dice en qué lugar va', await run(`return document.querySelectorAll('.queue-item').length === 2 && document.querySelector('.queue-item.live').textContent.includes('Juan 3:19') && document.querySelectorAll('.queue-section').length === 2 && document.querySelector('.queue-head small').textContent === '1 de 2'`), await queueDetail());
   check('sin nada con mandos al aire, la barra de abajo no muestra la fila de mandos', await run(`return document.querySelector('.tb-extra').hidden`));
+  // Como en un reproductor de video: sin mover el ratón ni pulsar teclas, la barra se aparta; un movimiento la trae.
+  const barShown = () => run(`return !document.body.classList.contains('bar-idle') && getComputedStyle(document.querySelector('.transport-bar')).opacity === '1'`);
+  await chrome.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 700, y: 300 });
+  await sleep(3200);
+  check('la barra de abajo se aparta sola tras unos segundos sin usar el ratón', await run(`return document.body.classList.contains('bar-idle') && getComputedStyle(document.querySelector('.transport-bar')).opacity === '0'`));
+  await chrome.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 720, y: 320 });
+  await sleep(500);
+  check('y vuelve al mover el ratón', await barShown());
+  await sleep(2800);
+  // Mayús: una tecla que no hace nada más.
+  for (const type of ['keyDown', 'keyUp']) await chrome.send('Input.dispatchKeyEvent', { type, key: 'Shift', code: 'ShiftLeft', windowsVirtualKeyCode: 16 });
+  await sleep(500);
+  check('o al pulsar una tecla', await barShown());
   check('con un módulo abierto, su icono está marcado y el cajón trae su título y su pantalla', await drawerOpen() && (await dockOn()).join() === 'orden' && await run(`return document.querySelector('.dock-item[data-id=orden]').getAttribute('aria-pressed') === 'true' && document.querySelector('.drawer-head h2').textContent === 'Orden' && Boolean(document.querySelector('.drawer .work .ws[data-module=orden]:not([hidden])'))`));
   await tapEl(`document.querySelector('.dock-item[data-id=orden]')`);
   check('pulsar otra vez el icono del módulo abierto cierra el cajón', !await drawerOpen() && (await dockOn()).length === 0);
@@ -2172,26 +2185,17 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     await sleep(1500);
     check('con el PIN bueno entra en la función elegida', (await chrome.evaluate('location.pathname')) === '/orden');
 
-    // Desde otro dispositivo (Control completo, en el celular): «Escuchar aquí» lo que está al aire y escuchar
-    // antes de añadir, solo en este dispositivo. En el equipo principal estos botones no salen.
+    // Desde otro dispositivo (Control completo, en el celular): escuchar antes de añadir, solo en este dispositivo.
+    // En el equipo principal estos botones no salen.
     console.log('\n2. Escuchar en otro dispositivo');
     await run(`return (await fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'control', pin: ${JSON.stringify(realPin)} }) })).status`);
     await chrome.send('Page.navigate', { url: `${byName}/control?e=${Date.now()}` });
     await sleep(2500);
     await run(`return await ${post('projection.show', { kind: 'song', data: { number: 9, track: 'vocal' } })}`);
     await sleep(1500);
-    const listenBtn = `document.querySelector('.story-volume .listen-btn')`;
-    check('junto al volumen sale «Escuchar aquí», apagado', await run(`const b = ${listenBtn}; return Boolean(b) && b.getAttribute('aria-pressed') === 'false' && b.getClientRects().length > 0`));
-    await tapEl(listenBtn);
-    await sleep(1500);
-    // Suena la proyección de fondo de este dispositivo: el archivo baja una sola vez (no hay un <audio> aparte).
-    // En el celular la proyección va en el recuadro de «Historias»; en el escritorio, de fondo: es la misma.
-    const bgMedia = `document.querySelector('.scene-screen video')`;
-    const heard = await run(`const a = ${bgMedia}; return JSON.stringify({ src: a?.getAttribute('src'), paused: a?.paused, muted: a?.muted, t: a?.currentTime, extra: document.querySelectorAll('body > audio').length })`).then(JSON.parse);
-    check('al tocarlo, este dispositivo oye el himno al aire, en su punto y sin bajarlo dos veces', /\/himnos\/009/.test(heard.src || '') && heard.paused === false && heard.muted === false && heard.t > 0.2 && heard.extra === 0, JSON.stringify(heard));
-    await tapEl(listenBtn);
-    await sleep(700);
-    check('y al volver a tocarlo deja de oírse (y el celular deja de reproducirlo: se queda en su imagen)', await run(`const a = ${bgMedia}; return (a.muted || a.paused) && ${listenBtn}.getAttribute('aria-pressed') === 'false'`));
+    // «Escuchar aquí» se quitó (2026-10-16: en un celular de verdad se oía a saltos). La proyección de fondo de otro
+    // dispositivo muestra la imagen de lo que suena, sin reproducirlo.
+    check('en otro dispositivo no hay «Escuchar aquí», y la proyección de fondo no reproduce el himno al aire', await run(`const a = document.querySelector('.scene-screen video'); return !document.querySelector('.listen-btn') && (!a || a.paused || a.muted)`));
     await goTo('himnario');
     await sleep(1200);
     await click(`document.querySelector('.ws[data-module=himnario] .hymn[data-n="3"]')`);

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -499,6 +500,38 @@ test('una página se renombra, también lo que está al aire, y al quitarla se b
   await gone.arrayBuffer();
   assert.equal((await main.send('web.remove', { id: file.id })).status, 404);
   await main.send('projection.clear');
+});
+
+test('yt-dlp se pone al día solo cuando se publica otra versión, y solo el que ya está instalado', { skip: process.platform === 'win32' && 'el yt-dlp de mentira es un guion de shell' }, async () => {
+  // Un sitio de descargas en este mismo equipo: la prueba no sale a internet.
+  const newer = Buffer.from('#!/bin/sh\necho 2026.09.09\n');
+  let tag = '2026.09.09';
+  const site = http.createServer((req, res) => {
+    if (req.url === '/latest') return res.end(JSON.stringify({ tag_name: tag }));
+    if (req.url === '/yt-dlp') return res.end(newer);
+    if (req.url === '/sums') return res.end(`${crypto.createHash('sha256').update(newer).digest('hex')}  yt-dlp\n`);
+    res.writeHead(404);
+    res.end();
+  });
+  await new Promise((resolve) => site.listen(0, '127.0.0.1', resolve));
+  const at = `http://127.0.0.1:${site.address().port}`;
+  const own = path.join(tmp, 'aldia', 'herramientas');
+  fs.mkdirSync(own, { recursive: true });
+  fs.writeFileSync(path.join(own, 'yt-dlp'), '#!/bin/sh\necho 2026.01.01\n', { mode: 0o755 });
+  const box = await start('aldia', { MANNA_DESCARGAS: JSON.stringify({ 'yt-dlp': { url: `${at}/yt-dlp`, sums: `${at}/sums`, latest: `${at}/latest`, file: 'yt-dlp' } }) });
+  const version = () => box.app.store.get('tools').list.find((t) => t.id === 'yt-dlp').version;
+  try {
+    assert.equal(version(), '2026.01.01');
+    assert.equal(await box.app.tools.freshen('yt-dlp'), true);
+    assert.equal(version(), '2026.09.09');
+    // Con la misma versión publicada, no se descarga nada.
+    assert.equal(await box.app.tools.freshen('yt-dlp'), false);
+    // Un programa que no está instalado no se instala por su cuenta.
+    assert.equal(await box.app.tools.freshen('ffmpeg'), false);
+  } finally {
+    await box.stop();
+    site.close();
+  }
 });
 
 test('una orden mal formada no cierra Manna ni cuela datos sin validar', async () => {

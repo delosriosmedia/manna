@@ -9,7 +9,7 @@
 //     key(item),              identidad de lo dibujado: si no cambia, es lo mismo en pantalla
 //     background,             false si ocupa toda la pantalla (imagen, video); por defecto se dibuja
 //                             sobre el fondo elegido en Ajustes (texto)
-//     draw(host, { stage, thumbnail }) -> { update(item, { mode, styles }), live?(state, { volume, sound, loose, still }), stop?(), destroy?(),
+//     draw(host, { stage, thumbnail }) -> { update(item, { mode, styles }), live?(state, { volume, sound, still }), stop?(), destroy?(),
 //                                          locate?(x, y), spot?(clientX, clientY) }
 //                             locate y spot pasan de un punto del contenido (0 a 1) a la página y al revés:
 //                             con ellos el escenario muestra el puntero del presentador

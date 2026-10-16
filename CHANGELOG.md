@@ -6,6 +6,11 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## 1.18.0 — 2026-10-16
 
+- **La barra de abajo se aparta sola** en el escritorio, tras unos segundos sin mover el ratón ni pulsar una tecla, como en un reproductor de video: así se ve entera la proyección. Cualquier movimiento la trae.
+- **YouTube se arregla solo más a menudo**: si una descarga falla por algo que no es del video, Manna la reintenta sola dos veces, y antes pone al día yt-dlp si hay una versión nueva. También lo comprueba al abrirse con el icono.
+- **Se quita «Escuchar aquí»** (oír en el celular lo que está al aire): en un celular de verdad se oía a saltos. «Escuchar» antes de añadir sigue igual.
+- En el Presentador del celular ya no queda una barra vacía sobre las diapositivas.
+
 Auditoría del proyecto (fase 9, parte de código):
 
 - **Más seguro**: una orden de instalar un programa que no existe ya no cierra Manna; se rechazan las órdenes que llegan desde otro puerto u otro subdominio; desde internet, fallar el PIN bloquea solo a quien lo falla, no a todos; la pista instrumental de los himnos se prepara de una en una.

@@ -104,6 +104,11 @@ export function createProgress() {
 }
 
 // Por qué falló, dicho para quien usa Manna, a partir de lo que escribió yt-dlp.
+// Un fallo que es del video (privado, quitado, con edad, en directo) o de que falta ffmpeg: no se arregla reintentando.
+export const definitive = (stderr) => /private video|video unavailable|has been removed|no longer available|This video is not available|age.restricted|confirm your age|does not pass filter|is_live|ffmpeg.*(?:not found|not installed)|Postprocessing.*ffmpeg/i.test(String(stderr || ''));
+// Los demás suelen pasar al rato o con un yt-dlp más nuevo: se reintenta solo, tras esperar esto.
+const RETRY_WAITS = [5000, 20000];
+
 export function explain(stderr, js = jsRuntime()) {
   const text = String(stderr || '');
   if (/ffmpeg.*(?:not found|not installed)|Postprocessing.*ffmpeg/i.test(text)) return 'Falta ffmpeg en el equipo principal para unir la imagen y el sonido. Se instala desde Ajustes, en "Programas del equipo principal".';
@@ -185,24 +190,35 @@ export function createDownloader(app) {
     running = queue.shift();
     const { task, job } = running;
     const current = running;
-    job.update({ detail: 'Descargando de YouTube' });
-    fs.rmSync(task.dir, { recursive: true, force: true });
-    fs.mkdirSync(task.dir, { recursive: true });
-    const progress = createProgress();
-    const ffmpeg = app.tools.path('ffmpeg');
     const js = jsRuntime();
-    const result = await run(downloadArgs({ id: task.videoId, dir: task.dir, ffmpegDir: ffmpeg && path.dirname(ffmpeg), js }), (line) => {
-      const said = readLine(line);
-      if (!said) return;
-      if (said.title || said.duration) {
-        // onInfo devuelve el nombre con el que queda el video: la tarea pasa a llamarse así.
-        const name = task.onInfo(said);
-        if (name) job.update({ title: `Descargando «${name}»` });
-      }
-      if (said.total) job.update({ progress: progress(said) });
-    });
     const video = path.join(task.dir, 'video.mp4');
-    const ok = result.code === 0 && fs.existsSync(video) && !current.cancelled;
+    let result;
+    let ok = false;
+    for (let attempt = 0; ; attempt += 1) {
+      job.update({ detail: attempt ? 'Reintentando' : 'Descargando de YouTube', progress: 0 });
+      fs.rmSync(task.dir, { recursive: true, force: true });
+      fs.mkdirSync(task.dir, { recursive: true });
+      const progress = createProgress();
+      const ffmpeg = app.tools.path('ffmpeg');
+      result = await run(downloadArgs({ id: task.videoId, dir: task.dir, ffmpegDir: ffmpeg && path.dirname(ffmpeg), js }), (line) => {
+        const said = readLine(line);
+        if (!said) return;
+        if (said.title || said.duration) {
+          // onInfo devuelve el nombre con el que queda el video: la tarea pasa a llamarse así.
+          const name = task.onInfo(said);
+          if (name) job.update({ title: `Descargando «${name}»` });
+        }
+        if (said.total) job.update({ progress: progress(said) });
+      });
+      ok = result.code === 0 && fs.existsSync(video) && !current.cancelled;
+      if (ok || current.cancelled || closed || attempt >= RETRY_WAITS.length || definitive(result.err)) break;
+      // Al registro, lo que dijo yt-dlp; antes de reintentar, se pone al día si hay versión nueva.
+      console.error(`YouTube falló con ${task.videoId} (intento ${attempt + 1}; se reintenta): ${String(result.err).trim().split(/\r?\n/).slice(-3).join(' | ')}`);
+      job.update({ detail: 'Falló; se reintenta en unos segundos' });
+      await app.tools.freshen?.('yt-dlp').catch(() => false);
+      await new Promise((resolve) => setTimeout(resolve, RETRY_WAITS[attempt]));
+      if (current.cancelled || closed) break;
+    }
     if (ok) {
       // Los subtítulos, si los hay. Que fallen no estropea nada.
       job.update({ progress: 0.99, detail: 'Buscando subtítulos' });

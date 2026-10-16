@@ -11,13 +11,10 @@ import '../kinds.js';
 //
 // sound: esta pantalla es la que suena. Lo decide el servidor y puede cambiar (setSound).
 // thumbnail: es una miniatura de una lista (los pasos del orden del culto): el tipo carga lo más ligero que tenga.
-// loose: lo que suena se sincroniza sin apuro (un dispositivo remoto por wifi): mejor un poco desfasado que a saltos.
-// setListen(true): «Escuchar aquí»: suena en este dispositivo, entero (el volumen general es el de la iglesia).
-// Una miniatura (thumbnail) no reproduce lo que suena salvo que se escuche: un video muestra su imagen, sin gastar
-// batería, red ni procesador en un celular (still).
-export function createStage(container, { sound: initialSound = false, thumbnail = false, loose = false } = {}) {
+// Una miniatura (thumbnail) no reproduce lo que suena: un video muestra su imagen, sin gastar batería, red ni
+// procesador en un celular (still).
+export function createStage(container, { sound: initialSound = false, thumbnail = false } = {}) {
   let sound = initialSound;
-  let listening = false;
   const bg = h('div', { class: 'stage-bg' });
   const overlay = h('div', { class: 'stage-overlay' });
   const content = h('div', { class: 'stage-content' });
@@ -44,7 +41,7 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
   function applyLive() {
     if (!drawn?.view.live || !current) return;
     const mine = live && live.uid === current.uid ? live.state : null;
-    drawn.view.live(mine, { volume: listening ? 1 : live?.volume ?? 1, sound: sound || listening, loose, still: thumbnail && !listening });
+    drawn.view.live(mine, { volume: live?.volume ?? 1, sound, still: thumbnail });
   }
 
   function render({ mode, item, styles }) {
@@ -108,10 +105,5 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
     },
     // ¿Lo dibujado sabe situar un punto? (con eso se puede señalar sobre él)
     pointable: () => Boolean(drawn?.view.locate),
-    setListen(value) {
-      if (listening === Boolean(value)) return;
-      listening = Boolean(value);
-      applyLive();
-    },
   };
 }

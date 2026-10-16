@@ -11,7 +11,7 @@ import system from '../server/modules/system/index.js';
 import projection from '../server/modules/projection/index.js';
 import order from '../server/modules/order/index.js';
 import media from '../server/modules/media/index.js';
-import { cleanVtt, createProgress, downloadArgs, explain, jsRuntime, readLine, subtitleArgs, watchUrl, youtubeId } from '../server/modules/media/youtube.js';
+import { cleanVtt, createProgress, definitive, downloadArgs, explain, jsRuntime, readLine, subtitleArgs, watchUrl, youtubeId } from '../server/modules/media/youtube.js';
 import { writeFakeYtDlp } from '../scripts/lib/yt-dlp-falso.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -88,6 +88,16 @@ test('explain dice por qué falló una descarga, con palabras de quien usa Manna
   assert.match(explain('ERROR: algo que nadie esperaba'), /actualiza yt-dlp/);
   // Con un Node anterior al 22, yt-dlp no tiene con qué resolver el acertijo de YouTube: se dice cómo arreglarlo.
   assert.match(explain('ERROR: algo que nadie esperaba', null), /Node\.js 22/);
+});
+
+test('definitive: lo que es del video no se reintenta; lo demás, sí (y antes se pone al día yt-dlp)', () => {
+  assert.equal(definitive('ERROR: [youtube] abc: Private video. Sign in if you have been granted access'), true);
+  assert.equal(definitive('ERROR: [youtube] abc: Video unavailable'), true);
+  assert.equal(definitive('ERROR: abc does not pass filter (!is_live), skipping ..'), true);
+  assert.equal(definitive('ERROR: Postprocessing: ffmpeg not found'), true);
+  assert.equal(definitive('ERROR: [youtube] abc: Requested format is not available'), false);
+  assert.equal(definitive("ERROR: [youtube] abc: Sign in to confirm you're not a bot"), false);
+  assert.equal(definitive('ERROR: unable to download video data: HTTP Error 403: Forbidden'), false);
 });
 
 test('cleanVtt deja los subtítulos automáticos de YouTube como los escribiría una persona', () => {

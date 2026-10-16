@@ -206,9 +206,6 @@ html.touch .tool-chip { height: 44px; padding: 0 14px; }
 .pv-text strong { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .preview-bar input[type='range'] { flex: 1; min-width: 60px; accent-color: var(--accent); }
 .pv-time { font: 500 11px var(--mono); color: var(--ink-3); white-space: nowrap; }
-/* «Escuchar aquí» (projection/listen.js): encendido, en cian. */
-.listen-btn { flex: 0 0 auto; }
-.listen-btn.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 .tb-volume .vol-nobody { display: none; } /* ya lo dice el icono de aviso (.no-sound) de al lado; el párrafo ensanchaba la barra */
 .no-sound { color: var(--accent); }
 
@@ -442,4 +439,11 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .drawer.wide, body.queue-closed .drawer.wide { left: 80px; }
   .prep { left: auto; right: 10px; width: min(420px, calc(100vw - 100px)); bottom: 10px; }
   .escena #toast { bottom: 16px; }
+}
+
+/* Con ratón y en pantalla ancha, la barra de abajo se aparta sin uso (escenario.js, «bar-idle»), como en un
+   reproductor de video. Sigue recibiendo el ratón: al acercarlo, el movimiento la trae antes del clic. */
+.transport-bar { transition: opacity 0.35s ease; }
+@media (hover: hover) and (pointer: fine) {
+  body.bar-idle:not(.narrow) .transport-bar { opacity: 0; }
 }

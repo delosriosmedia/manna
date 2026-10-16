@@ -140,3 +140,5 @@ html.touch .pr-tools .chip { min-height: 40px; padding: 0 14px; }
 /* Cajón reducido del celular: las presentaciones o las diapositivas de la elegida; subir, al ampliarlo. */
 .compact .ws[data-module='diapositivas'] .ws-head > .btn:not(.deck-back) { display: none; }
 .compact .ws[data-module='diapositivas'] .ws-head:not(:has(.deck-back:not([hidden]))) { display: none; }
+/* En el Presentador, los mandos de la diapositiva no se muestran (la grande ya se mueve y se señala): solo el aviso de PowerPoint. */
+.presenter .live-controls:not(:has(.slide-ppt:not([hidden]))) { display: none; }

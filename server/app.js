@@ -133,6 +133,8 @@ async function run() {
   // Revisión del equipo: si falta algún programa, Manna se abre en la página que dice qué no
   // funcionará y ayuda a instalarlo (web/requisitos.html). No bloquea: desde ahí se continúa.
   const { list } = await app.tools.scan();
+  // Abierto con el icono: yt-dlp se pone al día solo si hay versión nueva (al rato, para no estorbar el arranque).
+  if (BACKGROUND) setTimeout(() => app.tools.freshen('yt-dlp').catch(() => {}), 30_000).unref();
   const port = await app.listen();
   await app.services.network.refresh();
   const entry = app.tools.entry();

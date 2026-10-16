@@ -103,6 +103,8 @@ async function findPowerPoint() {
 
 // Descargas oficiales para "Instalar por mí". Si un sistema no figura, se instala a mano.
 const YT = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download';
+// Qué versión es la última (su «tag_name» es lo mismo que dice «yt-dlp --version»): para ponerlo al día solo (freshen).
+const YT_LATEST = 'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest';
 const CF = 'https://github.com/cloudflare/cloudflared/releases/latest/download';
 // cloudflared no publica una lista de huellas aparte: van en el texto de cada versión («nombre: huella»).
 const CF_SUMS = 'https://api.github.com/repos/cloudflare/cloudflared/releases/latest';
@@ -116,8 +118,8 @@ const OFFICIAL = {
     },
   },
   'yt-dlp': {
-    win32: { url: `${YT}/yt-dlp.exe`, sums: `${YT}/SHA2-256SUMS`, file: 'yt-dlp.exe', size: '18 MB' },
-    darwin: { url: `${YT}/yt-dlp_macos`, sums: `${YT}/SHA2-256SUMS`, file: 'yt-dlp', size: '37 MB' },
+    win32: { url: `${YT}/yt-dlp.exe`, sums: `${YT}/SHA2-256SUMS`, latest: YT_LATEST, file: 'yt-dlp.exe', size: '18 MB' },
+    darwin: { url: `${YT}/yt-dlp_macos`, sums: `${YT}/SHA2-256SUMS`, latest: YT_LATEST, file: 'yt-dlp', size: '37 MB' },
   },
   cloudflared: {
     win32: { url: `${CF}/cloudflared-windows-amd64.exe`, sums: CF_SUMS, release: true, file: 'cloudflared.exe', size: '65 MB' },
@@ -304,6 +306,24 @@ export function setupTools(app) {
     }
   }
 
+  // Pone al día un programa que lo pide a menudo (yt-dlp: YouTube cambia y las versiones viejas dejan de bajar): si
+  // la última publicada es otra que la instalada, lo vuelve a instalar. Solo uno que ya esté; sin internet, o con
+  // la misma versión, no hace nada. Nunca en las pruebas (MANNA_FALTA lo oculta). Devuelve si lo cambió.
+  async function freshen(id) {
+    const spec = downloads[id];
+    const have = found.get(id)?.version;
+    if (!spec?.latest || !have || hidden.has(id) || installing.has(id)) return false;
+    let tag;
+    try {
+      const res = await fetch(spec.latest, { headers: { 'User-Agent': 'Manna', Accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(8000) });
+      tag = res.ok ? String((await res.json()).tag_name || '') : '';
+    } catch { return false; }
+    if (!tag || tag === have) return false;
+    console.log(`${id}: hay una versión nueva (${have} → ${tag}); se pone al día.`);
+    await install(id);
+    return found.get(id)?.version !== have;
+  }
+
   app.action('tools.scan', { permission: 'system.admin' }, async () => { await scan(); });
 
   app.action('tools.install', { permission: 'system.admin' }, ({ id }, ctx) => {
@@ -317,6 +337,7 @@ export function setupTools(app) {
 
   return {
     scan,
+    freshen,
     has: (id) => found.has(id),
     // Ruta del ejecutable, o null. binary: cuál, si el programa trae varios (ffmpeg / ffprobe).
     path: (id, binary = id) => found.get(id)?.files[binary] || null,
