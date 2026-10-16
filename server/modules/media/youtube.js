@@ -104,7 +104,7 @@ export function createProgress() {
 }
 
 // Por qué falló, dicho para quien usa Manna, a partir de lo que escribió yt-dlp.
-export function explain(stderr) {
+export function explain(stderr, js = jsRuntime()) {
   const text = String(stderr || '');
   if (/ffmpeg.*(?:not found|not installed)|Postprocessing.*ffmpeg/i.test(text)) return 'Falta ffmpeg en el equipo principal para unir la imagen y el sonido. Se instala desde Ajustes, en "Programas del equipo principal".';
   if (/private video|video unavailable|has been removed|no longer available|This video is not available/i.test(text)) return 'Ese video no está disponible: es privado o se quitó de YouTube.';
@@ -112,6 +112,8 @@ export function explain(stderr) {
   if (/age.restricted|confirm your age/i.test(text)) return 'Ese video tiene restricción de edad y no se puede descargar.';
   if (/does not pass filter|is_live/i.test(text)) return 'Es una emisión en directo: se podrá descargar cuando termine.';
   if (/getaddrinfo|network is unreachable|timed out|Unable to download webpage|Temporary failure in name resolution|nodename nor servname/i.test(text)) return 'No hay conexión a internet en el equipo principal. Hace falta para descargar; después ya no.';
+  // Sin intérprete de JavaScript, YouTube suele negar el video: la causa más probable es un Node.js viejo.
+  if (!js) return 'No se pudo descargar ese video. YouTube necesita Node.js 22 o más nuevo en el equipo principal: instala la versión LTS desde nodejs.org y vuelve a abrir Manna.';
   return 'No se pudo descargar ese video. Si pasa con todos, actualiza yt-dlp desde Ajustes: YouTube cambia a menudo.';
 }
 

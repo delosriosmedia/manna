@@ -190,11 +190,12 @@ export default function setup(app) {
 
   // ---- La pista instrumental ----
   const preparing = new Map(); // archivo de salida -> promesa
+  let queue = Promise.resolve(); // una copia a la vez: muchas peticiones juntas no lanzan cientos de ffmpeg
   function ensureTrack(hymn) {
     const out = path.join(tracksDir, `${hymn.number}-${Math.round(hymn.modified)}.mp4`);
     if (fs.existsSync(out)) return Promise.resolve(out);
     if (preparing.has(out)) return preparing.get(out);
-    const work = new Promise((resolve, reject) => {
+    const work = queue.then(() => new Promise((resolve, reject) => {
       fs.mkdirSync(tracksDir, { recursive: true });
       const partial = `${out}.parcial`;
       let child;
@@ -213,7 +214,8 @@ export default function setup(app) {
           reject(new HttpError(409, 'Este himno no trae pista instrumental.'));
         }
       });
-    }).finally(() => preparing.delete(out));
+    })).finally(() => preparing.delete(out));
+    queue = work.catch(() => {});
     preparing.set(out, work);
     return work;
   }

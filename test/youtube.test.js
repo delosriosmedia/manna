@@ -86,6 +86,8 @@ test('explain dice por qué falló una descarga, con palabras de quien usa Manna
   // "both" o "bottom" no son "bot": un fallo desconocido no se achaca a que YouTube pida iniciar sesión.
   assert.match(explain('ERROR: both formats failed'), /actualiza yt-dlp/);
   assert.match(explain('ERROR: algo que nadie esperaba'), /actualiza yt-dlp/);
+  // Con un Node anterior al 22, yt-dlp no tiene con qué resolver el acertijo de YouTube: se dice cómo arreglarlo.
+  assert.match(explain('ERROR: algo que nadie esperaba', null), /Node\.js 22/);
 });
 
 test('cleanVtt deja los subtítulos automáticos de YouTube como los escribiría una persona', () => {

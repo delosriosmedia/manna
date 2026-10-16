@@ -272,7 +272,7 @@ export function createEscenario(ctx) {
     const src = p.item?.source;
     const cur = items.find((i) => i.id === src?.orderId);
     const total = cur?.steps > 1 ? cur.steps : p.item?.pages > 1 ? p.item.pages : 0;
-    const now = cur ? (src.step ?? 0) : (p.item?.number || 1) - 1;
+    const now = cur ? (src.step ?? 0) : (p.item?.index ?? p.item?.number ?? 1) - 1; // index: la diapositiva de una letra; number, la de una presentación
     segments.replaceChildren(...Array.from({ length: Math.min(total, 40) }, (_, k) => h('span', { class: k < now ? 'done' : k === now ? 'on' : '' })));
     const live = describeLive(p);
     storyTitle.textContent = live.text || live.label;

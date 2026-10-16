@@ -222,8 +222,9 @@ export function createRouter({ webDir, sessions }) {
     const reads = req.method === 'GET' || req.method === 'HEAD';
     const session = sessions.fromRequest(req);
     try {
-      // Una página de otro sitio, o una de las encerradas que sirve Manna (origen «null»), no da órdenes.
-      if (!reads && (req.headers.origin === 'null' || req.headers['sec-fetch-site'] === 'cross-site')) throw new HttpError(403, 'Esa orden no viene de Manna.');
+      // Una página de otro sitio (también de otro puerto o subdominio: «same-site»), o una de las encerradas que sirve
+      // Manna (origen «null»), no da órdenes.
+      if (!reads && (req.headers.origin === 'null' || ['cross-site', 'same-site'].includes(req.headers['sec-fetch-site']))) throw new HttpError(403, 'Esa orden no viene de Manna.');
       for (const r of routes) {
         if (r.method !== req.method) continue;
         const m = r.rx.exec(url.pathname);
@@ -236,7 +237,8 @@ export function createRouter({ webDir, sessions }) {
           query: url.searchParams,
           isLocal,
           internet,
-          ip: req.socket.remoteAddress,
+          // Lo que llega por el túnel viene de 127.0.0.1: se usa la dirección que dice Cloudflare (para el bloqueo del PIN).
+          ip: (internet && String(req.headers['cf-connecting-ip'] || '').trim()) || req.socket.remoteAddress,
           session,
           async json() {
             if (!/^application\/json/.test(req.headers['content-type'] || '')) throw new HttpError(415, 'Se esperaba JSON.');
@@ -267,7 +269,7 @@ export function createRouter({ webDir, sessions }) {
       sendJson(res, 404, { error: url.pathname.startsWith('/api/') ? 'Manna no reconoce esa orden. Si acabas de actualizarlo, reinícialo desde Ajustes.' : 'No encontrado.' });
     } catch (err) {
       if (!(err instanceof HttpError)) console.error(err);
-      if (!res.headersSent) sendJson(res, err.status || 500, { error: err.status ? err.message : 'Error interno del servidor.' });
+      if (!res.headersSent) sendJson(res, err.status || 500, { error: err.status ? err.message : 'Algo falló en Manna. Inténtalo de nuevo; si sigue pasando, reinicia Manna desde Ajustes.' });
     }
   }
 

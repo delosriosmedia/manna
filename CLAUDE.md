@@ -16,16 +16,17 @@ Repositorio: https://github.com/delosriosmedia/manna
 - Como lo abre el usuario: icono **Manna**, creado por `Instalar Manna en Windows.bat` / `Instalar Manna en Mac.command`, que se descargan sueltos (versión de GitHub), bajan Manna a una carpeta propia y lo actualizan al volver a abrirlos (ver README, «Instalación»). Arranca con `--segundo-plano` (sin ventana, registro en `data/manna.log`) y se apaga con el botón "Apagar" del control
 - Pruebas: `npm test` (incluye la revisión del código sin ejecutarlo: imports que no existen, nombres que tapan algo importado y órdenes que el servidor no tiene)
 - Servidor de prueba sin abrir navegador ni tocar los datos reales:
-  `MANNA_NAME=manna-prueba MANNA_NO_OPEN=1 MANNA_SIN_VENTANA=1 MANNA_DATA="$TMPDIR/manna-prueba" PORT=8123 node server/index.js`
+  `MANNA_NAME=manna-prueba MANNA_NO_OPEN=1 MANNA_SIN_VENTANA=1 MANNA_DATA="$TMPDIR/manna-prueba" MANNA_HIMNARIO="$TMPDIR/manna-prueba/himnario" PORT=8123 node server/index.js`
   (`MANNA_SIN_VENTANA=1` es obligatorio en pruebas: sin él, si hay un proyector conectado, la prueba se proyecta y suena en él)
-- Pruebas de extremo a extremo en un Chrome real: `node scripts/probar-chrome.mjs` (tres grupos a la vez, unos 3 min; con un nombre, solo ese grupo: `control`, `biblioteca` o `red`; `rapido` se salta los pasos 2 a 4). Usa los puertos 8123, 8125, 8131 y 8133: cierra antes la demostración **y su pestaña** (también la del navegador integrado; ver `.claude/rules/pruebas.md`)
+- Pruebas de extremo a extremo en un Chrome real: `node scripts/probar-chrome.mjs` (tres grupos a la vez, menos de 3 min; con un nombre, solo ese grupo: `control`, `biblioteca` o `red`; `rapido` se salta los pasos 2 a 4). Usa los puertos 8123, 8125, 8131 y 8133: cierra antes la demostración **y su pestaña** (también la del navegador integrado; ver `.claude/rules/pruebas.md`)
 - Auditoría de adaptación a pantallas (celular, tableta, escritorio): `node scripts/auditar-responsive.mjs` (unos 4 min; con palabras, solo esas pantallas y tamaños: `… biblia 360x640 844x390 1280x720`)
+- Los guiones de pruebas en Chrome (`scripts/lib/chrome.mjs`, usan el `WebSocket` integrado) necesitan **Node.js 22 o superior**.
 - Cuántas pruebas correr y cuándo (en cada edición, al terminar un cambio, al cerrar una parte): `.claude/rules/pruebas.md`
 - Demostración con un orden del culto de ejemplo y datos temporales: `node scripts/demo.mjs` (puerto 8123). Con ella, `/vista-previa` muestra la app en el marco de un celular o una tableta
 
 ## Stack
 
-- Servidor: Node.js 18+, módulos ES, **sin dependencias** (no hay `npm install`).
+- Servidor: Node.js 18+, módulos ES, **sin dependencias** (no hay `npm install`). Descargar de YouTube necesita Node.js 22 o superior (`jsRuntime` en `server/modules/media/youtube.js`), igual que los guiones de pruebas en Chrome (`scripts/lib/chrome.mjs`).
 - Programas externos del equipo principal: Chrome o Edge, ffmpeg, yt-dlp, cloudflared y PowerPoint. Se detectan, se instalan y se ejecutan solo a través de `server/core/tools.js` (PowerPoint se gobierna desde `server/modules/slides/powerpoint.js`). Al abrirse, Manna revisa que estén (`/requisitos`).
 - Web: HTML, CSS y JavaScript puro con módulos ES. **Sin framework ni paso de compilación.** Tipografía (Sora para la interfaz y Geist Mono para cifras), iconos (Phosphor) y pdf.js incluidos en `web/vendor/`.
 - Tiempo real: Server-Sent Events (`GET /api/events`). Órdenes: `POST /api/action`.

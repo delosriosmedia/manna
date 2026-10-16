@@ -2316,6 +2316,13 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await sleep(400);
   await click(`[...${ord}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes('Añadir'))`);
   await sleep(300);
+  await menuItem('Página web');
+  await sleep(500);
+  check('y a las páginas web', (await chrome.evaluate('document.title')) === 'Manna · Páginas web');
+  await goTo('orden');
+  await sleep(400);
+  await click(`[...${ord}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes('Añadir'))`);
+  await sleep(300);
   await menuItem('Sección');
   await sleep(300);
   await run(`document.querySelector('.modal input').value = 'Despedida';`);

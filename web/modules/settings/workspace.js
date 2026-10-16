@@ -148,6 +148,7 @@ function mount(el, ctx) {
   // ---- Espacio en disco ----
   const sizeOf = (bytes) => (bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(1).replace('.', ',')} GB` : `${Math.max(bytes ? 1 : 0, Math.round(bytes / 1024 ** 2))} MB`);
   async function loadDisk() {
+    if (!disk) diskList.replaceChildren(h('p', { class: 'muted' }, 'Calculando lo que ocupa…'));
     disk = await api('/api/system/disk');
     diskList.replaceChildren(...disk.groups.map((g) => h('div', { class: 'disk-row', dataset: { id: g.id } }, h('span', {}, g.label), h('strong', {}, sizeOf(g.bytes)))),
       h('div', { class: 'disk-row total' }, h('span', {}, 'En total'), h('strong', {}, sizeOf(disk.total))));

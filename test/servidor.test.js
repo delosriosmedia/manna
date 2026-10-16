@@ -501,6 +501,18 @@ test('una página se renombra, también lo que está al aire, y al quitarla se b
   await main.send('projection.clear');
 });
 
+test('una orden mal formada no cierra Manna ni cuela datos sin validar', async () => {
+  const bad = await main.send('tools.install', { id: 'no-existe' });
+  assert.equal(bad.status, 400);
+  const styled = await main.send('projection.styles', { toString: 'malo', valueOf: 'malo' });
+  assert.equal(styled.status, 200);
+  const { styles } = (await main.state()).projection;
+  assert.equal(Object.hasOwn(styles, 'toString') || Object.hasOwn(styles, 'valueOf'), false);
+  const alive = await main.request('/api/ping');
+  assert.equal(alive.status, 200);
+  await alive.arrayBuffer();
+});
+
 test('una orden que no viene de Manna (origen «null» o de otro sitio) se rechaza', async () => {
   const post = (headers) => main.request('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ type: 'projection.mode', payload: { mode: 'clear' } }) });
   const statusOf = async (headers) => {
@@ -510,6 +522,8 @@ test('una orden que no viene de Manna (origen «null» o de otro sitio) se recha
   };
   assert.equal(await statusOf({ Origin: 'null' }), 403);
   assert.equal(await statusOf({ 'Sec-Fetch-Site': 'cross-site' }), 403);
+  // Otro puerto del mismo equipo, u otro subdominio: el navegador dice «same-site».
+  assert.equal(await statusOf({ 'Sec-Fetch-Site': 'same-site' }), 403);
   assert.equal(await statusOf({ 'Sec-Fetch-Site': 'same-origin' }), 200);
   assert.equal(await statusOf({}), 200);
   // Leer no se restringe: la página encerrada se abre con origen «null».

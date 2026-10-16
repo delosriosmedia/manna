@@ -65,7 +65,7 @@ export function createDisplayToggle({ compact = false } = {}) {
 export function createTestCardButton() {
   return h('button', { class: 'btn', onclick: guard(async () => {
     await action('projection.show', { kind: 'testcard', data: {} });
-    toast('Imagen de prueba en pantalla. Sus mandos se abren con «Mandos».');
+    toast('Imagen de prueba en pantalla: sus mandos cambian el dibujo y ponen en marcha el cronómetro.');
   }) }, icon('frame-corners', 16), 'Mostrar imagen de prueba');
 }
 

@@ -1,6 +1,6 @@
 # Plan de trabajo: versión 2
 
-Estado: **aprobado por el dueño el 2026-10-04. En curso: hechas las fases 0, 1, 2, 4 a 8 y 10 a 14; en curso la 15 (himnario corregido y «Letras sin música»); después, la 9 (auditoría). La 3 (televisores) está en pausa.**
+Estado: **aprobado por el dueño el 2026-10-04. En curso: hechas las fases 0, 1, 2, 4 a 8 y 10 a 15 (1.17.0) y la parte de código de la 9 (auditoría, 1.18.0); falta la del equipo real, con las pruebas del dueño. La 3 (televisores) está en pausa.**
 Parte de la versión 1.0.0 y termina en la 2.0.0.
 
 Este documento es el plan y, al terminar, la base de la auditoría (sección 8). Se actualiza al cerrar cada fase: la sección 9 lleva el avance, la 10 cada cambio que se le hizo al plan y por qué, y la 11 los cambios que se le sugieren al dueño y aún no ha decidido.
@@ -13,7 +13,7 @@ Este documento es el plan y, al terminar, la base de la auditoría (sección 8).
 | B | Búsqueda mejor: exactas primero, parecidas después, resaltado; rápida. **Solo en la Reina-Valera 1960** (decisión 12) | Fase 1 (hecho), ajustada en la 2 |
 | C | Pantalla de proyección en televisores (Samsung, LG, Android TV), a pantalla completa | Fase 3 |
 | D | Imágenes: subir, nombrar, ajustar a pantalla, zoom y desplazamiento en vivo | Fase 4 |
-| E | Himnario: 613 videos, dos vistas, buscador con letra, volumen, barra de avance, **cantado o pista** | Fase 5 (hecho; 73 letras por corregir) |
+| E | Himnario: 613 videos, dos vistas, buscador con letra, volumen, barra de avance, **cantado o pista** | Fases 5 y 15 (hecho, 1.17.0: el himnario corregido tiene las 613 letras sin avisos y «Letras sin música») |
 | F | Videos y audios locales en cualquier formato, con **conversión en segundo plano y avance a la vista** | Fase 6 |
 | G | YouTube: descargar al añadir el enlace, proyectar sin anuncios, **con subtítulos opcionales** | Fase 7 (hecho) |
 | H | Diapositivas: PDF y PowerPoint, con vista de la siguiente, cuántas faltan y zoom | Fase 8 (hecho; PowerPoint real sin probar) |
@@ -74,9 +74,11 @@ Datos medidos en el proyecto, no supuestos.
 | `compare` | Biblia (pantalla Comparador) | Un versículo por paso | Disposición: lado a lado o una sobre otra | Hecho (1.3) |
 | `image` | Medios | Uno | Ajuste, zoom, desplazamiento | Hecho (1.5) |
 | `song` | Himnario | Uno (el video) | Pausa, reinicio, saltos, barra de avance; cantado o pista; volumen general | Hecho (1.9) |
+| `lyrics` | Himnario («Letras sin música») | Una diapositiva por paso (vuelve a la portada) | Zoom, desplazamiento, vista de la siguiente, cuántas quedan | Hecho (1.17) |
 | `video`, `audio` | Medios | Uno | Pausa, reinicio, saltos, barra de avance; subtítulos; volumen general | Hecho (1.6) |
 | `youtube` | Medios | Uno | Los mismos, con elección del idioma de los subtítulos | Hecho (1.7) |
 | `slides` | Diapositivas | Una diapositiva por paso | Zoom, desplazamiento, vista de la siguiente, cuántas quedan | Hecho (1.8) |
+| `web` | Páginas web | Uno | Anterior y siguiente (en archivos HTML y ventana aparte) | Hecho (1.11) |
 
 "Cantado o pista" se elige **antes** de proyectar o de añadir al orden (queda guardado en el elemento) y también se puede cambiar al aire.
 
@@ -93,7 +95,7 @@ Lo que varias fases necesitan, construido una sola vez. Dónde quedó cada pieza
 | 5 | Archivos grandes | Hecho | Trozos (Range) y subida directa a disco en `server/core/router.js`; `upload()` con avance en `web/core/api.js` |
 | 6 | Carpetas de contenido | Base hecha | Todo lo de la iglesia en `Contenido/` (decisión 13). `server/core/folders.js` (vigilar y listar), `app.mount()` para servirlas, `data/tmp/` que se vacía al abrir y al cerrar. El himnario y los medios se conectan con su módulo (fases 5 y 6) |
 | 7 | Programas externos | Hecho | `server/core/tools.js` e `install.js`; página `/requisitos`; sección en Ajustes; aviso por módulo (`needs`, `web/core/needs.js`) |
-| 8 | "Más" en la barra de pestañas del celular | Hecho (fase 4) | `web/core/shell.js`: con más de cinco módulos, los cuatro primeros y "Más" |
+| 8 | Dock de módulos en el celular | Hecho (fase 13; en la 4 era un botón «Más») | `web/core/shell.js`: el dock lleva todos los módulos con su nombre y se desliza si no caben (ya no existe «Más») |
 | 9 | Nombre editable en cualquier elemento del orden | Hecho | `order.rename`, `renameItem` en `server/modules/order/logic.js` |
 | 10 | Búsqueda compartida | Hecho (fase 1) | `server/core/search.js` |
 | 11 | Selector de pasajes reutilizable | Hecho (fase 2) | `web/modules/bible/passages.js`, que usan Biblia y Comparador |
@@ -109,10 +111,11 @@ El código sigue sin dependencias. Lo aprobado son **programas aparte** y una bi
 | Chrome o Edge | Ventana de proyección en la segunda pantalla | Necesario para esa función |
 | ffmpeg | Convertir, unir YouTube, pista de los himnos | Necesario para esas funciones |
 | yt-dlp | Descargar de YouTube | Necesario para YouTube |
+| cloudflared | Conexión por internet (túnel de Cloudflare, Ajustes; aprobado el 2026-10-14) | Opcional |
 | PowerPoint | Convertir `.pptx` | Opcional: se usa por defecto si está; si no, se pide el PDF |
 | pdf.js (Mozilla, Apache 2.0) | Leer PDF en el navegador | En `web/vendor/pdfjs/` desde la fase 8 (versión 6.4.299, variante para navegadores no tan nuevos); se renueva con `scripts/actualizar-pdfjs.mjs` |
 
-**Revisión del equipo.** Cada vez que Manna se abre comprueba todo lo anterior. Si falta algo se abre en `/requisitos` en vez de en el control. La página dice **qué módulos funcionarán completos y cuáles no**, y para cada programa, para qué sirve; ofrece **Instalar por mí** (ffmpeg y yt-dlp, descargados de su sitio oficial a `data/herramientas/`, con comprobación de la huella, sin tocar el sistema) y los pasos para hacerlo a mano.
+**Revisión del equipo.** Cada vez que Manna se abre comprueba todo lo anterior. Si falta algo se abre en `/requisitos` en vez de en el control. La página dice **qué módulos funcionarán completos y cuáles no**, y para cada programa, para qué sirve; ofrece **Instalar por mí** (ffmpeg, yt-dlp y cloudflared, descargados de su sitio oficial a `data/herramientas/`, con comprobación de la huella, sin tocar el sistema) y los pasos para hacerlo a mano.
 
 **Nada bloquea** (decisión del dueño): desde la revisión se continúa a la app con un clic, falte lo que falte. Dentro, **cada módulo avisa al abrirlo** de lo que no podrá hacer y ofrece instalarlo o ver cómo. Qué necesita cada módulo lo declara el propio módulo (`needs`).
 
@@ -260,7 +263,7 @@ Sección 8.
 - La diapositiva al aire en grande, la siguiente al lado (debajo en el celular) y la cuadrícula de todas: tocar una la proyecta. Al llegar a la última, «Siguiente» no salta al siguiente elemento del orden.
 - **Señalar**: el dedo sobre la diapositiva marca un punto en la proyección. **Mover**: pellizcar acerca y arrastrar desplaza, además de los mandos de encuadre de siempre.
 - Se prueba entera en el equipo de desarrollo.
-- **Dónde está** (2026-10-14, sin publicar): `web/modules/slides/presenter.js` (la pantalla), `web/roles/presentador.js` y `web/presentador.html` (la función, con la clase `no-dock`), el rol en `server/roles.js`, la orden `projection.pointer` y el espacio `pointer` en `server/modules/projection/index.js`, el punto en `web/modules/projection/stage.js` (`setPointer`, `pointAt`) y `picture.js` (`locate`, `spot`). Pruebas: `test/servidor.test.js` (puntero), sección «Presentador» de `scripts/probar-chrome.mjs` y dos pantallas en `scripts/auditar-responsive.mjs`.
+- **Dónde está** (2026-10-14, publicado en la 1.10.0): `web/modules/slides/presenter.js` (la pantalla), `web/roles/presentador.js` y `web/presentador.html` (la función, con la clase `no-dock`), el rol en `server/roles.js`, la orden `projection.pointer` y el espacio `pointer` en `server/modules/projection/index.js`, el punto en `web/modules/projection/stage.js` (`setPointer`, `pointAt`) y `picture.js` (`locate`, `spot`). Pruebas: `test/servidor.test.js` (puntero), sección «Presentador» de `scripts/probar-chrome.mjs` y dos pantallas en `scripts/auditar-responsive.mjs`.
 
 ### Fase 11 · Páginas web y presentaciones HTML — hecha (1.11.0)
 
@@ -473,46 +476,46 @@ Tomadas el 2026-10-04.
 
 ## 8. Auditoría final (fase 9)
 
-Al terminar, se revisa el proyecto entero contra esta lista y se entrega un informe con lo encontrado y lo corregido.
+Al terminar, se revisa el proyecto entero contra esta lista y se entrega un informe con lo encontrado y lo corregido. **Hecha la parte de código el 2026-10-16 (1.18.0)**: Gemini leyó el código por temas (seguridad, arquitectura, interfaz, documentos); cada hallazgo se comprobó en el código antes de corregirlo, y los que no se sostenían se descartaron. Falta la del equipo real (pruebas del dueño).
 
 **Contra este plan**
-- [ ] Cada petición de la sección 1 está cumplida, o consta por qué no.
-- [ ] Cada decisión de la sección 6 quedó anotada en `docs/ESTADO.md`.
-- [ ] Cada cambio de la sección 10 se cumplió en la fase a la que se movió.
+- [x] Cada petición de la sección 1 está cumplida, o consta por qué no (C, televisores, en pausa; H, PowerPoint de verdad, pendiente de la prueba en Windows).
+- [x] Cada decisión de la sección 6 quedó anotada en `docs/ESTADO.md` (faltaban la 7, la 30, la 33, la 36 y la 37: añadidas).
+- [x] Cada cambio de la sección 10 se cumplió en la fase a la que se movió (12 comprobados al azar contra el código).
 
 **Arquitectura**
-- [ ] Ningún módulo del servidor importa archivos de otro.
-- [ ] Todo lo proyectable es un tipo registrado, se puede añadir al orden y se recorre con "Siguiente".
-- [ ] Todo mando en vivo pasa por `projection.control` y lo valida su tipo.
-- [ ] Ningún dato compartido vive solo en un navegador.
-- [ ] No queda código muerto ni duplicado entre módulos (incluida la tabla de tipos previstos de `web/modules/kinds.js`).
+- [x] Ningún módulo del servidor importa archivos de otro (búsqueda en el código); en la web, solo de `projection` y `system`.
+- [x] Todo lo proyectable es un tipo registrado, se puede añadir al orden y se recorre con "Siguiente". Dos excepciones a propósito: la imagen de prueba no entra al orden (es para encuadrar) y una letra sin música no sale de su himno (decisión 37).
+- [x] Todo mando en vivo pasa por `projection.control` y lo valida su tipo.
+- [x] Ningún dato compartido vive solo en un navegador (`localStorage`, solo preferencias del dispositivo, por `web/core/prefs.js`).
+- [x] Código muerto: quitada la tabla de tipos previstos de `web/modules/kinds.js`. **Quedan duplicados menores**, anotados en `docs/ESTADO.md`.
 
 **Seguridad**
-- [ ] Toda acción declara permiso y valida su entrada.
-- [ ] Subidas: tamaño limitado, tipo comprobado, nombres saneados, nada fuera de sus carpetas.
-- [ ] Programas externos: solo a través de `server/core/tools.js`, siempre con lista de argumentos.
-- [ ] Ningún programa que falte bloquea la app: cada módulo declara lo que necesita (`needs`) y avisa.
-- [ ] Descargas de programas: solo de las direcciones fijadas en el código, con huella comprobada, y solo a petición desde el equipo principal.
-- [ ] Enlaces de YouTube validados.
-- [ ] Un dispositivo remoto sin PIN no puede cambiar nada.
+- [x] Toda acción declara permiso y valida su entrada. Corregido: `projection.styles` aceptaba nombres heredados (`toString`).
+- [x] Subidas: tamaño limitado, tipo comprobado, nombres saneados, nada fuera de sus carpetas. Sin ffmpeg, un video se acepta por su extensión (se sirve como video, no se ejecuta).
+- [x] Programas externos: solo a través de `server/core/tools.js`, siempre con lista de argumentos.
+- [x] Ningún programa que falte bloquea la app.
+- [x] Descargas de programas: solo de las direcciones fijadas, con huella comprobada y desde el equipo principal. Corregido: un programa que no se puede instalar cerraba Manna.
+- [x] Enlaces de YouTube validados (solo el identificador).
+- [x] Un dispositivo remoto sin PIN no puede cambiar nada. Corregido: se rechazan también las órdenes de otro puerto o subdominio (`same-site`); por el túnel, el bloqueo del PIN es por persona; la pista instrumental se prepara de una en una (un dispositivo sin PIN podía lanzar cientos de ffmpeg).
 
 **Calidad**
-- [ ] Pruebas automáticas para toda la lógica; recorrido completo en Chrome real; auditoría de pantallas limpia.
-- [ ] Mensajes de error en español y con qué hacer.
-- [ ] Cada pantalla sigue `DESIGN.md`: un acento, iconos de la familia, estados vacío, cargando y error.
+- [x] Pruebas automáticas para toda la lógica; recorrido completo en Chrome real; auditoría de pantallas limpia (cifras en la sección 9).
+- [x] Mensajes de error en español y con qué hacer (mejorados: el fallo inesperado, YouTube con un Node viejo, la imagen de prueba).
+- [x] Cada pantalla sigue `DESIGN.md`. Añadidos estados de carga (Himnario, espacio en disco) y de error (pasos del orden). **Quedan** colores y radios sueltos en algunas hojas de estilo, anotados en `docs/ESTADO.md`.
 
 **Rendimiento**
-- [ ] Arranque, memoria y tiempo de búsqueda medidos y anotados (búsqueda: hecho en la fase 1; repetir con el himnario).
-- [ ] Un video de una hora se reproduce y salta sin cargarlo entero.
-- [ ] Mover un mando en vivo no reenvía el contenido proyectado.
+- [x] Arranque, memoria y tiempo de búsqueda medidos y anotados (`docs/ESTADO.md`, con la Biblia y el himnario reales).
+- [x] Un video de una hora se sirve por trozos (206, solo lo pedido), sin cargarlo entero.
+- [x] Mover un mando en vivo no reenvía el contenido proyectado (solo llega el espacio `live`).
 
 **Legal y contenido**
-- [ ] El repositorio no contiene biblias, himnos, letras ni medios con derechos.
-- [ ] Licencias de lo incluido (Geist, Phosphor, qrcode-generator, pdf.js) presentes, y créditos de lo que se instala aparte (ffmpeg, yt-dlp).
+- [x] El repositorio no contiene biblias, himnos, letras ni medios con derechos (de `Contenido/`, solo los `LEEME.txt` y la Reina-Valera 1909).
+- [x] Licencias de lo incluido (Sora, Geist, Phosphor, qrcode-generator, pdf.js) presentes, y créditos de lo que se instala aparte (ffmpeg, yt-dlp, cloudflared; añadido cloudflared y las licencias).
 
 **Documentación**
-- [ ] `README`, `DESIGN.md`, reglas, skills, `ESTADO.md` y `CHANGELOG.md` describen lo que hay.
-- [ ] Otra persona puede instalar y continuar el proyecto solo con el repositorio.
+- [x] `README`, `DESIGN.md`, reglas, skills, `ESTADO.md` y `CHANGELOG.md` describen lo que hay (corregidos unos veinte datos viejos: la interfaz anterior al «Escenario», Node 22 para YouTube, decisiones que faltaban, cifras, rutas).
+- [x] Otra persona puede instalar y continuar el proyecto solo con el repositorio (la página de pruebas del dueño es solo una comodidad: el registro es `docs/ESTADO.md`).
 
 **En el equipo real**
 - [ ] Instalación, revisión del equipo ("Instalar por mí") y uso en el Windows de la iglesia, con proyector.
@@ -531,7 +534,7 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 7 YouTube | **Hecha** · 2026-10-05 | 1.7.0 | Ver abajo. Los videos se conservan en la biblioteca (cambio al plan). Probado con un yt-dlp de mentira: **falta la primera descarga real** |
 | 8 Diapositivas | **Hecha** · 2026-10-05 | 1.8.0 | Ver abajo. El PDF, probado de verdad; **PowerPoint, solo con uno de mentira**: falta la prueba en Windows. Aquí se detiene el trabajo (decisión 28) |
 | 5 Himnario | **Hecha** · 2026-10-05 | 1.9.0 | Ver abajo. Probado con el himnario real: 613 himnos, 540 con letra. **El archivo de letras tiene 73 himnos (123 a 195) que no corresponden a sus videos**: no se usan hasta que se corrijan (corregido por el dueño; fase 15) |
-| 9 Auditoría | Pendiente | 2.0 | |
+| 9 Auditoría | **Hecha la parte de código** · 2026-10-16 | 1.18.0 | Ver sección 8. Seguridad: 5 fallos corregidos (el más serio, una orden que cerraba Manna). Arquitectura e interfaz: 3 fallos y 6 estados o mensajes corregidos; descartados 4 hallazgos que no se sostenían en el código. Documentos: unos veinte datos al día. Rendimiento medido. Pruebas al cerrar: 161 automáticas, 445 en Chrome, auditoría de 9 tamaños sin problemas. **Falta la parte del equipo real** (pruebas del dueño); la 2.0 se publica cuando pase |
 | 10 Presentador | **Hecha** · 2026-10-14, publicada en la 1.10.0 | | Probada en Chrome (con dedos simulados) y en la auditoría de pantallas. Falta la prueba del dueño con un celular real y el proyector |
 | 11 Páginas web | **Hecha** · 2026-10-14 | 1.11.0 | Probada con pruebas automáticas y en Chrome real, con páginas de un servidor del propio equipo. **Falta la prueba del dueño**: la ventana aparte con el proyector, Canva y Kahoot de verdad, y en Windows |
 | 15 Himnario corregido y Letras sin música | **Hecha** · 2026-10-16 | 1.17.0 | Categorías en dos niveles (sección y categoría, como el índice del himnario) y la pestaña «Letras sin música»: las diapositivas de cada himno, tipo `lyrics`, que se pasan a mano y tras la última vuelven a la portada del mismo himno. Con el himnario real corregido, en un servidor de prueba: 613 himnos, todos con letra y diapositivas, 46 categorías en 7 secciones, sin avisos. Cierra S7, S29, S30 y S31. Pruebas al cerrar: 160 automáticas, 444 en Chrome (8 nuevas del himnario), auditoría de 9 tamaños sin problemas (con la pestaña nueva). **Sin probar**: el himnario real en Chrome y en Windows, y las letras sin música en el proyector |
@@ -726,13 +729,15 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-16 | Fase 14, partes 2 y 3: la barra de abajo y el estado de arriba usan el cristal de la cola (74 %), y en la tableta la barra empieza a la derecha del dock | Con los mandos dentro, la auditoría de contraste lo pidió sobre una diapositiva blanca; y, más alta, pisaba el dock |
 | 2026-10-16 | Fase 14, parte 4: en un dispositivo remoto, la proyección de fondo no reproduce un video salvo con «Escuchar aquí» | Ya lo decía el diseño («un video muestra su imagen»), pero se reproducía: gastaba batería, red y procesador en cada celular |
 | 2026-10-16 | Fase 14, parte 4: la medición (procesador de Chrome con un video al aire) se hizo en el Mac de desarrollo con el video pequeño de la demostración: ahí el gasto es bajo (unos 6 % de un núcleo) y casi todo es el desenfoque del cristal | No hay en el equipo de desarrollo un equipo modesto ni un video pesado; las medidas se eligieron por lo que se midió, y su efecto real lo dirá la prueba del dueño |
+| 2026-10-16 | Fase 9 en dos partes: la de código se cierra ya (1.18.0); la del equipo real, con las pruebas del dueño, y entonces la 2.0 | Las pruebas del dueño no dependen del asistente, y los arreglos de seguridad no deben esperar |
+| 2026-10-16 | Fase 9: la lectura del código la hizo Gemini por temas; cada hallazgo se comprobó en el código antes de corregirlo | No gasta tokens de Claude; de 40 hallazgos, 4 no se sostenían y otros señalaban decisiones del dueño |
 | 2026-10-16 | Fase 15: las letras sin música son un tipo propio (`lyrics`) y no una presentación de Diapositivas | Vienen de `Contenido/` (no se suben ni se borran desde la app) y su «Siguiente» no sale del himno: tras la última vuelve a la portada |
 | 2026-10-16 | Fase 15: las categorías «Sección: Categoría» se agrupan bajo su sección, sin cambiar el formato del archivo de letras | El índice del himnario tiene dos niveles; el archivo ya los escribe así |
 | 2026-10-16 | S7, S29, S30 y S31 se cierran con la fase 15 | El dueño corrigió el archivo de letras (S7, S29) y sus categorías siguen el índice oficial (S30); «Letras sin música» proyecta las letras (S31) |
 | 2026-10-16 | S24 y S39 se hicieron en la fase 14; S27 se descarta | Decisión 36 |
 | 2026-10-16 | Se añade la fase 14 (ajustes tras la prueba del dueño con la 1.14) y va antes de la 9 | Decisión 36: lo encontrado al probar en el Mac y en el equipo Windows |
 | 2026-10-15 | S32 se acepta: favoritos en el Himnario, ya (decisión 35) | Con 613 himnos, los que más se cantan a un toque; no depende de la revisión del himnario que hace el dueño |
-| 2026-10-15 | S23 se acepta cambiada: el tamaño de los subtítulos se elige en Ajustes, sin darles el estilo de la proyección (decisión 34). Pendiente de hacer | Los actuales se leen bien; lo que falta es poder agrandarlos o achicarlos |
+| 2026-10-15 | S23 se acepta cambiada: el tamaño de los subtítulos se elige en Ajustes, sin darles el estilo de la proyección (decisión 34). Hecho en la fase 14 (1.16.0) | Los actuales se leen bien; lo que falta es poder agrandarlos o achicarlos |
 | 2026-10-15 | S36 (cajón estrecho por defecto en el escritorio) se da por cubierta | La parte 6 de la fase 13 hizo el cajón redimensionable y lo recuerda (decisión 33) |
 | 2026-10-14 | Fuera de las fases (decisión 31): la conexión por internet entra en Manna (módulo `internet`), desde internet todo pide PIN, y se instala con un solo archivo que no toca nunca el contenido | A petición del dueño |
 | 2026-10-14 | Fase 11, ampliación: la ventana aparte recibe «Anterior» y «Siguiente» desde el celular (S33) y el Presentador muestra páginas web, con el puntero (S34) | El dueño aceptó las dos sugerencias |
@@ -830,10 +835,22 @@ Las sugerencias S9 a S11 son del televisor: quedan para el final de todo, cuando
 | S10 | Fase 7: enviar un video de YouTube directamente al televisor | El televisor anuncia su aplicación de YouTube en la red (se vio al explorarlo). Serviría para que el video lo reproduzca el propio televisor, sin pasar por su navegador | Se estudiaría en la fase 7; no cambia el plan todavía |
 | S11 | Otras marcas de televisor | El módulo está hecho para añadirlas. Los LG (webOS) sí aceptan que se les indique la dirección por la red | Solo si alguna iglesia lo necesita; hace falta un televisor de esa marca para probar |
 | S25 | Que el dueño pruebe **PowerPoint en el equipo Windows** con dos o tres presentaciones reales, **convertidas y en vivo** (fase 12) | Es lo único de la fase 8 que no se pudo ejecutar: en el equipo de desarrollo no hay Windows, y en Mac PowerPoint no respondió sin que alguien aceptara un permiso | Nada en el plan. Si falla, lo que diga la tarjeta de la presentación es el punto de partida; mientras tanto, el PDF funciona **Pospuesta** hasta que el asistente estudie si PowerPoint puede pasar la presentación en segundo plano (decisión 35) |
-| S40 | **Manejar una página web desde el celular**: tocar, desplazarse y verla en vivo | Hoy cada pantalla tiene su propia copia de la página: tocarla en el celular solo mueve esa copia. Lo pidió el dueño al probar Páginas web (2026-10-16) | Abrir la página en su propia ventana en el proyector, enviarle los toques y desplazamientos por el protocolo de depuración de Chrome y mostrar en el celular una imagen en vivo de esa ventana. Amplía la regla de lo que se le envía a esa ventana (hoy, solo flechas). **Se estudia después de la fase 14** (decisión 36), con una prueba de concepto |
+| S40 | **Manejar una página web desde el celular**: tocar, desplazarse y verla en vivo | Hoy cada pantalla tiene su propia copia de la página: tocarla en el celular solo mueve esa copia. Lo pidió el dueño al probar Páginas web (2026-10-16) | Abrir la página en su propia ventana en el proyector, enviarle los toques y desplazamientos por el protocolo de depuración de Chrome y mostrar en el celular una imagen en vivo de esa ventana. Amplía la regla de lo que se le envía a esa ventana (hoy, solo flechas). Estudiada el 2026-10-16 con una prueba de concepto (ver «S40 · lo que se sabe», debajo): funciona. Mediano. **Espera la decisión del dueño** |
 | S35 | **Proyectar una pestaña ya abierta en el Chrome del equipo principal**, como al compartir en Google Meet | Serviría para cualquier página, también las que no se dejan mostrar o piden iniciar sesión, sin ZIP | Estudiado el 2026-10-14: ver «S35 · lo que se sabe», debajo. Mediano |
 | S41 | **Letras sin música en un proyector 16:9**: fondo negro a los lados | Las diapositivas del himnario son 4:3 (1024 × 768): en un proyector 16:9 quedan franjas a los lados, donde se ve el fondo de la proyección | Si al probarlas en la iglesia molestan, poner negro detrás solo de las letras sin música. Pequeño |
 
+
+### S40 · Manejar una página web desde el celular: lo que se sabe (2026-10-16)
+
+Prueba de concepto en el Mac de desarrollo, con un Chrome sin ventana y el cliente WebSocket de Manna (`core/ws.js`), sobre una página de prueba servida en el propio equipo:
+
+- **Funciona** por el mismo protocolo de depuración con que hoy se envían las flechas: **tocar** (un clic donde se tocó, pasado de fracciones de la imagen a la página de 1920 × 1080), **desplazar** (con la rueda y con un gesto de dedo de verdad, `Input.synthesizeScrollGesture`) y **escribir** en un campo (`Input.insertText`).
+- **Imagen en vivo** (`Page.startScreencast`): Chrome solo envía un cuadro cuando la página cambia; una página quieta no gasta nada. Tras un toque, el cuadro nuevo llega en menos de 10 ms. Con 960 px de ancho, una página sencilla pesa unos 6 KB por cuadro; el peor caso (una página llena de detalle que cambia en cada cuadro, como un video) llega a 140 KB por cuadro y 24 cuadros por segundo, unos 3,3 MB/s. Por eso, al celular se le enviarían **como mucho 5 cuadros por segundo** (el último, descartando los de en medio): en el peor caso, unos 700 KB/s, y casi nada con una presentación quieta.
+- **Solo con la página en su propia ventana** (la que se abre sobre la proyección): una página que se deja mostrar dentro de Manna se ve como una copia en cada pantalla, y no hay una sola que manejar. Para manejarla, se abriría también en su ventana.
+- **Cómo sería**: en el celular, con una página web al aire, «Manejar» abre la imagen en vivo a pantalla completa; un toque es un clic, arrastrar desplaza y «Teclado» escribe. El servidor abre la sesión con la ventana solo mientras alguien la maneja (`launcher.js`, el único sitio que habla con Chrome) y una orden nueva (`web.input`, con permiso de control) valida cada toque, desplazamiento y texto.
+- **Riesgos**: amplía la regla de lo que se le envía a esa ventana (hoy, solo flechas). Desde el celular se podría seguir un enlace a otro sitio o escribir una contraseña que se vería en el proyector. Un enlace que abre otra ventana quedaría fuera de la vista. Todo eso es de la página, no de Manna, y desde internet sigue pidiendo PIN.
+- **Sin probar**: en el equipo Windows y con un Chrome con ventana de verdad en el proyector (el protocolo es el mismo en los dos sistemas), y en un celular real.
+- **Recomendación**: hacerlo. Tamaño mediano.
 
 ### S39 · PowerPoint en segundo plano: lo que se sabe (2026-10-15; se hizo en la fase 14)
 

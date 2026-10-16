@@ -4,6 +4,18 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.18.0 — 2026-10-16
+
+Auditoría del proyecto (fase 9, parte de código):
+
+- **Más seguro**: una orden de instalar un programa que no existe ya no cierra Manna; se rechazan las órdenes que llegan desde otro puerto u otro subdominio; desde internet, fallar el PIN bloquea solo a quien lo falla, no a todos; la pista instrumental de los himnos se prepara de una en una.
+- **YouTube**: si el equipo principal tiene un Node.js anterior al 22, el aviso de error dice que hay que actualizarlo (versión LTS de nodejs.org).
+- En el celular, con una letra sin música al aire, las barritas de «Historias» marcan bien por qué diapositiva va.
+- «Añadir» del orden del culto lleva también **Página web**.
+- El Himnario dice «Leyendo el himnario…» mientras llega la lista, en vez de «Aún no hay himnos»; «Espacio en disco» dice «Calculando…»; si no llegan los pasos de un elemento del orden, la ficha ya no se queda cargando.
+- Mensajes más claros: un fallo inesperado dice qué hacer; el aviso de la imagen de prueba ya no nombra un botón que no existe; el botón para oír un elemento del orden se llama «Escuchar», como en el resto.
+- Documentación al día con lo que hay (instrucciones, diseño, reglas, plan y estado).
+
 ## 1.17.0 — 2026-10-16
 
 - **Himnario corregido**: Manna lee el himnario revisado por la iglesia (613 himnos, todos con su letra y sin avisos).

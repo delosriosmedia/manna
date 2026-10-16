@@ -132,8 +132,10 @@ function mount(el, ctx) {
 
   function drawLibrary() {
     if (!book.hymns.length) {
-      return [h('div', { class: 'empty' }, h('strong', {}, state.hymns?.ready === false ? 'Leyendo el himnario…' : 'Aún no hay himnos'),
-        'Copia los videos de los himnos a la carpeta Contenido/Himnario/videos del equipo principal, uno por himno y con su número delante: «001 Título.mp4». Aparecen aquí solos.')];
+      // También mientras llega la lista: el servidor ya dice cuántos hay.
+      const reading = state.hymns?.ready === false || (state.hymns?.count > 0 && book.version !== state.hymns.version);
+      return [h('div', { class: 'empty' }, h('strong', {}, reading ? 'Leyendo el himnario…' : 'Aún no hay himnos'),
+        !reading && 'Copia los videos de los himnos a la carpeta Contenido/Himnario/videos del equipo principal, uno por himno y con su número delante: «001 Título.mp4». Aparecen aquí solos.')];
     }
     if (view === 'grid') return [h('div', { class: 'hymn-grid' }, ...book.hymns.map(tile))];
     if (view === 'letras') {

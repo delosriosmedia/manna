@@ -283,8 +283,7 @@ export function setupTools(app) {
   async function install(id) {
     const tool = CATALOG.find((t) => t.id === id);
     const spec = downloads[id];
-    if (!tool || !spec) throw new HttpError(400, 'Ese programa no se puede instalar automáticamente en este equipo. Sigue los pasos para instalarlo a mano.');
-    if (installing.has(id)) return;
+    if (!tool || !spec || installing.has(id)) return;
     installing.add(id);
     publish();
     // Un intento anterior que falló deja su aviso: se retira al volver a intentarlo.
@@ -309,8 +308,11 @@ export function setupTools(app) {
 
   app.action('tools.install', { permission: 'system.admin' }, ({ id }, ctx) => {
     if (!ctx?.isLocal) throw new HttpError(403, 'Los programas solo se instalan desde el equipo principal.');
+    const key = String(id);
+    // Se comprueba aquí y no dentro de install(): un error en lo que no se espera cerraría Manna.
+    if (!CATALOG.some((t) => t.id === key) || !downloads[key]) throw new HttpError(400, 'Ese programa no se puede instalar automáticamente en este equipo. Sigue los pasos para instalarlo a mano.');
     // No se espera a que termine: el avance se ve en las tareas.
-    install(String(id));
+    install(key);
   });
 
   return {

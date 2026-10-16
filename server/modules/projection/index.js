@@ -248,7 +248,7 @@ export default function setup(app) {
   // patch viene del cliente y se valida; extra lo pone el servidor.
   function setStyles(patch, extra = {}) {
     const clean = {};
-    for (const [k, v] of Object.entries(patch || {})) if (STYLE_RULES[k]?.(v)) clean[k] = v;
+    for (const [k, v] of Object.entries(patch || {})) if (Object.hasOwn(STYLE_RULES, k) && STYLE_RULES[k](v)) clean[k] = v;
     const styles = { ...get().styles, ...clean, ...extra };
     saved.data.styles = styles;
     saved.save();

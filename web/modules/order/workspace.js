@@ -72,6 +72,7 @@ function mount(el, ctx) {
       { label: 'Himno', icon: 'music-notes', onclick: () => ctx.go('himnario') },
       { label: 'Imagen, video o audio', icon: 'image', note: 'Medios', onclick: () => ctx.go('medios') },
       { label: 'Diapositivas', icon: 'presentation-chart', note: 'PDF o PowerPoint', onclick: () => ctx.go('diapositivas') },
+      { label: 'Página web', icon: 'globe', note: 'Canva, Kahoot…', onclick: () => ctx.go('paginas') },
       { label: 'Sección', icon: 'rows', onclick: () => askTitle({ title: 'Nueva sección', onSave: (title) => run('order.addSection', { title }) }) },
     ]);
   }
@@ -264,7 +265,14 @@ function mount(el, ctx) {
     if (loaded?.key !== key) {
       loaded = null;
       renderDetail(item);
-      const res = await api(`/api/order/${id}/steps`);
+      let res;
+      try {
+        res = await api(`/api/order/${id}/steps`);
+      } catch (err) {
+        // Sin sus pasos no se queda la ficha cargando para siempre: se deselecciona y guard() avisa.
+        if (selectedId === id) { selectedId = null; markSelected(); renderDetail(null); }
+        throw err;
+      }
       if (selectedId !== id) return;
       loaded = { key, ...res };
     }
@@ -298,7 +306,7 @@ function mount(el, ctx) {
     const head = h('div', { class: 'odetail-head' }, kindBadge(item.kind),
       h('div', { class: 'item-text' }, h('h2', {}, item.title), h('small', {}, describe(item))));
     // Fuera de la cabecera, que en el celular no se ve (la fila ya dice qué es).
-    const listenButton = ctx.listen && SOUNDS.has(item.kind) && h('button', { class: 'btn odetail-listen', 'aria-label': 'Escuchar en este dispositivo', onclick: () => listen(item) }, icon('speaker-high', 16), 'Escuchar aquí');
+    const listenButton = ctx.listen && SOUNDS.has(item.kind) && h('button', { class: 'btn odetail-listen', 'aria-label': 'Escuchar en este dispositivo', onclick: () => listen(item) }, icon('speaker-high', 16), 'Escuchar');
     // En celular la fila no lleva el botón de opciones (el ancho es para el título): van aquí.
     const index = items.indexOf(item);
     const tools = ctx.canEdit && h('div', { class: 'odetail-tools' },

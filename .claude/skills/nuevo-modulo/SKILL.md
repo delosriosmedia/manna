@@ -11,7 +11,7 @@ Lee `.claude/rules/arquitectura.md` y `DESIGN.md`, y la fase correspondiente de 
 
 ## Pasos
 
-1. **Identificador**: una palabra en minúsculas. En el servidor, en inglés como los existentes (`songs`, `media`); en la interfaz, el `id` del módulo va en español porque aparece en la dirección (`himnario`, `medios`).
+1. **Identificador**: una palabra en minúsculas. En el servidor, en inglés como los existentes (`hymns`, `media`); en la interfaz, el `id` del módulo va en español porque aparece en la dirección (`himnario`, `medios`).
 
 2. **Servidor**: `server/modules/<id>/index.js`
 
@@ -64,7 +64,8 @@ Lee `.claude/rules/arquitectura.md` y `DESIGN.md`, y la fase correspondiente de 
    function mount(el, ctx) {
      // Dibuja con h() dentro de el: una cabecera .ws-head y el contenido.
      // Se suscribe al estado con subscribe('<id>', ...).
-     // ctx.setPreview(elemento) muestra en el panel lo que se proyectaría.
+     // ctx.setPreview(elemento) muestra lo seleccionado en «Preparado» para proyectar desde el módulo;
+     // ctx.prepare({ item?, kind?, title, subtitle?, project(), add?() }) deja algo preparado (Intro o «Proyectar»).
      return { keys(e) { /* true si atendió la tecla */ } };
    }
    export default {
@@ -76,9 +77,9 @@ Lee `.claude/rules/arquitectura.md` y `DESIGN.md`, y la fase correspondiente de 
 
    Con `needs`, la revisión del equipo y la franja de aviso del módulo salen solas. Si el módulo llega por partes (Medios: primero imágenes, luego videos), lo que pedirán las partes que faltan se marca con `soon: true`. Si el módulo tiene pestañas y un programa solo hace falta en algunas, se dice con `parts: ['id-de-la-pestaña']` y el módulo llama a `ctx.setPart(id)` al cambiar de pestaña: el aviso sale solo ahí. Dentro del módulo, lo que dependa de un programa que falta se muestra deshabilitado con su explicación (`state.tools`), nunca oculto ni roto.
 
-   Regístrala en `web/modules/registry.js` (sustituyendo la entrada `soon` si ya estaba prevista) y enlaza su `.css` en `web/control.html`.
+   Regístrala en `web/modules/registry.js` (sustituyendo la entrada `soon` si ya estaba prevista) y enlaza su `.css` en todas las páginas de función que lo cargan (`web/control.html` y, según corresponda, `web/alabanza.html`, `web/presentador.html` y `web/orden.html`).
 
-7. **Aspecto del tipo**, si registró uno: `web/modules/<id>/kind.js` con `registerKind('<tipo>', { icon, label, unit, title, key, background, draw, controls })` (contrato en `web/core/kinds.js`), una línea en `web/modules/kinds.js` (y quitar su entrada de la tabla de tipos previstos, si estaba), y su color en `.kind.k-<tipo>` (`web/core/app.css`). Si falta un icono, `scripts/actualizar-iconos.mjs`.
+7. **Aspecto del tipo**, si registró uno: `web/modules/<id>/kind.js` con `registerKind('<tipo>', { icon, label, unit, title, key, background, draw, controls })` (contrato en `web/core/kinds.js`), una línea en `web/modules/kinds.js`, su color en `.kind.k-<tipo>` (`web/core/app.css`), y su fuente en `SOURCES` de `web/modules/projection/search.js` para que aparezca en «Buscar en todo». Si falta un icono, `scripts/actualizar-iconos.mjs`.
 
 8. **Pruebas**: `test/<id>.test.js` para la lógica pura. Añade su recorrido a `scripts/probar-chrome.mjs` y su pantalla a `SCREENS` en `scripts/auditar-responsive.mjs`.
 

@@ -37,7 +37,7 @@ node scripts/probar-chrome.mjs rapido
 node scripts/auditar-responsive.mjs
 ```
 
-El primero usa la revisión del equipo y la interfaz como un usuario (unos 3 min, en tres grupos a la vez; con un nombre, solo ese grupo: `control`, `biblioteca` o `red`). El segundo la abre en nueve tamaños y comprueba que nada se desborda, que "Al aire" y la acción principal están a la vista, que los mandos en vivo caben y que los botones tienen tamaño para el dedo; con `capturas` guarda además una imagen de cada pantalla, y con palabras revisa solo esas pantallas y tamaños (`biblia 360x640`). Pueden correr a la vez entre ellos, pero no con otro servidor en los puertos 8123 a 8133 (el primero avisa si la demostración sigue abierta).
+El primero usa la revisión del equipo y la interfaz como un usuario (menos de 3 min, en tres grupos a la vez; con un nombre, solo ese grupo: `control`, `biblioteca` o `red`). El segundo la abre en nueve tamaños y comprueba que nada se desborda, que "Al aire" y la acción principal están a la vista, que los mandos en vivo caben y que los botones tienen tamaño para el dedo; con `capturas` guarda además una imagen de cada pantalla, y con palabras revisa solo esas pantallas y tamaños (`biblia 360x640`). Pueden correr a la vez entre ellos, pero no con otro servidor en los puertos 8123, 8125, 8131 y 8133 (el primero avisa si la demostración sigue abierta).
 
 Después, a mano, lo que el cambio tenga de nuevo. Abre `http://localhost:8123/control` y revisa:
 
@@ -77,7 +77,7 @@ El navegador integrado no abre nombres `.local` ni muestra el cuadro "¿Salir de
 node scripts/probar-chrome.mjs
 ```
 
-Arranca sus propios servidores de prueba (no debe haber otro en el puerto 8123), tarda unos 2 minutos y termina con "Todo correcto" o con la lista de lo que falló. Ejecútalo al tocar `server/modules/system/`, `web/core/api.js`, `web/core/upgrade.js` o `confirmBeforeClose`.
+Arranca sus propios servidores de prueba en los puertos 8123, 8125, 8131 y 8133 (no debe haber otro en ellos), tarda menos de 3 min y termina con "Todo correcto" o con la lista de lo que falló. Ejecútalo al tocar `server/modules/system/`, `web/core/api.js`, `web/core/upgrade.js` o `confirmBeforeClose`.
 
 Comprobaciones sueltas del nombre:
 
