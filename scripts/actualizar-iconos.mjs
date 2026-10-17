@@ -36,6 +36,11 @@ const ICONS = [
   'text-aa', 'quotes',
 ];
 
+// Iconos propios (a petición del dueño, no son de Phosphor): un QR que se lee desde 14 px. Ver DESIGN.md.
+const CUSTOM = [
+  `<symbol id="qr-mini" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.75" y="3.75" width="6.5" height="6.5" rx="1.5"/><rect x="13.75" y="3.75" width="6.5" height="6.5" rx="1.5"/><rect x="3.75" y="13.75" width="6.5" height="6.5" rx="1.5"/></g><g fill="currentColor"><rect x="13.75" y="13.75" width="3.25" height="3.25" rx="0.7"/><rect x="17.25" y="17.25" width="3" height="3" rx="0.7"/><rect x="17.25" y="13.75" width="3" height="1.5" rx="0.5"/></g></symbol>`,
+];
+
 const base = `https://unpkg.com/@phosphor-icons/core@${VERSION}`;
 const out = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'web', 'vendor', 'phosphor');
 fs.mkdirSync(out, { recursive: true });
@@ -49,6 +54,6 @@ for (const name of ICONS) {
   symbols.push(`<symbol id="${name}" viewBox="0 0 256 256">${body}</symbol>`);
 }
 fs.writeFileSync(path.join(out, 'sprite.svg'),
-  `<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor">\n<!-- Phosphor Icons ${VERSION} (MIT). Generado por scripts/actualizar-iconos.mjs: no editar a mano. -->\n${symbols.join('\n')}\n</svg>\n`);
+  `<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor">\n<!-- Phosphor Icons ${VERSION} (MIT). Generado por scripts/actualizar-iconos.mjs: no editar a mano. -->\n${[...symbols, ...CUSTOM].join('\n')}\n</svg>\n`);
 fs.writeFileSync(path.join(out, 'LICENSE'), await (await fetch(`${base}/LICENSE`)).text());
-console.log(`✔ ${ICONS.length} iconos en web/vendor/phosphor/sprite.svg`);
+console.log(`✔ ${ICONS.length + CUSTOM.length} iconos en web/vendor/phosphor/sprite.svg`);

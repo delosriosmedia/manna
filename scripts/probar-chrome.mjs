@@ -2422,17 +2422,36 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     check('una orden que llega desde internet no la apaga', outside !== 200 && (await netState()).on === true, `HTTP ${outside}`);
     await click(netBtn('Apagar'));
     check('«Apagar» la deja apagada', await until(`${net}.querySelector('.set-body > p').textContent === 'Apagada.' && ${net}.querySelector('.net-address').hidden && ${netBtn('Encender')}`) && (await netState()).status === 'off' && (await netState()).on === false);
-    // También desde el menú de la función (arriba a la derecha), sin ir a Ajustes.
-    const netItem = `[...document.querySelectorAll('.menu button')].find((b) => b.textContent.includes('Conexión por internet'))`;
-    const netIs = (status) => until(`(await (await fetch('/api/state')).json()).internet.status === ${JSON.stringify(status)}`);
-    await click(`document.querySelector('.role-chip')`);
+    // El wifi de la barra de arriba (fase 25): sus estados, y encender y apagar desde su hoja, sin ir a Ajustes.
+    const wifi = `document.querySelector('.topbar-tools .tool-wifi')`;
+    const wifiIs = (st, label) => until(`${wifi}.dataset.state === ${JSON.stringify(st)} && ${wifi}.getAttribute('aria-label') === ${JSON.stringify(label)} && ${wifi}.title === ${JSON.stringify(label)}`);
+    const sheet = `[...document.querySelectorAll('.modal')].find((m) => m.getAttribute('aria-label') === 'Conexión por internet')`;
+    const sheetText = () => run(`return ${sheet}?.querySelector('.net-text')?.textContent`);
+    await goTo('orden');
+    await sleep(400);
+    check('el wifi empieza apagado, tachado y con su nombre', await wifiIs('off', 'Conexión por internet apagada') && await run(`return getComputedStyle(${wifi}.querySelector('.slash')).display !== 'none'`));
+    // Se anotan los estados por los que pasa, para ver «conectando» aunque dure un instante.
+    await run(`window.__wifi = []; new MutationObserver(() => window.__wifi.push(${wifi}.dataset.state)).observe(${wifi}, { attributes: true, attributeFilter: ['data-state'] });`);
+    await click(wifi);
     await sleep(300);
-    check('el menú de la función ofrece la conexión por internet y dice que está apagada', await run(`return ${netItem}?.querySelector('small')?.textContent.startsWith('Apagada')`));
-    await click(netItem);
-    check('desde el menú se enciende', await netIs('on'));
-    await click(`document.querySelector('.role-chip')`);
-    await sleep(300);
-    check('el menú dice que está encendida, y desde ahí se apaga', await run(`return ${netItem}.querySelector('small').textContent.startsWith('Encendida')`) && (await click(netItem), await netIs('off')));
+    check('al tocar el wifi se abre su hoja, con el estado, «Encender» y el enlace a Ajustes', await sheetText() === 'Apagada.' && await run(`const b = [...${sheet}.querySelectorAll('.btn')].map((x) => x.textContent.trim()); return b.join() === 'Encender,Más opciones en Ajustes' && ${sheet}.querySelector('.net-address').hidden`));
+    await modalButton('Encender');
+    check('«Encender» desde la hoja pasa por «conectando» y termina en «conectado»', await wifiIs('on', 'Conectado por internet') && await run(`const w = window.__wifi; return w.includes('connecting') && w.indexOf('connecting') < w.lastIndexOf('on')`), await run(`return window.__wifi.join()`));
+    check('la hoja se repinta sola: encendida y comprobada, con la dirección, desde cuándo y «Apagar»', await until(`${sheet}.querySelector('.net-text').textContent.startsWith('Encendida y comprobada') && !${sheet}.querySelector('.net-address').hidden`)
+      && await run(`const m = ${sheet}; const since = m.querySelector('.net-address + p'); return m.querySelector('.net-address a').textContent === ${JSON.stringify(quickUrl)} && !since.hidden && /^Comprobada desde (hoy|ayer|\\d)/.test(since.textContent) && [...m.querySelectorAll('.btn')].some((x) => x.textContent.trim() === 'Apagar')`), await sheetText());
+    check('el servidor apunta desde cuándo está encendida', await run(`const i = (await (await fetch('/api/state')).json()).internet; return Math.abs(i.since - Date.now()) < 60000`));
+    // Una clave que Cloudflare rechaza: el wifi lo dice con su punto rojo y la hoja con el motivo.
+    await run(`await ${post('internet.own', { token: `malo${'z'.repeat(50)}`, address: 'manna.ejemplo.org' })}`);
+    check('con un problema, el wifi se pone en «error» con su punto rojo y la hoja dice el motivo', await wifiIs('error', 'Conexión por internet con un problema')
+      && await run(`return getComputedStyle(${wifi}, '::after').content !== 'none' && ${sheet}.querySelector('.net-text').classList.contains('warn') && ${sheet}.querySelector('.net-text').textContent.includes('La clave del túnel no es válida') && ${sheet}.querySelector('.net-address').hidden`), await sheetText());
+    await run(`await ${post('internet.own', { token: '' })}`);
+    check('quitar el dominio propio lo deja otra vez conectado', await wifiIs('on', 'Conectado por internet'));
+    await modalButton('Apagar');
+    check('«Apagar» desde la hoja lo deja apagado, y el servidor sin «desde cuándo»', await wifiIs('off', 'Conexión por internet apagada') && await until(`${sheet}.querySelector('.net-text').textContent === 'Apagada.'`)
+      && await run(`const i = (await (await fetch('/api/state')).json()).internet; return i.status === 'off' && i.on === false && i.since === null`));
+    await modalButton('Más opciones en Ajustes');
+    await sleep(500);
+    check('«Más opciones en Ajustes» cierra la hoja y abre Ajustes', await run(`return !document.querySelector('.modal') && document.querySelector('.dock-item[data-id=ajustes]').classList.contains('on')`));
   }
 
   console.log('\n1. Interfaz · Ajustes: fondos de la proyección');
@@ -2514,11 +2533,14 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   check('los mandos aparecen también en el detalle del elemento al aire', await run(`const c = document.querySelector('.odetail .live-controls'); return Boolean(c) && !c.hidden && c.querySelectorAll('button').length === 5 && document.querySelector('.orow.live').textContent.includes('Imagen de prueba')`));
   await goTo('ajustes');
   await sleep(400);
-  // «Dispositivos» ya no está en el dock: se abre desde el menú de la función, arriba a la derecha.
+  // «Dispositivos» ya no está en el dock ni en el menú de la función: es el QR de la barra de arriba (fase 25).
   check('«Dispositivos» ya no está en el dock', await run(`return !document.querySelector('.dock-item[data-id=dispositivos]')`));
   await click(`document.querySelector('.role-chip')`);
   await sleep(250);
-  await menuItem('Dispositivos');
+  check('el menú de la función solo trae «Cambiar de función»', await run(`return [...document.querySelectorAll('.menu button')].map((b) => b.textContent.trim()).join() === 'Cambiar de función'`));
+  await run(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`);
+  check('arriba hay un QR (con su icono propio, de 20 px) junto al wifi, en una píldora a la izquierda de la función', await run(`const q = document.querySelector('.topbar-tools .tool-qr'); const u = q.querySelector('use').getAttribute('href'); const r = q.getBoundingClientRect(); const pill = document.querySelector('.topbar-tools').getBoundingClientRect(); return u.endsWith('#qr-mini') && q.getAttribute('aria-label') === 'Conectar dispositivos' && q.querySelector('svg').getAttribute('width') === '20' && r.width >= 30 && Boolean(document.querySelector('.topbar-tools .tool-wifi')) && pill.right <= document.querySelector('.role-chip').getBoundingClientRect().left`));
+  await click(`document.querySelector('.topbar-tools .tool-qr')`);
   await sleep(700);
   check('"Dispositivos" muestra un solo QR y el PIN, de 4 números', await run(`const i = document.querySelector('.modal input'); const pin = i.value; i.value = '12a345'; i.dispatchEvent(new Event('input')); const typed = i.value; i.value = pin; return /^\\d{4}$/.test(pin) && document.querySelectorAll('.modal .qr').length === 1 && i.maxLength === 4 && typed === '1234'`));
   await run(`document.querySelector('.modal input').value = '2468';`);

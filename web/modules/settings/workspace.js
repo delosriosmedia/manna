@@ -2,6 +2,7 @@ import { action, api, disconnect, state, subscribe } from '../../core/api.js';
 import { h, allowLeaving, dialog, go, guard, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { createDisplayToggle, createStylePanel, createTestCardButton, describeDisplay } from '../projection/controls.js';
+import { netText } from '../system/conexion.js';
 import { openDevicesDialog } from '../system/devices.js';
 
 // Módulo Ajustes: lo que se prepara antes de la reunión y no hace falta tener a mano durante ella.
@@ -93,18 +94,8 @@ function mount(el, ctx) {
         toast(`Actualizando ${t.name}. El avance está en la cola del culto.`);
       }) }, icon('arrow-clockwise', 15), t.installing ? 'Actualizando…' : 'Actualizar'))));
   });
-  // «Encendida» solo cuando Manna entró por su dirección de internet y se contestó a sí mismo (lo comprueba cada minuto).
-  const NET = {
-    off: 'Apagada.',
-    starting: 'Conectando con Cloudflare…',
-    checking: 'Conectada con Cloudflare. Comprobando que se llega a Manna desde internet…',
-    on: 'Encendida y comprobada desde internet. Se entra por esta dirección:',
-    unchecked: 'Conectada con Cloudflare, sin comprobar: falta la dirección del dominio propio («Cambiar el dominio propio»).',
-    busy: 'Esta conexión ya la está usando otro equipo con Manna. Este no se conecta, para no cortar a quien entra desde fuera, y se conectará solo cuando el otro la suelte.',
-  };
   subscribe('internet', (s) => {
-    // Mientras reintenta, el último problema sigue a la vista.
-    net.textContent = s.status === 'error' ? s.error : [NET[s.status], s.status === 'busy' && s.busy && `(El otro tiene Manna ${s.busy}.)`, s.error && `Último intento: ${s.error}`].filter(Boolean).join(' ');
+    net.textContent = netText(s);
     net.classList.toggle('warn', Boolean(s.error));
     netAddress.hidden = !(s.on && s.url);
     if (s.url) {

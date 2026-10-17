@@ -1,0 +1,21 @@
+/* Wifi y QR de la barra de arriba del Control completo (web/modules/system/conexion.js) */
+.topbar-tools { display: flex; align-items: center; gap: 2px; min-height: 36px; padding: 3px; border-radius: var(--r-pill); background: var(--glass-1); }
+.tool-btn { position: relative; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; color: var(--ink-2); transition: background 0.15s var(--ease), color 0.15s; }
+html.touch .tool-btn { width: var(--tap); height: var(--tap); }
+.tool-btn:hover { background: var(--s3); color: var(--ink); }
+.wifi .slash { display: none; }
+.tool-btn[data-state='off'] { color: var(--ink-3); }
+.tool-btn[data-state='off'] .wifi { opacity: 0.6; }
+.tool-btn[data-state='off'] .slash { display: block; }
+.tool-btn[data-state='on'], .tool-btn[data-state='unchecked'] { color: var(--accent); }
+.tool-btn[data-state='unchecked'] .w3 { opacity: 0.35; }
+.tool-btn[data-state='error'] { color: var(--live-ink); }
+.tool-btn[data-state='error']::after { content: ''; position: absolute; top: 3px; right: 3px; width: 7px; height: 7px; border-radius: 50%; background: var(--live); box-shadow: 0 0 0 2px var(--glass-1); }
+/* Conectando: las tres ondas se encienden una tras otra. Con «reducir movimiento» (app.css) queda quieto, a medias. */
+.tool-btn[data-state='connecting'] .wifi path { opacity: 0.55; animation: wifi-wave 1.2s ease-in-out infinite; }
+.tool-btn[data-state='connecting'] .w2 { animation-delay: 0.2s; }
+.tool-btn[data-state='connecting'] .w3 { animation-delay: 0.4s; }
+@keyframes wifi-wave { 0%, 100% { opacity: 0.25; } 35%, 60% { opacity: 1; } }
+
+.net-text.warn { color: var(--live-ink); }
+.net-actions { flex-wrap: wrap; gap: 8px; margin-top: 14px; }
