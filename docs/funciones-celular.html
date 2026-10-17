@@ -1,0 +1,720 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Manna en el celular</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Geist+Mono:wght@500&display=swap">
+<style>
+/* Una página de propuesta con la piel de Manna: oscura, un solo acento cian, rojo solo para «al aire».
+   Arriba la idea; luego cada función en un teléfono que se puede tocar, con lo que puede y no puede al lado; al final, la tabla. */
+:root {
+  color-scheme: dark;
+  --canvas: #05070a; --s1: #0c0f14; --s2: #131720; --s3: #1b202a; --bezel: #20252f;
+  --line: #1e2430; --line-2: #2b3341;
+  --ink: #f1f4f8; --ink-2: #c4cbd6; --ink-3: #9aa3b2; --ink-4: #5b6375;
+  --accent: #5ce8ff; --accent-soft: rgba(92, 232, 255, 0.12); --on-accent: #03141a;
+  --live: #e0383e; --live-soft: rgba(224, 56, 62, 0.14); --live-ink: #ffaaad;
+  --k-verses: #8fbcff; --k-song: #cda6f7; --k-image: #7ad6b4; --k-video: #f59a9c; --k-slides: #f0bc66; --k-text: #e6d38a;
+  --ui: 'Sora', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --r: 14px; --r-lg: 22px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--canvas); color: var(--ink); font: 400 15px/1.55 var(--ui); font-feature-settings: 'tnum'; }
+.page { max-width: 1120px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 56px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(28px, 5vw, 40px); font-weight: 700; }
+h2 { font-size: 22px; font-weight: 600; }
+h3 { font-size: 20px; font-weight: 600; }
+p { margin: 0; }
+.eyebrow { font: 600 11px/1 var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.lede { color: var(--ink-2); max-width: 66ch; }
+.intro { display: grid; gap: 16px; }
+.idea { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 8px; }
+.idea div { background: var(--s1); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 4px; }
+.idea strong { font-weight: 600; }
+.idea span { color: var(--ink-3); font-size: 14px; }
+
+/* ---- Elegir la función ---- */
+.roles { display: flex; flex-wrap: wrap; gap: 8px; }
+.roles button { font: 500 14px var(--ui); color: var(--ink-2); background: transparent; border: 1px solid var(--line-2); border-radius: 99px; padding: 9px 16px; cursor: pointer; }
+.roles button:hover { border-color: var(--ink-4); color: var(--ink); }
+.roles button[aria-pressed='true'] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.roles button:focus-visible, .phone button:focus-visible, .details button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.family { width: 100%; margin-top: 4px; }
+
+.stage { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 40px; align-items: start; }
+@media (max-width: 800px) { .stage { grid-template-columns: minmax(0, 1fr); justify-items: center; } .details { width: 100%; } }
+
+/* ---- El teléfono ---- */
+.phone { width: 320px; max-width: 100%; height: 680px; border: 10px solid var(--bezel); border-radius: 46px; background: var(--canvas); position: relative; overflow: hidden; display: grid; grid-template-rows: 26px auto minmax(0, 1fr) auto; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); font-size: 14px; }
+.sys { display: flex; justify-content: space-between; align-items: center; padding: 0 22px; font: 600 11px var(--ui); color: var(--ink-2); }
+.strip { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); min-width: 0; }
+.fn { display: inline-flex; align-items: center; gap: 4px; font: 600 15px var(--ui); color: var(--ink); background: none; border: 0; padding: 6px 4px; cursor: pointer; flex-shrink: 0; }
+.fn::after { content: ''; width: 7px; height: 7px; border-right: 2px solid var(--ink-3); border-bottom: 2px solid var(--ink-3); transform: rotate(45deg) translateY(-3px); margin-left: 4px; }
+.pill { margin-left: auto; min-width: 0; display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 99px; font: 600 11px var(--ui); letter-spacing: 0.04em; background: var(--s2); color: var(--ink-2); }
+.pill b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0; }
+.pill.live { background: var(--live); color: #fff; }
+.pill.live::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #fff; flex-shrink: 0; }
+.pill.calm { background: var(--s2); color: var(--ink-3); }
+.body { overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; min-height: 0; scrollbar-width: none; }
+.body > * { flex-shrink: 0; }
+.thumb { padding: 10px 12px 18px; border-top: 1px solid var(--line); display: grid; gap: 8px; background: var(--s1); }
+.row { display: flex; gap: 8px; }
+.row > * { min-width: 0; }
+
+.b { font: 500 14px var(--ui); color: var(--ink); background: var(--s3); border: 1px solid var(--line-2); border-radius: 99px; height: 48px; padding: 0 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+.b:active { transform: scale(0.98); }
+.b.grow { flex: 1; }
+.b.main { height: 56px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 700; font-size: 15px; }
+.b.main:disabled { background: var(--s3); color: var(--ink-4); border-color: var(--line-2); cursor: default; }
+.b.black { background: #000; border-color: var(--line-2); }
+.b.black.on { border-color: var(--ink-2); color: var(--ink); }
+.b.small { height: 40px; font-size: 13px; }
+.b.ghost { background: transparent; }
+.b.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.b.icon { width: 48px; padding: 0; flex-shrink: 0; }
+.b.main.icon { width: 56px; }
+
+/* Lo que se ve en la proyección, en pequeño */
+.monitor { aspect-ratio: 16 / 9; border-radius: 12px; border: 2px solid var(--line-2); overflow: hidden; position: relative; background: #000; display: grid; place-items: center; text-align: center; padding: 10px; }
+.monitor.live { border-color: var(--live); }
+.monitor.dark { background: #000; }
+.monitor .proj { color: #fff; font: 500 13px/1.35 Georgia, serif; text-shadow: 0 2px 6px #000; }
+.monitor .proj small { display: block; margin-top: 6px; color: #ffd166; font: 600 10px var(--ui); }
+.monitor.bars { background: linear-gradient(90deg, #c33 0 14%, #cc3 14% 28%, #3c3 28% 42%, #3cc 42% 56%, #33c 56% 70%, #c3c 70% 84%, #eee 84%); }
+.monitor.slide { background: linear-gradient(135deg, #1d4ed8, #7c3aed); }
+.monitor.image { background: linear-gradient(135deg, #0f766e, #ca8a04); }
+.monitor.verse { background: radial-gradient(circle at 30% 20%, #23324a, #0a0f18); }
+.monitor .tag { position: absolute; top: 6px; left: 6px; background: var(--live); color: #fff; font: 700 9px var(--ui); letter-spacing: 0.08em; padding: 2px 6px; border-radius: 6px; }
+.monitor .black-note { color: var(--ink-4); font: 600 11px var(--ui); letter-spacing: 0.1em; }
+.steps { display: flex; gap: 4px; }
+.steps i { flex: 1; height: 4px; border-radius: 2px; background: var(--s3); }
+.steps i.done { background: var(--ink-3); }
+.steps i.now { background: var(--live); }
+.meta { display: flex; justify-content: space-between; color: var(--ink-3); font-size: 12px; }
+
+.lbl { font: 600 10px var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.card { display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: var(--r); background: var(--s1); border: 1px solid var(--line); text-align: left; color: var(--ink); font: inherit; width: 100%; cursor: pointer; }
+.card.sel { border-color: var(--accent); background: var(--accent-soft); }
+.card.air { border-color: var(--live); }
+.mini { width: 54px; aspect-ratio: 16 / 9; border-radius: 6px; flex-shrink: 0; }
+.txt { min-width: 0; display: grid; gap: 1px; }
+.txt strong { font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.txt small { color: var(--ink-3); font-size: 12px; }
+.kind { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; font: 700 11px var(--ui); background: var(--s3); }
+.k-verses { color: var(--k-verses); } .k-song { color: var(--k-song); } .k-image { color: var(--k-image); } .k-video { color: var(--k-video); } .k-slides { color: var(--k-slides); } .k-text { color: var(--k-text); }
+
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--s2); border-radius: 99px; }
+.tabs button { font: 500 13px var(--ui); color: var(--ink-3); background: transparent; border: 0; border-radius: 99px; height: 36px; cursor: pointer; }
+.tabs button.on { background: var(--s3); color: var(--accent); }
+.field { display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 14px; border-radius: 99px; background: var(--s2); border: 1px solid var(--line-2); color: var(--ink); font-size: 15px; }
+.field .caret { width: 2px; height: 20px; background: var(--accent); animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.verse { background: var(--s1); border: 1px solid var(--line); border-radius: var(--r); padding: 12px; display: grid; gap: 6px; }
+.verse strong { color: var(--accent); font-size: 13px; }
+.verse p { color: var(--ink-2); font-size: 13px; }
+
+/* Canto: el número y el teclado */
+.number { text-align: center; display: grid; gap: 2px; }
+.number output { font: 500 44px/1.1 var(--mono); letter-spacing: 0.06em; }
+.number span { color: var(--ink-2); font-size: 14px; min-height: 22px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; background: var(--s2); border-radius: 99px; }
+.seg button { font: 500 13px var(--ui); color: var(--ink-3); background: transparent; border: 0; border-radius: 99px; height: 36px; cursor: pointer; }
+.seg button.on { background: var(--s3); color: var(--accent); }
+.keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.keys button { height: 52px; border-radius: 14px; background: var(--s2); border: 1px solid var(--line); color: var(--ink); font: 500 22px var(--mono); cursor: pointer; }
+.keys button:active { background: var(--s3); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.chips button { font: 500 13px var(--mono); color: var(--ink-2); background: var(--s1); border: 1px solid var(--line-2); border-radius: 99px; height: 34px; padding: 0 12px; cursor: pointer; }
+.bar { height: 6px; border-radius: 3px; background: var(--s3); overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--ink-2); }
+.times { display: flex; justify-content: space-between; color: var(--ink-3); font: 500 12px var(--mono); }
+.big-title { font-size: 18px; font-weight: 600; text-align: center; }
+.vol { display: grid; gap: 6px; }
+.vol input { width: 100%; accent-color: var(--accent); height: 28px; }
+
+/* Preparar */
+.sec { font: 600 10px var(--ui); letter-spacing: 0.12em; color: var(--ink-3); padding-top: 4px; border-top: 1px solid var(--line); margin-top: 2px; padding-block: 8px 0; }
+.item { display: flex; gap: 10px; align-items: center; padding: 8px 6px; border-radius: 12px; }
+.item .grip { color: var(--ink-4); font: 700 14px var(--mono); }
+.item .more { margin-left: auto; color: var(--ink-3); font-weight: 700; }
+.up { margin-left: auto; font: 500 11px var(--mono); color: var(--accent); }
+.calmbar { font-size: 12px; color: var(--ink-3); background: var(--s1); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; }
+
+/* Atril */
+.lyric { font: 600 var(--atril, 22px)/1.35 var(--ui); color: var(--ink); }
+.next-lyric { font: 500 calc(var(--atril, 22px) * 0.72)/1.35 var(--ui); color: var(--ink-4); }
+.divider { display: flex; align-items: center; gap: 8px; color: var(--ink-3); font: 600 10px var(--ui); letter-spacing: 0.12em; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line-2); }
+
+/* Inicio */
+.home-title { font-size: 22px; font-weight: 700; line-height: 1.2; }
+.fncard { display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: var(--r); background: var(--s1); border: 1px solid var(--line); cursor: pointer; color: var(--ink); font: inherit; text-align: left; width: 100%; }
+.fncard .sq { width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex-shrink: 0; }
+.fncard .sq svg { width: 22px; height: 22px; }
+.fncard .pin { margin-left: auto; font: 600 10px var(--ui); color: #f0bc66; letter-spacing: 0.06em; }
+.fncard .pin.free { color: var(--accent); }
+.fncard.resume { border-color: var(--accent); }
+.escape { color: var(--ink-3); font-size: 12px; text-align: center; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Capas dentro del teléfono */
+.sheet { position: absolute; inset: auto 0 0 0; background: var(--s2); border-top: 1px solid var(--line-2); border-radius: 24px 24px 0 0; padding: 10px 14px 22px; display: grid; gap: 8px; max-height: 76%; overflow-y: auto; z-index: 5; box-shadow: 0 -20px 40px rgba(0, 0, 0, 0.5); }
+.sheet::before { content: ''; width: 44px; height: 4px; border-radius: 2px; background: var(--line-2); justify-self: center; margin-bottom: 4px; }
+.scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 4; }
+.sheet h4 { margin: 0 0 2px; font-size: 15px; font-weight: 600; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.grid2 button { height: 64px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line-2); color: var(--ink); font: 500 13px var(--ui); cursor: pointer; padding: 6px; }
+.toast { position: absolute; left: 12px; right: 12px; bottom: 96px; z-index: 6; display: flex; align-items: center; gap: 10px; background: var(--s3); border: 1px solid var(--line-2); border-radius: 14px; padding: 10px 12px; font-size: 13px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+.toast button { margin-left: auto; font: 600 13px var(--ui); color: var(--accent); background: none; border: 0; cursor: pointer; }
+.toast .count { font: 500 12px var(--mono); color: var(--ink-3); }
+
+/* ---- Lo que puede y no puede ---- */
+.details { display: grid; gap: 20px; min-width: 0; }
+.who { color: var(--ink-2); max-width: 62ch; }
+.who b { color: var(--ink); font-weight: 600; }
+.lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.lists section { background: var(--s1); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px 18px; display: grid; gap: 10px; align-content: start; }
+.lists h4 { margin: 0; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.lists ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.lists li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; color: var(--ink-2); font-size: 14px; line-height: 1.45; }
+.yes li::before { content: '✓'; color: var(--accent); font-weight: 700; }
+.no li::before { content: '✕'; color: var(--ink-4); font-weight: 700; }
+.yes h4 { color: var(--accent); } .no h4 { color: var(--ink-2); }
+.avoid { border-left: 2px solid var(--line-2); padding-left: 14px; color: var(--ink-2); font-size: 14px; display: grid; gap: 4px; }
+.avoid b { color: var(--ink); font-weight: 600; }
+.try { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--ink-3); font-size: 13px; }
+.try button { font: 500 13px var(--ui); color: var(--accent); background: var(--accent-soft); border: 1px solid transparent; border-radius: 99px; padding: 7px 14px; cursor: pointer; }
+
+/* ---- Tabla ---- */
+.matrix { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-lg); }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13.5px; }
+th, td { padding: 10px 12px; text-align: center; border-bottom: 1px solid var(--line); }
+th:first-child, td:first-child { text-align: left; color: var(--ink-2); position: sticky; left: 0; background: var(--canvas); min-width: 210px; }
+thead th { font: 600 12px var(--ui); color: var(--ink); background: var(--s1); }
+thead th:first-child { background: var(--s1); }
+tbody tr:last-child td { border-bottom: 0; }
+td.y { color: var(--accent); font-weight: 700; }
+td.p { color: var(--ink-2); font-size: 12px; }
+td.n { color: var(--ink-4); }
+.legend { color: var(--ink-3); font-size: 13px; display: flex; gap: 18px; flex-wrap: wrap; }
+.legend b { color: var(--accent); }
+
+.shared { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.shared div { border-top: 1px solid var(--line-2); padding-top: 12px; display: grid; gap: 4px; }
+.shared strong { font-weight: 600; }
+.shared span { color: var(--ink-3); font-size: 14px; }
+.decide { margin: 0; padding-left: 22px; display: grid; gap: 10px; color: var(--ink-2); max-width: 78ch; }
+.decide b { color: var(--ink); font-weight: 600; }
+.note { color: var(--ink-3); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .field .caret { animation: none; } .b:active { transform: none; } }
+</style>
+
+<main class="page">
+  <header class="intro">
+    <p class="eyebrow">Manna · fase 19 · propuesta para decidir</p>
+    <h1>Manna en el celular</h1>
+    <p class="lede">Hoy el teléfono entra al control completo: siete módulos, cajones y mandos, todo a la vez. La propuesta es que en el celular solo haya <strong>seis funciones de una sola tarea</strong>. Cada voluntario usa la suya, con pocas cosas en pantalla. Abajo puedes tocar cada teléfono como si fuera de verdad.</p>
+    <div class="idea">
+      <div><strong>Una función, un trabajo</strong><span>Quien pasa el programa no ve himnos ni ajustes; quien canta no ve la Biblia.</span></div>
+      <div><strong>Nada sale al aire sin querer</strong><span>Tocar algo solo lo prepara. Para proyectar hay que pulsar el botón grande, y se puede deshacer 5 segundos.</span></div>
+      <div><strong>Preparar no toca la pantalla</strong><span>Subir y ordenar el culto es otra función que no puede proyectar nada.</span></div>
+    </div>
+  </header>
+
+  <section class="intro" aria-labelledby="t-funciones">
+    <h2 id="t-funciones">Las funciones, una por una</h2>
+    <div class="roles" role="group" aria-label="Elegir función">
+      <button data-role="inicio">Inicio del celular</button>
+      <button data-role="pasar">Pasar</button>
+      <button data-role="pulpito">Púlpito</button>
+      <button data-role="canto">Canto</button>
+      <button data-role="sonido">Sonido</button>
+      <button data-role="preparar">Preparar</button>
+      <button data-role="atril">Atril</button>
+    </div>
+  </section>
+
+  <section class="stage">
+    <div class="phone" id="phone" aria-label="Simulación del teléfono"></div>
+    <div class="details" id="details" aria-live="polite"></div>
+  </section>
+
+  <section class="intro" aria-labelledby="t-tabla">
+    <h2 id="t-tabla">Qué puede hacer cada función</h2>
+    <div class="legend"><span><b>✓</b> puede</span><span>texto: puede, con ese límite</span><span>— no puede</span></div>
+    <div class="matrix">
+      <table>
+        <thead><tr><th>Acción</th><th>Pasar</th><th>Púlpito</th><th>Canto</th><th>Sonido</th><th>Preparar</th><th>Atril</th><th>Computadora o tableta</th></tr></thead>
+        <tbody id="matrix"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="intro" aria-labelledby="t-comun">
+    <h2 id="t-comun">Lo que comparten las seis</h2>
+    <div class="shared">
+      <div><strong>Arriba, la función y lo que está al aire</strong><span>«Pasar ▾» a la izquierda y el estado a la derecha, en rojo solo si hay algo al aire. Tocar el nombre cambia a otra función sin volver a poner el PIN.</span></div>
+      <div><strong>Abajo, al alcance del pulgar</strong><span>La acción principal mide 56 px y ocupa el ancho; «Negro» va a su lado en todas las funciones que tocan el aire.</span></div>
+      <div><strong>Sin dock ni cajones</strong><span>Una pantalla por función y, como mucho, dos pestañas. Para otra tarea, se cambia de función.</span></div>
+      <div><strong>Un solo PIN</strong><span>El mismo de hoy para las cinco que tocan algo. Atril y la pantalla de proyección no lo piden en la red de la iglesia.</span></div>
+      <div><strong>Un icono por función</strong><span>Cada voluntario guarda la suya en la pantalla de inicio del teléfono («Manna · Canto») y entra directo.</span></div>
+      <div><strong>La computadora no cambia</strong><span>«Control completo», los Ajustes y los módulos enteros siguen en el equipo principal, otra computadora o una tableta.</span></div>
+    </div>
+  </section>
+
+  <section class="intro" aria-labelledby="t-decidir">
+    <h2 id="t-decidir">Lo que tienes que decidir</h2>
+    <ol class="decide">
+      <li><b>Las funciones y sus nombres:</b> ¿estas seis, llamadas así?</li>
+      <li><b>Sonido:</b> ¿función aparte, o basta con el volumen dentro de Pasar y Canto?</li>
+      <li><b>«Control completo» en el celular:</b> ¿se quita y queda un enlace pequeño de emergencia al pie del inicio, o se deja como una tarjeta más?</li>
+      <li><b>El PIN:</b> ¿uno para todas, o un segundo PIN solo para Preparar, para los departamentos?</li>
+      <li><b>Atril sin PIN</b> en la red de la iglesia: ¿sí?</li>
+      <li><b>Canto:</b> ¿qué categoría de Videos ve? ¿Puede poner himnos «a continuación»?</li>
+      <li><b>Púlpito:</b> ¿«Para hoy» sale de una sección del orden («Mensaje») o de una lista propia del predicador?</li>
+      <li><b>Preparar:</b> ¿hace falta preparar el culto del sábado siguiente mientras se usa el de hoy? (Hoy hay un solo orden.)</li>
+      <li><b>Varios celulares proyectando:</b> ¿cualquiera de las funciones en vivo proyecta, o solo un teléfono saca al aire y los demás ponen «a continuación»?</li>
+      <li><b>Quien lleva solo todo el culto:</b> ¿le basta cambiar de función desde arriba, o Pasar debería tener también una búsqueda rápida de versículos?</li>
+      <li><b>En la tableta y la computadora:</b> ¿se quedan las funciones de hoy (Servicio de alabanza, Presentador, Control del orden) o se cambian también?</li>
+      <li><b>El orden de construcción:</b> la propuesta es empezar por Atril (no puede proyectar nada: sirve para probar sin riesgo), luego Pasar, Canto, Púlpito, Preparar, Sonido y, al final, quitar «Control completo» del celular.</li>
+    </ol>
+    <p class="note">Los textos, títulos y letras de esta simulación son inventados. El detalle completo está en docs/funciones-celular.md del proyecto.</p>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (s, el = document) => el.querySelector(s);
+  const phone = $('#phone');
+  const details = $('#details');
+  const ICONS = {
+    pasar: '<path d="M5 12h12M13 6l6 6-6 6" />',
+    pulpito: '<path d="M4 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H4zM20 5h-6" /><path d="M20 5v13h-6" />',
+    canto: '<path d="M9 18V6l10-2v12" /><circle cx="6" cy="18" r="3" /><circle cx="16" cy="16" r="3" />',
+    sonido: '<path d="M4 9h4l5-4v14l-5-4H4z" /><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11" />',
+    preparar: '<path d="M8 6h12M8 12h12M8 18h12" /><circle cx="4" cy="6" r="1" /><circle cx="4" cy="12" r="1" /><circle cx="4" cy="18" r="1" />',
+    atril: '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" /><circle cx="12" cy="12" r="3" />',
+    pantalla: '<rect x="3" y="5" width="18" height="12" rx="2" /><path d="M9 20h6" />',
+  };
+  const svg = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>`;
+
+  // Un culto de ejemplo (todo inventado). Lo comparten las funciones: lo que una pone al aire, lo ven las demás.
+  const ORDER = [
+    { sec: 'Apertura' },
+    { id: 'h12', kind: 'song', k: 'H', title: 'Himno 12 · Canto de la mañana clara', sub: 'Himno · cantado · 4 estrofas', steps: 4, look: 'bars', proj: (s) => `Estrofa ${s + 1}` },
+    { id: 'bien', kind: 'image', k: 'I', title: 'Bienvenida a las visitas', sub: 'Imagen', steps: 1, look: 'image', proj: () => 'Bienvenidos' },
+    { sec: 'Lectura' },
+    { id: 'sal', kind: 'verses', k: 'B', title: 'Salmo 23:1-4', sub: 'Biblia · 4 versículos', steps: 4, look: 'verse', proj: (s) => `(texto del versículo ${s + 1})<small>Salmo 23:${s + 1}</small>` },
+    { sec: 'Anuncios' },
+    { id: 'anun', kind: 'video', k: 'V', title: 'Informe misionero de octubre', sub: 'Video · 3:40', steps: 1, look: 'bars', proj: () => '' },
+    { sec: 'Mensaje' },
+    { id: 'serm', kind: 'slides', k: 'D', title: 'Sermón: El camino de la fe', sub: 'Presentación · 12 diapositivas', steps: 12, look: 'slide', proj: (s) => `Diapositiva ${s + 1}` },
+    { id: 'h210', kind: 'song', k: 'H', title: 'Himno 210 · Al caer la tarde', sub: 'Himno · pista · 3 estrofas', steps: 3, look: 'bars', proj: (s) => `Estrofa ${s + 1}` },
+  ];
+  const items = ORDER.filter((i) => !i.sec);
+  // Lo que está al aire en la simulación.
+  const air = { item: items[0], step: 1, mode: 'live', custom: null };
+  const airTitle = () => (air.custom ? air.custom.title : air.item.title);
+  let role = 'pasar';
+  let layer = null;      // capa abierta dentro del teléfono: 'switch' | 'order' | 'add'
+  let toast = null;      // { text, undo }
+  let toastTimer = null;
+  let before = null;     // lo que había antes de proyectar (para «Deshacer»)
+
+  // Estado propio de cada función.
+  const st = {
+    pasar: { picked: null },
+    pulpito: { tab: 'pasajes', sel: 'jn', slide: 3 },
+    canto: { num: '45', fresh: true, mode: 'Cantado', live: false, paused: false },
+    sonido: { paused: false, vol: 70, mute: false },
+    preparar: {},
+    atril: { size: 22, stanza: 1 },
+  };
+  const HYMNS = { 12: 'Canto de la mañana clara', 45: 'Luz en el camino', 210: 'Al caer la tarde', 318: 'Gracias por el pan', 7: 'Nueva canción de alabanza', 101: 'El río de la vida' };
+  const hymnTitle = (n) => HYMNS[Number(n)] || (n ? `Himno ${Number(n)} del himnario` : '');
+
+  function project(next, label) {
+    before = { item: air.item, step: air.step, mode: air.mode, custom: air.custom };
+    Object.assign(air, next, { mode: 'live' });
+    showToast(`Al aire: ${label}`, true);
+  }
+  function showToast(text, undo = false) {
+    clearTimeout(toastTimer);
+    toast = { text, undo, left: 5 };
+    tick();
+  }
+  function tick() {
+    render();
+    if (!toast) return;
+    toastTimer = setTimeout(() => {
+      if (!toast) return;
+      toast.left -= 1;
+      if (toast.left <= 0) toast = null;
+      tick();
+    }, 1000);
+  }
+
+  // ---- Piezas comunes ----
+  const strip = (name, calm = false) => {
+    let pill;
+    if (calm) pill = `<span class="pill calm"><b>Al aire: ${esc(airTitle())}</b></span>`;
+    else if (air.mode === 'black') pill = '<span class="pill">NEGRO</span>';
+    else if (air.mode === 'clear') pill = '<span class="pill">SOLO FONDO</span>';
+    else pill = `<span class="pill live">AL AIRE <b>${esc(shortAir())}</b></span>`;
+    return `<div class="sys"><span>9:41</span><span>●●● 82 %</span></div>
+      <div class="strip"><button class="fn" data-act="switch">${name}</button>${pill}</div>`;
+  };
+  const shortAir = () => (air.custom ? air.custom.short : air.item.title.split(' · ')[0] + (air.item.steps > 1 ? ` · ${air.step}/${air.item.steps}` : ''));
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  function monitor(big = false) {
+    if (air.mode === 'black') return `<div class="monitor dark"><span class="black-note">PANTALLA EN NEGRO</span></div>`;
+    if (air.mode === 'clear') return `<div class="monitor verse"><span class="black-note">SOLO FONDO</span></div>`;
+    if (air.custom) return `<div class="monitor live ${air.custom.look}"><span class="tag">AL AIRE</span><div class="proj">${air.custom.proj}</div></div>`;
+    const it = air.item;
+    return `<div class="monitor live ${it.look}${big ? ' big' : ''}"><span class="tag">AL AIRE</span><div class="proj">${it.proj(air.step - 1)}</div></div>`;
+  }
+  const blackBtn = () => `<button class="b black${air.mode === 'black' ? ' on' : ''}" data-act="black">${air.mode === 'black' ? 'Volver' : 'Negro'}</button>`;
+  const kindIcon = (it) => `<span class="kind k-${it.kind}">${it.k}</span>`;
+  const layers = () => {
+    let html = '';
+    if (layer) html += '<div class="scrim" data-act="close"></div>';
+    if (layer === 'switch') {
+      html += `<div class="sheet"><h4>Cambiar de función</h4><p class="note">Sin volver al inicio ni poner otra vez el PIN. Cada una recuerda dónde se quedó.</p>
+        ${['pasar', 'pulpito', 'canto', 'sonido', 'preparar', 'atril'].map((r) => `<button class="card${r === role ? ' sel' : ''}" data-go="${r}"><span class="kind" style="color:var(--accent)">${svg(r).replace('<svg', '<svg width="16" height="16"')}</span><span class="txt"><strong>${NAMES[r]}</strong><small>${WHO[r]}</small></span></button>`).join('')}</div>`;
+    }
+    if (layer === 'order') {
+      html += `<div class="sheet"><h4>Orden del culto</h4><p class="note">Tocar un elemento lo prepara; no salta solo.</p>
+        ${ORDER.map((it) => (it.sec ? `<div class="sec">${it.sec.toUpperCase()}</div>` : `<button class="card${it === air.item && !air.custom ? ' air' : ''}${st.pasar.picked === it.id ? ' sel' : ''}" data-pick="${it.id}">${kindIcon(it)}<span class="txt"><strong>${esc(it.title)}</strong><small>${it === air.item && !air.custom ? 'AL AIRE · ' : ''}${esc(it.sub)}</small></span></button>`)).join('')}</div>`;
+    }
+    if (layer === 'add') {
+      html += `<div class="sheet"><h4>Añadir al orden</h4><div class="grid2">
+        ${['Foto o imagen', 'Video del teléfono', 'Enlace de YouTube', 'Presentación PDF', 'Texto o cita', 'Himno por número', 'Pasaje bíblico', 'Sección'].map((x) => `<button data-act="added" data-what="${x}">${x}</button>`).join('')}</div>
+        <p class="note">Se sube desde la galería del teléfono y queda en el orden. No se proyecta.</p></div>`;
+    }
+    if (toast) html += `<div class="toast" role="status"><span>${esc(toast.text)}</span>${toast.undo ? `<button data-act="undo">Deshacer</button><span class="count">${toast.left} s</span>` : ''}</div>`;
+    return html;
+  };
+
+  const NAMES = { pasar: 'Pasar', pulpito: 'Púlpito', canto: 'Canto', sonido: 'Sonido', preparar: 'Preparar', atril: 'Atril' };
+  const WHO = { pasar: 'Quien dirige el programa', pulpito: 'Quien predica o da el estudio', canto: 'Quien dirige el canto o toca', sonido: 'Quien atiende el sonido', preparar: 'Departamentos y quien arma el programa', atril: 'Quienes cantan, tocan o leen al frente' };
+
+  // ---- Pantallas ----
+  const SCREENS = {
+    inicio() {
+      const card = (r, pin = true, resume = false) => `<button class="fncard${resume ? ' resume' : ''}" data-go="${r}"><span class="sq">${svg(r)}</span><span class="txt"><strong>${resume ? `Seguir en ${NAMES[r]}` : NAMES[r]}</strong><small>${WHO[r]}</small></span><span class="pin${pin ? '' : ' free'}">${pin ? 'PIN' : 'SIN PIN'}</span></button>`;
+      return `<div class="sys"><span>9:41</span><span>●●● 82 %</span></div><div></div>
+        <div class="body"><p class="lbl">Manna</p><p class="home-title">¿Qué vas a hacer hoy?</p>
+          ${card('canto', true, true)}
+          <p class="lbl">En vivo</p>${card('pasar')}${card('pulpito')}${card('canto')}${card('sonido')}
+          <p class="lbl">Sin tocar lo que está al aire</p>${card('preparar')}${card('atril', false)}
+          <button class="fncard" data-act="noop"><span class="sq">${svg('pantalla')}</span><span class="txt"><strong>Pantalla de proyección</strong><small>Un televisor o una pantalla más</small></span><span class="pin free">SIN PIN</span></button>
+          <p class="escape">Otras funciones (para computadora o tableta)</p></div><div></div>`;
+    },
+    pasar() {
+      const it = air.item;
+      const idx = items.indexOf(it);
+      const nextIt = air.step < it.steps ? null : items[idx + 1];
+      const picked = items.find((i) => i.id === st.pasar.picked);
+      const steps = it.steps > 1 && !air.custom ? `<div class="steps">${Array.from({ length: it.steps }, (_, i) => `<i class="${i + 1 < air.step ? 'done' : i + 1 === air.step ? 'now' : ''}"></i>`).join('')}</div>` : '';
+      const sigue = picked
+        ? `<p class="lbl" style="color:var(--accent)">Preparado</p><div class="card sel">${kindIcon(picked)}<span class="txt"><strong>${esc(picked.title)}</strong><small>${esc(picked.sub)}</small></span></div>`
+        : `<p class="lbl">Sigue</p>${nextIt ? `<div class="card"><span class="mini monitor ${nextIt.look}" style="padding:0"></span><span class="txt"><strong>${esc(nextIt.title)}</strong><small>${esc(nextIt.sub)}</small></span></div>` : `<div class="card"><span class="txt"><strong>${it.title.split(' · ')[0]}, paso ${air.step + 1} de ${it.steps}</strong><small>El mismo elemento continúa</small></span></div>`}`;
+      return `${strip('Pasar')}<div class="body">${monitor()}${steps}
+        <div class="meta"><span>${esc(airTitle())}</span><span>${!air.custom && it.steps > 1 ? `${air.step} de ${it.steps}` : ''}</span></div>
+        ${sigue}
+        <button class="b ghost" data-act="order">Ver el orden completo</button></div>
+        <div class="thumb">${picked
+          ? `<div class="row"><button class="b grow" data-act="unpick">Cancelar</button><button class="b main grow" data-act="pick-project">Proyectar este</button></div>`
+          : `<div class="row">${blackBtn()}<button class="b icon" data-act="prev" aria-label="Anterior">◀</button><button class="b main grow" data-act="next">Siguiente ▶</button></div>`}</div>`;
+    },
+    pulpito() {
+      const s = st.pulpito;
+      const tabs = `<div class="tabs"><button class="${s.tab === 'pasajes' ? 'on' : ''}" data-tab="pasajes">Pasajes</button><button class="${s.tab === 'diapositivas' ? 'on' : ''}" data-tab="diapositivas">Diapositivas</button></div>`;
+      if (s.tab === 'diapositivas') {
+        const n = s.slide;
+        const last = n >= 12;
+        return `${strip('Púlpito')}<div class="body">${tabs}
+          <div class="monitor live slide" style="aspect-ratio:16/9"><span class="tag">AL AIRE</span><div class="proj" style="font-size:16px">Diapositiva ${n}<small>Sermón: El camino de la fe</small></div></div>
+          <p class="note" style="font-size:12px">Tocar la diapositiva a la derecha pasa, a la izquierda vuelve.</p>
+          <div class="row" style="align-items:center"><div class="card" style="flex:1"><span class="mini monitor slide" style="padding:0"></span><span class="txt"><strong>${last ? 'Fin de la presentación' : `Sigue: diapositiva ${n + 1}`}</strong><small>${n} de 12</small></span></div><button class="b small${s.point ? ' on' : ''}" data-act="point">Señalar</button></div>
+          ${last ? '<p class="calmbar">Se detiene aquí: no salta solo al himno final.</p>' : ''}</div>
+          <div class="thumb"><div class="row">${blackBtn()}<button class="b icon" data-act="sprev" aria-label="Anterior">◀</button><button class="b main grow" data-act="snext" ${last ? 'disabled' : ''}>${last ? 'Última' : 'Siguiente ▶'}</button></div></div>`;
+      }
+      const opts = [
+        { id: 'rom', k: 'B', kind: 'verses', title: 'Romanos 8:28', sub: 'Para hoy · versículo' },
+        { id: 'jn', k: 'B', kind: 'verses', title: 'Juan 3:16-17', sub: 'Para hoy · 2 versículos' },
+        { id: 'cita', k: 'T', kind: 'text', title: '«La fe ve en lo oscuro…»', sub: 'Para hoy · cita · Autor de ejemplo' },
+      ];
+      const sel = opts.find((o) => o.id === s.sel) || opts[1];
+      return `${strip('Púlpito')}<div class="body">${tabs}
+        <div class="field">juan 3 16<span class="caret"></span></div>
+        <p class="lbl">Para hoy</p>
+        ${opts.map((o) => `<button class="card${o.id === s.sel ? ' sel' : ''}${air.custom && air.custom.id === o.id ? ' air' : ''}" data-sel="${o.id}">${kindIcon(o)}<span class="txt"><strong>${esc(o.title)}</strong><small>${esc(o.sub)}</small></span></button>`).join('')}
+        <div class="verse"><strong>${esc(sel.title)}</strong><p>${sel.kind === 'text' ? 'La cita, en grande, y debajo «— Autor».' : '(texto de los versículos, en la versión de la iglesia)'}</p></div></div>
+        <div class="thumb"><button class="b small" data-act="next-up">Poner a continuación en el orden</button>
+          <div class="row">${blackBtn()}<button class="b main grow" data-act="pul-project">Proyectar ${esc(sel.title.split(':')[0].replace('Juan 3', 'Jn 3'))}</button></div></div>`;
+    },
+    canto() {
+      const s = st.canto;
+      if (s.live) {
+        const lyr = s.mode === 'Letra';
+        return `${strip('Canto')}<div class="body">${monitor()}
+          <p class="big-title">Himno ${Number(s.num)} · ${esc(hymnTitle(s.num))}</p>
+          ${lyr ? `<p class="calmbar">Letra sin música: las estrofas se pasan a mano con el botón de abajo.</p>` : `<div class="seg" style="grid-template-columns:1fr 1fr"><button class="${s.mode === 'Cantado' ? 'on' : ''}" data-mode="Cantado">Cantado</button><button class="${s.mode === 'Pista' ? 'on' : ''}" data-mode="Pista">Pista</button></div>
+          <div class="bar"><span style="width:38%"></span></div><div class="times"><span>1:05</span><span>2:52</span></div>
+          <div class="row" style="justify-content:center"><button class="b icon" aria-label="Atrás 10 segundos">−10</button><button class="b grow" data-act="pause">${s.paused ? '▶ Reanudar' : '❚❚ Pausar'}</button><button class="b icon" aria-label="Adelante 10 segundos">+10</button></div>
+          <div class="vol"><span class="lbl">Volumen de Manna</span><input type="range" min="0" max="100" value="75" aria-label="Volumen de Manna"></div>`}
+          <button class="b ghost" data-act="other">Otro himno</button></div>
+          <div class="thumb"><div class="row">${blackBtn()}${lyr ? '<button class="b main grow" data-act="stanza">Siguiente estrofa ▶</button>' : '<button class="b grow" data-act="next-up">Poner a continuación</button>'}</div></div>`;
+      }
+      return `${strip('Canto')}<div class="body">
+        <div class="number"><output>${s.num ? s.num.padStart(3, '0') : '———'}</output><span>${esc(hymnTitle(s.num))}</span></div>
+        <div class="seg">${['Cantado', 'Pista', 'Letra'].map((m) => `<button class="${s.mode === m ? 'on' : ''}" data-mode="${m}">${m}</button>`).join('')}</div>
+        <div class="keys">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '★', '0', '⌫'].map((k) => `<button data-key="${k}" aria-label="${k === '⌫' ? 'Borrar' : k === '★' ? 'Favoritos' : k}">${k}</button>`).join('')}</div>
+        <div class="chips"><span class="lbl">Hoy</span>${['12', '45', '210', '318'].map((n) => `<button data-num="${n}">${n}</button>`).join('')}</div></div>
+        <div class="thumb"><div class="row">${blackBtn()}<button class="b main grow" data-act="sing" ${s.num ? '' : 'disabled'}>Proyectar ${s.num ? s.num.padStart(3, '0') : ''} ▶</button></div></div>`;
+    },
+    sonido() {
+      const s = st.sonido;
+      return `${strip('Sonido')}<div class="body">
+        <p class="lbl">Suena ahora</p>
+        <div class="card"><span class="mini monitor bars" style="padding:0"></span><span class="txt"><strong>Informe misionero de octubre</strong><small>Video · en el proyector</small></span></div>
+        <div class="bar"><span style="width:${s.paused ? 33 : 34}%"></span></div><div class="times"><span>1:12</span><span>faltan 2:28</span></div>
+        <button class="b main" data-act="spause">${s.paused ? '▶ Reanudar' : '❚❚ Pausar'}</button>
+        <div class="vol"><div class="meta"><span class="lbl">Volumen de Manna</span><span style="font-family:var(--mono)">${s.mute ? 'silencio' : `${s.vol} %`}</span></div>
+          <input type="range" min="0" max="100" value="${s.vol}" data-act="vol" aria-label="Volumen de Manna"></div>
+        <button class="b${s.mute ? ' on' : ''}" data-act="mute">${s.mute ? 'Quitar el silencio' : 'Silencio'}</button>
+        <p class="note" style="font-size:12px">Es el volumen de Manna, no el del equipo ni el de la consola.</p></div>
+        <div class="thumb"><div class="row">${blackBtn()}</div></div>`;
+    },
+    preparar() {
+      const row = (it, extra = '') => `<div class="item"><span class="grip">≡</span>${kindIcon(it)}<span class="txt"><strong>${esc(it.title)}</strong><small>${esc(it.sub)}</small></span>${extra || '<span class="more">⋯</span>'}</div>`;
+      return `${strip('Preparar', true)}<div class="body">
+        <p class="lbl">Orden del sábado 26 de octubre</p>
+        <p class="calmbar">Aquí no se proyecta nada: lo que hagas no cambia la pantalla de la iglesia.</p>
+        <div class="sec">APERTURA</div>${row(items[0])}${row(items[1])}
+        <div class="sec">LECTURA</div>${row(items[2])}
+        <div class="sec">ANUNCIOS</div>${row(items[3])}${row({ kind: 'image', k: 'I', title: 'Campaña de oración', sub: 'Imagen · subiendo desde la galería' }, '<span class="up">72 %</span>')}${row({ kind: 'text', k: 'T', title: '«La oración abre puertas…»', sub: 'Cita · Autor de ejemplo' })}
+        <div class="sec">MENSAJE</div>${row(items[4])}</div>
+        <div class="thumb"><button class="b main" data-act="add">+ Añadir</button></div>`;
+    },
+    atril() {
+      const s = st.atril;
+      const lines = [
+        ['Cantemos juntos al nacer', 'la luz sobre el camino,', 'que el día empieza en paz', 'y el alma canta unida.'],
+        ['Y cuando caiga la tarde', 'seguiremos cantando,', 'que la mano que nos guía', 'no se cansa de esperar.'],
+        ['Que suene en cada casa', 'la canción de la mañana,', 'y el que llega de lejos', 'encuentre un lugar.'],
+        ['Gracias por este día,', 'por el pan y la palabra,', 'cantemos todos juntos', 'hasta el nuevo amanecer.'],
+      ];
+      const now = lines[s.stanza - 1];
+      const next = lines[s.stanza] || null;
+      return `<div class="sys"><span>9:41</span><span>●●● 82 %</span></div>
+        <div class="strip"><button class="fn" data-act="switch">Atril</button><span class="pill live">HIMNO 45 <b>· estrofa ${s.stanza} de 4</b></span></div>
+        <div class="body" style="--atril:${s.size}px"><p class="lyric">${now.join('<br>')}</p>
+          ${next ? `<div class="divider">SIGUE</div><p class="next-lyric">${next.join('<br>')}</p>` : '<div class="divider">ÚLTIMA ESTROFA</div>'}</div>
+        <div class="thumb"><div class="row"><button class="b grow" data-act="smaller" aria-label="Letra más pequeña">A−</button><button class="b grow" data-act="bigger" aria-label="Letra más grande">A+</button></div></div>`;
+    },
+  };
+
+  // ---- Lo que puede y no puede ----
+  const INFO = {
+    inicio: {
+      title: 'El inicio en el celular', who: 'Lo que ve un teléfono al entrar a Manna. Solo las funciones pensadas para él, en dos grupos: las que tocan lo que está al aire y las que no.',
+      yes: ['Elegir una de las seis funciones del celular', 'Volver a la última que usó ese teléfono («Seguir en Canto»)', 'Entrar con el PIN una vez; después, cambiar de función sin repetirlo', 'Abrir la pantalla de proyección (un televisor o una pantalla más)', 'En una emergencia, el enlace pequeño de abajo deja entrar a «Control completo»'],
+      no: ['«Control completo» como tarjeta: queda para la computadora y la tableta', 'Ajustes, programas, PIN ni apagar'],
+      avoid: ['Que un voluntario entre a la función con todo y toque lo que no era.'],
+      try: [['Toca una tarjeta para abrir esa función', null]],
+    },
+    pasar: {
+      title: 'Pasar', who: '<b>Para quien dirige el programa</b> (anciano, director de culto, maestro de ceremonias), <b>todo el culto</b>. Reemplaza a «Control del orden».',
+      yes: ['Ver lo que está al aire, en qué paso va (2 de 4) y qué sigue', 'Siguiente y Anterior: recorre los pasos (estrofas, versículos, diapositivas) y luego los elementos del orden', 'Abrir el orden completo, preparar cualquier elemento y proyectarlo con «Proyectar este»', '«Negro» y «Solo fondo», y volver', 'Pausar o reanudar lo que suena (el botón sale solo si lo que está al aire suena)', 'El volumen de Manna (en una hoja aparte)', 'Deshacer la última proyección durante 5 segundos'],
+      no: ['Añadir, quitar, mover o renombrar elementos del orden', 'Buscar versículos, himnos, videos o imágenes', 'Subir archivos', 'Acercar, mover o señalar sobre lo que está al aire', 'Pasar tocando la imagen: solo con los botones de abajo', 'Ajustes, PIN, programas ni apagar'],
+      avoid: ['<b>Proyectar lo que no tocaba:</b> antes de pulsar, siempre se ve qué sigue.', '<b>Avanzar por rozar la pantalla</b> al sostener el teléfono con una mano.', '<b>Perderse en el programa:</b> el paso y lo que viene, siempre a la vista.'],
+      try: [['Pulsa «Siguiente» y «◀»', null], ['Abre «Ver el orden completo» y elige otro', null], ['Pulsa «Negro»', null]],
+    },
+    pulpito: {
+      title: 'Púlpito', who: '<b>Para quien predica o da el estudio</b> (o quien lo ayuda), <b>durante el sermón, la lección o un devocional</b>.',
+      yes: ['Escribir una cita como se dice («juan 3 16», «sal 23 1-4») y proyectarla en la versión de la iglesia', '«Para hoy»: pasajes, citas y textos preparados para el sermón; un toque los prepara', 'Pasar versículo a versículo un pasaje largo', 'Pasar su presentación (botones o tocar la diapositiva) y ver la que sigue', 'Señalar con el dedo sobre la proyección', '«Poner a continuación»: lo deja como lo siguiente del orden, para que quien usa Pasar solo pulse Siguiente', '«Negro» y deshacer 5 segundos'],
+      no: ['Himnos, videos, imágenes, audios ni páginas web', 'Comparar versiones o cambiar la versión de la Biblia', 'Editar el orden (salvo «Poner a continuación»)', 'Pasar de su última diapositiva a lo siguiente del orden', 'El volumen ni los ajustes'],
+      avoid: ['<b>Buscar libro, capítulo y versículo</b> con toda la iglesia esperando.', '<b>Proyectar otra versión</b> de la Biblia por error.', '<b>Saltar al himno final</b> al pasarse de la última diapositiva.'],
+      try: [['Elige algo de «Para hoy» y pulsa «Proyectar»', null], ['Pestaña «Diapositivas»: pasa hasta la última', null]],
+    },
+    canto: {
+      title: 'Canto', who: '<b>Para quien dirige el canto o toca</b>, <b>durante la alabanza</b>. El himno se pide por su número, como se anuncia en la iglesia.',
+      yes: ['Escribir el número del himno y ver su título antes de proyectar', 'Elegir Cantado, Pista o Letra (sin música)', 'Proyectar; pausar, −10 y +10, el avance; cambiar entre Cantado y Pista al aire sin perder el punto', '«Siguiente estrofa» en las letras sin música', 'Los favoritos (★) y los himnos de hoy (los del orden)', 'Los audios (pistas para especiales) y los videos de la categoría «Alabanza»', 'El volumen de Manna, «Negro», «Poner a continuación» y deshacer', 'Escuchar antes, solo en su teléfono, con audífonos'],
+      no: ['La Biblia, imágenes, diapositivas ni páginas web', 'Videos fuera de su categoría', 'Editar el orden (salvo «Poner a continuación»)', 'Subir archivos ni ajustes'],
+      avoid: ['<b>Poner el himno equivocado:</b> el título se ve antes de proyectar.', '<b>Confundir cantado y pista:</b> un botón doble, muy visible.', '<b>Saltos de volumen:</b> el volumen de Manna se desvanece.'],
+      try: [['Escribe un número en el teclado (prueba 210)', null], ['Pulsa «Proyectar» y luego «Pausar»', null], ['Elige «Letra» y proyecta', null]],
+    },
+    sonido: {
+      title: 'Sonido', who: '<b>Para quien atiende el sonido</b>, <b>todo el culto</b>, si la iglesia tiene a alguien solo para eso. Es la más pequeña, y es opcional.',
+      yes: ['Ver qué suena, cuánto lleva y cuánto falta', 'El volumen de Manna, con un deslizador grande', '«Silencio» y quitarlo', 'Pausar y reanudar lo que suena', '«Negro»'],
+      no: ['Elegir o cambiar lo que se proyecta, ni Siguiente o Anterior', 'Editar el orden', 'El volumen del equipo o de la consola (solo el de Manna)', 'Ajustes'],
+      avoid: ['<b>Que el sonidista cambie la pantalla</b> buscando el volumen.'],
+      try: [['Mueve el volumen y pulsa «Silencio»', null]],
+    },
+    preparar: {
+      title: 'Preparar', who: '<b>Para los departamentos</b> (anuncios, Escuela Sabática, jóvenes, niños) <b>y quien arma el programa</b>, <b>en los días o las horas antes</b>. No puede proyectar nada.',
+      yes: ['Ver y editar el orden: añadir, mover arrastrando (≡), renombrar, quitar y crear secciones', 'Subir fotos y videos de la galería, una presentación en PDF o pegar un enlace de YouTube', 'Escribir textos y citas con su autor', 'Añadir himnos por número y pasajes por su cita', 'Ver o escuchar algo antes, solo en su teléfono', 'Ver en una línea qué está al aire (solo leer)'],
+      no: ['Proyectar, «Negro», «Solo fondo», Siguiente ni Anterior', 'Mandos de lo que está al aire (pausa, volumen)', 'Borrar de la biblioteca (videos, imágenes, presentaciones) ni categorías', 'Ajustes'],
+      avoid: ['<b>Cambiar la pantalla de la iglesia sin querer</b> mientras se prepara algo durante el culto.', '<b>Subir lo mismo dos veces</b> (avisa si ya está).', '<b>Videos muy pesados por el teléfono</b>: lo advierte y sugiere copiarlos en el equipo principal.'],
+      try: [['Pulsa «+ Añadir»', null]],
+    },
+    atril: {
+      title: 'Atril', who: '<b>Para quienes están al frente</b> (los que cantan, los músicos, quien lee, el predicador como monitor) <b>mientras se proyecta</b>. Solo muestra.',
+      yes: ['Leer en grande la letra o el versículo que está al aire', 'Ver debajo, en gris, lo que sigue', 'Con una diapositiva o una imagen, verla; con un video, su nombre y cuánto falta', 'Agrandar o achicar la letra, solo en su teléfono', 'Mantener la pantalla encendida mientras está abierta'],
+      no: ['Nada que cambie la proyección ni el orden: no tiene botones de control', 'No pide PIN en la red de la iglesia (desde internet, sí)'],
+      avoid: ['<b>Que quien canta o lee se pierda</b> o tenga que voltear a mirar la pantalla.'],
+      try: [['Usa A− y A+', null], ['Avanza la estrofa desde aquí:', 'stanza']],
+    },
+  };
+
+  function renderDetails() {
+    const d = INFO[role];
+    details.innerHTML = `<div><p class="eyebrow">${role === 'inicio' ? 'Antes de elegir' : ['preparar', 'atril'].includes(role) ? 'Sin tocar lo que está al aire' : 'En vivo'}</p><h3>${d.title}</h3></div>
+      <p class="who">${d.who}</p>
+      <div class="lists"><section class="yes"><h4>Puede</h4><ul>${d.yes.map((x) => `<li>${x}</li>`).join('')}</ul></section>
+        <section class="no"><h4>No puede</h4><ul>${d.no.map((x) => `<li>${x}</li>`).join('')}</ul></section></div>
+      <div class="avoid"><p class="eyebrow" style="margin-bottom:4px">Errores que evita</p>${d.avoid.map((x) => `<p>${x}</p>`).join('')}</div>
+      <div class="try"><span class="eyebrow">Pruébalo en el teléfono</span>${d.try.map(([t, a]) => (a ? `<span>${t}</span><button data-ext="${a}">Siguiente estrofa</button>` : `<span>· ${t}</span>`)).join('')}</div>`;
+  }
+
+  function render() {
+    phone.innerHTML = SCREENS[role]() + layers();
+    for (const b of document.querySelectorAll('.roles button')) b.setAttribute('aria-pressed', String(b.dataset.role === role));
+  }
+  function choose(r) {
+    role = r;
+    layer = null;
+    render();
+    renderDetails();
+    try { localStorage.setItem('manna-celular-rol', r); } catch { /* sin almacenamiento, se empieza por Pasar */ }
+  }
+
+  // ---- Lo que hace cada toque ----
+  function step(delta) {
+    if (air.mode !== 'live') air.mode = 'live';
+    if (air.custom) { air.custom = null; return; }
+    const it = air.item;
+    const i = items.indexOf(it);
+    if (delta > 0) {
+      if (air.step < it.steps) air.step += 1;
+      else if (items[i + 1]) { air.item = items[i + 1]; air.step = 1; }
+    } else if (air.step > 1) air.step -= 1;
+    else if (items[i - 1]) { air.item = items[i - 1]; air.step = items[i - 1].steps; }
+  }
+  phone.addEventListener('click', (e) => {
+    const t = e.target.closest('button, [data-act]');
+    if (!t) return;
+    const act = t.dataset.act;
+    if (t.dataset.go) { choose(t.dataset.go); return; }
+    if (t.dataset.pick) { st.pasar.picked = t.dataset.pick; layer = null; render(); return; }
+    if (t.dataset.tab) { st.pulpito.tab = t.dataset.tab; render(); return; }
+    if (t.dataset.sel) { st.pulpito.sel = t.dataset.sel; render(); return; }
+    if (t.dataset.mode) { st.canto.mode = t.dataset.mode; render(); return; }
+    if (t.dataset.num) { st.canto.num = t.dataset.num; st.canto.fresh = true; render(); return; }
+    if (t.dataset.key) {
+      const k = t.dataset.key;
+      const s = st.canto;
+      if (k === '⌫') s.num = s.num.slice(0, -1);
+      else if (k === '★') { showToast('Favoritos: 12 · 45 · 101 · 318'); return; }
+      // El primer número que se escribe empieza otro himno; después se van sumando cifras (hasta tres).
+      else s.num = (s.fresh || s.num.length >= 3 ? '' : s.num) + k;
+      s.fresh = false;
+      s.num = s.num.replace(/^0+/, '');
+      render();
+      return;
+    }
+    switch (act) {
+      case 'switch': layer = 'switch'; break;
+      case 'order': layer = 'order'; break;
+      case 'add': layer = 'add'; break;
+      case 'close': layer = null; break;
+      case 'noop': showToast('La pantalla de proyección ya existe: se usa en un televisor.'); return;
+      case 'black': air.mode = air.mode === 'black' ? 'live' : 'black'; break;
+      case 'next': step(1); break;
+      case 'prev': step(-1); break;
+      case 'unpick': st.pasar.picked = null; break;
+      case 'pick-project': {
+        const it = items.find((i) => i.id === st.pasar.picked);
+        st.pasar.picked = null;
+        project({ item: it, step: 1, custom: null }, it.title.split(' · ')[0]);
+        return;
+      }
+      case 'pul-project': {
+        const id = st.pulpito.sel;
+        const map = { rom: ['Romanos 8:28', 'verse', '(texto de Romanos 8:28)<small>Romanos 8:28</small>'], jn: ['Juan 3:16', 'verse', '(texto de Juan 3:16)<small>Juan 3:16</small>'], cita: ['Cita', 'verse', '«La fe ve en lo oscuro…»<small>— Autor de ejemplo</small>'] };
+        const [short, look, proj] = map[id];
+        project({ custom: { id, title: short, short, look, proj } }, short);
+        return;
+      }
+      case 'next-up': showToast('Quedó a continuación en el orden: quien usa Pasar solo pulsa Siguiente.'); return;
+      case 'point': st.pulpito.point = !st.pulpito.point; break;
+      case 'snext': st.pulpito.slide = Math.min(12, st.pulpito.slide + 1); break;
+      case 'sprev': st.pulpito.slide = Math.max(1, st.pulpito.slide - 1); break;
+      case 'sing': {
+        const s = st.canto;
+        s.live = true;
+        s.paused = false;
+        const n = Number(s.num);
+        project({ custom: { id: 'canto', title: `Himno ${n}`, short: `Himno ${n}`, look: s.mode === 'Letra' ? 'verse' : 'bars', proj: s.mode === 'Letra' ? 'Estrofa 1' : '' } }, `Himno ${n}`);
+        return;
+      }
+      case 'pause': st.canto.paused = !st.canto.paused; break;
+      case 'other': st.canto.live = false; break;
+      case 'stanza': showToast('Estrofa siguiente al aire.'); return;
+      case 'spause': st.sonido.paused = !st.sonido.paused; break;
+      case 'mute': st.sonido.mute = !st.sonido.mute; break;
+      case 'added': layer = null; showToast(`${t.dataset.what}: se añadiría al orden, sin proyectar.`); return;
+      case 'undo':
+        if (before) Object.assign(air, before);
+        before = null;
+        toast = null;
+        if (role === 'canto') st.canto.live = false;
+        break;
+      case 'smaller': st.atril.size = Math.max(16, st.atril.size - 3); break;
+      case 'bigger': st.atril.size = Math.min(34, st.atril.size + 3); break;
+      default: return;
+    }
+    render();
+  });
+  phone.addEventListener('input', (e) => {
+    if (e.target.dataset.act === 'vol') { st.sonido.vol = Number(e.target.value); st.sonido.mute = false; const m = phone.querySelector('.vol .meta span:last-child'); if (m) m.textContent = `${st.sonido.vol} %`; }
+  });
+  details.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ext]');
+    if (b?.dataset.ext === 'stanza') { st.atril.stanza = st.atril.stanza % 4 + 1; render(); }
+  });
+  document.querySelector('.roles').addEventListener('click', (e) => { const b = e.target.closest('[data-role]'); if (b) choose(b.dataset.role); });
+
+  // ---- La tabla ----
+  const Y = '✓', N = '—';
+  const ROWS = [
+    ['Ver lo que está al aire', Y, Y, Y, Y, 'en una línea', Y, Y],
+    ['Siguiente y Anterior', Y, 'sus versículos y diapositivas', 'estrofas de la letra', N, N, N, Y],
+    ['Saltar a otro elemento del orden', Y, N, N, N, N, N, Y],
+    ['«Negro» y «Solo fondo»', Y, 'Negro', 'Negro', 'Negro', N, N, Y],
+    ['Volumen de Manna', Y, N, Y, Y, N, N, Y],
+    ['Pausar lo que suena', Y, N, Y, Y, N, N, Y],
+    ['Proyectar un versículo', 'si está en el orden', Y, N, N, N, N, Y],
+    ['Proyectar un himno', 'si está en el orden', N, Y, N, N, N, Y],
+    ['Proyectar videos, imágenes o audios', 'si están en el orden', N, 'audios y su categoría', N, N, N, Y],
+    ['Pasar diapositivas y señalar', 'pasar, si está en el orden', Y, N, N, N, N, Y],
+    ['«Poner a continuación»', N, Y, Y, N, Y, N, Y],
+    ['Añadir, mover y quitar en el orden', N, N, N, N, Y, N, Y],
+    ['Subir fotos, videos, PDF o YouTube', N, N, N, N, Y, N, Y],
+    ['Escribir textos y citas', N, N, N, N, Y, N, Y],
+    ['Leer en grande la letra o el versículo', N, N, N, N, N, Y, N],
+    ['Borrar de la biblioteca, categorías', N, N, N, N, N, N, Y],
+    ['Ajustes, PIN, programas, apagar', N, N, N, N, N, N, Y],
+    ['Pide PIN', Y, Y, Y, Y, Y, 'no, en la red de la iglesia', Y],
+  ];
+  $('#matrix').innerHTML = ROWS.map(([a, ...cells]) => `<tr><td>${a}</td>${cells.map((c) => `<td class="${c === Y ? 'y' : c === N ? 'n' : 'p'}">${c}</td>`).join('')}</tr>`).join('');
+
+  let first = 'pasar';
+  try { first = localStorage.getItem('manna-celular-rol') || 'pasar'; } catch { /* se empieza por Pasar */ }
+  if (location.hash && INFO[location.hash.slice(1)]) first = location.hash.slice(1);
+  choose(INFO[first] ? first : 'pasar');
+})();
+</script>

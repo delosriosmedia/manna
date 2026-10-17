@@ -2,6 +2,8 @@
 
 Investigación de la fase 19 de `docs/PLAN.md` (decisión 41), del 2026-10-17. **No cambia la app**: es la propuesta para que el dueño decida. Lo que apruebe entra en el plan como fases nuevas.
 
+**Simulación visual**: `docs/funciones-celular.html` muestra cada función en un teléfono que se puede tocar (ábrelo en el navegador), con lo que puede y no puede al lado y la tabla que las compara.
+
 El encargo: en vez de entrar desde el teléfono a «Control completo», que en el celular solo haya funciones dedicadas a una necesidad, con pocas cosas en pantalla. Se plantea **desde cero**, sin partir de cómo está repartido hoy, pensando en quién usa cada una, en qué momento del culto y qué errores hay que evitarle.
 
 ## 1. De dónde se parte
@@ -95,8 +97,21 @@ Para quien dirige el programa. Reemplaza a «Control del orden» y hace mejor lo
 └──────────────────────────────┘
 ```
 
-- **Puede:** avanzar y volver (por pasos y por elementos), saltar a cualquier elemento del orden, «Negro» y «Solo fondo», pausar o reanudar lo que suena (un botón grande aparece solo si lo al aire suena) y el volumen (en una hoja que se abre desde ⋯).
-- **No puede:** editar el orden, buscar ni elegir nada fuera del orden, ni tocar ajustes.
+- **Puede:**
+  - Ver lo que está al aire, en qué paso va (2 de 4) y qué sigue.
+  - Siguiente y Anterior: recorre los pasos (estrofas, versículos, diapositivas) y luego los elementos del orden.
+  - Abrir el orden completo, preparar cualquier elemento y proyectarlo con «Proyectar este».
+  - «Negro» y «Solo fondo», y volver.
+  - Pausar o reanudar lo que suena (el botón sale solo si lo que está al aire suena).
+  - El volumen de Manna, en una hoja aparte.
+  - Deshacer la última proyección durante 5 segundos.
+- **No puede:**
+  - Añadir, quitar, mover o renombrar elementos del orden.
+  - Buscar versículos, himnos, videos o imágenes.
+  - Subir archivos.
+  - Acercar, mover o señalar sobre lo que está al aire.
+  - Pasar tocando la imagen: solo con los botones de abajo.
+  - Ajustes, PIN, programas ni apagar.
 - **Saltar en el orden:** «Ver el orden completo» abre la lista entera (secciones, lo ya pasado atenuado, lo al aire en rojo). Tocar un elemento lo prepara y muestra «Proyectar este»; no salta solo.
 - **Tocar el recuadro no pasa.** En «Historias» tocarlo avanza, pero al sostener el teléfono con una mano se toca sin querer. Aquí solo se pasa con los botones de abajo.
 - **Errores que evita:** proyectar lo que no tocaba (siempre se ve qué sigue antes de pulsar), avanzar por rozar la pantalla, perderse en el programa (el número de paso y lo que viene), tocar módulos que no son suyos.
@@ -132,8 +147,20 @@ Pasajes                              Diapositivas
   - Junto a «Proyectar», **«Poner a continuación»**: lo deja como lo siguiente del orden, para que quien usa «Pasar» solo pulse Siguiente. Así el predicador (o quien lo ayuda) no proyecta nada si no quiere.
   - Proyectado un pasaje de varios versículos, el botón grande pasa a «Siguiente versículo».
 - **Diapositivas:** la del aire en grande (tocar a la derecha pasa), la que sigue en pequeño y «Señalar» con el dedo. Es el Presentador, reducido a lo esencial. **Se detiene en la última** («Fin de la presentación»): no salta solo a lo que siga en el orden, como el himno final.
-- **Puede:** proyectar cualquier pasaje en la versión de la iglesia, pasar su presentación, señalar y «Negro».
-- **No puede:** himnos, videos, editar el orden ni ajustes.
+- **Puede:**
+  - Escribir una cita como se dice («juan 3 16», «sal 23 1-4») y proyectarla en la versión de la iglesia.
+  - «Para hoy»: pasajes, citas y textos preparados para el sermón; un toque los prepara.
+  - Pasar versículo a versículo un pasaje largo.
+  - Pasar su presentación (botones o tocar la diapositiva) y ver la que sigue.
+  - Señalar con el dedo sobre la proyección.
+  - «Poner a continuación».
+  - «Negro» y deshacer 5 segundos.
+- **No puede:**
+  - Himnos, videos, imágenes, audios ni páginas web.
+  - Comparar versiones ni cambiar la versión de la Biblia.
+  - Editar el orden (salvo «Poner a continuación»).
+  - Pasar de su última diapositiva a lo siguiente del orden.
+  - El volumen ni los ajustes.
 - **Errores que evita:** perder tiempo buscando en libro, capítulo y versículo con todos mirando, y proyectar otra versión de la Biblia por error.
 
 ### 3.3 Canto
@@ -163,8 +190,20 @@ Para quien dirige la alabanza o toca. El himno se pide por su **número**, como 
 - Con un himno al aire, la zona de trabajo cambia a sus mandos: pausar en grande, −10 / +10, el avance, cantado o pista y el volumen. «Otro himno» vuelve al teclado.
 - **Letras sin música:** el botón «Letra» lo pone como diapositivas que se pasan a mano, con «Siguiente estrofa» en grande.
 - ★ abre los favoritos de la iglesia.
-- **Puede:** proyectar himnos (cantado, pista o letra), pausar, el volumen, los **audios** (pistas para especiales musicales) y los videos de una categoría de Videos que la iglesia elija («Alabanza»). También «Poner a continuación», como en «Púlpito».
-- **No puede:** la Biblia, el resto de videos y medios, editar el orden ni ajustes.
+- **Puede:**
+  - Escribir el número del himno y ver su título antes de proyectar.
+  - Elegir Cantado, Pista o Letra (sin música).
+  - Proyectar; pausar, −10 y +10, el avance; cambiar entre Cantado y Pista al aire sin perder el punto.
+  - «Siguiente estrofa» en las letras sin música.
+  - Los favoritos (★) y los himnos de hoy (los del orden).
+  - Los **audios** (pistas para especiales musicales) y los videos de la categoría de Videos que la iglesia elija («Alabanza»).
+  - El volumen de Manna, «Negro», «Poner a continuación» y deshacer.
+  - Escuchar antes, solo en su teléfono, con audífonos.
+- **No puede:**
+  - La Biblia, imágenes, diapositivas ni páginas web.
+  - Videos fuera de su categoría.
+  - Editar el orden (salvo «Poner a continuación»).
+  - Subir archivos ni ajustes.
 - **Errores que evita:** poner el himno equivocado (el título se ve antes de proyectar), confundir cantado y pista (un botón doble muy visible), saltos de volumen (el volumen de Manna se desvanece).
 
 ### 3.4 Sonido
@@ -189,8 +228,17 @@ Para quien atiende el sonido, si la iglesia tiene a alguien solo para eso. Es la
 └──────────────────────────────┘
 ```
 
-- **Puede:** el volumen general, pausar y reanudar, silenciar y «Negro».
-- **No puede:** cambiar lo que se proyecta.
+- **Puede:**
+  - Ver qué suena, cuánto lleva y cuánto falta.
+  - El volumen de Manna, con un deslizador grande.
+  - «Silencio» y quitarlo.
+  - Pausar y reanudar lo que suena.
+  - «Negro».
+- **No puede:**
+  - Elegir o cambiar lo que se proyecta, ni Siguiente o Anterior.
+  - Editar el orden.
+  - El volumen del equipo o de la consola (solo el de Manna).
+  - Ajustes.
 - Si la iglesia no tiene a alguien para el sonido, esta función sobra: el volumen ya está en «Pasar» y «Canto». **Decisión del dueño.**
 
 ### 3.5 Preparar
@@ -221,8 +269,18 @@ Para los departamentos y para quien arma el programa, en los días o las horas a
   Pasaje bíblico                   Sección
 ```
 
-- **Puede:** añadir al orden (subiendo lo que haga falta desde el teléfono), escribir textos y citas, cambiar nombres, mover elementos (arrastrando ≡) y quitarlos, y escuchar o ver algo antes en el propio teléfono.
-- **No puede:** proyectar, «Negro», mandos en vivo, borrar de la biblioteca ni ajustes.
+- **Puede:**
+  - Ver y editar el orden: añadir, mover arrastrando (≡), renombrar, quitar y crear secciones.
+  - Subir fotos y videos de la galería, una presentación en PDF o pegar un enlace de YouTube.
+  - Escribir textos y citas con su autor.
+  - Añadir himnos por número y pasajes por su cita.
+  - Ver o escuchar algo antes, solo en su teléfono.
+  - Ver en una línea qué está al aire (solo leer).
+- **No puede:**
+  - Proyectar, «Negro», «Solo fondo», Siguiente ni Anterior.
+  - Mandos de lo que está al aire (pausa, volumen).
+  - Borrar de la biblioteca (videos, imágenes, presentaciones) ni categorías.
+  - Ajustes.
 - **Errores que evita:** cambiar la pantalla sin querer durante el culto, y subir lo mismo dos veces (avisa si ya está). Un video muy pesado lo advierte: es mejor copiarlo en el equipo principal.
 
 ### 3.6 Atril
@@ -247,10 +305,40 @@ Para quienes están al frente y necesitan leer lo que se proyecta sin voltear: l
 └──────────────────────────────┘
 ```
 
-- Muestra la **letra** del himno o el **versículo** que está al aire y, debajo, lo que sigue. Con una diapositiva o una imagen, la imagen; con un video, su nombre y cuánto falta.
-- **No pide PIN** en la red de la iglesia (como la pantalla de proyección) porque no cambia nada; desde internet sí.
+- **Puede:**
+  - Leer en grande la letra o el versículo que está al aire.
+  - Ver debajo, en gris, lo que sigue.
+  - Con una diapositiva o una imagen, verla; con un video, su nombre y cuánto falta.
+  - Agrandar o achicar la letra, solo en su teléfono.
+  - Mantener la pantalla encendida mientras está abierta.
+- **No puede:**
+  - Nada que cambie la proyección ni el orden: no tiene botones de control.
+  - No pide PIN en la red de la iglesia, como la pantalla de proyección (desde internet, sí).
 - **Errores que evita:** que quien canta o lee se pierda o tenga que mirar atrás.
 - Necesita la letra por estrofas, que Manna ya tiene para buscar en el himnario.
+
+### Qué puede hacer cada función, de un vistazo
+
+| Acción | Pasar | Púlpito | Canto | Sonido | Preparar | Atril | Computadora o tableta |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Ver lo que está al aire | ✓ | ✓ | ✓ | ✓ | en una línea | ✓ | ✓ |
+| Siguiente y Anterior | ✓ | sus versículos y diapositivas | estrofas de la letra | — | — | — | ✓ |
+| Saltar a otro elemento del orden | ✓ | — | — | — | — | — | ✓ |
+| «Negro» y «Solo fondo» | ✓ | Negro | Negro | Negro | — | — | ✓ |
+| Volumen de Manna | ✓ | — | ✓ | ✓ | — | — | ✓ |
+| Pausar lo que suena | ✓ | — | ✓ | ✓ | — | — | ✓ |
+| Proyectar un versículo | si está en el orden | ✓ | — | — | — | — | ✓ |
+| Proyectar un himno | si está en el orden | — | ✓ | — | — | — | ✓ |
+| Proyectar videos, imágenes o audios | si están en el orden | — | audios y su categoría | — | — | — | ✓ |
+| Pasar diapositivas y señalar | pasar, si está en el orden | ✓ | — | — | — | — | ✓ |
+| «Poner a continuación» | — | ✓ | ✓ | — | ✓ | — | ✓ |
+| Añadir, mover y quitar en el orden | — | — | — | — | ✓ | — | ✓ |
+| Subir fotos, videos, PDF o YouTube | — | — | — | — | ✓ | — | ✓ |
+| Escribir textos y citas | — | — | — | — | ✓ | — | ✓ |
+| Leer en grande la letra o el versículo | — | — | — | — | — | ✓ | — |
+| Borrar de la biblioteca, categorías | — | — | — | — | — | — | ✓ |
+| Ajustes, PIN, programas, apagar | — | — | — | — | — | — | ✓ |
+| Pide PIN | ✓ | ✓ | ✓ | ✓ | ✓ | no, en la red de la iglesia | ✓ |
 
 ## 4. Lo que queda para la computadora y la tableta
 
