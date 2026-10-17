@@ -2,26 +2,25 @@ import { action, state, subscribe } from '../../core/api.js';
 import { h, dialog, guard, menu, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { describeJob } from '../../core/jobs.js';
+import { kindBadge } from '../../core/kinds.js';
 import { whenLabel } from '../../core/time.js';
-import { acceptsDeck, DECK_ACCEPT, hasPowerPoint, openDeckUpload } from './upload.js';
+import { acceptsDeck, openDeckUpload } from './upload.js';
 import { pageUrl, plural, thumbUrl } from './deck.js';
 
 const SOURCES = { pdf: 'PDF', powerpoint: 'PowerPoint' };
-// Con sitio para las dos columnas, siempre hay una presentación abierta.
-const NARROW = 600; // por debajo de este ancho del cajón, una cosa cada vez (lo mismo dice slides.css)
 
-// Pestaña Diapositivas de Medios (fase 17 de docs/PLAN.md): las presentaciones de la iglesia (PDF o
-// PowerPoint), convertidas en imágenes. A la izquierda, las presentaciones; a la derecha, las diapositivas
-// de la elegida. En el cajón estrecho se ve una cosa cada vez. Tiene la forma de las pestañas de Medios
-// (media/workspace.js), que la importa: es la excepción a que un módulo no importe archivos de otro.
-export function createSlidesPanel(ctx) {
+// Las presentaciones de Medios (fase 22 de docs/PLAN.md): las de la iglesia (PDF o PowerPoint), convertidas
+// en imágenes. Primero la lista; al elegir una, sus diapositivas, que ocupan Medios hasta volver con
+// «Presentaciones». Tiene la forma de los grupos de Medios (media/workspace.js), que la importa: es la
+// excepción a que un módulo no importe archivos de otro. lib es lo que le da Medios.
+export function createSlidesPanel(ctx, lib) {
   let deckId = null;  // presentación elegida
   let page = 1;       // diapositiva elegida en ella
   let followed = '';  // lo último que se siguió de lo que está al aire
   // Presentación recién subida que aún no ha llegado con el estado: la respuesta de la subida
   // puede adelantarse al aviso del servidor. Se elige en cuanto aparezca.
   let awaited = null;
-  const decks = () => state.slides?.decks || [];
+  const decks = () => lib.filter([...(state.slides?.decks || [])].sort((a, b) => a.added - b.added));
   const current = () => decks().find((d) => d.id === deckId) || null;
   const jobOf = (id) => (state.jobs?.list || []).filter((j) => j.owner === 'slides' && j.ref === id).at(-1) || null;
   // Qué diapositiva de qué presentación está al aire: { id, number } o null.
@@ -30,16 +29,11 @@ export function createSlidesPanel(ctx) {
     return state.projection?.mode === 'live' && item?.kind === 'slides' ? { id: item.id, number: item.number } : null;
   };
 
-  const picker = h('input', { type: 'file', accept: DECK_ACCEPT, hidden: true });
-  const startUpload = (file) => openDeckUpload(file, { onDone: (id) => choose(id) });
-  picker.addEventListener('change', () => {
-    if (picker.files[0]) startUpload(picker.files[0]);
-    picker.value = '';
-  });
+  const startUpload = (file) => openDeckUpload(file, { onDone: (id) => { lib.added([id]); choose(id); } });
   const back = h('button', { class: 'btn deck-back', onclick: () => choose(null) }, icon('caret-left', 16), 'Presentaciones');
   const list = h('div', { class: 'deck-list' });
   const pages = h('div', {});
-  const el = h('div', { class: 'decks', dataset: { view: 'list', panel: 'diapositivas' } }, list, h('div', { class: 'deck-pages' }, back, pages), picker);
+  const el = h('div', { class: 'decks', dataset: { view: 'list', panel: 'diapositivas' } }, list, h('div', { class: 'deck-pages' }, back, pages));
 
   // "Diapositiva 3 de 12" (en el celular, "3 de 12") y, al lado, el nombre de la presentación.
   const where = h('span', {});
@@ -59,6 +53,7 @@ export function createSlidesPanel(ctx) {
     show);
 
   function choose(id, number = null) {
+    if (id) lib.picked();
     awaited = id && !decks().some((d) => d.id === id) ? id : null;
     deckId = id;
     const air = onAir();
@@ -108,27 +103,19 @@ export function createSlidesPanel(ctx) {
   }
 
   function renderList(all, air) {
-    if (!all.length) {
-      list.replaceChildren(h('div', { class: 'empty' }, h('strong', {}, 'Aún no hay presentaciones'),
-        hasPowerPoint()
-          ? 'Sube un PDF o una presentación de PowerPoint. Cada diapositiva queda como una imagen: se ve igual en todas las pantallas y se puede acercar.'
-          : 'Sube una presentación en PDF. Cada página queda como una imagen: se ve igual en todas las pantallas y se puede acercar. (Para subir un PowerPoint tal cual hace falta PowerPoint en el equipo principal; guardarlo como PDF sirve igual.)',
-        ctx.canEdit && h('div', { class: 'row', style: 'justify-content: center; margin-top: 14px;' },
-          h('button', { class: 'btn primary', onclick: () => picker.click() }, icon('upload-simple', 16), 'Subir presentación'))));
-      return;
-    }
     list.replaceChildren(...all.map((deck) => {
       const usable = deck.status === 'ready';
       const facts = [usable && plural(deck.pages), deck.live && deck.liveable ? 'PowerPoint en vivo' : SOURCES[deck.source], whenLabel(deck.added)].filter(Boolean).join(' · ');
-      return h('div', { class: `deck${deck.id === deckId ? ' selected' : ''}${air?.id === deck.id ? ' live' : ''}${usable ? '' : ' pending'}`, dataset: { id: deck.id, status: deck.status } },
+      return h('div', { class: `deck${deck.id === deckId ? ' selected' : ''}${air?.id === deck.id ? ' live' : ''}${usable ? '' : ' pending'}`, dataset: { id: deck.id, status: deck.status, ...(ctx.canEdit && { drag: deck.id, name: deck.name }) } },
         h('button', { class: 'deck-pick', 'aria-pressed': deck.id === deckId, onclick: () => choose(deck.id) },
           h('span', { class: `deck-cover${usable ? '' : ' blank'}` },
-            usable ? h('img', { src: thumbUrl(deck, 1), alt: '', loading: 'lazy' }) : icon('presentation-chart', 26),
+            usable ? h('img', { src: thumbUrl(deck, 1), alt: '', loading: 'lazy' }) : icon('presentation-chart', 26), kindBadge('slides'),
             air?.id === deck.id && h('span', { class: 'badge live' }, 'Al aire')),
           h('span', { class: 'item-text' }, h('strong', {}, deck.name), h('small', {}, facts))),
         statusOf(deck),
         ctx.canEdit && h('button', { class: 'icon-btn sm deck-more', 'aria-label': `Opciones de ${deck.name}`, onclick: (e) => menu(e.currentTarget, [
           { label: 'Cambiar el nombre', icon: 'pencil-simple', onclick: () => askName(deck) },
+          ...lib.menu(deck, e.currentTarget),
           // En vivo la pasa el propio PowerPoint en el proyector, con sus videos y animaciones (solo Windows).
           ...(deck.liveable ? [deck.live
             ? { label: 'Pasar como imágenes', note: 'Con zoom y puntero, sin animaciones', icon: 'images', onclick: guard(() => action('slides.live', { id: deck.id, on: false })) }
@@ -182,10 +169,6 @@ export function createSlidesPanel(ctx) {
     }
     if (deckId && !current()) deckId = null;
     const air = onAir();
-    if (!deckId && el.clientWidth >= NARROW && all.length) {
-      deckId = (all.find((d) => d.id === air?.id) || all[0]).id;
-      page = air?.id === deckId ? air.number : 1;
-    }
     // La selección acompaña a lo que está al aire: al avanzar con "Siguiente", se marca esa diapositiva.
     const following = air ? `${air.id}|${air.number}` : '';
     let reveal = false;
@@ -223,8 +206,10 @@ export function createSlidesPanel(ctx) {
   subscribe('jobs', () => { if (decks().some((d) => d.status === 'converting')) render(); });
 
   return {
-    id: 'diapositivas', label: 'Diapositivas', uploadLabel: 'Subir presentación', el, bar,
-    pick: () => picker.click(),
+    id: 'diapositivas', label: 'Presentaciones', kind: 'slides', el, bar,
+    items: decks,
+    clear: () => choose(null),
+    render,
     accepts: acceptsDeck,
     upload: (files) => startUpload(files.find(acceptsDeck) || files[0]),
     onShow: render,

@@ -8,14 +8,15 @@ import { applyView, initialView, validFit } from '../../core/view.js';
 import { registerClips } from './library.js';
 
 // Módulo Medios: la biblioteca de lo que la iglesia proyecta. Imágenes (aquí), videos, audios y
-// YouTube (library.js), y las categorías de los videos (aquí). En la web son dos pantallas: Medios
-// (imágenes y audios) y Videos (videos subidos, de la carpeta y de YouTube, por categorías).
+// YouTube (library.js), y las categorías (aquí). En la web es una sola pantalla, con todo junto y
+// separado por tipo, que también muestra las presentaciones del módulo de diapositivas.
 //
 // Cada imagen es un archivo en data/media/imagenes/ más una ficha (nombre, medidas, ajuste).
 // La miniatura la hace y la envía el dispositivo que sube: el servidor no sabe encoger imágenes.
 //
-// Categorías (data/medios.json): [{ id, name, videos: [ids] }], con el nombre que les pone la iglesia.
-// Un video puede estar en varias; borrar una categoría no borra sus videos.
+// Categorías (data/medios.json): [{ id, name, items: [ids] }], con el nombre que les pone la iglesia. Valen
+// para cualquier elemento: imágenes, videos, audios y presentaciones. Cada uno está en una sola, y lo que no
+// está en ninguna es el cajón «Principal». Borrar una categoría devuelve sus elementos al principal.
 
 const IMAGE_LIMIT = 30 * 1024 * 1024;
 const THUMB_LIMIT = 600 * 1024;
@@ -26,6 +27,12 @@ export default function setup(app) {
   const dir = path.join(app.uploadsDir, FOLDER);
   const saved = app.storage('medios', { images: [] });
   saved.data.categories ||= [];
+  // Hasta la 1.25 eran solo de videos (`videos`) y uno podía estar en varias: se queda en la primera.
+  const seen = new Set();
+  for (const c of saved.data.categories) {
+    c.items = (c.items || c.videos || []).filter((id) => !seen.has(id) && seen.add(id));
+    delete c.videos;
+  }
   // Fichas cuyo archivo ya no está (alguien lo borró a mano) se quitan al arrancar.
   saved.data.images = saved.data.images.filter((image) => fs.existsSync(path.join(app.uploadsDir, image.file)));
 
@@ -41,10 +48,11 @@ export default function setup(app) {
     videos: library?.views('video') || [],
     audios: library?.views('audio') || [],
     youtube: library?.views('youtube') || [],
-    // Sin los videos que ya no están (uno de la carpeta que se borró a mano vuelve a su categoría si regresa).
-    categories: saved.data.categories.map((c) => ({ id: c.id, name: c.name, videos: c.videos.filter(isVideo) })),
+    // Con lo que ya no está, que la interfaz no muestra: uno de la carpeta que se borró a mano vuelve a su
+    // categoría si regresa.
+    categories: saved.data.categories.map((c) => ({ id: c.id, name: c.name, items: [...c.items] })),
   });
-  const isVideo = (id) => ['video', 'youtube'].includes(library?.kindOf(id));
+  const exists = (id) => saved.data.images.some((i) => i.id === id) || library.has(id) || Boolean(app.services.slides?.has(id));
   const find = (id) => {
     const image = saved.data.images.find((i) => i.id === id);
     if (!image) throw new HttpError(404, 'Esa imagen ya no está en la biblioteca.');
@@ -147,8 +155,8 @@ export default function setup(app) {
   app.action('media.subtitlesRemove', { permission: 'media.edit' }, ({ id }) => library.removeSubtitles(id));
 
   app.action('media.remove', { permission: 'media.edit' }, ({ id }) => {
+    for (const c of saved.data.categories) c.items = c.items.filter((v) => v !== id);
     if (library.has(id)) {
-      for (const c of saved.data.categories) c.videos = c.videos.filter((v) => v !== id);
       library.remove(id);
       return;
     }
@@ -158,7 +166,7 @@ export default function setup(app) {
     commit();
   });
 
-  // ---- Categorías de los videos ----
+  // ---- Categorías ----
   const category = (id) => {
     const found = saved.data.categories.find((c) => c.id === id);
     if (!found) throw new HttpError(404, 'Esa categoría ya no existe.');
@@ -171,7 +179,7 @@ export default function setup(app) {
     return clean;
   };
   app.action('media.categoryAdd', { permission: 'media.edit' }, ({ name }) => {
-    const created = { id: crypto.randomBytes(4).toString('hex'), name: categoryName(name), videos: [] };
+    const created = { id: crypto.randomBytes(4).toString('hex'), name: categoryName(name), items: [] };
     saved.data.categories.push(created);
     commit();
     return { id: created.id };
@@ -186,14 +194,12 @@ export default function setup(app) {
     saved.data.categories = saved.data.categories.filter((c) => c.id !== id);
     commit();
   });
-  // Pone el video en la categoría o lo quita. on: true / false; sin él, lo cambia.
-  app.action('media.categoryToggle', { permission: 'media.edit' }, ({ id, video, on }) => {
-    const found = category(id);
-    if (!isVideo(video)) throw new HttpError(404, 'Ese video ya no está en la biblioteca.');
-    const inside = found.videos.includes(video);
-    const want = typeof on === 'boolean' ? on : !inside;
-    if (want === inside) return;
-    found.videos = want ? [...found.videos, video] : found.videos.filter((v) => v !== video);
+  // Lleva el elemento a la categoría `to` (y lo saca de la que tuviera); con `to` vacío, al principal.
+  app.action('media.categoryMove', { permission: 'media.edit' }, ({ item, to }) => {
+    const target = to ? category(to) : null;
+    if (typeof item !== 'string' || !exists(item)) throw new HttpError(404, 'Eso ya no está en la biblioteca.');
+    for (const c of saved.data.categories) c.items = c.items.filter((v) => v !== item);
+    target?.items.push(item);
     commit();
   });
 }

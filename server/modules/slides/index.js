@@ -67,6 +67,8 @@ export default function setup(app) {
     // Tras un fallo de PowerPoint va como imágenes, y el menú ofrece volver a intentarlo.
     live: Boolean(deck.live) && !failed.has(deck.id), liveable: liveable(deck),
   });
+  // Las categorías de Medios aceptan presentaciones: así saben si una existe.
+  app.services.slides = { has: (id) => decks().some((d) => d.id === id && d.status !== 'receiving') };
   const publish = () => store.set('slides', { decks: decks().filter((d) => d.status !== 'receiving').sort((a, b) => b.added - a.added).map(view) });
   const commit = () => {
     saved.save();

@@ -2,7 +2,6 @@ import order from './order/workspace.js';
 import bible from './bible/workspace.js';
 import himnario from './hymns/workspace.js';
 import medios from './media/workspace.js';
-import videos from './media/videos.js';
 import presentador from './slides/presenter.js';
 import paginas from './web/workspace.js';
 import textos from './texts/workspace.js';
@@ -20,7 +19,6 @@ export const MODULES = [
   order,
   bible,
   himnario,
-  videos,
   medios,
   textos,
   paginas,
@@ -32,10 +30,10 @@ export const MODULES = [
 // Función "Control del orden": solo opera el orden del culto, sin editarlo.
 export const ORDER_ONLY = [order];
 
-// Función "Servicio de alabanza": centrado en himnario, videos, orden y biblia.
+// Función "Servicio de alabanza": centrado en himnario, medios, orden y biblia.
 export const ALABANZA_MODULES = [
   himnario,
-  videos,
+  medios,
   order,
   bible,
 ];

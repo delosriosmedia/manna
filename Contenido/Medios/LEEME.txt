@@ -1,7 +1,7 @@
 VIDEOS Y AUDIOS
 
 Copia aquí los videos y audios que quieras proyectar. Aparecen solos en Manna, en el módulo
-Medios (pestañas Videos y Audios), con el nombre del archivo. No hace falta reiniciar.
+Medios (en sus grupos Videos y Audios), con el nombre del archivo. No hace falta reiniciar.
 
 También puedes subirlos desde la propia app, con el botón "Subir". Para archivos grandes,
 copiarlos a esta carpeta es lo más rápido.

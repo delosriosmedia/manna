@@ -1,9 +1,7 @@
-/* Pestaña Diapositivas de Medios (panel.js): las presentaciones a un lado y, al otro, las diapositivas de la elegida. */
-.decks { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(220px, 290px) minmax(0, 1fr); }
-.deck-list { min-height: 0; overflow-y: auto; padding: 12px; border-right: 1px solid var(--line); display: grid; gap: 8px; align-content: start; }
-.deck-pages { min-height: 0; overflow-y: auto; padding: 16px 20px 24px; }
-.deck-back { display: none; margin-bottom: 10px; }
-.ws[data-module='medios'].dropping .decks { outline: 2px dashed var(--accent); outline-offset: -8px; background: var(--accent-soft); }
+/* Las presentaciones en Medios (panel.js): primero la lista; al elegir una, sus diapositivas en su lugar. */
+.deck-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; align-content: start; }
+.decks[data-view='pages'] .deck-list, .decks[data-view='list'] .deck-pages { display: none; }
+.deck-back { margin-bottom: 10px; }
 
 /* Una presentación: su portada, su nombre y cuántas diapositivas tiene. */
 .deck { position: relative; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); transition: border-color 0.12s var(--ease); }
@@ -47,22 +45,13 @@ html.touch .deck-more { width: var(--tap); height: var(--tap); right: 2px; top: 
 .deck-up small.error { color: var(--live-ink); }
 .deck-up-note { margin-top: 10px; font-size: 12px; }
 
-@container cajon (max-width: 899px) {
-  .decks { grid-template-columns: minmax(200px, 250px) minmax(0, 1fr); }
-  .deck-pages { padding: 12px 16px 20px; }
-}
-/* Cajón estrecho (el de 440 px, el del celular): una cosa cada vez. Primero las presentaciones; al elegir
-   una, sus diapositivas (NARROW en workspace.js). */
+/* Cajón estrecho (el de 440 px, el del celular). */
 @container cajon (max-width: 599px) {
-  .decks { display: block; }
-  .deck-list, .deck-pages { height: 100%; border-right: 0; padding: 10px 12px 16px; }
-  .decks[data-view='list'] .deck-pages, .decks[data-view='pages'] .deck-list { display: none; }
-  .deck-back:not([hidden]) { display: inline-flex; }
+  .deck-list { grid-template-columns: minmax(0, 1fr); }
   .deck-long { display: none; }
   .slide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 }
-/* Celular en horizontal: el cajón es ancho (presentaciones y diapositivas, lado a lado) pero bajo: más
-   columnas de diapositivas. */
+/* Celular en horizontal: el cajón es ancho pero bajo: más columnas de diapositivas. */
 @media (max-width: 859px) and (max-height: 480px) {
   .deck-pages .slide-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }

@@ -74,10 +74,11 @@ export function seedExample(dataDir) {
     clip('ejemplo-privado', 'youtube', 'Video de YouTube', 'youtube/ejemplo-privado.mp4', null, 0,
       { source: 'youtube', videoId: 'ejemplo0002', status: 'error', direct: false, added: Date.now() - 9000, error: 'Ese video no está disponible: es privado o se quitó de YouTube.' }),
   ];
-  // Categorías de Videos: una con un video y uno de YouTube, otra con un nombre largo y aún vacía.
+  // Categorías de Medios: una con un video y uno de YouTube (que no salen en «Principal»), otra con un nombre
+  // largo y aún vacía.
   const categories = [
-    { id: 'ejemplo-domingo', name: 'Domingo de mañana', videos: ['ejemplo-video', 'ejemplo-youtube'] },
-    { id: 'ejemplo-jovenes', name: 'Reunión de jóvenes y adolescentes del sábado', videos: [] },
+    { id: 'ejemplo-domingo', name: 'Domingo de mañana', items: ['ejemplo-video', 'ejemplo-youtube'] },
+    { id: 'ejemplo-jovenes', name: 'Reunión de jóvenes y adolescentes del sábado', items: [] },
   ];
   fs.writeFileSync(path.join(dataDir, 'medios.json'), JSON.stringify({ images, clips, categories }));
   // Textos inventados: un aviso de dos partes y una cita larga con su autor.

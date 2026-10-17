@@ -325,13 +325,23 @@ test('lo copiado a la carpeta Contenido/Medios aparece solo, con sus subtítulos
   }
 });
 
-test('categorías de los videos: con el nombre que se quiera, un video en varias, y sin borrar nada al quitarlas', async () => {
+test('categorías de Medios: con el nombre que se quiera, cada elemento en una sola, y sin borrar nada al quitarlas', async () => {
+  // Las de antes (solo videos, y uno podía estar en varias) se convierten: cada uno se queda en la primera.
+  fs.mkdirSync(path.join(tmp, 'categorias'), { recursive: true });
+  fs.writeFileSync(path.join(tmp, 'categorias', 'medios.json'), JSON.stringify({ images: [], categories: [
+    { id: 'a', name: 'Antes', videos: ['x', 'y'] }, { id: 'b', name: 'Después', videos: ['y', 'z'] }] }));
   const s = await start('categorias', { MANNA_FALTA: 'ffmpeg' });
   const categories = async () => (await s.state()).media.categories;
   try {
+    assert.deepEqual(await categories(), [{ id: 'a', name: 'Antes', items: ['x', 'y'] }, { id: 'b', name: 'Después', items: ['z'] }]);
+    await s.send('media.categoryRemove', { id: 'a' });
+    await s.send('media.categoryRemove', { id: 'b' });
+
     const welcome = await s.put('/api/media/clips?name=Bienvenida&ext=.mp4&duration=5', Buffer.alloc(2000, 1));
     const kids = await s.put('/api/media/clips?name=Cantos+infantiles&ext=.mp4&duration=5', Buffer.alloc(2000, 1));
     const track = await s.put('/api/media/clips?name=Pista&ext=.mp3', Buffer.alloc(500, 1));
+    const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xc0, 0x00, 0x11, 8, 0, 90, 0, 160, 3]), Buffer.alloc(30)]);
+    const poster = await s.put('/api/media/images?name=Cartel', jpeg, 'image/jpeg');
     fs.writeFileSync(path.join(s.mediaDir, 'Testimonio.mp4'), Buffer.alloc(2000, 1));
     await s.app.services.media.rescan();
     const folder = (await s.state()).media.videos.find((v) => v.source === 'folder');
@@ -340,33 +350,36 @@ test('categorías de los videos: con el nombre que se quiera, un video en varias
     const children = (await s.send('media.categoryAdd', { name: 'Niños' })).result.id;
     assert.equal((await s.send('media.categoryAdd', { name: 'niños' })).http, 409, 'no dos con el mismo nombre');
     assert.equal((await s.send('media.categoryAdd', { name: '   ' })).http, 400);
-    await s.send('media.categoryToggle', { id: sunday, video: welcome.id });
-    await s.send('media.categoryToggle', { id: sunday, video: folder.id });
-    await s.send('media.categoryToggle', { id: children, video: welcome.id, on: true });
-    await s.send('media.categoryToggle', { id: children, video: welcome.id, on: true });
-    await s.send('media.categoryToggle', { id: children, video: kids.id });
-    assert.equal((await s.send('media.categoryToggle', { id: children, video: track.id })).http, 404, 'un audio no va en una categoría de videos');
+    // Cualquier elemento: un video, uno de la carpeta, un audio y una imagen.
+    for (const item of [welcome.id, folder.id, track.id, poster.id]) await s.send('media.categoryMove', { item, to: sunday });
+    await s.send('media.categoryMove', { item: kids.id, to: children });
+    // Llevarlo a otra lo saca de la que tenía.
+    await s.send('media.categoryMove', { item: welcome.id, to: children });
+    assert.equal((await s.send('media.categoryMove', { item: 'no-existe', to: children })).http, 404);
+    assert.equal((await s.send('media.categoryMove', { item: kids.id, to: 'no-existe' })).http, 404);
     assert.deepEqual(await categories(), [
-      { id: sunday, name: 'Domingo de mañana', videos: [welcome.id, folder.id] },
-      { id: children, name: 'Niños', videos: [welcome.id, kids.id] },
+      { id: sunday, name: 'Domingo de mañana', items: [folder.id, track.id, poster.id] },
+      { id: children, name: 'Niños', items: [kids.id, welcome.id] },
     ]);
-    await s.send('media.categoryToggle', { id: children, video: kids.id });
+    // Sin categoría, vuelve al principal.
+    await s.send('media.categoryMove', { item: kids.id, to: null });
     assert.equal((await s.send('media.categoryRename', { id: children, name: 'Domingo de mañana' })).http, 409);
     await s.send('media.categoryRename', { id: children, name: 'Jóvenes' });
-    assert.deepEqual((await categories())[1], { id: children, name: 'Jóvenes', videos: [welcome.id] });
+    assert.deepEqual((await categories())[1], { id: children, name: 'Jóvenes', items: [welcome.id] });
 
-    // Al eliminar un video sale de sus categorías; el de la carpeta, mientras no esté.
+    // Al eliminar algo sale de su categoría; el de la carpeta, mientras no esté, sigue apuntado en la suya.
     await s.send('media.remove', { id: welcome.id });
+    await s.send('media.remove', { id: poster.id });
     fs.rmSync(path.join(s.mediaDir, 'Testimonio.mp4'));
     await s.app.services.media.rescan();
-    assert.deepEqual((await categories()).map((c) => c.videos), [[], []]);
+    assert.deepEqual((await categories()).map((c) => c.items), [[folder.id, track.id], []]);
     fs.writeFileSync(path.join(s.mediaDir, 'Testimonio.mp4'), Buffer.alloc(2000, 1));
     await s.app.services.media.rescan();
-    assert.deepEqual((await categories())[0].videos, [folder.id], 'si vuelve a la carpeta, vuelve a su categoría');
+    assert.ok((await s.state()).media.videos.some((v) => v.id === folder.id), 'si vuelve a la carpeta, vuelve a su categoría');
 
-    // Quitar una categoría no quita sus videos.
+    // Quitar una categoría no quita lo que tenía: vuelve al principal.
     assert.equal((await s.send('media.categoryRemove', { id: sunday })).http, 200);
-    assert.deepEqual([(await categories()).map((c) => c.name), (await s.state()).media.videos.length], [['Jóvenes'], 2]);
+    assert.deepEqual([(await categories()).map((c) => c.name), (await s.state()).media.videos.length, (await s.state()).media.audios.length], [['Jóvenes'], 2, 1]);
     assert.equal((await s.send('media.categoryRemove', { id: sunday })).http, 404);
   } finally {
     await s.stop();

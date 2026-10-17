@@ -4,6 +4,15 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.26.0 — 2026-10-17
+
+- **Medios lo tiene todo, en un mismo cajón**: imágenes, videos (también los de YouTube), audios y presentaciones (PDF y PowerPoint). Videos deja de ser un módulo aparte. Van separados por tipo, cada grupo con su título, su color y cuántos hay, y dentro de cada uno del más antiguo al más reciente; cada elemento lleva la marca de su tipo.
+- **Categorías para todo**: «Principal» tiene lo que no está en ninguna, y lo que se pone en una categoría sale de Principal y queda solo ahí. Para ponerlo, se **arrastra hasta el nombre de la categoría** (con el dedo, manteniéndolo pulsado un momento) o se elige en su menú «Mover a una categoría». Al eliminar una categoría, lo que tenía vuelve a Principal.
+- Un solo botón **Subir** para cualquier archivo. Con una categoría elegida, lo que se sube o se descarga de YouTube entra en ella.
+- El Servicio de alabanza tiene Medios en lugar de Videos, y puede subir presentaciones.
+- El aviso de un programa que falta (ffmpeg, yt-dlp) sale en Medios solo para lo que se elige: con una imagen elegida, no estorba.
+- Al actualizar, un video que estaba en varias categorías se queda en la primera.
+
 ## 1.25.3 — 2026-10-17
 
 - Arreglado: el instalador de Mac reordenaba la carpeta del proyecto (la copia con git de quien programa Manna) si la app «Manna» apuntaba a ella. Ahora no la toca y lo dice: esa copia se actualiza con git.

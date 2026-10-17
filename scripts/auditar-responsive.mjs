@@ -107,18 +107,21 @@ const SCREENS = [
     prepare: `document.querySelector('.ws[data-module=himnario] .hymn')?.click()` },
   { name: 'Orden con mandos en vivo', url: '/control#orden', show: 'testcard', controls: '.odetail .live-controls' },
   { name: 'Al aire con mandos en vivo', url: '/control#ajustes', show: 'testcard', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
-  { name: 'Medios: imágenes', url: '/control#medios', content: '.media-body[data-panel=imagenes]', primary: '.media-bar[data-panel=imagenes] .btn.primary', inside: '.media-bar[data-panel=imagenes]', settle: 600,
-    prepare: `(() => { document.querySelector('.media-tabs [data-tab=imagenes]').click(); document.querySelector('.media-body[data-panel=imagenes] .media-card .media-pick').click(); })()` },
-  { name: 'Videos', url: '/control#videos', content: '.media-body[data-panel=videos]', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.media-bar[data-panel=videos]', settle: 700,
-    prepare: `document.querySelector('.media-body[data-panel=videos] .media-card .media-pick').click()` },
+  // Medios (fase 22): un solo cajón con las categorías arriba y un grupo por tipo; sin pestañas. «Domingo de mañana»
+  // tiene el video y el de YouTube de ejemplo, que no salen en «Principal»: se elige tocando su nombre. La preferencia
+  // de la categoría elegida se vacía antes y se quita después, para que no pase a la pantalla siguiente.
+  { name: 'Medios: imágenes', url: '/control#medios', content: '.media-body', primary: '.media-bar[data-panel=imagenes] .btn.primary', inside: '.media-bar[data-panel=imagenes]', settle: 600,
+    prepare: `document.querySelector('.media-list[data-panel=imagenes] .media-card .media-pick').click()` },
+  { name: 'Medios: videos', url: '/control#medios', content: '.media-body', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.media-bar[data-panel=videos]', settle: 700,
+    prepare: `document.querySelector('.media-list[data-panel=videos] .media-card .media-pick').click()` },
   // Con una categoría elegida: su menú (⋯) a la vista junto a ella.
-  { name: 'Videos: una categoría', url: '/control#videos', content: '.media-body[data-panel=videos]', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.video-cats .icon-btn', settle: 700,
-    prepare: `(() => { [...document.querySelectorAll('.video-cats .chip')].find(c => c.textContent.startsWith('Domingo')).click(); setTimeout(() => document.querySelector('.media-body[data-panel=videos] .media-card .media-pick').click(), 150); })()` },
-  { name: 'Medios: audios', url: '/control#medios', content: '.media-body[data-panel=audios]', settle: 500,
-    prepare: `document.querySelector('.media-tabs [data-tab=audios]').click()` },
-  // El equipo de la auditoría "no tiene" yt-dlp: Videos lleva su aviso encima, y el enlace de YouTube a la vista.
-  { name: 'Videos: YouTube', url: '/control#videos', prefs: { 'cajon.completo': true }, content: '.media-body[data-panel=videos]', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.yt-add', settle: 700,
-    prepare: `document.querySelector('.media-body[data-panel=videos] .media-card[data-status=ready][data-id=ejemplo-youtube] .media-pick').click()` },
+  { name: 'Medios: una categoría', url: '/control#medios', prefs: { 'medios.categoria': null }, content: '.media-body', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.media-cats .icon-btn', settle: 700,
+    prepare: `(() => { [...document.querySelectorAll('.media-cats .chip')].find(c => c.textContent.startsWith('Domingo')).click(); setTimeout(() => document.querySelector('.media-list[data-panel=videos] .media-card .media-pick').click(), 150); })()` },
+  { name: 'Medios: audios', url: '/control#medios', content: '.media-body', inside: '.media-group[data-group=audios] .media-card', settle: 500,
+    prepare: `document.querySelector('.media-group[data-group=audios]').scrollIntoView()` },
+  // El equipo de la auditoría "no tiene" yt-dlp: Medios lleva su aviso encima, y el enlace de YouTube a la vista.
+  { name: 'Medios: YouTube', url: '/control#medios', prefs: { 'cajon.completo': true, 'medios.categoria': null }, content: '.media-body', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.yt-add', settle: 700,
+    prepare: `(() => { [...document.querySelectorAll('.media-cats .chip')].find(c => c.textContent.startsWith('Domingo')).click(); setTimeout(() => document.querySelector('.media-list[data-panel=videos] .media-card[data-status=ready][data-id=ejemplo-youtube] .media-pick').click(), 150); })()` },
   { name: 'Al aire con un video de YouTube', url: '/control#orden', show: 'youtube', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Al aire con un video', url: '/control#orden', show: 'video', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Orden con un video al aire', url: '/control#orden', show: 'video', controls: '.odetail .live-controls' },
@@ -137,11 +140,11 @@ const SCREENS = [
   { name: 'Textos', url: '/control#textos', content: '.text-list', inside: '.text-card', settle: 500 },
   { name: 'Textos: una cita', url: '/control#textos', content: '.text-editor', primary: '.text-bar .btn.primary', inside: '.text-bar', settle: 600,
     prepare: `document.querySelector('.text-card[data-id=ejemplo-cita] .text-pick').click()` },
-  // Diapositivas es una pestaña de Medios (fase 17).
-  { name: 'Medios: diapositivas', url: '/control#medios', content: '.decks', inside: '.deck', settle: 500,
-    prepare: `document.querySelector('.media-tabs [data-tab=diapositivas]').click()` },
+  // Las presentaciones son el último grupo de Medios (fase 22): la lista y, con una elegida, solo sus diapositivas.
+  { name: 'Medios: presentaciones', url: '/control#medios', content: '.media-body', inside: '.deck', settle: 500,
+    prepare: `document.querySelector('.media-group[data-group=diapositivas]').scrollIntoView()` },
   { name: 'Medios: una presentación', url: '/control#medios', content: '.deck-pages', primary: '.deck-bar .btn.primary', inside: '.deck-bar', settle: 600,
-    prepare: `(() => { document.querySelector('.media-tabs [data-tab=diapositivas]').click(); document.querySelector('.decks[data-panel=diapositivas] .deck-pick').click(); })()` },
+    prepare: `document.querySelector('.decks[data-panel=diapositivas] .deck-pick').click()` },
   { name: 'Al aire con una diapositiva', url: '/control#medios', show: 'slides', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Orden con una diapositiva al aire', url: '/control#orden', show: 'slides', controls: '.odetail .live-controls' },
   // El Presentador no lleva escenario: noDock cambia ese control por la diapositiva grande y su fila de botones.
@@ -173,7 +176,7 @@ const MEASURE = (screen, touch, narrow) => {
   // Nada se desplaza de lado si no tiene nada al lado (lo vio el dueño en el Orden del celular): ningún panel con
   // desplazamiento horizontal cuyo contenido le sobre. Las tiras que se deslizan a propósito (el dock, las pestañas,
   // lo reciente, «A continuación», el Mapa del culto, las secciones de Ajustes) quedan fuera.
-  const SIDEWAYS_OK = '.dockbar, .media-tabs, .video-cats, .hymn-views, .chips, .story-next, .omap-scroll, .omap, .search-scope, .recent, .crumbs, .set-nav';
+  const SIDEWAYS_OK = '.dockbar, .media-cats, .hymn-views, .chips, .story-next, .omap-scroll, .omap, .search-scope, .recent, .crumbs, .set-nav';
   const sideways = [...document.querySelectorAll('body *')].filter((el) => {
     if (!shown(el) || el.closest(SIDEWAYS_OK) || el.closest('[hidden]')) return false;
     const x = getComputedStyle(el).overflowX;

@@ -6,7 +6,7 @@
 //      La descarga sale de un servidor de mentira en este mismo equipo.
 //   1. La interfaz: Biblia (búsqueda por niveles, comparar versiones, «Varios»), orden del culto (con
 //      nombres propios), himnario (uno inventado: buscar por número, título y letra, cantado y pista), medios (subir imágenes, ajuste, encuadre al aire en dos pantallas; videos
-//      y audios que van a la par; YouTube, con un yt-dlp de mentira), televisores (con uno de
+//      y audios que van a la par; categorías, con el ratón y el dedo; YouTube, con un yt-dlp de mentira), televisores (con uno de
 //      mentira), diapositivas (un PDF de verdad, convertido por el propio Chrome, y un PowerPoint
 //      con un PowerPoint de mentira), el Presentador (pasar diapositivas, señalar con el dedo, acercar y mover, páginas web; también en 375 px), Páginas web (direcciones que se dejan mostrar y que no, y un archivo HTML encerrado que recibe las flechas desde los mandos al aire), mandos en vivo que van a la par en dos pantallas, ajustes
 //      y la función "Control del orden". También que Manna atiende por https.
@@ -158,7 +158,7 @@ const sample = (name, args) => {
   return file;
 };
 if (!HAS_FFMPEG) {
-  for (const name of ['media.retry', 'media.subtitlesRemove', 'media.categoryAdd', 'media.categoryRename', 'media.categoryRemove', 'media.categoryToggle', 'POST /api/media/clips', 'POST /api/media/clips/:id/thumb', 'POST /api/media/clips/:id/subtitles']) {
+  for (const name of ['media.retry', 'media.subtitlesRemove', 'media.categoryAdd', 'media.categoryRename', 'media.categoryRemove', 'media.categoryMove', 'POST /api/media/clips', 'POST /api/media/clips/:id/thumb', 'POST /api/media/clips/:id/subtitles']) {
     UNTOUCHED[name] = 'este equipo no tiene ffmpeg para fabricar los videos de la prueba';
   }
 }
@@ -293,6 +293,21 @@ const dragMouse = async (x1, y1, x2, y2) => {
   await chrome.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: x2, y: y2, button: 'left', buttons: 0, clickCount: 1 });
   await sleep(400);
 };
+// El centro de un elemento (llevándolo antes a la vista).
+const centerOf = async (js) => JSON.parse(await run(`const e = ${js}; e.scrollIntoView({ block: 'nearest', inline: 'nearest' }); const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2 })`));
+// Arrastrar con el dedo de verdad: tocar, mantener (Medios espera 350 ms antes de empezar a arrastrar) y mover.
+const dragTouch = async (x1, y1, x2, y2, hold = 450) => {
+  const touch = (type, x, y) => chrome.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+  await touch('touchStart', x1, y1);
+  await sleep(hold);
+  for (let i = 1; i <= 6; i += 1) { await touch('touchMove', x1 + ((x2 - x1) * i) / 6, y1 + ((y2 - y1) * i) / 6); await sleep(40); }
+  await touch('touchEnd');
+  await sleep(500);
+};
+// Lo de Medios: los grupos que se ven («Imágenes 2»), las categorías y el aviso de cuando no hay nada que mostrar.
+const groupsNow = () => run(`return JSON.stringify([...document.querySelectorAll('.ws[data-module=medios] .media-group')].filter((g) => !g.hidden).map((g) => g.querySelector('h2').textContent + ' ' + g.querySelector('.media-group-head small').textContent))`).then(JSON.parse);
+const mediaCats = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).media.categories)`).then(JSON.parse);
+const dragCard = async (fromJs, toJs) => { const a = await centerOf(fromJs); const b = await centerOf(toJs); await dragMouse(a.x, a.y, b.x, b.y); };
 const drawerBox = () => run(`const r = document.querySelector('.drawer').getBoundingClientRect(); return JSON.stringify({ left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width })`).then(JSON.parse);
 const gripAt = () => run(`const r = document.querySelector('.drawer-grip').getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2 })`).then(JSON.parse);
 const tapEl = async (js, clicks = 1) => {
@@ -301,8 +316,10 @@ const tapEl = async (js, clicks = 1) => {
 };
 // Abre un módulo en el cajón. Pulsar el icono del que ya está abierto lo cierra: solo se pulsa si no está.
 const goTo = (id) => run(`const b = document.querySelector('.dock-item[data-id=${id}]'); if (!b.classList.contains('on')) b.click();`);
-// Diapositivas es una pestaña de Medios (fase 17).
-const openSlides = async () => { await goTo('medios'); await sleep(300); await run(`document.querySelector('.media-tabs [data-tab=diapositivas]').click()`); await sleep(500); };
+// Las presentaciones son un grupo de Medios (fase 22): se abre Medios y se lleva el grupo a la vista.
+const openSlides = async () => { await goTo('medios'); await sleep(500); await run(`document.querySelector('.media-group[data-group=diapositivas]')?.scrollIntoView()`); await sleep(200); };
+// El único campo de archivos de Medios (hijo directo de su pantalla): acepta imágenes, videos, audios, PDF y PowerPoint.
+const MEDIA_FILES = '.ws[data-module=medios] > input[type=file]';
 // Los mandos del tipo al aire: en el escritorio, siempre a la vista en la barra de abajo (fase 14); en el celular, en
 // una capa que se abre con el botón de la tarjeta de lo al aire. LIVE es el que se ve.
 const LIVE = `([...document.querySelectorAll('.tb-extra .live-controls, .controls-pop .live-controls')].find((c) => c.getClientRects().length) || document.querySelector('.tb-extra .live-controls'))`;
@@ -348,7 +365,7 @@ async function reviewSection() {
     const mod = (id) => `document.querySelector('#modules .mod[data-id=${id}]')`;
     check('la revisión lista los seis programas y marca los que faltan', await run(`return document.querySelectorAll('.req').length === 6 && ${card}.classList.contains('missing') && document.querySelector('.req[data-id=navegador]').classList.contains('missing') && document.querySelector('.req[data-id=cloudflared]').classList.contains('missing') && !document.querySelector('.req[data-id=node]').classList.contains('missing')`));
     check('explica para qué sirve y cómo instalarlo a mano', await run(`return ${card}.textContent.includes('YouTube') && Boolean(${card}.querySelector('details code'))`));
-    check('dice qué módulos funcionarán completos y cuáles no', await run(`return ${mod('biblia')}.textContent.includes('Completo') && !${mod('biblia')}.classList.contains('limited') && ${mod('videos')}.classList.contains('limited') && ${mod('videos')}.textContent.includes('YouTube: falta yt-dlp') && !${mod('medios')}.textContent.includes('yt-dlp') && ${mod('ajustes')}.textContent.includes('falta Google Chrome')`));
+    check('dice qué módulos funcionarán completos y cuáles no', await run(`return ${mod('biblia')}.textContent.includes('Completo') && !${mod('biblia')}.classList.contains('limited') && ${mod('medios')}.classList.contains('limited') && ${mod('medios')}.textContent.includes('YouTube: falta yt-dlp') && !${mod('videos')} && ${mod('ajustes')}.textContent.includes('falta Google Chrome')`));
     check('no bloquea: Manna se puede abrir aunque falten programas', await run(`const a = document.querySelector('#footer a'); return a.textContent === 'Abrir Manna' && a.getAttribute('href') === '/control' && document.querySelector('#lead').textContent.startsWith('Manna funciona')`));
     const install = () => click(`[...${card}.querySelectorAll('button')].find(b => b.textContent.includes('Instalar por mí'))`);
     await install();
@@ -369,7 +386,7 @@ async function reviewSection() {
     }
     check('al terminar, el programa queda instalado y reconocido', installed && await run(`return ${card}.textContent.includes('Instalado por Manna') && ${card}.textContent.includes('versión 2026.01.01')`));
     check('el programa quedó en la carpeta de Manna, sin tocar el sistema', fs.existsSync(path.join(tmp, 'revision', 'herramientas', 'yt-dlp')) && fs.readdirSync(path.join(tmp, 'revision', 'herramientas')).length === 1);
-    check('y el módulo afectado deja de avisar por ese programa', await run(`return !${mod('videos')}.textContent.includes('yt-dlp')`));
+    check('y el módulo afectado deja de avisar por ese programa', await run(`return !${mod('medios')}.textContent.includes('yt-dlp')`));
     await click(`document.querySelector('#footer a')`);
     await sleep(2000);
     check('de ahí se pasa al control, aunque siga faltando el navegador', (await chrome.evaluate('location.pathname')) === '/control' && await run(`return document.body.classList.contains('app')`));
@@ -716,7 +733,7 @@ try {
     rows = await seen();
     check('un número busca el himno', rows.includes('# Himnario') && rows[rows.indexOf('# Himnario') + 1]?.startsWith('3 · '), JSON.stringify(rows));
     await ask('luz');
-    check('en el escritorio, los grupos principales (Biblia, Himnario, Videos) van en columnas, uno al lado de otro', await run(`const c = [...document.querySelectorAll('.finder-col')]; return document.querySelector('.finder').classList.contains('wide') && c.length >= 2 && c.every(e => Math.abs(e.getBoundingClientRect().top - c[0].getBoundingClientRect().top) < 2) && c[1].getBoundingClientRect().left >= c[0].getBoundingClientRect().right`), JSON.stringify(await seen()));
+    check('en el escritorio, los grupos principales (Biblia, Himnario, Medios) van en columnas, uno al lado de otro', await run(`const c = [...document.querySelectorAll('.finder-col')]; return document.querySelector('.finder').classList.contains('wide') && c.length >= 2 && c.every(e => Math.abs(e.getBoundingClientRect().top - c[0].getBoundingClientRect().top) < 2) && c[1].getBoundingClientRect().left >= c[0].getBoundingClientRect().right`), JSON.stringify(await seen()));
     await ask('sal 23 2');
     await press('Enter');
     check('Intro proyecta el primero y cierra la búsqueda', (await live()).ref === 'Salmos 23:2' && !await layerOpen());
@@ -837,19 +854,20 @@ try {
   await goTo('medios');
   await sleep(500);
   const med = `document.querySelector('.ws[data-module=medios]')`;
-  check('sin imágenes, invita a subirlas', await run(`return ${med}.querySelector('.empty').textContent.includes('Aún no hay imágenes') && ${med}.querySelector('.media-bar').hidden`));
+  check('sin nada, Medios invita a subir lo que sea y no muestra ningún grupo ni barra', await run(`const g = [...${med}.querySelectorAll('.media-group')]; return ${med}.querySelector('.empty').textContent.includes('Aún no hay nada en Medios') && g.length === 4 && g.every((x) => x.hidden) && ${med}.querySelectorAll('.media-bar').length === 4 && [...${med}.querySelectorAll('.media-bar')].every((b) => b.hidden)`));
+  check('la cabecera trae el enlace de YouTube, un solo «Subir» y las categorías, sin pestañas ni campos de archivo por tipo', await run(`const head = ${med}.querySelector('.ws-head'); const input = ${med}.querySelector(':scope > input[type=file]'); const chips = [...${med}.querySelectorAll('.media-cats .chip')].map((c) => c.textContent); return head.querySelector('h1').textContent === 'Medios' && Boolean(head.querySelector('.media-entry .yt-add')) && head.querySelector('.btn.media-upload').textContent.trim() === 'Subir' && !${med}.querySelector('.media-tabs') && Boolean(input) && ['image/png', '.mp4', '.mp3', '.pdf', '.pptx'].every((t) => input.accept.includes(t)) && [...${med}.querySelectorAll('input[type=file]')].filter((i) => !i.accept.includes('.srt')).length === 1 && chips.join() === 'Principal0,Nueva categoría' && ${med}.querySelector('.media-cats .chip.on').dataset.category === ''`), await run(`const input = ${med}.querySelector(':scope > input[type=file]'); const head = ${med}.querySelector('.ws-head'); return JSON.stringify({ h1: head.querySelector('h1').textContent, yt: Boolean(head.querySelector('.media-entry .yt-add')), up: head.querySelector('.btn.media-upload')?.textContent, tabs: Boolean(${med}.querySelector('.media-tabs')), accept: input?.accept, files: ${med}.querySelectorAll('input[type=file]').length, on: ${med}.querySelector('.media-cats .chip.on')?.dataset.category })`));
   // Dos imágenes hechas aquí mismo: una apaisada más grande de lo que se guarda y un cartel vertical.
   const wide = path.join(tmp, 'anuncios_de-octubre.png');
   const tall = path.join(tmp, 'cartel vertical.png');
   fs.writeFileSync(wide, examplePoster(3000, 1000));
   fs.writeFileSync(tall, examplePoster(600, 900, [[15, 118, 110], [202, 138, 4]]));
-  await chooseFiles('.ws[data-module=medios] input[type=file]', [wide, tall]);
+  await chooseFiles(MEDIA_FILES, [wide, tall]);
   await sleep(600);
   check('al elegir archivos propone un nombre para cada imagen', await run(`return ${modal}.querySelector('h2').textContent === 'Subir 2 imágenes' && [...${modal}.querySelectorAll('.up-row input')].map(i => i.value).join('|') === 'anuncios de octubre|cartel vertical'`));
   check('prepara cada imagen en el propio dispositivo antes de enviarla', await until(`[...${modal}.querySelectorAll('.up-row small')].every(s => s.textContent.startsWith('Lista')) && !${modal}.querySelector('.btn.primary').disabled`));
   await run(`const i = ${modal}.querySelector('.up-row input'); i.value = 'Anuncios de octubre';`);
   await click(`${modal}.querySelector('.btn.primary')`);
-  check('sube las imágenes y cierra la ventana', await until(`!${modal} && ${med}.querySelectorAll('.media-card').length === 2`));
+  check('sube las imágenes y cierra la ventana; salen en su grupo, con su título y su cuenta', await until(`!${modal} && ${med}.querySelectorAll('.media-card').length === 2`) && JSON.stringify(await groupsNow()) === JSON.stringify(['Imágenes 2']) && await run(`return ${med}.querySelector('.media-body > :first-child').textContent === ''`));
   let lib = JSON.parse(await run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify(s.media.images)`));
   const ad = lib.find((i) => i.name === 'Anuncios de octubre');
   check('la imagen grande llega reducida y con su miniatura; la pequeña, con su tamaño', Boolean(ad) && ad.width === 2560 && ad.height === 853 && Boolean(ad.thumb) && lib.some((i) => i.name === 'cartel vertical' && i.width === 600 && i.height === 900), lib.map((i) => `${i.name} ${i.width}×${i.height}`).join(', '));
@@ -922,11 +940,11 @@ try {
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await sleep(500);
   const dockNames = `[...document.querySelectorAll('.dockbar .dock-item')].map(b => b.querySelector('.dock-name').textContent).join('|')`;
-  check('en el celular, el dock va abajo con todos los módulos y su nombre, sin «Más»', await run(`const r = document.querySelector('.dockbar').getBoundingClientRect(); return ${dockNames} === 'Orden|Biblia|Himnario|Videos|Medios|Textos|Páginas web|Ajustes' && getComputedStyle(document.querySelector('.dock-name')).display !== 'none' && r.bottom > innerHeight - 30 && r.top > innerHeight / 2 && !document.querySelector('.tabbar') && ![...document.querySelectorAll('.dockbar button')].some(b => b.textContent === 'Más') && document.querySelector('.dock-item.on').dataset.id === 'medios'`), await run(`return ${dockNames}`));
+  check('en el celular, el dock va abajo con todos los módulos y su nombre, sin «Más»', await run(`const r = document.querySelector('.dockbar').getBoundingClientRect(); return ${dockNames} === 'Orden|Biblia|Himnario|Medios|Textos|Páginas web|Ajustes' && getComputedStyle(document.querySelector('.dock-name')).display !== 'none' && r.bottom > innerHeight - 30 && r.top > innerHeight / 2 && !document.querySelector('.tabbar') && ![...document.querySelectorAll('.dockbar button')].some(b => b.textContent === 'Más') && document.querySelector('.dock-item.on').dataset.id === 'medios'`), await run(`return ${dockNames}`));
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(400);
 
-  console.log('\n1. Interfaz · Medios (videos y audios)');
+  console.log('\n1. Interfaz · Medios (videos, audios y categorías)');
   if (!HAS_FFMPEG) console.log('  (este equipo no tiene ffmpeg: no se pueden fabricar los videos de ejemplo y esta parte se salta)');
   else {
     const quiet = (frequency, seconds) => ['-f', 'lavfi', '-i', `sine=frequency=${frequency}:duration=${seconds}`, '-af', 'volume=0.05'];
@@ -937,23 +955,20 @@ try {
     const captions = path.join(tmp, 'bienvenida.srt');
     fs.writeFileSync(notVideo, 'esto no es un video '.repeat(200));
     fs.writeFileSync(captions, '1\n00:00:00,000 --> 00:00:08,000\nBienvenidos\n');
-    const tab = async (id) => { await click(`document.querySelector('.media-tabs [data-tab=${id}]')`); await sleep(400); };
-    const vids = `document.querySelector('.media-body[data-panel=videos]')`;
+    const vids = `${med}.querySelector('.media-list[data-panel=videos]')`;
     const vbar = `document.querySelector('.media-bar[data-panel=videos]')`;
     const controls = LIVE;
     const control = async (label) => { await click(`[...${controls}.querySelectorAll('button')].find(b => (b.textContent + ' ' + (b.getAttribute('aria-label') || '')).includes(${JSON.stringify(label)}))`); await sleep(700); };
     const videosNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).media.videos)`).then(JSON.parse);
     const air = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ item: s.projection.item, live: s.live.state, volume: s.live.volume, sound: s.conexiones.sonido, order: s.order.items })`).then(JSON.parse);
 
-    await goTo('videos');
-    await sleep(400);
-    check('Videos es un módulo propio, con «Subir videos» y el enlace de YouTube; Medios ya no tiene Videos ni YouTube (sí Diapositivas)', await run(`return ${vids}.querySelector('.empty').textContent.includes('Contenido/Medios') && ${vids}.querySelector('.empty').textContent.includes('YouTube') && document.querySelector('.ws[data-module=videos] .ws-head > .btn').textContent === 'Subir videos' && Boolean(document.querySelector('.ws[data-module=videos] .ws-head .yt-add')) && [...document.querySelectorAll('.ws[data-module=medios] .media-tabs .chip')].map(c => c.textContent).join() === 'Imágenes,Audios,Diapositivas'`));
-    await chooseFiles('.media-body[data-panel=videos] input[type=file]', [notVideo]);
+    check('ya no existe el módulo Videos: todo está en Medios', await run(`return !document.querySelector('.dock-item[data-id=videos]') && !document.querySelector('.ws[data-module=videos]') && Boolean(document.querySelector('.dock-item[data-id=medios]'))`));
+    await chooseFiles(MEDIA_FILES, [notVideo]);
     await sleep(500);
     await modalButton('Subir');
     check('un archivo que no es un video se rechaza, y lo dice', await until(`${modal}.querySelector('.up-row.error small')?.textContent.includes('no contiene un video')`), await run(`return ${modal}.querySelector('.up-row small')?.textContent`));
     await modalButton('Cancelar');
-    await chooseFiles('.media-body[data-panel=videos] input[type=file]', [welcome, oldVideo]);
+    await chooseFiles(MEDIA_FILES, [welcome, oldVideo]);
     await sleep(500);
     check('propone un nombre para cada video', await run(`return ${modal}.querySelector('h2').textContent === 'Subir 2 videos' && [...${modal}.querySelectorAll('.up-row input')].map(i => i.value).join('|') === 'video de bienvenida|testimonio'`));
     await modalButton('Subir');
@@ -977,27 +992,38 @@ try {
     const converted = videos.find((v) => v.name === 'testimonio');
     check('lo habitual se usa tal cual y lo demás queda convertido; los dos con su imagen y su duración', Boolean(main && converted) && !main.converted && converted.converted && converted.url.endsWith('.mp4')
       && Math.round(main.duration) === 8 && await run(`return [...${vids}.querySelectorAll('.media-card')].every(c => c.querySelector('.media-thumb img')?.naturalWidth > 0 && /^0:0\\d$/.test(c.querySelector('.media-duration').textContent))`));
-    // Categorías con el nombre que se quiera (fase 16): filtran la lista; quitarlas no borra videos.
-    const cats = `document.querySelector('.ws[data-module=videos] .video-cats')`;
+    // Los grupos de Medios van por tipo, y dentro de cada uno, del más antiguo al más reciente.
+    const inDom = await run(`return JSON.stringify([...${vids}.querySelectorAll('.media-card')].map((c) => c.dataset.id))`).then(JSON.parse);
+    check('cada tipo es un grupo con su título y su cuenta (Imágenes 1, Videos 2), y dentro de cada uno van del más antiguo al más reciente', JSON.stringify(await groupsNow()) === JSON.stringify(['Imágenes 1', 'Videos 2']) && inDom.length === 2
+      && inDom.join() === [...videos].sort((x, y) => x.added - y.added).map((v) => v.id).join() && await run(`return ${med}.querySelector('.media-body > :first-child').textContent === ''`), JSON.stringify(inDom));
+
+    // Categorías (fase 22): «Principal» tiene lo que no está en ninguna; cada elemento está en una sola.
+    const cats = `${med}.querySelector('.media-cats')`;
     const catChip = (label) => `[...${cats}.querySelectorAll('.chip')].find(c => c.textContent.startsWith(${JSON.stringify(label)}))`;
-    const catsNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).media.categories)`).then(JSON.parse);
+    const emptyText = `${med}.querySelector('.media-body > :first-child').textContent`;
+    const mainOnly = `${vids}.querySelector('.media-card[data-id="${main?.id}"]')`;
+    const cardMore = `${mainOnly}.querySelector('.media-more')`;
+    const moveFromMenu = async (toLabel) => {
+      await click(cardMore);
+      await sleep(300);
+      await menuItem('Mover a una categoría');
+      await sleep(300);
+      await menuItem(toLabel);
+      await sleep(600);
+    };
     await click(catChip('Nueva categoría'));
     await sleep(300);
     await run(`${modal}.querySelector('input').value = 'Niños';`);
     await modalButton('Crear');
     await sleep(600);
-    check('«Nueva categoría» la crea con el nombre que se escriba y la deja elegida, aún vacía', await run(`return ${catChip('Niños')}?.classList.contains('on') && ${vids}.querySelector('.empty')?.textContent.includes('«Niños» aún no tiene videos')`), await run(`return ${cats}.textContent`));
-    await click(catChip('Todos'));
+    check('«Nueva categoría» la crea con el nombre que se escriba y la deja elegida, aún vacía', await run(`return ${catChip('Niños')}?.classList.contains('on') && ${emptyText}.includes('«Niños» aún no tiene nada') && [...${med}.querySelectorAll('.media-group')].every((g) => g.hidden)`), await run(`return ${cats}.textContent`));
+    await click(catChip('Principal'));
     await sleep(300);
-    await click(`${vids}.querySelector('.media-card[data-id="${main?.id}"] .media-more')`);
-    await sleep(300);
-    await menuItem('Categorías');
-    await sleep(300);
-    await menuItem('Niños');
-    await sleep(600);
+    await moveFromMenu('Niños');
+    check('«Mover a una categoría…» del menú lleva el video a ella: sale de Principal y la cuenta de cada una lo dice', (await mediaCats())[0]?.items.join() === main?.id && await run(`return !${mainOnly} && ${catChip('Niños')}.textContent === 'Niños1' && ${catChip('Principal')}.textContent === 'Principal2'`));
     await click(catChip('Niños'));
     await sleep(400);
-    check('desde el menú del video se pone en una categoría, que filtra la lista', (await catsNow())[0]?.videos.join() === main?.id && await run(`return ${vids}.querySelectorAll('.media-card').length === 1 && ${catChip('Niños')}.textContent === 'Niños1'`));
+    check('al elegir la categoría solo se ve lo suyo', JSON.stringify(await groupsNow()) === JSON.stringify(['Videos 1']) && await run(`return ${med}.querySelectorAll('.media-body .media-card').length === 1 && Boolean(${mainOnly})`));
     await click(`${cats}.querySelector('.icon-btn')`);
     await sleep(300);
     await menuItem('Cambiar el nombre');
@@ -1005,27 +1031,63 @@ try {
     await run(`${modal}.querySelector('input').value = 'Niños y adolescentes';`);
     await modalButton('Guardar');
     await sleep(600);
-    check('la categoría elegida se renombra desde su menú', (await catsNow())[0]?.name === 'Niños y adolescentes' && await run(`return Boolean(${catChip('Niños y adolescentes')})`));
-    await click(`${vids}.querySelector('.media-card .media-more')`);
+    check('la categoría elegida se renombra desde su menú', (await mediaCats())[0]?.name === 'Niños y adolescentes' && await run(`return Boolean(${catChip('Niños y adolescentes')})`));
+    await click(cardMore);
     await sleep(300);
-    await menuItem('Quitar de');
+    await menuItem('Sacar de');
     await sleep(600);
-    check('el video se quita de ella sin salir de la biblioteca', (await catsNow())[0]?.videos.length === 0 && (await videosNow()).length === 2 && await run(`return Boolean(${vids}.querySelector('.empty'))`));
+    check('«Sacar de…» lo devuelve a Principal sin borrarlo', (await mediaCats())[0]?.items.length === 0 && (await videosNow()).length === 2 && await run(`return ${emptyText}.includes('aún no tiene nada')`));
+    // Arrastrar con el ratón de verdad: de Principal hasta el nombre de la categoría.
+    await click(catChip('Principal'));
+    await sleep(300);
+    await dragCard(mainOnly, catChip('Niños y adolescentes'));
+    await sleep(300);
+    check('arrastrar con el ratón una tarjeta hasta una categoría la lleva a ella, sale de Principal y lo dice', (await mediaCats())[0]?.items.join() === main?.id && (await text('#toast')).includes('video de bienvenida') && (await text('#toast')).includes('está ahora en «Niños y adolescentes»')
+      && await run(`return !${mainOnly} && ${catChip('Niños y adolescentes')}.textContent === 'Niños y adolescentes1' && ${catChip('Principal')}.textContent === 'Principal2' && !document.querySelector('.drag-ghost') && !document.documentElement.classList.contains('media-dragging') && !document.querySelector('.drop-on')`), await text('#toast'));
+    // Con el dedo: mantener pulsado y mover hasta «Principal»; si se mueve antes de tiempo, es que se desplaza la lista.
+    await click(catChip('Niños y adolescentes'));
+    await sleep(400);
+    let from = await centerOf(mainOnly);
+    let to = await centerOf(catChip('Principal'));
+    await dragTouch(from.x, from.y, to.x, to.y, 60);
+    check('con el dedo, moverse antes de tiempo no arrastra: la tarjeta sigue donde estaba', (await mediaCats())[0]?.items.join() === main?.id && await run(`return !document.querySelector('.drag-ghost') && Boolean(${mainOnly})`));
+    from = await centerOf(mainOnly);
+    to = await centerOf(catChip('Principal'));
+    await dragTouch(from.x, from.y, to.x, to.y);
+    check('con el dedo, mantener pulsado y mover hasta «Principal» devuelve la tarjeta, y lo dice', (await mediaCats())[0]?.items.length === 0 && (await text('#toast')).includes('volvió a Principal')
+      && await run(`return !${mainOnly} && ${catChip('Principal')}.textContent === 'Principal3' && !document.querySelector('.drag-ghost') && !document.documentElement.classList.contains('media-dragging')`), await text('#toast'));
+    await click(catChip('Principal'));
+    await sleep(400);
+    check('y en Principal vuelve a estar con los otros dos videos', await run(`return Boolean(${mainOnly}) && ${vids}.querySelectorAll('.media-card').length === 2`));
+    // Eliminar una categoría devuelve lo suyo a Principal.
+    await moveFromMenu('Niños y adolescentes');
+    await click(catChip('Niños y adolescentes'));
+    await sleep(400);
     await click(`${cats}.querySelector('.icon-btn')`);
     await sleep(300);
     await menuItem('Eliminar la categoría');
     await sleep(300);
     await modalButton('Eliminar');
     await sleep(600);
-    check('al eliminar la categoría se vuelve a «Todos», con todos los videos', (await catsNow()).length === 0 && await run(`return ${catChip('Todos')}.classList.contains('on') && ${vids}.querySelectorAll('.media-card').length === 2`));
+    check('al eliminar la categoría se vuelve a Principal, con todo lo que tenía de vuelta', (await mediaCats()).length === 0 && (await videosNow()).length === 2 && await run(`return ${catChip('Principal')}.classList.contains('on') && ${catChip('Principal')}.textContent === 'Principal3' && ${vids}.querySelectorAll('.media-card').length === 2 && Boolean(${mainOnly})`));
+    // Subir con una categoría elegida deja lo subido en ella (fuera de Principal).
+    await click(catChip('Nueva categoría'));
+    await sleep(300);
+    await run(`${modal}.querySelector('input').value = 'Jóvenes';`);
+    await modalButton('Crear');
+    await sleep(600);
     // Un video que hay que convertir (viene en otro envoltorio), pero que este equipo reproduce tal
     // cual: se usa al instante, con el original, mientras se le hace la copia para las demás pantallas.
     const wrapped = sample('recien llegado.mkv', ['-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=25:duration=8', ...quiet(262, 8), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest']);
-    await chooseFiles('.media-body[data-panel=videos] input[type=file]', [wrapped]);
+    await chooseFiles(MEDIA_FILES, [wrapped]);
     await sleep(500);
     await modalButton('Subir');
     const arrived = `[...${vids}.querySelectorAll('.media-card')].find(c => c.querySelector('strong').textContent === 'recien llegado')`;
     check('un video recién subido que este equipo reproduce tal cual se puede proyectar ya, mientras se le hace la copia', await until(`${arrived}?.dataset.usable === 'true' && ${arrived}.dataset.status === 'converting' && ${arrived}.querySelector('.media-status strong')?.textContent.includes('Ya se puede proyectar')`, 25), await run(`return ${arrived}?.querySelector('.media-status')?.textContent`));
+    await until(`(await (await fetch('/api/state')).json()).media.categories[0]?.items.length === 1`, 20);
+    const arrivedId = (await videosNow()).find((v) => v.name === 'recien llegado')?.id;
+    check('lo que se sube con una categoría elegida queda en ella y no sale en Principal', Boolean(arrivedId) && (await mediaCats())[0]?.name === 'Jóvenes' && (await mediaCats())[0].items.join() === arrivedId
+      && await run(`return ${catChip('Jóvenes')}.textContent === 'Jóvenes1' && ${catChip('Principal')}.textContent === 'Principal3'`), JSON.stringify(await mediaCats()));
     await click(`${arrived}.querySelector('.media-pick')`);
     await sleep(300);
     await click(`${vbar}.querySelector('.btn.primary')`);
@@ -1045,6 +1107,13 @@ try {
     await sleep(300);
     await modalButton('Eliminar');
     await sleep(600);
+    await click(`${cats}.querySelector('.icon-btn')`);
+    await sleep(300);
+    await menuItem('Eliminar la categoría');
+    await sleep(300);
+    await modalButton('Eliminar');
+    await sleep(600);
+    check('una categoría vacía se elimina sin más, y se vuelve a Principal', (await mediaCats()).length === 0 && await run(`return ${catChip('Principal')}.classList.contains('on') && ${vids}.querySelectorAll('.media-card').length === 2`));
     const mainCard = `${vids}.querySelector('.media-card[data-id="${main?.id}"]')`;
     await click(`${mainCard}.querySelector('.media-pick')`);
     await sleep(500);
@@ -1093,7 +1162,7 @@ try {
     // Subtítulos: un archivo .srt junto al video.
     const cardMenu = async (cardJs, label) => { await click(`${cardJs}.querySelector('.media-more')`); await sleep(300); await menuItem(label); await sleep(400); };
     await cardMenu(mainCard, 'Añadir subtítulos');
-    await chooseFiles('.media-body[data-panel=videos] input[accept*=".srt"]', [captions]);
+    await chooseFiles('.media-list[data-panel=videos] input[accept*=".srt"]', [captions]);
     check('se le añaden subtítulos desde un archivo .srt', await until(`${mainCard}.querySelector('.media-cc')`) && (await videosNow()).find((v) => v.id === main.id).subtitles === true);
     await click(`${vbar}.querySelector('.btn.primary')`);
     await sleep(1500);
@@ -1158,12 +1227,11 @@ try {
 
     await goTo('medios');
     await sleep(400);
-    await tab('audios');
-    const auds = `document.querySelector('.media-body[data-panel=audios]')`;
-    await chooseFiles('.media-body[data-panel=audios] input[type=file]', [track]);
+    const auds = `${med}.querySelector('.media-list[data-panel=audios]')`;
+    await chooseFiles(MEDIA_FILES, [track]);
     await sleep(500);
     await modalButton('Subir');
-    check('un audio se sube igual, desde su pestaña', await until(`!${modal} && ${auds}.querySelector('.media-card[data-status=ready]')`, 60) && await run(`return ${auds}.querySelector('.media-card strong').textContent === 'pista de piano' && ${auds}.querySelector('.media-duration').textContent === '0:05'`));
+    check('un audio se sube igual, con el mismo botón, y sale en su grupo', await until(`!${modal} && ${auds}.querySelector('.media-card[data-status=ready]')`, 60) && JSON.stringify(await groupsNow()) === JSON.stringify(['Imágenes 1', 'Videos 1', 'Audios 1']) && await run(`return ${auds}.querySelector('.media-card strong').textContent === 'pista de piano' && ${auds}.querySelector('.media-duration').textContent === '0:05'`));
     await click(`${auds}.querySelector('.media-card .media-pick')`);
     await sleep(300);
     await click(`document.querySelector('.media-bar[data-panel=audios] .btn.primary')`);
@@ -1178,22 +1246,22 @@ try {
 
   // ---- Grupo «red» (1): YouTube e himnario (aquí para que los tres grupos tarden parecido) ----
   if (inGroup('red')) {
-  console.log('\n1. Interfaz · Videos (YouTube)');
+  console.log('\n1. Interfaz · Medios (YouTube)');
   if (!CAN_YOUTUBE) console.log('  (en este sistema no se puede usar el yt-dlp de mentira: esta parte se salta)');
   else {
-    await goTo('videos');
+    await goTo('medios');
     await sleep(500);
     const controls = LIVE;
     const control = async (label) => { await openControls(); await click(`[...${controls}.querySelectorAll('button')].find(b => (b.textContent + ' ' + (b.getAttribute('aria-label') || '')).includes(${JSON.stringify(label)}))`); await sleep(700); };
     const air = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ item: s.projection.item, live: s.live.state, order: s.order.items })`).then(JSON.parse);
     const cardMenu = async (cardJs, label) => { await click(`${cardJs}.querySelector('.media-more')`); await sleep(300); await menuItem(label); await sleep(400); };
-    const tube = `document.querySelector('.media-body[data-panel=videos]')`;
+    const tube = `document.querySelector('.ws[data-module=medios] .media-list[data-panel=videos]')`;
     const tubeBar = `document.querySelector('.media-bar[data-panel=videos]')`;
     const linkBox = `document.querySelector('.yt-add input')`;
     const tubeCard = `${tube}.querySelector('.media-card[data-status=ready], .media-card[data-status=downloading]')`;
     const tubesNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).media.youtube)`).then(JSON.parse);
     const paste = async (value) => { await run(`const i = ${linkBox}; i.focus(); i.value = ${JSON.stringify(value)}; i.dispatchEvent(new Event('input'));`); await click(`document.querySelector('.yt-add .btn')`); await sleep(500); };
-    check('Videos pide el enlace de YouTube en su cabecera, junto a «Subir videos», y explica para qué sirve', await run(`const head = document.querySelector('.ws[data-module=videos] .ws-head'); return ${tube}.querySelector('.empty').textContent.includes('Aún no hay videos') && ${tube}.querySelector('.empty').textContent.includes('sin anuncios') && head.contains(document.querySelector('.yt-add')) && [...head.querySelectorAll('.btn')].some(b => b.textContent.includes('Subir videos')) && document.querySelector('.ws-notice').hidden`));
+    check('Medios pide el enlace de YouTube en su cabecera, junto a «Subir», y sin nada aún lo explica', await run(`const head = document.querySelector('.ws[data-module=medios] .ws-head'); const empty = document.querySelector('.ws[data-module=medios] .media-body > :first-child'); return empty.textContent.includes('Aún no hay nada en Medios') && empty.textContent.includes('YouTube') && head.contains(document.querySelector('.yt-add')) && [...head.querySelectorAll('.btn')].some(b => b.textContent.includes('Subir')) && document.querySelector('.ws-notice').hidden`));
     expectError('no es un enlace de un video de YouTube');
     await paste('https://vimeo.com/123456789');
     check('lo que no es un enlace de YouTube se rechaza, y lo dice', (await text('#toast')).includes('no es un enlace de un video de YouTube') && (await tubesNow()).length === 0, await text('#toast'));
@@ -1466,23 +1534,27 @@ try {
 
   // ---- Grupo «biblioteca» (2): diapositivas, presentador y páginas web ----
   if (inGroup('biblioteca')) {
-  console.log('\n1. Interfaz · Diapositivas (pestaña de Medios)');
+  console.log('\n1. Interfaz · Presentaciones (grupo de Medios)');
   {
     const ws = `document.querySelector('.decks[data-panel=diapositivas]')`;
     const dbar = `document.querySelector('.deck-bar')`;
     const decksNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).slides.decks)`).then(JSON.parse);
     const onAir = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ item: s.projection.item, live: s.live.state, order: s.order.items })`).then(JSON.parse);
-    const pickFile = async (file) => { await chooseFiles('.decks[data-panel=diapositivas] input[type=file]', [file]); await sleep(600); };
+    const pickFile = async (file) => { await chooseFiles(MEDIA_FILES, [file]); await sleep(600); };
+    const groupsShown = () => run(`return [...document.querySelectorAll('.media-body .media-group')].filter((g) => g.getClientRects().length).map((g) => g.dataset.group).join()`);
     const slide = (n) => `${ws}.querySelector('.slide-pick[data-n="${n}"]')`;
     const deckMenu = async (cardJs, label) => { await click(`${cardJs}.querySelector('.deck-more')`); await sleep(300); await menuItem(label); await sleep(400); };
     const liveBox = LIVE;
+    const cats = `document.querySelector('.ws[data-module=medios] .media-cats')`;
+    const catChip = (label) => `[...${cats}.querySelectorAll('.chip')].find(c => c.textContent.startsWith(${JSON.stringify(label)}))`;
+    // Si se ve (y no solo si existe): el grupo oculto conserva sus tarjetas.
+    const seen = (js) => `(${js}?.getClientRects().length > 0)`;
     await openSlides();
-    check('Diapositivas es una pestaña de Medios (sin botón en el dock): sin presentaciones, invita a subir un PDF o un PowerPoint', await run(`return document.title === 'Manna · Medios' && !document.querySelector('.dock-item[data-id=diapositivas]') && ${ws}.querySelector('.empty').textContent.includes('Aún no hay presentaciones') && ${ws}.querySelector('.empty').textContent.includes('PDF o una presentación de PowerPoint') && ${dbar}.hidden`));
+    check('las presentaciones son un grupo de Medios (sin botón en el dock): sin ninguna, su grupo y su barra no se ven', await run(`return document.title === 'Manna · Medios' && !document.querySelector('.dock-item[data-id=diapositivas]') && document.querySelector('.media-group[data-group=diapositivas]').hidden && ${dbar}.hidden`));
     const notDeck = path.join(tmp, 'no-es-presentacion.txt');
     fs.writeFileSync(notDeck, 'unas notas');
     await pickFile(notDeck);
-    check('un archivo que no es una presentación se explica, y dice cómo sacar el PDF', await run(`return ${modal}.querySelector('h2').textContent === 'Ese archivo no es una presentación' && ${modal}.textContent.includes('Exportar')`));
-    await modalButton('Entendido');
+    check('un archivo que Manna no sabe usar se rechaza con un aviso, sin abrir ninguna ventana', (await text('#toast')).includes('Manna no sabe usar ese archivo') && await run(`return !${modal}`), await text('#toast'));
 
     // Un PDF de verdad, de cuatro páginas, hecho aquí mismo. Lo convierte este Chrome con pdf.js.
     const COLORS = [[29, 78, 216], [15, 118, 110], [190, 18, 60], [124, 58, 237]];
@@ -1495,6 +1567,7 @@ try {
     await run(`${modal}.querySelector('input').value = 'Informe de tesorería';`);
     await modalButton('Subir');
     check('convierte cada página en una imagen, las sube y cierra la ventana', await until(`!${modal} && ${ws}.querySelectorAll('.slide-pick').length === 4`, 80), await run(`return ${modal}?.querySelector('.deck-up-status')?.textContent || ''`));
+    check('con una presentación abierta, Medios muestra solo su grupo, con el botón para volver', await groupsShown() === 'diapositivas' && await run(`return ${ws}.dataset.view === 'pages' && !${ws}.querySelector('.deck-back').hidden`), await groupsShown());
     let decks = await decksNow();
     const deck = decks[0] || {};
     check('queda en la biblioteca con sus cuatro diapositivas, grandes y con miniatura', decks.length === 1 && deck.name === 'Informe de tesorería' && deck.pages === 4 && deck.width === 2560 && deck.height === 1440 && deck.thumbs === true && deck.source === 'pdf'
@@ -1605,6 +1678,31 @@ try {
     await run(`return await ${post('projection.show', { kind: 'slides', data: { id: deck.id }, step: 2 })}`);
     await sleep(500);
 
+    // Una presentación también se mueve a una categoría (fase 22): desde su menú y arrastrándola. Hay dos: la otra
+    // tiene que quedarse donde estaba.
+    await click(`${ws}.querySelector('.deck-back')`);
+    await sleep(300);
+    check('al volver a la lista, las presentaciones son el último de los grupos de Medios', JSON.stringify(await groupsNow()) === JSON.stringify(['Imágenes 1', 'Videos 1', 'Audios 1', 'Presentaciones 2']) && await groupsShown() === 'imagenes,videos,audios,diapositivas', JSON.stringify(await groupsNow()));
+    await deckMenu(deckCard, 'Mover a una categoría');
+    await menuItem('Nueva categoría');
+    await sleep(300);
+    await run(`${modal}.querySelector('input').value = 'Escuela sabática';`);
+    await modalButton('Crear');
+    await sleep(800);
+    const moved = (await mediaCats())[0];
+    check('«Nueva categoría…» del menú de una presentación la crea y la lleva a ella: sale de Principal y la otra se queda', moved?.name === 'Escuela sabática' && moved.items.join() === deck.id
+      && await run(`return !${seen(deckCard)} && ${seen(madeCard)} && ${catChip('Escuela sabática')}.textContent === 'Escuela sabática1' && ${catChip('Principal')}.textContent === 'Principal4'`), JSON.stringify(moved) + ' ' + await run(`return JSON.stringify({ informe: ${seen(deckCard)}, ppt: ${seen(madeCard)}, chips: ${cats}.textContent })`));
+    await click(catChip('Escuela sabática'));
+    await sleep(400);
+    check('al elegir la categoría solo se ve esa presentación', JSON.stringify(await groupsNow()) === JSON.stringify(['Presentaciones 1']) && await run(`return ${seen(deckCard)} && !${seen(madeCard)}`));
+    await dragCard(deckCard, catChip('Principal'));
+    await sleep(300);
+    check('arrastrada con el ratón hasta «Principal», la presentación vuelve y sale de la categoría', (await mediaCats())[0]?.items.length === 0 && (await text('#toast')).includes('volvió a Principal')
+      && await run(`return !${seen(deckCard)} && ${catChip('Principal')}.textContent === 'Principal5' && document.querySelector('.ws[data-module=medios] .media-body > :first-child').textContent.includes('aún no tiene nada')`), await text('#toast'));
+    await click(catChip('Principal'));
+    await sleep(400);
+    check('y en Principal vuelve a estar, junto a la otra', await run(`return ${seen(deckCard)} && ${seen(madeCard)}`));
+
     await deckMenu(deckCard, 'Cambiar el nombre');
     await run(`${modal}.querySelector('input').value = 'Informe del trimestre';`);
     await modalButton('Guardar');
@@ -1615,21 +1713,30 @@ try {
     await sleep(700);
     check('y se elimina con todas sus imágenes', (await decksNow()).length === 1 && await run(`return (await fetch(${JSON.stringify(`${made.base}1.png`)})).status === 404`));
 
+    // La categoría elegida se recuerda en este dispositivo: al recargar la página sigue elegida.
+    await click(catChip('Escuela sabática'));
+    await sleep(300);
+    await chrome.send('Page.navigate', { url: `${local}/control?r=${Date.now()}#medios` });
+    await sleep(2500);
+    check('la categoría elegida se recuerda en este dispositivo: al recargar la página sigue elegida', await run(`return document.querySelector('.ws[data-module=medios] .media-cats .chip.on')?.textContent.startsWith('Escuela sabática')`), await run(`return document.querySelector('.ws[data-module=medios] .media-cats .chip.on')?.textContent + ' · guardada: ' + localStorage.getItem('manna.medios.categoria')`));
+    await click(catChip('Principal'));
+    await sleep(300);
+
     // En el celular: primero las presentaciones; al tocar una, sus diapositivas.
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
     await chrome.send('Page.navigate', { url: `${local}/control?m=${Date.now()}#medios` });
     await sleep(2500);
-    const shownPane = () => run(`const vis = (s) => { const e = ${ws}.querySelector(s); return Boolean(e) && e.getClientRects().length > 0; }; return JSON.stringify({ list: vis('.deck-list'), pages: vis('.deck-pages'), back: vis('.deck-back'), tab: document.querySelector('.media-tabs .chip.on')?.textContent })`).then(JSON.parse);
+    const shownPane = () => run(`const vis = (s) => { const e = ${ws}.querySelector(s); return Boolean(e) && e.getClientRects().length > 0; }; return JSON.stringify({ list: vis('.deck-list'), pages: vis('.deck-pages'), back: vis('.deck-back'), groups: [...document.querySelectorAll('.media-body .media-group')].filter((g) => g.getClientRects().length).map((g) => g.dataset.group).join() })`).then(JSON.parse);
     let pane = await shownPane();
-    check('en el celular se ve el cajón de Medios en Diapositivas, con las presentaciones primero', pane.list && !pane.pages && !pane.back && pane.tab === 'Diapositivas', JSON.stringify(pane));
+    check('en el celular se ve el cajón de Medios con todos sus grupos y la lista de presentaciones', pane.list && !pane.pages && !pane.back && pane.groups === 'imagenes,videos,audios,diapositivas', JSON.stringify(pane));
     await click(`${ws}.querySelector('.deck-pick')`);
     await sleep(400);
     pane = await shownPane();
-    check('al tocar una se ven sus diapositivas, con el botón para volver', !pane.list && pane.pages && pane.back && await run(`return ${ws}.querySelectorAll('.slide-pick').length === 4 && ${dbar}.querySelector('.sel-ref').textContent === 'Diapositiva 3 de 4'`), JSON.stringify(pane));
+    check('al tocar una se ven solo sus diapositivas, con el botón para volver', !pane.list && pane.pages && pane.back && pane.groups === 'diapositivas' && await run(`return ${ws}.querySelectorAll('.slide-pick').length === 4 && ${dbar}.querySelector('.sel-ref').textContent === 'Diapositiva 3 de 4'`), JSON.stringify(pane));
     await click(`${ws}.querySelector('.deck-back')`);
     await sleep(300);
     pane = await shownPane();
-    check('«Presentaciones» vuelve a la lista', pane.list && !pane.pages);
+    check('«Presentaciones» vuelve a la lista, con los demás grupos', pane.list && !pane.pages && pane.groups === 'imagenes,videos,audios,diapositivas', JSON.stringify(pane));
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
     await chrome.send('Page.navigate', { url: `${local}/control?d=${Date.now()}#medios` });
     await sleep(2500);
@@ -2269,7 +2376,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await sleep(2200);
   const praise = `document.querySelector('.transport-bar .tb-volume')`;
   const praiseInView = () => run(`const r = ${praise}.getBoundingClientRect(); return r.height > 0 && r.top >= 0 && r.bottom <= innerHeight`);
-  check('"Servicio de alabanza" trae Himnario, Videos, Orden y Biblia, sin Ajustes', await run(`return [...document.querySelectorAll('.dock-item')].map(b => b.dataset.id).join() === 'himnario,videos,orden,biblia'`));
+  check('"Servicio de alabanza" trae Himnario, Medios, Orden y Biblia, sin Ajustes', await run(`return [...document.querySelectorAll('.dock-item')].map(b => b.dataset.id).join() === 'himnario,medios,orden,biblia'`));
   check('fuera del control, la barra de arriba no lleva el botón del proyector, solo su estado', await run(`return !document.querySelector('.scene-status > .btn') && Boolean(document.querySelector('.scene-status .live-pill'))`));
   check('lleva el volumen de Manna a la vista aunque no suene nada', (await live()).kind === 'verses' && await praiseInView());
   await run(`const s = ${praise}.querySelector('input[type=range]'); s.value = 35; s.dispatchEvent(new Event('input'));`);
@@ -2351,10 +2458,10 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     await sleep(300);
     check('su × la cierra y deja de sonar', !(await pv()).shown && (await pv()).src === null);
     // En Medios, un video ya convertido se puede escuchar aquí.
-    await goTo('videos');
+    await goTo('medios');
     await sleep(800);
     if (HAS_FFMPEG) {
-    const clipUrl = await run(`const v = (await (await fetch('/api/state')).json()).media.videos.find((c) => c.url); if (!v) return ''; document.querySelector(\`.media-body[data-panel=videos] .media-card[data-id="\${v.id}"] .media-pick\`).click(); return v.url`);
+    const clipUrl = await run(`const v = (await (await fetch('/api/state')).json()).media.videos.find((c) => c.url); if (!v) return ''; document.querySelector(\`.media-list[data-panel=videos] .media-card[data-id="\${v.id}"] .media-pick\`).click(); return v.url`);
     await sleep(400);
     await tapEl(`document.querySelector('.media-bar[data-panel=videos] .media-listen')`);
     await sleep(1000);
@@ -2452,23 +2559,10 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   const orderRows = () => run(`return ${ord}.querySelectorAll('.orow').length`);
   await click(`[...${ord}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes('Añadir'))`);
   await sleep(300);
-  await menuItem('Imagen');
+  check('"Añadir" ofrece Medios en una sola entrada: ya no hay Video, Imagen o audio ni Diapositivas por separado', await run(`const t = [...document.querySelectorAll('.menu button')].map((b) => b.textContent); return t.length >= 5 && t.some((x) => x.startsWith('Medios')) && !t.some((x) => /^(Video|Imagen|Diapositivas)/.test(x))`));
+  await menuItem('Medios');
   await sleep(500);
-  check('desde "Añadir" se llega a la biblioteca de imágenes', (await chrome.evaluate('document.title')) === 'Manna · Medios');
-  await goTo('orden');
-  await sleep(400);
-  await click(`[...${ord}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes('Añadir'))`);
-  await sleep(300);
-  await menuItem('Video');
-  await sleep(500);
-  check('y a la de videos', (await chrome.evaluate('document.title')) === 'Manna · Videos');
-  await goTo('orden');
-  await sleep(400);
-  await click(`[...${ord}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes('Añadir'))`);
-  await sleep(300);
-  await menuItem('Diapositivas');
-  await sleep(500);
-  check('y a las presentaciones, en la pestaña Diapositivas de Medios', (await chrome.evaluate('document.title')) === 'Manna · Medios' && await run(`return document.querySelector('.ws[data-module=medios] .media-tabs .chip.on')?.dataset.tab === 'diapositivas'`));
+  check('y de ahí se llega a la biblioteca de Medios', (await chrome.evaluate('document.title')) === 'Manna · Medios');
   await goTo('orden');
   await sleep(400);
   await click(`[...${ord}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes('Añadir'))`);
@@ -2501,16 +2595,16 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   check('"Vaciar el orden" lo deja vacío tras confirmar', (await orderRows()) === 0 && await run(`return ${ord}.querySelector('.empty').textContent.includes('está vacío') && (await (await fetch('/api/state')).json()).order.items.length === 0`));
 
   if (HAS_FFMPEG) {
-    console.log('\n5. Videos en un equipo sin ffmpeg');
-    await goTo('videos');
+    console.log('\n5. Medios en un equipo sin ffmpeg');
+    await goTo('medios');
     await sleep(400);
-    const vids = `document.querySelector('.media-body[data-panel=videos]')`;
+    const vids = `document.querySelector('.ws[data-module=medios] .media-list[data-panel=videos]')`;
     const notice = `document.querySelector('.ws-notice')`;
-    check('el módulo avisa de que sin ffmpeg no podrá convertir', await run(`return !${notice}.hidden && ${notice}.textContent.includes('Falta ffmpeg') && ${notice}.textContent.includes('convertir')`));
+    check('Medios avisa de que sin ffmpeg no podrá convertir (y sin yt-dlp, descargar de YouTube)', await run(`return !${notice}.hidden && /Faltan? ffmpeg/.test(${notice}.textContent) && ${notice}.textContent.includes('convertir') && ${notice}.textContent.includes('YouTube')`), await text('.ws-notice'));
     const before = await run(`return ${vids}.querySelectorAll('.media-card').length`);
     const dummy = path.join(tmp, 'grabacion antigua.avi');
     fs.writeFileSync(dummy, Buffer.alloc(4000, 3));
-    await chooseFiles('.media-body[data-panel=videos] input[type=file]', [path.join(tmp, 'video_de-bienvenida.mp4'), dummy]);
+    await chooseFiles(MEDIA_FILES, [path.join(tmp, 'video_de-bienvenida.mp4'), dummy]);
     await sleep(500);
     await modalButton('Subir');
     check('lo habitual se sube y queda listo, con la imagen y la duración que saca el propio navegador', await until(`!${modal} && ${vids}.querySelectorAll('.media-card').length === ${before} + 2`, 60)
@@ -2537,9 +2631,9 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await openSlides();
   const withoutPpt = path.join(tmp, 'sermon del sabado.pptx');
   fs.writeFileSync(withoutPpt, fakePresentation());
-  await chooseFiles('.decks[data-panel=diapositivas] input[type=file]', [withoutPpt]);
+  await chooseFiles(MEDIA_FILES, [withoutPpt]);
   await sleep(600);
-  check('sin PowerPoint, al elegir uno se explica cómo guardarlo como PDF, sin subir nada', await run(`return ${modal}.querySelector('h2').textContent === 'Hace falta el PDF de la presentación' && ${modal}.textContent.includes('Exportar') && !${modal}.querySelector('input')`) && await run(`return document.querySelector('.ws-notice').hidden`));
+  check('sin PowerPoint, al elegir uno se explica cómo guardarlo como PDF, sin subir nada, y Medios no avisa por PowerPoint (los PDF sí funcionan)', await run(`return ${modal}.querySelector('h2').textContent === 'Hace falta el PDF de la presentación' && ${modal}.textContent.includes('Exportar') && !${modal}.querySelector('input') && !document.querySelector('.ws-notice').textContent.includes('PowerPoint')`));
   await modalButton('Entendido');
   check('y lo que ya estaba en la biblioteca sigue ahí tras reabrir Manna', await run(`return document.querySelectorAll('.decks[data-panel=diapositivas] .deck[data-status=ready]').length === 1`));
 
