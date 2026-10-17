@@ -2177,9 +2177,16 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await click(`${sw}.querySelector('.swatch-image')`);
   await sleep(500);
   check('una imagen guardada se vuelve a poner con un toque', (await styles()).image === firstBackground && await run(`return ${sw}.querySelector('.swatch-image').classList.contains('on')`));
+  // De paso, con un versículo al aire: la Biblia se abre por primera vez en esta página.
+  await run(`await ${post('projection.show', { kind: 'verses', data: { versionId: VERSION, ref: { book: 43, chapter: 3, verseStart: 16, verseEnd: 16 } } })}`);
   await chrome.send('Page.navigate', { url: `${local}/control?fondos=${Date.now()}#ajustes` });
   await sleep(2500);
   check('las imágenes de fondo siguen ahí al volver a abrir el control', await run(`return ${sw}.querySelectorAll('.swatch-image').length === 2 && ${sw}.querySelector('.swatch-image').classList.contains('on')`));
+  // Pasó el 2026-10-17: con algo de la Biblia al aire, abrirla fallaba a medio dibujar; ese trozo quedaba encima del módulo abierto, y otro más en cada intento.
+  for (const id of ['biblia', 'ajustes', 'biblia']) { await goTo(id); await sleep(500); }
+  check('con un versículo al aire, la Biblia se abre bien la primera vez y no se repite al volver a ella', await run(`const ws = document.querySelectorAll('.work .ws[data-module=biblia]'); return ws.length === 1 && !ws[0].hidden && document.querySelector('.ws[data-module=ajustes]').hidden && ws[0].querySelectorAll('.verse').length > 0`));
+  await goTo('ajustes');
+  await sleep(300);
   await click(`[...document.querySelectorAll('.settings .btn')].find(b => b.textContent.includes('Eliminar esta imagen'))`);
   await sleep(300);
   await modalButton('Eliminar');

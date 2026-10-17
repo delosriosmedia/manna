@@ -94,9 +94,10 @@ function mount(el, ctx) {
         data: { versionId: p.versionId, ref: p.ref },
         preview: { kind: 'verses', versionId: p.versionId, ref: p.ref, reference: p.reference, version: abbr(p.versionId), verses: p.verses },
       }),
-    liveRef: (item) => {
-      if (item.kind === 'verses' && !isComparing()) return item.versionId === browser.versionId() ? item.ref : null;
-      if (item.kind === 'compare' && isComparing()) return item.sides[0].versionId === browser.versionId() && item.sides[1].versionId === second.value ? item.ref : null;
+    // versionId llega de passages.js: aquí `browser` aún no existe mientras se monta.
+    liveRef: (item, versionId) => {
+      if (item.kind === 'verses' && !isComparing()) return item.versionId === versionId ? item.ref : null;
+      if (item.kind === 'compare' && isComparing()) return item.sides[0].versionId === versionId && item.sides[1].versionId === second.value ? item.ref : null;
       return null;
     },
     onVersion(id) {

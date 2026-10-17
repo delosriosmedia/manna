@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.23.1 — 2026-10-17
+
+- Arreglado: con algo de la Biblia al aire, abrir la Biblia por primera vez tras cargar la página fallaba a medias. Un trozo suyo se quedaba encima del módulo abierto, otro más con cada toque, y la Biblia no volvía a abrirse hasta reiniciar la página.
+
 ## 1.23.0 — 2026-10-17
 
 - **Con el teclado, en toda la pantalla de control**: al abrir un módulo el foco entra en su cajón y al cerrarlo vuelve a su botón; lo mismo con los mandos. Las filas del orden del culto se alcanzan con Tab y se abren con Intro, y la cola del culto y el orden no pierden el foco cuando cambia lo que está al aire. Un lector de pantalla anuncia el resultado señalado de «Buscar en todo», los versículos elegidos y lo que está al aire.

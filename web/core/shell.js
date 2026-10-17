@@ -259,7 +259,12 @@ export function createShell({ role, isLocal, modules, extras = [], createScene, 
         parts.set(module.id, part);
         if (current?.id === module.id) renderNotice();
       };
-      mounted.set(module.id, { el, api: module.mount(el, { ...ctx, setPart }) || {} });
+      try {
+        mounted.set(module.id, { el, api: module.mount(el, { ...ctx, setPart }) || {} });
+      } catch (err) {
+        el.remove(); // a medio dibujar se quedaría encima del módulo abierto, y otro más en cada intento
+        throw err;
+      }
     }
     const changed = current?.id !== module.id;
     for (const [mid, m] of mounted) m.el.hidden = mid !== module.id;

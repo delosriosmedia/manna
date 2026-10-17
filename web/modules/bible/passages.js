@@ -24,7 +24,7 @@ const SCOPES = [['all', 'Toda la Biblia'], ['ot', 'Antiguo Testamento'], ['nt', 
 //   second()     id de una segunda versión cuyo texto se muestra junto a cada versículo, o null
 //   toItem(p)    qué se hace con el pasaje p = { versionId, ref, reference, verses, others }:
 //                devuelve { kind, data, preview }. `others` son los versículos de second()
-//   liveRef(it)  si lo que está al aire (it) es de esta pantalla y de sus versiones, su ref; si no, null
+//   liveRef(it, versionId) si lo que está al aire (it) es de esta pantalla y de sus versiones, su ref; si no, null
 //   onVersion(id) la versión principal cambió
 //
 // Devuelve { api, versionId(), setVersion(id), refresh(), updatePreview(), empty(mensaje) }.
@@ -68,6 +68,10 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
 
   const currentBook = () => view.books.find((b) => b.n === view.book);
   const setStep = (step) => { picker.dataset.step = step; renderCrumbs(); };
+  const liveNow = () => {
+    const { item, mode } = state.projection || {};
+    return mode === 'live' && item && view.versionId ? liveRef(item, view.versionId) : null;
+  };
   const abbrOf = (id) => state.bible?.versions.find((v) => v.id === id)?.abbr || state.bible?.versions.find((v) => v.id === id)?.name || '';
 
   // ---- Datos ----
@@ -96,6 +100,7 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
     Object.assign(view, {
       book: b.n, chapter: ch, verses: data.verses, name: data.name, secondId,
       others: new Map((other?.verses || []).map((v) => [v.n, v.text])),
+      live: liveNow(), // con otra versión o al comparar, lo al aire puede dejar de ser de aquí (o empezar a serlo)
     });
     renderBooks();
     renderChapters();
@@ -419,8 +424,8 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
   }
 
   // ---- Lo que está al aire ----
-  subscribe('projection', ({ item, mode }) => {
-    const live = mode === 'live' && item ? liveRef(item) : null;
+  subscribe('projection', () => {
+    const live = liveNow();
     const previous = view.live;
     view.live = live;
     // Si la selección iba "montada" sobre lo que estaba al aire, sigue al nuevo versículo.
