@@ -302,6 +302,7 @@ Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron*
 
 ## Próximos pasos
 
+- **Fase 21** (un solo Manna a la vez, en internet y en la red local; decisión 42): en el plan, pendiente de empezar.
 - **Fase 19** (funciones especializadas para el celular): la propuesta está en `docs/funciones-celular.md`; el dueño la sigue en otra sesión y decide.
 - **Fase 9** (auditoría, sección 8 de `docs/PLAN.md`): hecha la parte de código (1.18.0); la del equipo real son las pruebas del dueño, y al pasarlas se publica la 2.0.
 - **Pruebas del dueño en el equipo real**: la lista, con lo que falta de cada versión, está en una página con casillas (https://claude.ai/artifact/LFoR7BN5hs5ZffgvdbrMJg, privada del dueño). Es solo una comodidad: lo que resulte se pasa a la tabla «Probado y sin probar» de este documento, que es el registro. Cubre instalar y actualizar en Windows, la revisión del equipo, el Firewall, el proyector, el PIN, el sonido, un video 4K, el Himnario y las letras sin música, Páginas web (Canva, Kahoot), PowerPoint convertido y en vivo con el punto rojo, el Presentador, YouTube, Ajustes (disco y subtítulos), la conexión por internet, celulares reales (Alabanza, Presentador, Escuchar, cajón) y Medios. Fuera de la página quedan `manna.local` con un router real y celulares Android antiguos.
