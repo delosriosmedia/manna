@@ -147,7 +147,9 @@ De menor a mayor riesgo; cada fase deja algo usable y **se publica al cerrarla**
 | 18 | Textos: mensajes y citas con autor (decisión 40) | M | 1.21 |
 | 19 | Investigación: funciones especializadas para el celular (decisión 41) | M | sin versión (documento) |
 | 20 | Auditoría de la interfaz con las skills de diseño (decisión 40) | M | 1.22 |
-| 21 | Un solo Manna a la vez: en internet y en la red local (decisión 42) | M | 1.26 |
+| 21 | Un solo Manna a la vez: en internet y en la red local (decisión 42) | M | 1.28 |
+| 22 | Medios en un solo cajón, con categorías que se arrastran (decisión 43) | L | 1.26 |
+| 23 | Órdenes del culto guardados (decisión 43) | M | 1.27 |
 
 **Orden cambiado el 2026-10-04 (decisión 20)**: la fase 6 va antes que la 5, mientras el dueño revisa las letras de los himnos. La reproducción (pausa, avance, volumen, una sola pantalla que suena), que iba a estrenarse con el himnario, se construye con los videos.
 
@@ -160,6 +162,8 @@ De menor a mayor riesgo; cada fase deja algo usable y **se publica al cerrarla**
 **Y el 2026-10-17 (decisión 41)**: antes de la auditoría de la interfaz se hace una investigación de funciones especializadas para el celular (fase 19); la auditoría pasa a ser la fase 20.
 
 **Y el 2026-10-17 (decisión 42)**: se añade la fase 21, para que nunca funcionen dos Manna a la vez con el mismo dominio ni en la misma red.
+
+**Y el 2026-10-17 (decisión 43)**: la fase 19 se aplaza. Antes de seguir van, con prioridad, la 22 (Medios en un solo cajón) y la 23 (órdenes guardados), en ese orden; después, la 21.
 
 Por qué este orden: búsqueda y comparador usan datos que ya existen; los televisores dependen de pruebas del dueño, que conviene empezar pronto; las imágenes estrenan biblioteca y subidas sin la complejidad del sonido; el himnario estrena la reproducción con archivos que ya son compatibles; YouTube y diapositivas, los que dependen de programas de terceros, al final.
 
@@ -358,7 +362,7 @@ Decisión 40. Un módulo nuevo (`server/modules/texts/`, `web/modules/texts/`, t
 - Guardado con `app.storage('textos')` (`{ id, style: 'normal' | 'quote', text, author, added }`), órdenes `texts.save` y `texts.remove` con el permiso nuevo `texts.edit`, longitud validada en el servidor. En «Buscar en todo».
 - **Solo en Control completo** (respuesta del dueño, 2026-10-17): el Servicio de alabanza no tiene Textos.
 
-### Fase 19 · Investigación: funciones especializadas para el celular — hecha (documento; espera la decisión del dueño)
+### Fase 19 · Investigación: funciones especializadas para el celular — hecha (documento); aplazada (decisión 43)
 
 Decisión 41. Investigación y análisis, **sin programar**: cómo simplificar Manna en los celulares. En vez de entrar desde el teléfono a «Control completo», en el celular solo habría funciones especializadas, una por necesidad o por tema, con pocas cosas en pantalla.
 
@@ -394,6 +398,70 @@ Decisión 42. El 2026-10-17 el dueño abrió Manna en su Mac con la clave del t�
 - Solo cuentan los Manna con el mismo nombre en la red (`manna.local`): los servidores de prueba y la demostración usan otros (`MANNA_NAME`) y no se bloquean entre sí ni bloquean al de la iglesia. Un Manna con los mismos datos (el mismo `id`) no es otro: es el de siempre, y se abre su control como hasta ahora.
 
 **Pruebas**: dos servidores de prueba de verdad con el mismo nombre (el segundo se bloquea, lo dice en todas sus pantallas y arranca cuando el primero se apaga) y, para el túnel, el cloudflared de mentira con «otro Manna» contestando en la dirección de la comprobación. En Chrome se pulsan «Volver a comprobar» y «Apagar este Manna». **Sin probar** hasta que el dueño lo vea: dos equipos de verdad en la misma red y el túnel de verdad.
+
+### Fase 22 · Medios en un solo cajón, con categorías que se arrastran — pendiente
+
+Decisión 43. Videos vuelve a Medios, y todo lo que se agrega se junta en un mismo cajón, venga de donde venga.
+
+**Cómo queda**
+- **Medios lo tiene todo**: imágenes, videos (subidos, de la carpeta de la iglesia y de YouTube), audios y presentaciones (PDF y PowerPoint). Videos sale del dock, y el Servicio de alabanza recibe Medios en su lugar.
+- Arriba, las categorías: **«Principal»** (el cajón principal) y las que cree la iglesia. Debajo, lo que hay en la elegida.
+- **El cajón principal tiene solo lo que no está en ninguna categoría.**
+  - Al poner algo en una categoría, sale del principal y queda solo ahí: cada elemento está en una sola categoría.
+  - «Sacar de la categoría» lo devuelve al principal.
+  - Borrar una categoría devuelve sus elementos al principal: no borra nada.
+- **Separado por tipo, en el mismo cajón** (recomendación del asistente; el dueño preguntó si era mejor todo mezclado y marcado):
+  - Primero las imágenes, luego los videos, los audios y las presentaciones.
+  - Cada grupo lleva su título con su icono, su color y cuántos hay; cada elemento, la marca de su tipo. Un grupo vacío no se muestra.
+  - Dentro de cada grupo, del más antiguo al más reciente.
+  - Por qué así: en el culto se busca «el video» o «la presentación», y el tipo es lo primero que se sabe; las imágenes, los videos y las presentaciones se reconocen por su miniatura, y un audio no tiene; lo recién agregado queda al final de su grupo; y aprovecha las listas que ya funcionan, con su selección y sus mandos.
+- **Arrastrar a una categoría**:
+  - Se arrastra un elemento sobre el nombre de una categoría y pasa a ella, y desaparece de donde estaba. Sobre «Principal», sale de su categoría.
+  - Con el ratón se arrastra sin más; con el dedo, se mantiene pulsado un momento y luego se arrastra.
+  - El menú del elemento conserva «Mover a una categoría», para el teclado y para quien no arrastre.
+- **Un solo botón «Subir»** para cualquier archivo (imágenes, videos, audios, PDF y PowerPoint), y el enlace de YouTube en la cabecera. Lo que se sube o se descarga con una categoría elegida entra en ella; si no, en el principal.
+- En «Añadir» del orden del culto, «Video», «Imagen o audio» y «Diapositivas» pasan a ser una sola entrada: «Medios».
+
+**Por dentro**
+- Las categorías siguen en el módulo de medios (`data/medios.json`), ahora con cualquier elemento: imágenes, videos, audios y presentaciones. Las presentaciones las confirma el módulo de diapositivas (`app.services.slides`).
+- Una orden nueva, «mover a una categoría (o a ninguna)», sustituye a la de poner y quitar.
+- Al actualizar, un video que estaba en varias categorías se queda en la primera.
+- Los tipos de contenido no cambian. Las listas de imágenes, videos, audios y presentaciones se reutilizan como grupos de una misma pantalla, con una sola selección a la vez.
+
+**Pruebas**
+- En `test/servidor.test.js`: el cambio de los datos y la orden nueva.
+- En Chrome: subir de cada tipo, crear una categoría, arrastrar con el ratón y con el dedo, sacar al principal y borrar la categoría.
+- La auditoría de pantallas, con Medios lleno y con una categoría.
+- **Sin probar** hasta que lo vea el dueño: arrastrar con el dedo en un celular y una tableta reales.
+
+### Fase 23 · Órdenes del culto guardados — pendiente
+
+Decisión 43. Guardar el orden de un servicio entero aparte, usar otro mientras tanto y volver a él cuando haga falta, con todos sus elementos.
+
+**Cómo queda**
+- Manna guarda **varios órdenes del culto**, cada uno con su nombre («Culto del sábado 18», «Semana de oración»).
+- Uno es **el que está en uso**: el que ven la cola, el módulo Orden y todos los dispositivos, y por el que se avanza con «Siguiente».
+- **Se guardan solos**: cada cambio queda en el orden en uso, sin botón de guardar, así que nada se pierde al cambiar de uno a otro (recomendación del asistente; guardar una copia a mano pierde lo cambiado si se olvida guardar).
+- En el módulo Orden, el nombre del orden en uso abre **«Órdenes guardados»**: la lista con el nombre, cuántos elementos tiene y cuándo se cambió. Desde ahí:
+  - **Usar este**;
+  - **Nuevo orden**, vacío o copia del que está en uso (para preparar el de la semana siguiente a partir de este);
+  - cambiar el nombre, duplicar y eliminar.
+- Cambiar el orden en uso pide confirmación, porque lo ven todos los dispositivos al momento. Lo que esté al aire sigue al aire.
+- Al volver a un orden, lo que ya no esté en la biblioteca (un video borrado) se quita y se avisa cuántos.
+- El nombre del orden en uso se ve también en la cola del culto.
+- Se edita solo el orden en uso. Preparar uno mientras se usa otro sin cambiar la cola es la decisión 8 de la fase 19, aplazada.
+- La función «Control del orden» ve el nombre, pero no cambia de orden (no edita).
+
+**Por dentro**
+- `data/orden.json` pasa de una lista a `{ orders: [{ id, name, items, updated }], active }`. El orden de hoy se convierte en el primero, «Orden del culto».
+- El espacio `order` sigue publicando `items` (los del orden en uso): la cola, la proyección y «Siguiente» no cambian. Se añaden el nombre y la lista de órdenes, sin sus elementos.
+- Órdenes nuevas para crear, usar, cambiar el nombre y eliminar, con el permiso `order.edit`.
+- «Limpiar multimedia temporales» limpia todos los órdenes.
+
+**Pruebas**
+- En `test/servidor.test.js`: el cambio de los datos, crear, usar, copiar, cambiar el nombre, eliminar y limpiar.
+- En Chrome: cada botón de «Órdenes guardados», y que la cola de otro dispositivo cambie al usar otro orden.
+- La auditoría de pantallas, con la lista abierta.
 
 ### Fase 13 · Rediseño «Escenario» de la interfaz de control
 
@@ -528,6 +596,7 @@ Tomadas el 2026-10-04.
 | 37 | Himnario corregido (2026-10-16) | **Sí a la fase 15** (himnario corregido y «Letras sin música»), tal como se propuso. Con la portada al aire, «Anterior» se queda en ella. `HIMNARIO_NUEVO.md` y «Categorías del himnario.md» (de `Contenido/Himnario/`) no se publican: de `Contenido/` solo van los `LEEME.txt` |
 | 38 | Tras probar la 1.17 (2026-10-16) | «Escuchar aquí» se quita si no hay una solución segura (no la hay sin un celular de verdad para probar). La barra de abajo del escritorio se aparta sola sin uso. yt-dlp se pone al día solo y YouTube reintenta. **Node.js propio para YouTube**: si el del equipo es anterior al 22, Manna instala el oficial (nodejs.org) solo para eso y lo pone al día solo. Publicar todo junto en la 1.18.0 |
 | 39 | Manejar páginas web desde el celular (2026-10-16) | **S40 se descarta por ahora**, aunque la prueba de concepto funcionó. El estudio queda en la sección 11 por si se retoma |
+| 43 | Medios en un solo cajón y órdenes guardados (2026-10-17) | **Se aplaza la fase 19.** Con prioridad, la fase 22 (Videos vuelve a Medios: todo lo agregado en un mismo cajón; categorías a las que se arrastra, y lo que entra en una sale del principal; cada tipo bien señalado) y la 23 (varios órdenes del culto guardados, para usar uno y volver a otro con todos sus elementos). Después, la 21 y lo demás del plan |
 | 42 | Un solo Manna a la vez (2026-10-17) | **Fase 21**: si otro equipo con Manna ya usa el dominio propio, este no se conecta y espera a que lo suelte; si ya hay otro Manna en el mismo equipo o en la misma red, este no funciona y lo dice en todas sus pantallas, hasta que el otro se apague. El plan, como lo propuso el asistente |
 | 41 | Funciones especializadas para el celular (2026-10-17) | **Antes de la auditoría de la interfaz, una investigación** (fase 19): plantear desde cero funciones dedicadas para el celular, cada una con pocas cosas en pantalla, en lugar del control total. Qué funciones, qué puede hacer cada una, qué tiene en pantalla y cómo se usa. La auditoría pasa a ser la fase 20 |
 | 40 | Videos, Medios con Diapositivas, Textos y auditoría de la interfaz (2026-10-16) | **Sí a las fases 16 a 19**, con las recomendaciones del asistente: un video puede estar en varias categorías, también los de la carpeta de la iglesia; el Servicio de alabanza recibe Videos en lugar de Medios; en Textos, una línea en blanco parte un texto largo en pantallas; orden 16, 17, 18 y 19. La fase 19 (auditoría de la interfaz con las skills de diseño del dueño) va al terminar las otras tres. Los arreglos de la tableta se publican con la fase 16 |
@@ -625,9 +694,11 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 16 Videos | **Hecha** · 2026-10-17 | 1.19.0 | Videos es una pantalla propia del módulo de medios (`media/videos.js`), detrás del Himnario: los videos subidos, los de la carpeta y los de YouTube juntos, con el enlace de YouTube en la cabecera. Categorías con el nombre que se quiera (`media.category*`), un video en varias, que se renombran y se eliminan sin borrar videos. Medios queda con Imágenes y Audios; Alabanza recibe Videos. Salen también los arreglos de la tableta pequeña acostada y «Mover» con PowerPoint en vivo. Pruebas al cerrar: 166 automáticas (una nueva de las categorías), 454 en Chrome (con las cuatro órdenes nuevas pulsadas), auditoría de 10 tamaños sin problemas (con Videos, una categoría y YouTube). **Sin probar**: en celulares y tabletas reales, y en Windows |
 | 17 Diapositivas en Medios | **Hecha** · 2026-10-17 | 1.20.0 | Medios tiene Imágenes, Audios y Diapositivas; Diapositivas sale del dock. La pestaña es `web/modules/slides/panel.js` (antes su `workspace.js`), con la forma de las de Medios, que la importa (excepción documentada). Arrastrar un PDF o un PowerPoint a Medios lo lleva a ella; «Añadir → Diapositivas» del orden abre esa pestaña (`ctx.go(id, parte)`). El servidor y el Presentador no cambian. Pruebas al cerrar: 166 automáticas, 454 en Chrome (la búsqueda de la Biblia falló con el equipo cargado y pasó al repetir su grupo; **otra quedó en rojo sin que se viera al publicar**: la de Videos esperaba que Medios tuviera solo Imágenes y Audios. Era la prueba, no la app; se corrigió en la fase 18), auditoría de 10 tamaños sin problemas. **Sin probar**: en celulares y tabletas reales |
 | 18 Textos | **Hecha** · 2026-10-17 | 1.21.0 | Módulo nuevo (`server/modules/texts/`, `web/modules/texts/`, tipo `text`, permiso `texts.edit` solo en Control completo): textos y citas guardados, partidos en pantallas por las líneas en blanco, con el fondo y la letra de la proyección; la cita entre comillas y con su autor. En el orden del culto y en «Buscar en todo». Pruebas al cerrar: 169 automáticas (tres nuevas), 463 en Chrome (siete nuevas de Textos; la de Videos, que seguía esperando Medios sin Diapositivas, corregida y repetida en su grupo), auditoría de 10 tamaños sin problemas (con la lista y el editor). **Sin probar**: en celulares y tabletas reales, y en el proyector |
-| 19 Investigación: funciones para el celular | **Hecha** · 2026-10-17 · espera la decisión del dueño | sin versión | Propuesta en `docs/funciones-celular.md`: en el celular, seis funciones de una sola tarea en lugar de «Control completo». En vivo, Pasar, Púlpito, Canto y Sonido (esta, opcional); sin tocar lo que está al aire, Preparar (edita el orden y sube, pero no proyecta) y Atril (lee en grande la letra o el versículo al aire, sin PIN en la red de la iglesia). Comparten una plantilla: arriba la función y lo que está al aire, abajo la acción principal y «Negro», nada se proyecta con un solo toque, y «Deshacer» 5 s. «Control completo» queda para la computadora y la tableta, con una válvula de escape. Un solo PIN. Se contrastó con una propuesta independiente de Gemini, que coincidió en lo esencial; se tomaron siete de sus ideas. Doce decisiones para el dueño (sección 10 del documento) y un orden de construcción en siete pasos. Segunda versión el mismo día, a pedido del dueño: más capacidades por función (lo de siempre a la vista, lo de vez en cuando en hojas), avisos entre funciones (estrofa marcada, avisos al frente, cronómetro del sermón, notas para quien pasa) y catorce decisiones; casi todo lo añadido ya existe en otra pantalla de Manna. **No se usó la skill impeccable entera**: solo su guía para herramientas de operación |
+| 19 Investigación: funciones para el celular | **Hecha** · 2026-10-17 · **aplazada** (decisión 43): sus decisiones esperan | sin versión | Propuesta en `docs/funciones-celular.md`: en el celular, seis funciones de una sola tarea en lugar de «Control completo». En vivo, Pasar, Púlpito, Canto y Sonido (esta, opcional); sin tocar lo que está al aire, Preparar (edita el orden y sube, pero no proyecta) y Atril (lee en grande la letra o el versículo al aire, sin PIN en la red de la iglesia). Comparten una plantilla: arriba la función y lo que está al aire, abajo la acción principal y «Negro», nada se proyecta con un solo toque, y «Deshacer» 5 s. «Control completo» queda para la computadora y la tableta, con una válvula de escape. Un solo PIN. Se contrastó con una propuesta independiente de Gemini, que coincidió en lo esencial; se tomaron siete de sus ideas. Doce decisiones para el dueño (sección 10 del documento) y un orden de construcción en siete pasos. Segunda versión el mismo día, a pedido del dueño: más capacidades por función (lo de siempre a la vista, lo de vez en cuando en hojas), avisos entre funciones (estrofa marcada, avisos al frente, cronómetro del sermón, notas para quien pasa) y catorce decisiones; casi todo lo añadido ya existe en otra pantalla de Manna. **No se usó la skill impeccable entera**: solo su guía para herramientas de operación |
 | 20 Auditoría de la interfaz | **Hecha** · 2026-10-17 | 1.22.0 | Con impeccable (`audit`: detector y revisión de código), break-ui (datos extremos en la demostración: nombres sin espacios, 14 categorías, emojis y otros alfabetos, un texto de 30 partes) y review-animations / emil-design-eng (inventario de animaciones). Nota de impeccable: accesibilidad 3, rendimiento 3, colores 3, adaptación 4, coherencia 4: **17/20, «Good»**. El detector dio 15 avisos de 4 tipos: la letra Geist Mono, la franja roja del versículo al aire y el brillo del logo son decisiones de `DESIGN.md`; la barra «sin avance» con reducir movimiento sí era un fallo. La revisión del código (Sonnet; Gemini pidió volver a iniciar sesión) dio 20 hallazgos comprobados, ninguno bloqueante. Corregido lo pequeño (foco en ventanas y menús, avisos de error anunciados, palabras largas en la proyección, categorías con ratón, contraste de notas y de lo ya pasado, `aria-pressed` en Solo fondo, Negro y la disposición del comparador, desplazamiento suave con reducir movimiento, borde del cajón para el dedo); lo que pedía rehacer piezas fue a la sección 11 (S43 a S45), hechas después en la 1.23.0. Sale también «Buscar en todo» en columnas. Pruebas al cerrar: 169 automáticas, 464 en Chrome (con la de las columnas del buscador) sin fallos, auditoría de 10 tamaños sin problemas. Con S43 a S45 (1.23.0): 169 automáticas, 467 en Chrome (tres nuevas de teclado) y auditoría de 10 tamaños, sin fallos. **Sin probar**: con un lector de pantalla real y en un celular real |
-| 21 Un solo Manna a la vez | **Pendiente** · añadida el 2026-10-17 | | Ver la fase 21. Antes de ella, el mismo día, ya se corrigió lo urgente: el instalador no toca una carpeta con git (1.25.3) y Cloudflare se cierra con Manna (1.24.0) |
+| 21 Un solo Manna a la vez | **Pendiente** · añadida el 2026-10-17; va después de la 22 y la 23 | | Ver la fase 21. Antes de ella, el mismo día, ya se corrigió lo urgente: el instalador no toca una carpeta con git (1.25.3) y Cloudflare se cierra con Manna (1.24.0) |
+| 22 Medios en un solo cajón | **Pendiente** · plan del 2026-10-17, espera la aprobación del dueño | | Ver la fase 22 |
+| 23 Órdenes guardados | **Pendiente** · plan del 2026-10-17, espera la aprobación del dueño | | Ver la fase 23 |
 | 15 Himnario corregido y Letras sin música | **Hecha** · 2026-10-16 | 1.17.0 | Categorías en dos niveles (sección y categoría, como el índice del himnario) y la pestaña «Letras sin música»: las diapositivas de cada himno, tipo `lyrics`, que se pasan a mano y tras la última vuelven a la portada del mismo himno. Con el himnario real corregido, en un servidor de prueba: 613 himnos, todos con letra y diapositivas, 46 categorías en 7 secciones, sin avisos. Cierra S7, S29, S30 y S31. Pruebas al cerrar: 160 automáticas, 444 en Chrome (8 nuevas del himnario), auditoría de 9 tamaños sin problemas (con la pestaña nueva). **Sin probar**: el himnario real en Chrome y en Windows, y las letras sin música en el proyector |
 | 14 Ajustes tras la prueba | **Hecha** · 2026-10-16 | 1.16.0 | Parte 1: YouTube con el Node de Manna como intérprete de JavaScript y el motivo de cada fallo en el registro; «Actualizar» ya no rompe el programa que funcionaba; «Escuchar aquí» con un solo reproductor y sincronización tolerante; «Escuchar» del Himnario siempre cantado; el Presentador ya no arrastra la diapositiva con el ratón y pierde el zoom viejo. Parte 2: mandos siempre a la vista en la barra de abajo, «Solo fondo» y «Negro» arriba, «Señalar» y «Mover» también en Control y Orden (`projection/gestures.js`), hoja de mandos del celular con márgenes, Presentador con la anterior y la siguiente debajo. Parte 3: categorías del Himnario más limpias, «Buscar en todo» con más aire, botón de la cola fijo y con forma según su estado, proyección de fondo que se desvanece en los bordes. Parte 4: sin desenfoque con un video al aire, y sin reproducir el video de fondo en los celulares salvo al escuchar. Parte 5: espacio en disco y «Limpiar multimedia temporales» (S24), tamaño de los subtítulos (S23), punto rojo encima del pase de PowerPoint (S39, revisado por Gemini). Pruebas al cerrar: 159 automáticas, 434 en Chrome, auditoría de 9 tamaños sin problemas. **Sin probar en Windows**: YouTube, el punto rojo en PowerPoint y el consumo en un equipo modesto; **ni en un celular real**: «Escuchar aquí» |
 | 12 PowerPoint en vivo | **Hecha** · 2026-10-15 | 1.14.0 | Antes, S37: la prueba en Chrome baja a menos de 3 min (YouTube y el himnario al grupo «red»). PowerPoint en vivo con el original guardado, «Pasar con PowerPoint» / «Pasar como imágenes», «Siguiente» y «Anterior» dados por PowerPoint (con las animaciones), seguimiento de lo que se pase en el equipo y vuelta a las imágenes si falla. Gemini revisó el guion de PowerShell y se aplicaron sus avisos (sección 10). Pruebas al cerrar: 157 automáticas, 427 en Chrome, auditoría de 9 tamaños sin problemas, todo con un PowerPoint de mentira. **El guion de verdad no se ha ejecutado: falta la prueba del dueño en Windows con PowerPoint y el proyector (S25)**. Sigue la fase 9 (auditoría) |
@@ -935,6 +1006,7 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-04 | Fase 4: «Más» aparece con más de cinco pestañas, no con más de cuatro | En un celular de 360 px caben cinco; con Televisores y Medios ya son seis |
 | 2026-10-04 | Un módulo puede marcar como "próximamente" lo que pedirán sus partes futuras (`needs` con `soon`) | Medios existe ya, pero ffmpeg y yt-dlp son para pestañas que aún no están: la revisión del equipo lo cuenta y el módulo no molesta con ello |
 | 2026-10-17 | Se añade la fase 21 (decisión 42): un solo Manna a la vez, en internet y en la red local | El dueño abrió Manna en su Mac con el túnel de la iglesia mientras el de la iglesia estaba encendido, y en Windows una segunda copia se abrió sola en otro puerto |
+| 2026-10-17 | Se aplaza la fase 19 y se añaden las fases 22 (Medios en un solo cajón) y 23 (órdenes guardados), que van antes de la 21; la 21 pasa a ser la 1.28 | Decisión 43, pedido del dueño |
 
 ## 11. Cambios sugeridos al plan
 

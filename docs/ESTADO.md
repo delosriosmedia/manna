@@ -218,6 +218,7 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 ## Decisiones tomadas
 
+- **2026-10-17 · Medios en un solo cajón y órdenes guardados** (decisión 43): se aplaza la fase 19. Con prioridad, la fase 22 (Videos vuelve a Medios, todo en un mismo cajón con categorías a las que se arrastra) y la 23 (varios órdenes del culto guardados); después, la 21.
 - **2026-10-17 · La carpeta Manna, con solo cuatro cosas**: los dos instaladores (con el icono de Manna y un engranaje), `Contenido` y `Programa` (programa y datos). Si Documentos está en OneDrive o iCloud, `Programa` va a la carpeta oculta del sistema. Al ordenar una instalación de antes no se borra nada.
 - **2026-10-17 · El túnel de Cloudflare es solo de Manna**: el cloudflared que abre Manna vive solo mientras Manna esté abierto, y «Encendida» tiene que estar comprobado desde internet. (Cerrar al abrirse cualquier cloudflared del equipo, que también se aprobó, se quitó en la 1.25.2: tumbaba el servicio de Cloudflare que lleva `manna-iglesia.es`.)
 - **2026-10-17 · S43, S44 y S45, hechas** (las sugerencias de la revisión de la interfaz): teclado y lector de pantalla en el escenario, listas que no se rehacen enteras y el rojo de las etiquetas «al aire».
@@ -283,7 +284,7 @@ En `docs/PLAN.md`, sección 11.
 
 ### 0 bis. Funciones especializadas para el celular (fase 19)
 
-La propuesta está en `docs/funciones-celular.md`. Hacen falta las catorce decisiones de su sección 10: qué funciones, Sonido aparte o no, qué pasa con «Control completo» en el celular, el PIN, Atril sin PIN, qué entra primero de lo nuevo, y el orden de construcción. La simulación (`docs/funciones-celular.html`) se rehízo el 2026-10-17 con más capacidades por función. Con ellas se añaden las fases que construyan lo aprobado.
+**Aplazada** por el dueño el 2026-10-17 (decisión 43). La propuesta está en `docs/funciones-celular.md`. Hacen falta las catorce decisiones de su sección 10: qué funciones, Sonido aparte o no, qué pasa con «Control completo» en el celular, el PIN, Atril sin PIN, qué entra primero de lo nuevo, y el orden de construcción. La simulación (`docs/funciones-celular.html`) se rehízo el 2026-10-17 con más capacidades por función. Con ellas se añaden las fases que construyan lo aprobado.
 
 ### 1. Instaladores compilados (aplazada)
 
@@ -302,8 +303,9 @@ Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron*
 
 ## Próximos pasos
 
-- **Fase 21** (un solo Manna a la vez, en internet y en la red local; decisión 42): en el plan, pendiente de empezar.
-- **Fase 19** (funciones especializadas para el celular): la propuesta está en `docs/funciones-celular.md`; el dueño la sigue en otra sesión y decide.
+- **Con prioridad (decisión 43), en este orden**: la fase 22 (Medios en un solo cajón, con categorías que se arrastran) y la 23 (órdenes del culto guardados). Su plan está en `docs/PLAN.md` y espera la aprobación del dueño.
+- **Fase 21** (un solo Manna a la vez, en internet y en la red local; decisión 42): después de la 22 y la 23.
+- **Fase 19** (funciones especializadas para el celular): aplazada. La propuesta sigue en `docs/funciones-celular.md`.
 - **Fase 9** (auditoría, sección 8 de `docs/PLAN.md`): hecha la parte de código (1.18.0); la del equipo real son las pruebas del dueño, y al pasarlas se publica la 2.0.
 - **Pruebas del dueño en el equipo real**: la lista, con lo que falta de cada versión, está en una página con casillas (https://claude.ai/artifact/LFoR7BN5hs5ZffgvdbrMJg, privada del dueño). Es solo una comodidad: lo que resulte se pasa a la tabla «Probado y sin probar» de este documento, que es el registro. Cubre instalar y actualizar en Windows, la revisión del equipo, el Firewall, el proyector, el PIN, el sonido, un video 4K, el Himnario y las letras sin música, Páginas web (Canva, Kahoot), PowerPoint convertido y en vivo con el punto rojo, el Presentador, YouTube, Ajustes (disco y subtítulos), la conexión por internet, celulares reales (Alabanza, Presentador, Escuchar, cajón) y Medios. Fuera de la página quedan `manna.local` con un router real y celulares Android antiguos.
 - **Reiniciar el Manna que esté abierto** (aviso «Manna se actualizó» → «Reiniciar ahora») para que valga la corrección de seguridad, y **cambiar el PIN** en «Dispositivos»: eso cierra las sesiones que se abrieron por el túnel sin PIN. Después, **encender la conexión por internet en Ajustes** (el dominio propio que ya había se conserva) y dejar de usar los antiguos «Conectar Internet», que ya no existen.
