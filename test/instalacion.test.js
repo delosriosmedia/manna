@@ -119,6 +119,70 @@ test('una copia que se actualizaba a mano, con el instalador abierto desde ella:
   }
 });
 
+// El Windows del dueño (2026-10-17): pegaba lo de GitHub en Documentos/Manna, junto a su Contenido, y Manna usaba
+// los datos de la carpeta oculta (con la clave del túnel). Una copia abierta aparte había dejado un data/ suelto.
+function ownerCase(t) {
+  const x = path.join(t.documentos, 'Manna');
+  for (const file of ['server/index.js', 'web/app.js', 'README.md', WINDOWS, MAC]) write(path.join(x, file), `viejo ${file}`);
+  write(path.join(x, 'data', 'ajustes.json'), JSON.stringify({ id: 'copia-suelta' }));
+  write(path.join(x, 'Contenido', 'Biblias', 'NVI.xmm'), 'biblia');
+  write(path.join(t.oculta, 'programa', 'server', 'index.js'), 'viejo');
+  write(path.join(t.oculta, 'datos', 'ajustes.json'), JSON.stringify({ id: 'la-de-siempre' }));
+  write(path.join(t.oculta, 'datos', 'tunel.json'), JSON.stringify({ on: true, token: 'eyJclave', address: 'https://manna.ejemplo.org' }));
+  write(path.join(t.oculta, 'carpetas.json'), JSON.stringify({ datos: path.join(t.oculta, 'datos'), contenido: path.join(x, 'Contenido') }));
+  return x;
+}
+
+test('abierto junto a un Contenido que ya usa una instalación, se quedan sus datos (con la conexión por internet)', async () => {
+  const t = setup();
+  try {
+    const x = ownerCase(t);
+    const res = await arrange({ ...t, aqui: x, nube: false });
+    assert.equal(json(path.join(x, 'Programa', 'datos', 'ajustes.json')).id, 'la-de-siempre');
+    assert.equal(res.dominio, 'https://manna.ejemplo.org', 'la conexión por internet sigue con su dominio');
+    assert.deepEqual(list(x), expected, 'el data suelto no se queda en la carpeta');
+    assert.equal(json(path.join(res.antiguo, 'data', 'ajustes.json')).id, 'copia-suelta', 'y no se borra: va a antiguo');
+    assert.ok(!fs.existsSync(path.join(t.oculta, 'carpetas.json')));
+  } finally {
+    fs.rmSync(t.tmp, { recursive: true, force: true });
+  }
+});
+
+test('si una versión anterior eligió mal los datos, al volver a abrirlo vuelven los de siempre', async () => {
+  const t = setup();
+  try {
+    const x = ownerCase(t);
+    // Lo que dejó la 1.25.1: la carpeta ordenada con los datos sueltos, y la oculta todavía con los de siempre.
+    fs.mkdirSync(path.join(x, 'Programa'));
+    fs.renameSync(path.join(x, 'data'), path.join(x, 'Programa', 'datos'));
+    write(path.join(x, 'Programa', 'carpetas.json'), JSON.stringify({ datos: path.join(x, 'Programa', 'datos'), contenido: path.join(x, 'Contenido') }));
+    const res = await arrange({ ...t, aqui: x, nube: false });
+    assert.equal(json(path.join(x, 'Programa', 'datos', 'ajustes.json')).id, 'la-de-siempre');
+    assert.equal(res.dominio, 'https://manna.ejemplo.org');
+    assert.equal(json(path.join(res.antiguo, 'datos', 'ajustes.json')).id, 'copia-suelta', 'los de la versión anterior, guardados');
+    assert.ok(res.avisos.some((a) => a.includes('Se recuperaron')));
+    assert.ok(!fs.existsSync(path.join(t.oculta, 'carpetas.json')));
+    // Y la próxima vez ya no cambia nada.
+    const again = await arrange({ ...t, aqui: x, nube: false });
+    assert.equal(json(path.join(x, 'Programa', 'datos', 'ajustes.json')).id, 'la-de-siempre');
+    assert.equal(again.antiguo, null);
+  } finally {
+    fs.rmSync(t.tmp, { recursive: true, force: true });
+  }
+});
+
+test('una copia de desarrollo (con .git) no se reordena aunque el instalador se abra desde ella', async () => {
+  const t = setup();
+  try {
+    const dev = path.join(t.tmp, 'proyecto');
+    for (const file of ['.git/HEAD', 'server/index.js', 'data/ajustes.json', 'Contenido/LEEME.txt']) write(path.join(dev, file));
+    await arrange({ ...t, aqui: dev, nube: false });
+    assert.deepEqual(list(dev), ['.git', 'Contenido', 'data', 'server']);
+  } finally {
+    fs.rmSync(t.tmp, { recursive: true, force: true });
+  }
+});
+
 test('si la carpeta se sincroniza con la nube, Programa se queda en la carpeta oculta', async () => {
   const t = setup();
   try {

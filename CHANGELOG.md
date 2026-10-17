@@ -6,6 +6,12 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## 1.25.2 — 2026-10-17
 
+- Arreglado: abierto junto a un `Contenido` que ya usaba una instalación, el instalador tomaba una carpeta `data` vieja de al lado en vez de los datos de esa instalación, y se perdía de vista la conexión por internet con el dominio propio (la clave, el PIN, el orden del culto). Ahora se queda con los datos de la instalación, y si la 1.25.1 ya eligió mal, al volver a abrirlo recupera los de siempre. Lo que se dejó de usar va a `Programa/antiguo`, sin borrarse.
+- Al terminar, el instalador dice con qué dominio queda la conexión por internet.
+- El instalador no reordena una copia de desarrollo (con `.git`), aunque se abra desde ella.
+
+## 1.25.2 — 2026-10-17
+
 - Arreglado: desde la 1.24.0, en Windows, Manna cerraba al abrirse cualquier programa de Cloudflare del equipo, también el servicio de Cloudflare que lleva un dominio propio aparte de Manna. Ahora solo se cierra el que abre Manna, y solo cuando Manna se cierra.
 
 ## 1.25.1 — 2026-10-17

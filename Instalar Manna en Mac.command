@@ -69,6 +69,7 @@ dato() { node -e "const d = JSON.parse(process.argv[1] || '{}'); const v = d[pro
 PROGRAMA="$(dato programa)"; CONTENIDO="$(dato contenido)"; RAIZ="$(dato raiz)"
 echo "  [OK] Manna está en su carpeta, al día."
 echo "  [OK] Carpeta de contenido: $CONTENIDO"
+[ -z "$(dato dominio)" ] || echo "  [OK] Conexión por internet con tu dominio: $(dato dominio)"
 
 # Los dos instaladores de la carpeta, con el icono de Manna y su engranaje.
 osascript -l JavaScript - "$PROGRAMA/instalacion/icono/instalar.icns" "$RAIZ/Instalar Manna en Mac.command" "$RAIZ/Instalar Manna en Windows.bat" >/dev/null 2>&1 <<'ICONO'

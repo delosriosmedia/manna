@@ -31,6 +31,7 @@ const readJson = (file) => {
     return null;
   }
 };
+const same = (a, b) => Boolean(a) && Boolean(b) && path.relative(path.resolve(a), path.resolve(b)) === '';
 const inside = (dir, parent) => {
   const rel = path.relative(parent, dir);
   return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
@@ -46,18 +47,29 @@ export function synced(dir, { home = os.homedir(), env = process.env } = {}) {
 }
 
 // Qué hay instalado y dónde va cada cosa. No cambia nada.
-export function plan({ origen, oculta, documentos, aqui = null, lanzador = null, nube = null, home, env }) {
+export function plan({ origen, oculta, documentos, aqui: from = null, lanzador = null, nube = null, home, env }) {
+  // Una copia de desarrollo (con su .git) nunca se reordena, aunque el instalador se abra desde ella.
+  const aqui = from && !exists(path.join(from, '.git')) ? from : null;
   let antes = null;   // carpeta con programa/ y carpetas.json
   let antigua = null; // instalación a la antigua: la carpeta entera del proyecto, con su data/ y su Contenido/
   // La pista de dónde quedó la última vez (por si se borró el icono): ver arrange().
   const last = readJson(path.join(oculta, 'donde.json'))?.programa;
+  // Las instalaciones con carpetas.json que se conocen: la del icono, la de la pista, la oculta y la de Documentos.
+  const known = [lanzador && path.dirname(lanzador), last, oculta, path.join(documentos, 'Manna', 'Programa')]
+    .filter((dir) => dir && exists(path.join(dir, 'carpetas.json')));
+  const using = (contenido) => known.find((dir) => same(readJson(path.join(dir, 'carpetas.json'))?.contenido, contenido));
   // Primero, la carpeta desde la que se abrió el instalador, si es la de Manna: la carpeta ordenada (con
   // Programa), el programa de una (el acceso directo de Windows abre el de Programa/programa) o una copia que
   // se actualizaba a mano (con su Contenido). Así sirve aunque el icono Manna no exista o apunte a otro sitio.
+  // Pero si una instalación conocida ya usa ese Contenido, sus datos son los de verdad: pasó el 2026-10-17, el
+  // Windows del dueño pegaba lo de GitHub junto a su Contenido y Manna usaba los datos de la carpeta oculta
+  // (con la clave del túnel); la 1.25.1 tomó una carpeta data vieja de al lado.
   if (aqui && exists(path.join(aqui, 'Programa', 'carpetas.json'))) antes = path.join(aqui, 'Programa');
   else if (aqui && exists(path.join(path.dirname(aqui), 'carpetas.json')) && exists(path.join(aqui, 'server', 'index.js'))) antes = path.dirname(aqui);
-  else if (aqui && (exists(path.join(aqui, 'Contenido')) || exists(path.join(aqui, 'server', 'index.js')))) antigua = aqui;
-  else if (lanzador && exists(path.join(path.dirname(lanzador), 'carpetas.json'))) antes = path.dirname(lanzador);
+  else if (aqui && (exists(path.join(aqui, 'Contenido')) || exists(path.join(aqui, 'server', 'index.js')))) {
+    antes = using(path.join(aqui, 'Contenido')) || null;
+    if (!antes) antigua = aqui;
+  } else if (lanzador && exists(path.join(path.dirname(lanzador), 'carpetas.json'))) antes = path.dirname(lanzador);
   else if (lanzador && exists(path.join(lanzador, 'server', 'index.js'))) antigua = lanzador;
   else if (last && exists(path.join(last, 'carpetas.json'))) antes = last;
   else if (exists(path.join(oculta, 'carpetas.json'))) antes = oculta;
@@ -68,7 +80,12 @@ export function plan({ origen, oculta, documentos, aqui = null, lanzador = null,
   const raiz = path.dirname(contenido);
   const enNube = nube == null ? synced(raiz, { home, env }) : nube;
   const programa = enNube ? oculta : path.join(raiz, 'Programa');
-  return { origen, antes, antigua, datos, contenido, raiz, nube: enNube, base: programa };
+  // Otra instalación que sigue apuntando a este mismo Contenido con otros datos: la que dejó atrás la 1.25.1.
+  // Esos son los datos que usaba Manna: vuelven a su sitio (los de ahora quedan en antiguo).
+  const other = known.find((dir) => !same(dir, antes) && !same(dir, programa) && same(readJson(path.join(dir, 'carpetas.json'))?.contenido, contenido));
+  const otherData = other && readJson(path.join(other, 'carpetas.json'))?.datos;
+  const rescue = otherData && exists(otherData) && !same(otherData, datos) ? { base: other, datos: otherData } : null;
+  return { origen, antes, antigua, datos, contenido, raiz, nube: enNube, base: programa, rescue };
 }
 
 // Cierra el Manna que esté abierto con esos datos, como su botón «Apagar» (desde este equipo no pide PIN).
@@ -133,6 +150,12 @@ export async function arrange(options) {
 
   // 1. Los datos, a su sitio. Va primero: si Manna sigue abierto y no los suelta, no se ha cambiado nada.
   await closeManna(p.datos);
+  if (p.rescue) {
+    await closeManna(p.rescue.datos);
+    if (p.datos && exists(p.datos)) keep(p.datos);
+    p.datos = p.rescue.datos;
+    avisos.push(`Se recuperaron los datos de siempre de Manna (${p.rescue.datos}). Los que usaba desde la última actualización quedaron en ${antiguo || path.join(p.base, 'antiguo')}.`);
+  }
   if (p.datos && exists(p.datos) && path.resolve(p.datos) !== path.resolve(datos)) {
     if (exists(datos)) throw new Error(`Ya hay datos de Manna en ${datos} y otros en ${p.datos}. No se mezclan: deja solo una de las dos carpetas y vuelve a abrir este archivo.`);
     try {
@@ -156,6 +179,13 @@ export async function arrange(options) {
   fs.cpSync(path.join(p.origen, 'Contenido'), p.contenido, { recursive: true, force: false, errorOnExist: false });
 
   // 4. Lo de antes que ya no se usa: el programa de la carpeta oculta, y una copia vieja del programa en la carpeta.
+  if (p.rescue && !p.antes) p.antes = p.rescue.base;
+  else if (p.rescue) {
+    fs.rmSync(path.join(p.rescue.base, 'carpetas.json'), { force: true });
+    try {
+      fs.rmSync(path.join(p.rescue.base, 'programa'), { recursive: true, force: true });
+    } catch { /* algo la usa todavía: se queda */ }
+  }
   // La carpeta oculta de un instalador anterior que apuntaba a estos mismos datos ya no sirve.
   const hidden = readJson(path.join(options.oculta, 'carpetas.json'));
   if (!p.antes && p.datos && hidden && path.resolve(hidden.datos || '') === path.resolve(p.datos) && path.resolve(options.oculta) !== path.resolve(p.base)) p.antes = options.oculta;
@@ -178,6 +208,8 @@ export async function arrange(options) {
       if (exists(path.join(p.raiz, name))) keep(path.join(p.raiz, name));
     }
   }
+  // Una carpeta data suelta que no son los datos de Manna (una copia que se abrió aparte): a antiguo, no se borra.
+  if (exists(path.join(p.raiz, 'data'))) keep(path.join(p.raiz, 'data'));
 
   // 5. Los instaladores, al día, en la carpeta. En Windows el de Windows es un acceso directo con su icono
   // (un .bat no puede tenerlo): lo crea el instalador, y el archivo suelto que hubiera se guarda en antiguo.
@@ -185,7 +217,9 @@ export async function arrange(options) {
   if (!WIN) fs.chmodSync(path.join(p.raiz, MAC), 0o755);
   if (WIN && exists(path.join(p.raiz, WINDOWS))) keep(path.join(p.raiz, WINDOWS));
 
-  return { programa, contenido: p.contenido, raiz: p.raiz, nube: p.nube, antiguo, avisos };
+  // El dominio propio de la conexión por internet, para que el instalador diga que sigue ahí.
+  const dominio = readJson(path.join(datos, 'tunel.json'))?.address || null;
+  return { programa, contenido: p.contenido, raiz: p.raiz, nube: p.nube, antiguo, avisos, dominio };
 }
 
 // En JSON solo con letras ASCII (lo demás, como \u00f1): así lo lee bien PowerShell en cualquier consola.

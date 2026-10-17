@@ -85,6 +85,7 @@ $programa = $hecho.programa
 $contenido = $hecho.contenido
 Write-Host '  [OK] Manna esta en su carpeta, al dia.'
 Write-Host "  [OK] Carpeta de contenido: $contenido"
+if ($hecho.dominio) { Write-Host "  [OK] Conexion por internet con tu dominio: $($hecho.dominio)" }
 
 # En la carpeta, el instalador de Windows es un acceso directo con su icono (un .bat no puede tenerlo).
 $acceso = $shell.CreateShortcut((Join-Path $hecho.raiz 'Instalar Manna en Windows.lnk'))
