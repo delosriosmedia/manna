@@ -141,6 +141,21 @@ export default function setup(app) {
   app.action('projection.show', { permission: 'projection.control' }, ({ kind, data, step }) =>
     present({ kind, data, step: Number.isInteger(step) ? step : null }));
 
+  // Cambia el contenido de lo que está al aire por otro de lo mismo (el pasaje en otra versión, o en
+  // dos) sin salir de donde estaba: conserva el paso y el sitio en el orden del culto (`orderId`), así
+  // «Siguiente» sigue por el orden. El elemento del orden no se toca. Qué contenido vale lo decide el
+  // tipo, al resolverlo.
+  app.action('projection.swap', { permission: 'projection.control' }, ({ kind, data } = {}) => {
+    const { item, mode } = get();
+    if (!item) throw new HttpError(409, 'No hay nada al aire.');
+    if (typeof kind !== 'string' || !data || typeof data !== 'object' || Array.isArray(data)) throw new HttpError(400, 'Ese contenido no es válido.');
+    const { step, orderId } = item.source;
+    // Los mandos se conservan si el tipo es el mismo (la disposición de una comparación).
+    const live = store.get('live');
+    const previous = kind === item.kind && live.uid === item.uid ? { state: live.state, at: Date.now() } : null;
+    return present({ kind, data, step, orderId }, mode, previous);
+  });
+
   // Anterior / siguiente. Si lo proyectado viene del orden del culto, recorre sus pasos y
   // luego pasa al elemento vecino; si no, lo decide el tipo de contenido.
   // Puntero: dónde señala alguien sobre lo que está al aire, en fracciones de la imagen (0 a 1), para
@@ -162,7 +177,9 @@ export default function setup(app) {
     const { kind, data, step, orderId } = item.source;
     if (orderId && services.order?.has(orderId)) {
       const next = services.order.neighbor(orderId, step, d);
-      return next ? present(next) : null;
+      // Dentro del mismo elemento, los pasos siguen en lo que está al aire (`projection.swap` pudo
+      // cambiar su versión); al pasar a otro elemento vale el contenido de ese elemento.
+      return next ? present(next.orderId === orderId ? { ...next, kind, data } : next) : null;
     }
     const next = app.kinds.get(kind)?.neighbor?.(data, step, d);
     return next ? present({ kind, ...next }) : null;

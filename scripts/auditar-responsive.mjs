@@ -12,6 +12,7 @@
 //   - en pantallas táctiles, los botones tienen tamaño para el dedo (40 px o más)
 //   - los títulos largos del orden del culto se leen (no se cortan en una sola línea)
 //   - los mandos en vivo de lo que está al aire caben, en la capa «Mandos» y en el orden
+//   - la capa de versículos de un pasaje al aire cabe, con números para el dedo, y se cierra al tocar fuera
 //   - los resultados de la búsqueda y el aviso de un módulo al que le falta un programa caben
 //   - «Buscar en todo» cabe y, con un resultado preparado, deja a la vista la tarjeta «Preparado» por encima
 //   - Biblia (también comparando dos versiones) y Orden (también el Mapa del culto) caben en el cajón ancho, en el
@@ -110,6 +111,10 @@ const SCREENS = [
   { name: 'Servicio de alabanza', url: '/alabanza#himnario', content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: { wide: '.transport-bar .tb-volume', narrow: '.story-volume.big' }, settle: 700,
     prepare: `document.querySelector('.ws[data-module=himnario] .hymn')?.click()` },
   { name: 'Orden con mandos en vivo', url: '/control#orden', show: 'testcard', controls: '.odetail .live-controls' },
+  // Un pasaje al aire con la capa de versículos abierta (fase 24): su recuadro cabe en la pantalla, con los números a la
+  // medida del dedo, y se cierra al tocar fuera. En el celular, desde la capa de mandos; en el resto, desde la barra.
+  { name: 'Capa de versículos', url: '/control#orden', show: 'live', inside: '.verse-pop', closesOutside: '.verse-pop', controls: LIVE_CONTROLS, settle: 900,
+    prepare: `(async () => { ${OPEN_CONTROLS}; await new Promise((r) => setTimeout(r, 250)); [...document.querySelectorAll('.tb-extra .bar-verses, .controls-pop .bar-verses')].find((b) => b.getClientRects().length).click(); })()` },
   { name: 'Al aire con mandos en vivo', url: '/control#ajustes', show: 'testcard', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   // Medios (fase 22): un solo cajón con las categorías arriba y un grupo por tipo; sin pestañas. «Domingo de mañana»
   // tiene el video y el de YouTube de ejemplo, que no salen en «Principal»: se elige tocando su nombre. La preferencia
@@ -388,6 +393,12 @@ async function worker(list, n) {
           if (spot) for (const type of ['mousePressed', 'mouseReleased']) await chrome.send('Input.dispatchMouseEvent', { type, x: spot.x, y: spot.y, button: 'left', buttons: type === 'mousePressed' ? 1 : 0, clickCount: 1 });
           await sleep(300);
           m.cierraFuera = Boolean(spot) && await chrome.evaluate(`document.querySelector(${JSON.stringify(layer)}).hidden`);
+        }
+        if (screen.closesOutside) {
+          // Un toque de verdad en una esquina, lejos de la capa.
+          for (const type of ['mousePressed', 'mouseReleased']) await chrome.send('Input.dispatchMouseEvent', { type, x: 3, y: 3, button: 'left', buttons: type === 'mousePressed' ? 1 : 0, clickCount: 1 });
+          await sleep(300);
+          m.cierraFuera = await chrome.evaluate(`!document.querySelector(${JSON.stringify(screen.closesOutside)})`);
         }
         const failures = Object.keys(LABELS).filter((k) => m[k] === false).map((k) => LABELS[k] + (k === 'dedos' ? `: ${m.pequenos.join(', ')}` : k === 'solape' && m.solapan ? `: ${m.solapan.join('; ')}` : k === 'deLado' ? `: ${m.ladeados.join(', ')}` : k === 'contraste' ? `: ${m.flojos.join('; ')}` : ''));
         if (m.espacioContenido !== undefined && m.espacioContenido < MIN_CONTENT) failures.push(`poco espacio para el contenido (${m.espacioContenido} px)`);
