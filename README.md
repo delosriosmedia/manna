@@ -64,18 +64,20 @@ Solo hay que descargar **un archivo** (y tener Node.js; ver arriba):
 - **Windows**: [Instalar-Manna-Windows.bat](https://github.com/delosriosmedia/manna/releases/latest/download/Instalar-Manna-Windows.bat)
 - **Mac**: [Instalar-Manna-Mac.zip](https://github.com/delosriosmedia/manna/releases/latest/download/Instalar-Manna-Mac.zip) (al abrirlo queda `Instalar Manna en Mac.command`)
 
-Ábrelo con doble clic. El instalador comprueba que está Node.js, **baja Manna** de GitHub a una carpeta que no hace falta abrir nunca, y crea el icono **Manna** en el Escritorio (y en el menú Inicio o en Aplicaciones). Al terminar abre Manna, que revisa el resto del equipo.
+Ábrelo con doble clic. El instalador comprueba que está Node.js, **baja Manna** de GitHub a la carpeta **Manna** de Documentos y crea el icono **Manna** en el Escritorio (y en el menú Inicio o en Aplicaciones). Al terminar abre Manna, que revisa el resto del equipo.
 
-| | Windows | Mac |
-| --- | --- | --- |
-| El programa | `%LOCALAPPDATA%\Manna\programa` | `~/Library/Application Support/Manna/programa` |
-| Sus datos (PIN, orden del culto, lo subido, `manna.log`) | `%LOCALAPPDATA%\Manna\datos` | `~/Library/Application Support/Manna/datos` |
-| **El contenido de la iglesia** | `Documentos\Manna\Contenido` | `Documentos/Manna/Contenido` |
+La carpeta Manna tiene solo cuatro cosas:
 
-- **Para actualizar Manna**, vuelve a abrir el mismo archivo: reemplaza el programa y no toca los datos.
-- **La carpeta de contenido nunca se reemplaza ni se mueve**: el instalador solo le añade lo que falte (sus instrucciones y la Reina-Valera 1909).
-- Si Manna ya estaba instalado a la antigua (la carpeta entera, con su `Instalar Manna…` dentro), el instalador lo reconoce por su icono y **sigue usando el contenido y los datos de esa carpeta, donde están**. No la borres.
-- Para desinstalar: borra el icono (en Mac, también la app Manna de Aplicaciones) y la carpeta `Manna` del programa. El contenido de la iglesia queda en Documentos.
+| | Qué es |
+| --- | --- |
+| **Instalar Manna en Windows** / **Instalar Manna en Mac** | Para actualizar Manna: ábrelo y lo pone al día. Llevan el icono de Manna con un engranaje (en Windows es un acceso directo; el archivo que se baja de GitHub la primera vez tiene el icono normal de Windows) |
+| **Contenido** | Lo de la iglesia: biblias, himnos y medios (ver «La carpeta de tu iglesia»). **Nunca se reemplaza ni se mueve**: el instalador solo le añade lo que falte (sus instrucciones y la Reina-Valera 1909) |
+| **Programa** | El programa y sus datos (PIN, orden del culto, lo subido, `datos/manna.log`). No hace falta abrirla. **No la borres** |
+
+- **Para actualizar Manna**, abre el instalador de esa carpeta (o vuelve a bajarlo): si Manna está abierto lo cierra, reemplaza el programa y no toca los datos ni el contenido.
+- Si la carpeta Documentos se sincroniza con **OneDrive o iCloud**, `Programa` va a una carpeta del sistema (`%LOCALAPPDATA%\Manna` o `~/Library/Application Support/Manna`): sus datos cambian a cada rato y pueden pesar gigas. En la carpeta Manna quedan los instaladores y `Contenido`.
+- Si Manna ya estaba instalado de antes, el instalador lo ordena así sin borrar nada: la carpeta Manna es **la que ya tiene tu `Contenido`** (también una instalación a la antigua, con la carpeta entera del proyecto), los datos pasan a `Programa/datos` y lo de la versión anterior que ya no se usa queda en `Programa/antiguo`. Cuando compruebes que todo funciona, puedes borrar `antiguo`.
+- Para desinstalar: borra el icono (en Mac, también la app Manna de Aplicaciones) y la carpeta `Programa`. El contenido de la iglesia queda en su carpeta.
 
 Avisos que pueden salir la primera vez (el archivo no está firmado, porque firmarlo cuesta dinero):
 

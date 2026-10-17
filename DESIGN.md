@@ -54,6 +54,7 @@ El logo es una **M de luz**: tres barras a cada lado y la M al centro, con un de
 | `web/marca.svg` | La marca sola, sin ficha, con su resplandor. | Pantalla de inicio, "Acerca de", pantalla de apagado. |
 | `web/icono.png`, `web/icono-180.png` | PNG de 128 px y de 180 px a sangre. | Pestaña en navegadores sin SVG; icono al añadir a la pantalla de inicio del celular. |
 | `instalacion/icono/manna.ico`, `manna.icns` | Iconos del sistema. | Acceso directo en Windows, app en Mac. |
+| `instalacion/icono/instalar.ico`, `instalar.icns` | El icono con un engranaje (`gear-six` de Phosphor) en un círculo del cian del borde, abajo a la derecha. | Los instaladores de la carpeta Manna. Se generan con `node scripts/generar-iconos.mjs instalar`. |
 | `docs/logo.png` | PNG de 256 px. | README. |
 
 Reglas:

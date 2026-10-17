@@ -76,14 +76,18 @@ Solo tras un sí:
 git push
 ```
 
-Si hubo versión nueva, crea también la etiqueta y la **versión de GitHub con los dos instaladores**, que es de donde los descarga quien instala Manna (enlaces del README, «Instalación»). El de Mac va dentro de un `.zip` para que conserve el permiso de ejecutarse:
+Si hubo versión nueva, crea también la etiqueta y la **versión de GitHub con los dos instaladores**, que es de donde los descarga quien instala Manna (enlaces del README, «Instalación»). El de Mac va dentro de un `.zip` para que conserve el permiso de ejecutarse y su icono (el de Manna con un engranaje, que va en el «resource fork»: `ditto` lo guarda en el `.zip`; `zip`, no). Se hace desde el Mac:
 
 ```bash
 git tag v<versión> && git push --tags
 dir=$(mktemp -d)
 cp "Instalar Manna en Windows.bat" "$dir/Instalar-Manna-Windows.bat"
 cp "Instalar Manna en Mac.command" "$dir/" && chmod +x "$dir/Instalar Manna en Mac.command"
-(cd "$dir" && zip -q Instalar-Manna-Mac.zip "Instalar Manna en Mac.command")
+osascript -l JavaScript - instalacion/icono/instalar.icns "$dir/Instalar Manna en Mac.command" >/dev/null <<'ICONO'
+ObjC.import('AppKit');
+function run(argv) { $.NSWorkspace.sharedWorkspace.setIconForFileOptions($.NSImage.alloc.initWithContentsOfFile(argv[0]), argv[1], 0); }
+ICONO
+(cd "$dir" && ditto -c -k --sequesterRsrc "Instalar Manna en Mac.command" Instalar-Manna-Mac.zip)
 gh release create v<versión> --title "Manna <versión>" --notes "<lo de esta versión en CHANGELOG.md>" "$dir/Instalar-Manna-Windows.bat" "$dir/Instalar-Manna-Mac.zip"
 ```
 

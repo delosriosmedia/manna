@@ -4,6 +4,12 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.25.0 — 2026-10-17
+
+- **La carpeta Manna, ordenada**: queda solo con los dos instaladores, `Contenido` (lo de la iglesia) y `Programa` (el programa y sus datos), para que nada se borre por error ni confunda al actualizar. Una instalación de antes se ordena sola al actualizar, sin borrar nada: los datos pasan a `Programa/datos` y lo que ya no se usa, a `Programa/antiguo`. Si Documentos está en OneDrive o iCloud, `Programa` va a una carpeta del sistema.
+- **Los instaladores llevan el icono de Manna con un engranaje** (en Windows, el de la carpeta Manna es un acceso directo con ese icono).
+- El instalador cierra solo el Manna que esté abierto antes de actualizarlo.
+
 ## 1.24.1 — 2026-10-17
 
 - Arreglado: al terminar un himno (o un video) sonaba un instante de su principio antes de quedarse parado. Pasaba cuando el archivo acaba una fracción de segundo antes de lo que Manna calculaba.

@@ -1,21 +1,23 @@
 #!/bin/bash
-# Instalar o actualizar Manna en Mac. Es lo único que hay que descargar: baja Manna de GitHub a una
-# carpeta que no hace falta ver (~/Library/Application Support/Manna) y crea la app "Manna" en
+# Instalar o actualizar Manna en Mac. Es lo único que hay que descargar: baja Manna de GitHub, lo deja
+# en la carpeta Manna (en Documentos, o donde ya estuviera su Contenido) y crea la app "Manna" en
 # Aplicaciones, con un acceso en el Escritorio. Volver a abrirlo pone Manna al día.
 #
-# La carpeta de contenido de la iglesia (biblias, himnos, medios) nunca se reemplaza ni se mueve:
-#   - en una instalación nueva es Documentos/Manna/Contenido, y solo se le añade lo que falte;
-#   - si Manna ya estaba instalado a la antigua (la carpeta entera del proyecto), se siguen usando
-#     su Contenido y sus datos donde están.
+# La carpeta queda con solo esto: los dos instaladores (con su icono), Contenido (lo de la iglesia, que
+# nunca se pisa) y Programa (el programa y sus datos; si la carpeta está en iCloud, Programa va a
+# ~/Library/Application Support/Manna). Lo ordena instalacion/ordenar.mjs, del Manna recién bajado:
+# mueve lo de antes, sin borrar nada.
 #
-# Para pruebas: MANNA_DESCARGA (de dónde bajar el .zip, también file://), MANNA_BASE (carpeta del
-# programa), MANNA_DOCUMENTOS (dónde va Contenido) y MANNA_DESTINO (dónde crear la app; con él no se
+# Todo va dentro de main(): bash lo lee entero antes de empezar, y este archivo puede cambiar mientras tanto.
+#
+# Para pruebas: MANNA_DESCARGA (de dónde bajar el .zip, también file://), MANNA_BASE (la carpeta oculta),
+# MANNA_DOCUMENTOS (dónde va la carpeta Manna) y MANNA_DESTINO (dónde crear la app; con él no se
 # toca el Escritorio ni se abre Manna).
+main() {
 export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH"
 DESCARGA="${MANNA_DESCARGA:-https://github.com/delosriosmedia/manna/archive/refs/heads/main.zip}"
-BASE="${MANNA_BASE:-$HOME/Library/Application Support/Manna}"
-PROGRAMA="$BASE/programa"
-CARPETAS="$BASE/carpetas.json"
+OCULTA="${MANNA_BASE:-$HOME/Library/Application Support/Manna}"
+DOCUMENTOS="${MANNA_DOCUMENTOS:-$HOME/Documents}"
 
 pausa() { [ -t 0 ] && read -n 1 -s -r -p "Pulsa cualquier tecla para cerrar..."; echo; }
 falla() { echo ""; echo "  $1"; echo ""; pausa; exit 1; }
@@ -38,27 +40,14 @@ if ! command -v node >/dev/null 2>&1 || ! node -e "process.exit(Number(process.v
 fi
 echo "  [OK] Node.js está instalado."
 
-# Una instalación a la antigua: la app apunta a la carpeta del proyecto, con su Contenido y sus datos.
-ANTERIOR=""
+# A dónde apunta la app Manna: la carpeta del programa que hay instalado (o, a la antigua, la del proyecto).
+LANZADO=""
 for APP in "${MANNA_DESTINO:-/Applications}/Manna.app" "$HOME/Applications/Manna.app"; do
-  LANZADOR="$APP/Contents/MacOS/Manna"
-  if [ -f "$APP/Contents/Resources/creada-por-manna" ] && [ -f "$LANZADOR" ]; then
-    CARPETA="$(PROYECTO=""; eval "$(grep -m1 '^PROYECTO=' "$LANZADOR")"; echo "$PROYECTO")"
-    if [ -n "$CARPETA" ] && [ "$CARPETA" != "$PROGRAMA" ] && [ -f "$CARPETA/server/index.js" ]; then ANTERIOR="$CARPETA"; fi
+  if [ -f "$APP/Contents/Resources/creada-por-manna" ] && [ -f "$APP/Contents/MacOS/Manna" ]; then
+    LANZADO="$(PROYECTO=""; eval "$(grep -m1 '^PROYECTO=' "$APP/Contents/MacOS/Manna")"; echo "$PROYECTO")"
+    [ -n "$LANZADO" ] && break
   fi
 done
-
-mkdir -p "$BASE" || falla "No se pudo crear la carpeta $BASE."
-if [ ! -f "$CARPETAS" ]; then
-  if [ -n "$ANTERIOR" ]; then
-    DATOS="$ANTERIOR/data"; CONTENIDO="$ANTERIOR/Contenido"
-  else
-    DATOS="$BASE/datos"; CONTENIDO="${MANNA_DOCUMENTOS:-$HOME/Documents}/Manna/Contenido"
-  fi
-  node -e "require('fs').writeFileSync(process.argv[1], JSON.stringify({ datos: process.argv[2], contenido: process.argv[3] }, null, 2))" "$CARPETAS" "$DATOS" "$CONTENIDO" \
-    || falla "No se pudo guardar dónde están los datos de Manna."
-fi
-CONTENIDO="$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8')).contenido)" "$CARPETAS")"
 
 echo "  Descargando Manna..."
 TEMPORAL="$(mktemp -d)"
@@ -69,15 +58,24 @@ ORIGEN="$(find "$TEMPORAL/abierto" -mindepth 2 -maxdepth 3 -path '*/server/index
 [ -n "$ORIGEN" ] || falla "La descarga no contiene Manna. Vuelve a abrir este archivo."
 ORIGEN="$(dirname "$(dirname "$ORIGEN")")"
 
-# El programa se reemplaza entero; ahí no hay nada de la iglesia.
-mkdir -p "$PROGRAMA"
-rsync -a --delete "$ORIGEN/" "$PROGRAMA/" || falla "No se pudo copiar Manna a $PROGRAMA."
+# Cierra el Manna abierto, mueve lo de antes y deja la carpeta ordenada (instalacion/ordenar.mjs).
+echo "  Ordenando la carpeta de Manna..."
+HECHO="$(NODE_NO_WARNINGS=1 node "$ORIGEN/instalacion/ordenar.mjs" --origen "$ORIGEN" --oculta "$OCULTA" --documentos "$DOCUMENTOS" ${LANZADO:+--lanzador "$LANZADO"} | tail -1)"
+dato() { node -e "const d = JSON.parse(process.argv[1] || '{}'); const v = d[process.argv[2]]; process.stdout.write(Array.isArray(v) ? v.join('\n') : v == null ? '' : String(v))" "$HECHO" "$1"; }
+[ -n "$HECHO" ] || falla "No se pudo ordenar la carpeta de Manna. Vuelve a abrir este archivo."
+[ -z "$(dato error)" ] || falla "$(dato error)"
+PROGRAMA="$(dato programa)"; CONTENIDO="$(dato contenido)"; RAIZ="$(dato raiz)"
 echo "  [OK] Manna está en su carpeta, al día."
-
-# Al contenido solo se le añade lo que falte (las instrucciones y la Reina-Valera 1909): nada se pisa ni se borra.
-mkdir -p "$CONTENIDO" && rsync -a --ignore-existing "$ORIGEN/Contenido/" "$CONTENIDO/" \
-  || falla "No se pudo preparar la carpeta de contenido $CONTENIDO."
 echo "  [OK] Carpeta de contenido: $CONTENIDO"
+
+# Los dos instaladores de la carpeta, con el icono de Manna y su engranaje.
+osascript -l JavaScript - "$PROGRAMA/instalacion/icono/instalar.icns" "$RAIZ/Instalar Manna en Mac.command" "$RAIZ/Instalar Manna en Windows.bat" >/dev/null 2>&1 <<'ICONO'
+ObjC.import('AppKit');
+function run(argv) {
+  const image = $.NSImage.alloc.initWithContentsOfFile(argv[0]);
+  for (const file of argv.slice(1)) $.NSWorkspace.sharedWorkspace.setIconForFileOptions(image, file, 0);
+}
+ICONO
 
 DESTINO="${MANNA_DESTINO:-/Applications}"
 if [ -z "$MANNA_DESTINO" ] && [ ! -w "$DESTINO" ]; then DESTINO="$HOME/Applications"; fi
@@ -149,12 +147,16 @@ echo "  o de Aplicaciones. Para tenerlo a mano, arrástralo al Dock."
 echo ""
 echo "  - Las biblias, los himnos y los medios de la iglesia van en:"
 echo "    $CONTENIDO"
-if [ -n "$ANTERIOR" ]; then
-  echo "  - Tus datos y tu contenido siguen en $ANTERIOR."
-  echo "    No borres esa carpeta."
+echo "  - Todo Manna está en $RAIZ. No borres su carpeta Programa."
+if [ -n "$(dato antiguo)" ]; then
+  echo "  - Lo de la versión anterior que ya no se usa quedó en:"
+  echo "    $(dato antiguo)"
 fi
-echo "  - Para actualizar Manna, vuelve a abrir este archivo."
+dato avisos | while IFS= read -r AVISO; do [ -n "$AVISO" ] && echo "  - $AVISO"; done
+echo "  - Para actualizar Manna, abre \"Instalar Manna en Mac\" de esa carpeta."
 echo "  - Para apagar Manna usa el botón \"Apagar\" del control."
 echo "=========================================================="
 echo ""
 pausa
+}
+main "$@"; exit $?
