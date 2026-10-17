@@ -823,6 +823,130 @@ try {
   await click(headBtn('Varios'));
   check('apagado, un toque vuelve a elegir un solo versículo', await run(`${cmp}.querySelector('.verse[data-n="7"]').click(); return ${cmp}.querySelector('.multi-hint').hidden && ${cmp}.querySelector('.sel-ref').textContent === 'Juan 3:7'`));
 
+  console.log('\n1. Interfaz · Biblia al aire (versión, comparar y otro versículo desde los mandos)');
+  {
+    const ref = (book, chapter, a, b = a) => ({ book, chapter, verseStart: a, verseEnd: b });
+    const verses = (r) => ({ kind: 'verses', data: { versionId: VERSION, ref: r } });
+    // Tres elementos propios en el orden, que se quitan al terminar: uno de un paso, otro de un paso y otro de tres.
+    for (const r of [ref(43, 3, 16), ref(19, 23, 1), ref(43, 3, 16, 18)]) await run(`await ${post('order.add', verses(r))}`);
+    const [one, next, three] = (await shown()).order.slice(-3).map((i) => i.id);
+    const bar = `${LIVE}.querySelector('.bible-bar')`;
+    const barBtn = (n) => `${bar}.querySelectorAll('.bar-btn')[${n}]`;
+    const menuNow = () => run(`return JSON.stringify([...document.querySelectorAll('.menu button')].map((b) => b.textContent))`).then(JSON.parse);
+    const pop = `document.querySelector('.verse-pop')`;
+    const cell = (n) => `${pop}.querySelector('.vp-n[data-n="${n}"]')`;
+    const liveCells = () => run(`return [...${pop}.querySelectorAll('.vp-n.live')].map((b) => b.textContent).join()`);
+
+    await run(`await ${post('order.show', { id: one })}`);
+    await sleep(600);
+    check('un pasaje al aire trae tres botones: versión, comparar y versículos', await run(`const b = [...${bar}.querySelectorAll('.bar-btn')]; return b.length === 3 && b[0].textContent.trim() === 'RV1909' && b[2].textContent.trim() === 'Juan 3:16' && !b[1].disabled`));
+
+    // Versión: se cambia al aire sin salir del orden; «Siguiente» sigue por el orden.
+    await tapEl(barBtn(0));
+    check('«Versión» ofrece las versiones instaladas y marca la que está al aire', JSON.stringify(await menuNow()) === JSON.stringify(['Reina-Valera 1909 (RV1909)al aire', 'Versión de prueba']), JSON.stringify(await menuNow()));
+    const uid = (await shown()).item.uid;
+    await menuItem('Reina-Valera 1909');
+    await sleep(500);
+    check('elegir la versión que ya está al aire no hace nada', (await shown()).item.uid === uid);
+    await tapEl(barBtn(0));
+    await menuItem('Versión de prueba');
+    await sleep(600);
+    let on = await shown();
+    check('elegir otra versión pone el mismo pasaje en ella y sigue en su sitio del orden', on.item.kind === 'verses' && on.item.versionId === 'version-de-prueba' && on.item.source.orderId === one && on.item.source.step === 0 && (await text('.scene-caption')) === 'Juan 3:16 (Versión de prueba)');
+    check('el elemento del orden no cambia', on.order.find((i) => i.id === one).data.versionId === VERSION);
+    await press('ArrowRight');
+    on = await shown();
+    check('«Siguiente» sigue por el orden, y el elemento que viene se proyecta en su versión', on.item.source.orderId === next && on.item.versionId === VERSION && on.item.reference === 'Salmos 23:1');
+
+    // Comparar: dentro de un elemento de varios pasos, los pasos siguen en la comparación.
+    await run(`await ${post('order.show', { id: three })}`);
+    await sleep(500);
+    await tapEl(barBtn(1));
+    check('«Comparar» ofrece las demás versiones, sin «Una sola» mientras no se compara', JSON.stringify(await menuNow()) === JSON.stringify(['Versión de prueba']), JSON.stringify(await menuNow()));
+    await menuItem('Versión de prueba');
+    await sleep(600);
+    on = await shown();
+    check('elegirla pone el pasaje en las dos versiones, sin salir del orden', on.item.kind === 'compare' && on.item.source.orderId === three && on.item.source.step === 0 && on.item.sides[1].versionId === 'version-de-prueba' && await run(`return ${barBtn(1)}.classList.contains('on') && ${barBtn(1)}.textContent.trim() === 'Versión de prueba'`));
+    await press('ArrowRight');
+    on = await shown();
+    check('«Siguiente» sigue por el orden dentro del mismo elemento, en las dos versiones', on.item.kind === 'compare' && on.item.source.orderId === three && on.item.source.step === 1 && on.item.reference === 'Juan 3:17' && on.item.sides[1].verses.length === 0);
+    await tapEl(barBtn(1));
+    check('con una comparación al aire, el menú añade «Una sola»', JSON.stringify(await menuNow()) === JSON.stringify(['Una sola', 'Versión de pruebaal aire']), JSON.stringify(await menuNow()));
+    await menuItem('Una sola');
+    await sleep(600);
+    on = await shown();
+    check('«Una sola» vuelve al pasaje en la primera versión, en el mismo paso del orden', on.item.kind === 'verses' && on.item.versionId === VERSION && on.item.source.orderId === three && on.item.source.step === 1 && on.order.find((i) => i.id === three).kind === 'verses');
+    await press('ArrowRight');
+    on = await shown();
+    check('y «Siguiente» sigue con el versículo 18, del orden', on.item.source.orderId === three && on.item.source.step === 2 && on.item.reference === 'Juan 3:18');
+
+    // Versículos: la capa con los números del capítulo.
+    await tapEl(barBtn(2), 2); // un doble clic rápido no abre dos capas
+    await sleep(700);
+    check('«Versículos» abre una capa con los números del capítulo y marca el que está al aire', await run(`return document.querySelectorAll('.verse-pop').length === 1 && ${pop}.querySelector('.vp-title').textContent === 'Juan 3' && ${pop}.querySelectorAll('.vp-n').length === 36`) && (await liveCells()) === '18');
+    check('el foco entra en la capa, en el número que está al aire', await run(`return document.activeElement === ${cell(18)}`));
+    await press('ArrowRight');
+    check('las flechas mueven el foco por la rejilla, sin pasar el versículo al aire', await run(`return document.activeElement === ${cell(19)}`) && (await shown()).item.reference === 'Juan 3:18');
+    await tapEl(cell(20));
+    await sleep(600);
+    on = await shown();
+    check('un toque proyecta ese versículo y lo saca del orden', on.item.kind === 'verses' && on.item.reference === 'Juan 3:20' && on.item.source.orderId === null && (await liveCells()) === '20' && await run(`return Boolean(${pop})`));
+    await run(`${cell(22)}.dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }))`);
+    await sleep(600);
+    on = await shown();
+    check('Mayús + clic amplía el tramo desde lo que está al aire: 20 a 22', on.item.reference === 'Juan 3:20-22' && (await liveCells()) === '20,21,22');
+    await run(`${cell(25)}.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`);
+    await sleep(700);
+    await run(`${cell(25)}.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); ${cell(25)}.click()`);
+    await sleep(600);
+    on = await shown();
+    check('un toque largo también amplía el tramo (y el clic que lo sigue no lo deshace): 20 a 25', on.item.reference === 'Juan 3:20-25' && (await liveCells()) === '20,21,22,23,24,25');
+    await run(`${pop}.querySelector('.icon-btn[aria-label="Capítulo siguiente"]').click()`);
+    await sleep(700);
+    check('las flechas de la capa cambian de capítulo sin proyectar', await run(`return ${pop}.querySelector('.vp-title').textContent === 'Juan 4' && ${pop}.querySelectorAll('.vp-n.live').length === 0`) && (await shown()).item.reference === 'Juan 3:20-25');
+    await press('Escape');
+    check('Esc cierra la capa, y no el cajón de la Biblia', await run(`return !${pop} && document.querySelector('.drawer').getClientRects().length > 0`));
+    await tapEl(barBtn(2));
+    await sleep(600);
+    await clickAt(10, 10);
+    check('y tocar fuera también', await run(`return !${pop}`));
+    // Las flechas de capítulo se apagan en el primero de la Biblia y en el último.
+    for (const [r, which] of [[ref(1, 1, 1), 'anterior'], [ref(66, 22, 21), 'siguiente']]) {
+      await run(`await ${post('projection.show', verses(r))}`);
+      await sleep(400);
+      await tapEl(barBtn(2));
+      await sleep(600);
+      check(`en ${which === 'anterior' ? 'Génesis 1' : 'Apocalipsis 22'}, la flecha «${which}» está apagada y la otra no`, await run(`const b = (n) => ${pop}.querySelector('.icon-btn[aria-label="Capítulo ' + n + '"]'); return b('anterior').disabled === ${which === 'anterior'} && b('siguiente').disabled === ${which === 'siguiente'}`));
+      await press('Escape');
+    }
+    await run(`await ${post('projection.show', verses(ref(43, 3, 20, 25)))}`);
+    await sleep(400);
+    // «Siguiente», ahora fuera del orden, sigue leyendo por la Biblia.
+    await press('ArrowRight');
+    check('fuera del orden, «Siguiente» sigue por la Biblia', (await shown()).item.reference === 'Juan 3:26');
+
+    // En el celular, los mismos botones están en la capa de mandos y la rejilla cabe sobre ella.
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+    await sleep(700);
+    await openControls();
+    await tapEl(`document.querySelector('.controls-pop .bar-btn:nth-child(3)')`);
+    await sleep(700);
+    check('en el celular, la capa de versículos se abre sobre la de mandos y cabe en la pantalla', await run(`const r = ${pop}?.getBoundingClientRect(); return Boolean(r) && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight && !document.querySelector('.controls-layer').hidden`));
+    await tapEl(cell(30));
+    await sleep(600);
+    check('con el dedo, un toque proyecta el versículo', (await shown()).item.reference === 'Juan 3:30');
+    await clickAt(4, 4);
+    check('tocar fuera cierra la capa de versículos y deja la hoja de mandos: una a la vez', await run(`return !${pop} && !document.querySelector('.controls-layer').hidden`));
+    await tapEl(`document.querySelector('.controls-pop .bar-btn:nth-child(3)')`);
+    await sleep(600);
+    await press('Escape');
+    check('Esc cierra la capa de versículos y deja abierta la de mandos', await run(`return !${pop} && !document.querySelector('.controls-layer').hidden`));
+    await closeControls();
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+    await sleep(600);
+    for (const id of [one, next, three]) await run(`await ${post('order.remove', { id })}`);
+  }
+
   console.log('\n1. Interfaz · Orden: Mapa del culto');
   {
     const om = `document.querySelector('.ws[data-module=orden]')`;

@@ -46,6 +46,8 @@ export function registerCompare(app, library) {
       const verse = c.sides[0].verses[step];
       return verse ? build(data, { ...c.ref, verseStart: verse.n, verseEnd: verse.n }) : null;
     },
+    // Los pasos los marca la primera versión (ver projection.swap).
+    stepIds: (content) => content.sides[0].verses.map((v) => v.n),
     // Fuera del orden del culto, "siguiente" sigue leyendo en las dos versiones.
     neighbor(data, step, delta) {
       const c = this.resolve(data, step);

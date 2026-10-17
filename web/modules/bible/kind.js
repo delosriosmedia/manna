@@ -2,6 +2,7 @@ import { h } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { registerKind } from '../../core/kinds.js';
 import { applyTextStyles, fitText } from '../projection/text.js';
+import { createBibleBar } from './onair.js';
 
 // Tipo de contenido "pasaje bíblico": el texto de los versículos y la cita.
 registerKind('verses', {
@@ -39,6 +40,13 @@ registerKind('verses', {
         stage.style.removeProperty('--fit');
       },
     };
+  },
+
+  // Versión, comparar y otro versículo (onair.js). No tiene mandos en el servidor: todo va por órdenes de la proyección.
+  controls(host) {
+    const bar = createBibleBar();
+    host.replaceChildren(bar.el);
+    return { update: (_mandos, item) => bar.update(item), destroy: bar.destroy };
   },
 });
 
@@ -105,13 +113,16 @@ registerKind('compare', {
   },
 
   controls(host, { send }) {
+    const bar = createBibleBar();
     const buttons = LAYOUTS.map(([id, glyph, label]) => h('button', { class: 'btn grow', dataset: { layout: id }, onclick: () => send({ layout: id }) }, icon(glyph, 16), label));
-    host.replaceChildren(h('div', { class: 'transport' }, ...buttons));
+    host.replaceChildren(bar.el, h('div', { class: 'transport' }, ...buttons));
     return {
       update(state, item) {
         const layout = state?.layout || item.layout;
         buttons.forEach((b) => b.classList.toggle('on', b.dataset.layout === layout));
+        bar.update(item);
       },
+      destroy: bar.destroy,
     };
   },
 });

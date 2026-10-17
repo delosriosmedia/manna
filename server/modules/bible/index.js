@@ -62,6 +62,8 @@ export default function setup(app) {
       const verse = p.verses[step];
       return verse ? library.passage(p.versionId, single(p.ref, verse.n)) : null;
     },
+    // Qué es cada paso (el número de versículo): lo usa projection.swap para no cambiar de versículo al cambiar de versión.
+    stepIds: (content) => content.verses.map((v) => v.n),
     // Fuera del orden del culto, "siguiente" sigue leyendo: el versículo que viene, aunque cambie de capítulo.
     neighbor(data, step, delta) {
       const p = this.resolve(data, step);
