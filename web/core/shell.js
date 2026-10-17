@@ -16,8 +16,8 @@ import { prefs } from './prefs.js';
 //   soon    previsto pero aún no construido: no sale
 //   hidden  en pausa: existe y se abre por su dirección (#id), pero no sale en el dock
 //   needs   programas del equipo principal que necesita (ver core/needs.js)
-//   mount   dibuja el módulo en el y puede devolver { onShow(), keys(evento) -> true si lo atendió }
-// ctx (lo que recibe cada módulo): { role, isLocal, canEdit, go(id), setPreview(elemento | null), prepare(...), setPart(id) }
+//   mount   dibuja el módulo en el y puede devolver { onShow(), keys(evento) -> true si lo atendió, part(id) }
+// ctx (lo que recibe cada módulo): { role, isLocal, canEdit, go(id, parte?), setPreview(elemento | null), prepare(...), setPart(id) }
 //   prepare  { item?, kind?, title, subtitle?, project(), add?() }: lo deja en la tarjeta «Preparado»
 //   setPart  un módulo con pestañas dice en cuál está, para avisar solo de lo que le falta a esa
 //
@@ -34,7 +34,8 @@ export function createShell({ role, isLocal, modules, extras = [], createScene, 
 
   const notice = h('div', { class: 'ws-notice', role: 'status', hidden: true });
   const work = h('div', { class: 'work' });
-  const ctx = { role, isLocal, canEdit, go: show };
+  // go(id, parte): abre un módulo y, si lo admite (part en lo que devuelve su mount), una de sus pestañas.
+  const ctx = { role, isLocal, canEdit, go: (id, part) => { show(id); if (part) current?.api.part?.(part); } };
   const scene = full ? null : createScene({ ...ctx, openControls: () => openControls() });
   ctx.setPreview = (item) => scene?.setPreview(item);
   ctx.prepare = (next) => scene?.prepare(next);

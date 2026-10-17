@@ -27,10 +27,10 @@ El **servidor es la única fuente de verdad**. Los dispositivos son vistas: reci
 
 Un módulo es una carpeta en `server/modules/<id>/` cuyo `index.js` exporta `setup(app)`, más su interfaz en `web/modules/<id>/`. Se registra en la lista `MODULES` de `server/app.js`.
 
-- Un módulo **no importa archivos de otro módulo**. Si necesita algo de otro, usa `app.services.<nombre>` (lo que el otro publica) o `app.run('otro.accion', payload)`.
+- Un módulo **no importa archivos de otro módulo** (excepción, decisión 40: Medios muestra la pestaña Diapositivas, `web/modules/slides/panel.js`). Si necesita algo de otro, usa `app.services.<nombre>` (lo que el otro publica) o `app.run('otro.accion', payload)`.
 - Nombres de acción: `modulo.verbo` (`projection.show`, `order.add`).
 - Nombres de permiso: `modulo.capacidad` (`projection.control`, `order.edit`).
-- Un módulo puede aportar más de una pantalla y más de un tipo de contenido. El de medios tiene dos pantallas (Medios, con imágenes y audios, y Videos, con los videos y YouTube y sus categorías: `web/modules/media/videos.js`). El de Biblia tiene dos tipos (`verses` y `compare`) en una sola pantalla, que con «Comparar» elige el segundo; la parte que elige el pasaje vive aparte en su carpeta (`web/modules/bible/passages.js`).
+- Un módulo puede aportar más de una pantalla y más de un tipo de contenido. El de medios tiene dos pantallas (Medios, con imágenes, audios y la pestaña de diapositivas, y Videos, con los videos y YouTube y sus categorías: `web/modules/media/videos.js`); el de diapositivas no tiene pantalla propia en el dock: su pestaña va dentro de Medios y su otra pantalla es el Presentador. El de Biblia tiene dos tipos (`verses` y `compare`) en una sola pantalla, que con «Comparar» elige el segundo; la parte que elige el pasaje vive aparte en su carpeta (`web/modules/bible/passages.js`).
 - En la web, cada pantalla de un módulo es un archivo de `web/modules/<id>/` (lo habitual, `workspace.js`) y se lista en `web/modules/registry.js`. La estructura común (el «Escenario»: proyección de fondo, dock, cajón del módulo, cola del culto, «Preparado», transporte y «Buscar en todo») es `web/core/shell.js` con `web/modules/projection/escenario.js`; las páginas de `web/roles/` solo eligen qué módulos recibe cada función.
 
 Para crear uno, usa la skill `/nuevo-modulo`.

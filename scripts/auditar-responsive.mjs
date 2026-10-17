@@ -133,10 +133,12 @@ const SCREENS = [
     prepare: `(() => { document.querySelector('.hymn-views [data-view=grid]').click(); const i = document.querySelector('.ws[data-module=himnario] .search input'); i.value = 'renglon inventado'; i.dispatchEvent(new Event('input')); })()` },
   { name: 'Al aire con un himno', url: '/control#himnario', show: 'song', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Orden con un himno al aire', url: '/control#orden', show: 'song', controls: '.odetail .live-controls' },
-  { name: 'Diapositivas: presentaciones', url: '/control#diapositivas', content: '.decks', inside: '.deck' },
-  { name: 'Diapositivas: una presentación', url: '/control#diapositivas', content: '.deck-pages', primary: '.deck-bar .btn.primary', inside: '.deck-bar', settle: 600,
-    prepare: `document.querySelector('.ws[data-module=diapositivas] .deck-pick').click()` },
-  { name: 'Al aire con una diapositiva', url: '/control#diapositivas', show: 'slides', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
+  // Diapositivas es una pestaña de Medios (fase 17).
+  { name: 'Medios: diapositivas', url: '/control#medios', content: '.decks', inside: '.deck', settle: 500,
+    prepare: `document.querySelector('.media-tabs [data-tab=diapositivas]').click()` },
+  { name: 'Medios: una presentación', url: '/control#medios', content: '.deck-pages', primary: '.deck-bar .btn.primary', inside: '.deck-bar', settle: 600,
+    prepare: `(() => { document.querySelector('.media-tabs [data-tab=diapositivas]').click(); document.querySelector('.decks[data-panel=diapositivas] .deck-pick').click(); })()` },
+  { name: 'Al aire con una diapositiva', url: '/control#medios', show: 'slides', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Orden con una diapositiva al aire', url: '/control#orden', show: 'slides', controls: '.odetail .live-controls' },
   // El Presentador no lleva escenario: noDock cambia ese control por la diapositiva grande y su fila de botones.
   { name: 'Presentador: elegir presentación', url: '/presentador', noDock: true, content: '.pr-choose', inside: '.pr-list .deck', settle: 600 },

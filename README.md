@@ -14,10 +14,10 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Orden del culto**: la lista ordenada de todo lo que se va a proyectar, con secciones (Apertura, Mensaje…). Cada elemento muestra su tipo y sus pasos; "Siguiente" recorre los pasos y luego pasa al elemento que sigue. A cualquier elemento se le puede poner un nombre propio ("Lectura bíblica"). Se comparte entre todos los dispositivos.
 - **Himnario**: los himnos en video de tu iglesia, en una rejilla por número o agrupados por categorías (bajo su sección, como en el índice del himnario). Se llega a uno por su número, por su título o por un trozo de su letra; se elige si suena **cantado o solo la pista**, y se gobierna como cualquier video. Con el cajón ancho, la letra del elegido se lee al lado. **Letras sin música**: los mismos himnos en diapositivas, que se pasan a mano mientras se canta; tras la última, «Siguiente» vuelve a la portada del mismo himno.
 - **Videos**: todos los videos de la iglesia en una lista. Se suben o se copian a `Contenido/Medios/`, y en la cabecera se **pega el enlace de un video de YouTube**: Manna lo descarga una vez, con su título, su imagen y sus subtítulos en español e inglés, y desde ahí se proyecta sin anuncios, sin cortes y sin internet. Lo habitual se usa tal cual y lo demás se convierte solo, en segundo plano. Al aire: pausa, saltos, barra de avance, subtítulos y el volumen de Manna; todas las pantallas van a la par y suena una sola. **Categorías** con el nombre que quieras («Niños», «Domingo»…): un video puede estar en varias.
-- **Medios**: imágenes y audios, en pestañas.
+- **Medios**: imágenes, audios y diapositivas, en pestañas.
   - **Imágenes** (anuncios, carteles, fotos): se suben desde el equipo principal o desde la galería del celular, con el nombre que quieras; se elige si la imagen se ve completa o llenando la pantalla; y, mientras está al aire, se acerca y se desplaza desde la barra de abajo.
   - **Audios**: se suben o se copian a `Contenido/Medios/`, y se gobiernan como un video.
-- **Diapositivas**: las presentaciones de la iglesia, en PDF o en PowerPoint, convertidas en imágenes. Se recorren con «Siguiente», la barra de abajo muestra la diapositiva que viene y cuántas quedan, y cada una se puede acercar como una imagen. En Windows, un PowerPoint lo puede pasar **el propio PowerPoint en el proyector**, con sus videos y animaciones, y se sigue pasando desde cualquier celular.
+  - **Diapositivas**: las presentaciones de la iglesia, en PDF o en PowerPoint, convertidas en imágenes. Se recorren con «Siguiente», la barra de abajo muestra la diapositiva que viene y cuántas quedan, y cada una se puede acercar como una imagen. En Windows, un PowerPoint lo puede pasar **el propio PowerPoint en el proyector**, con sus videos y animaciones, y se sigue pasando desde cualquier celular.
 - **Páginas web**: presentaciones y juegos de internet (Canva, Google Slides, Genially, Kahoot) o un archivo HTML propio, a pantalla completa. Una dirección necesita internet durante el culto; si la página no se deja mostrar dentro de Manna, el proyector la abre en su propia ventana. Un archivo HTML se pasa con «Anterior» y «Siguiente» desde cualquier dispositivo.
 - **Fondos**: seis colores y las imágenes que subas, que quedan guardadas junto a ellos en Ajustes.
 - **Espacio en disco** (Ajustes): cuánto ocupa lo subido o descargado desde Manna (YouTube, videos, imágenes, presentaciones…) y lo libre del disco. **Limpiar multimedia temporales** lo borra todo, también del orden del culto, tras confirmarlo; la carpeta Contenido (himnario, biblias y medios) y los fondos no se tocan.
@@ -186,7 +186,7 @@ La pista instrumental necesita ffmpeg en el equipo principal: los videos traen d
 
 ### Diapositivas
 
-1. En **Diapositivas**, pulsa **Subir presentación** y elige un **PDF** o un **PowerPoint** (también puedes arrastrarlo hasta la pantalla).
+1. En **Medios**, pestaña **Diapositivas**, pulsa **Subir presentación** y elige un **PDF** o un **PowerPoint** (también puedes arrastrarlo hasta la pantalla).
 2. Ponle el nombre con el que quieres verla en el orden del culto y pulsa **Subir**.
    - Un **PDF** lo convierte el propio navegador, página a página, con el avance a la vista. Se puede hacer desde un celular.
    - Un **PowerPoint** lo convierte el PowerPoint del equipo principal, de fondo; mientras tanto puedes seguir usando Manna. En Windows no se ve ninguna ventana. En Mac, PowerPoint se abre un momento. La primera vez hay que aceptar dos avisos: el de macOS, que pregunta si Manna puede controlar PowerPoint, y el de PowerPoint, que pide acceso a una carpeta de Manna («Seleccionar…» y luego «Conceder acceso»). No vuelven a salir.
@@ -272,7 +272,7 @@ server/
                         pantallas: Medios (workspace.js) y Videos (videos.js)
     hymns/              el himnario: videos, letras y diapositivas de la carpeta de la iglesia, búsqueda por
                         número, título y letra, la pista instrumental y las letras sin música
-    slides/             presentaciones convertidas en diapositivas: recibir las páginas de un PDF, pedirle
+    slides/             presentaciones convertidas en diapositivas (en la web, la pestaña de Medios, panel.js, y el Presentador): recibir las páginas de un PDF, pedirle
                         a PowerPoint que exporte las de una presentación o que la pase en vivo (powerpoint.js) y proyectarlas
     web/                páginas web y archivos HTML: comprobar si una dirección se deja mostrar
                         dentro de otra página y servir los archivos encerrados

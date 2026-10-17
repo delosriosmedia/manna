@@ -4,12 +4,15 @@ import { prefs } from '../../core/prefs.js';
 import { createClipsPanel } from './clips.js';
 import { acceptDrops } from './drop.js';
 import { createImagesPanel } from './images.js';
+// La excepción a que un módulo no importe archivos de otro (decisión 40): la pestaña Diapositivas es del módulo
+// de diapositivas (su servidor, sus órdenes y su permiso), pero se ve dentro de Medios.
+import { createSlidesPanel } from '../slides/panel.js';
 
-// Módulo Medios: la biblioteca de la iglesia, en pestañas (imágenes y audios). Los videos tienen su propia
-// pantalla (videos.js). Cada pestaña es una pieza con la misma forma:
+// Módulo Medios: la biblioteca de la iglesia, en pestañas (imágenes, audios y diapositivas). Los videos tienen
+// su propia pantalla (videos.js). Cada pestaña es una pieza con la misma forma:
 //   { id, label, uploadLabel, el, bar, pick(), accepts(archivo), upload(archivos), onShow(), keys(e) }
 function mount(el, ctx) {
-  const panels = [createImagesPanel(ctx), createClipsPanel(ctx, 'audio')];
+  const panels = [createImagesPanel(ctx), createClipsPanel(ctx, 'audio'), createSlidesPanel(ctx)];
   let active = null;
 
   const tabs = h('div', { class: 'media-tabs', role: 'tablist' },
@@ -55,11 +58,17 @@ function mount(el, ctx) {
   return {
     onShow: () => active.onShow(),
     keys: (e) => active.keys(e),
+    // Abrir una pestaña desde otro módulo: ctx.go('medios', 'diapositivas').
+    part: (id) => show(id),
   };
 }
 
 export default {
   id: 'medios', name: 'Medios', icon: 'image', mount,
-  // El aviso sale solo en la pestaña a la que afecta.
-  needs: [{ tools: ['ffmpeg'], parts: ['audios'], feature: 'convertir los audios que el navegador no reproduce (los MP3 habituales sí funcionan)' }],
+  // Cada aviso sale solo en la pestaña a la que afecta. PowerPoint es opcional: sin él se suben los PDF, y la
+  // pestaña lo explica al elegir un archivo.
+  needs: [
+    { tools: ['ffmpeg'], parts: ['audios'], feature: 'convertir los audios que el navegador no reproduce (los MP3 habituales sí funcionan)' },
+    { tools: ['powerpoint'], parts: ['diapositivas'], feature: 'abrir presentaciones de PowerPoint (los PDF sí funcionan)' },
+  ],
 };

@@ -4,6 +4,9 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.20.0 — 2026-10-17
+
+- **Diapositivas dentro de Medios** (fase 17): Medios queda con Imágenes, Audios y Diapositivas, y Diapositivas sale de la barra de módulos. La pestaña funciona igual que el módulo de antes (subir un PDF o un PowerPoint, elegir por cuál empezar, pasar con PowerPoint), y arrastrar un PDF o un PowerPoint a Medios lo lleva a ella. «Añadir → Diapositivas» del orden del culto abre esa pestaña. El Presentador no cambia.
 ## 1.19.0 — 2026-10-17
 
 - **Videos, un módulo propio** (fase 16): un botón «Videos» en la barra de módulos, detrás del Himnario, con todos los videos juntos: los subidos, los de la carpeta de la iglesia y los de YouTube. El enlace de YouTube se pega arriba, junto a «Subir videos», y el video descargado entra en la misma lista con su icono; ya no hay pestaña de YouTube. Medios queda con Imágenes y Audios.

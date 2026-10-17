@@ -145,7 +145,8 @@ De menor a mayor riesgo; cada fase deja algo usable y **se publica al cerrarla**
 | 16 | Videos, módulo aparte con categorías (decisión 40) | L | 1.19 |
 | 17 | Diapositivas dentro de Medios (decisión 40) | M | 1.20 |
 | 18 | Textos: mensajes y citas con autor (decisión 40) | M | 1.21 |
-| 19 | Auditoría de la interfaz con las skills de diseño (decisión 40) | M | 1.22 |
+| 19 | Investigación: funciones especializadas para el celular (decisión 41) | M | sin versión (documento) |
+| 20 | Auditoría de la interfaz con las skills de diseño (decisión 40) | M | 1.22 |
 
 **Orden cambiado el 2026-10-04 (decisión 20)**: la fase 6 va antes que la 5, mientras el dueño revisa las letras de los himnos. La reproducción (pausa, avance, volumen, una sola pantalla que suena), que iba a estrenarse con el himnario, se construye con los videos.
 
@@ -154,6 +155,8 @@ De menor a mayor riesgo; cada fase deja algo usable y **se publica al cerrarla**
 **Y el 2026-10-05 (decisión 28)**: tras la fase 7 se hace la 8 (diapositivas); ahí se detiene el trabajo para que el dueño pruebe, y después se revisa el himnario.
 
 **Y el 2026-10-16 (decisión 40)**: se añaden las fases 16 a 19, en ese orden. La 2.0 sigue esperando la parte del equipo real de la fase 9 (las pruebas del dueño).
+
+**Y el 2026-10-17 (decisión 41)**: antes de la auditoría de la interfaz se hace una investigación de funciones especializadas para el celular (fase 19); la auditoría pasa a ser la fase 20.
 
 Por qué este orden: búsqueda y comparador usan datos que ya existen; los televisores dependen de pruebas del dueño, que conviene empezar pronto; las imágenes estrenan biblioteca y subidas sin la complejidad del sonido; el himnario estrena la reproducción con archivos que ya son compatibles; YouTube y diapositivas, los que dependen de programas de terceros, al final.
 
@@ -333,7 +336,7 @@ Decisión 40. «Videos» sale de Medios y es un botón propio del dock, con todo
 - **Con ella salen los arreglos de la tableta** que esperan publicarse (la Biblia en la tableta pequeña acostada, botones de 36 px en la tableta en horizontal).
 - **Lecciones que aplicar** (de los arreglos de la tableta): toda pantalla nueva pasa la auditoría también en 960 × 540; cabeceras en una fila; las reglas de clases compartidas (`.abar`, `.chips`) se limitan con `.ws[data-module=…]`; una tira que se desliza va en `SIDEWAYS_OK`; los tamaños táctiles con `var(--control)` y `var(--tap)`. La casilla de YouTube con el aviso de yt-dlp en 960 × 540 es hoy el único caso que falla en la auditoría (deja 85 px): Videos tiene que resolverlo.
 
-### Fase 17 · Diapositivas dentro de Medios
+### Fase 17 · Diapositivas dentro de Medios — hecha (1.20.0)
 
 Decisión 40. Medios queda con **Imágenes, Audios y Diapositivas**, y Diapositivas sale del dock.
 
@@ -352,9 +355,18 @@ Decisión 40. Un módulo nuevo (`server/modules/texts/`, `web/modules/texts/`, t
 - Guardado con `app.storage('textos')` (`{ id, style: 'normal' | 'quote', text, author, added }`), órdenes `texts.save` y `texts.remove` con el permiso nuevo `texts.edit`, longitud validada en el servidor. En «Buscar en todo».
 - **Al empezar la fase se confirma con el dueño** si el Servicio de alabanza también tiene Textos.
 
-### Fase 19 · Auditoría de la interfaz con las skills de diseño
+### Fase 19 · Investigación: funciones especializadas para el celular
 
-Decisión 40. Al terminar las fases 16 a 18, una revisión de toda la interfaz con las skills de diseño instaladas en el equipo del dueño, además de la auditoría de pantallas de siempre (`auditar-responsive`):
+Decisión 41. Investigación y análisis, **sin programar**: cómo simplificar Manna en los celulares. En vez de entrar desde el teléfono a «Control completo», en el celular solo habría funciones especializadas, una por necesidad o por tema, con pocas cosas en pantalla.
+
+- Se plantea **desde cero**, sin partir de la distribución actual: qué funciones (roles) habría, qué puede hacer cada una, qué tiene en pantalla y cómo se usa. Se piensa en la experiencia y no solo en la interfaz: quién la usa, en qué momento del culto, qué tareas hace, qué errores hay que evitarle y cómo pasa de una tarea a otra.
+- Incluye cómo se elige la función en el celular, qué pasa con el PIN, qué queda solo para el equipo principal y la tableta, qué partes de hoy se aprovechan y cuáles habría que hacer, y en qué orden se construiría.
+- Entrega: un documento con la propuesta (`docs/funciones-celular.md`), con bocetos de cada pantalla y las decisiones que tendrá que tomar el dueño. No cambia la app: lo que se apruebe entra como fases nuevas.
+- Apoyo: las skills de diseño (impeccable, para la estructura y el uso) y Gemini para contrastar la propuesta.
+
+### Fase 20 · Auditoría de la interfaz con las skills de diseño
+
+Decisión 40. Al terminar las fases 16 a 19, una revisión de toda la interfaz con las skills de diseño instaladas en el equipo del dueño, además de la auditoría de pantallas de siempre (`auditar-responsive`):
 
 - **impeccable**: sus revisiones de auditoría, crítica, robustez y adaptación a cada pantalla (jerarquía, legibilidad, estados vacíos y de error, accesibilidad, celular y tableta).
 - **break-ui**: los peores datos posibles en cada pantalla (nombres larguísimos, listas vacías o enormes, categorías y textos sin nombre, citas sin autor).
@@ -495,6 +507,7 @@ Tomadas el 2026-10-04.
 | 37 | Himnario corregido (2026-10-16) | **Sí a la fase 15** (himnario corregido y «Letras sin música»), tal como se propuso. Con la portada al aire, «Anterior» se queda en ella. `HIMNARIO_NUEVO.md` y «Categorías del himnario.md» (de `Contenido/Himnario/`) no se publican: de `Contenido/` solo van los `LEEME.txt` |
 | 38 | Tras probar la 1.17 (2026-10-16) | «Escuchar aquí» se quita si no hay una solución segura (no la hay sin un celular de verdad para probar). La barra de abajo del escritorio se aparta sola sin uso. yt-dlp se pone al día solo y YouTube reintenta. **Node.js propio para YouTube**: si el del equipo es anterior al 22, Manna instala el oficial (nodejs.org) solo para eso y lo pone al día solo. Publicar todo junto en la 1.18.0 |
 | 39 | Manejar páginas web desde el celular (2026-10-16) | **S40 se descarta por ahora**, aunque la prueba de concepto funcionó. El estudio queda en la sección 11 por si se retoma |
+| 41 | Funciones especializadas para el celular (2026-10-17) | **Antes de la auditoría de la interfaz, una investigación** (fase 19): plantear desde cero funciones dedicadas para el celular, cada una con pocas cosas en pantalla, en lugar del control total. Qué funciones, qué puede hacer cada una, qué tiene en pantalla y cómo se usa. La auditoría pasa a ser la fase 20 |
 | 40 | Videos, Medios con Diapositivas, Textos y auditoría de la interfaz (2026-10-16) | **Sí a las fases 16 a 19**, con las recomendaciones del asistente: un video puede estar en varias categorías, también los de la carpeta de la iglesia; el Servicio de alabanza recibe Videos en lugar de Medios; en Textos, una línea en blanco parte un texto largo en pantallas; orden 16, 17, 18 y 19. La fase 19 (auditoría de la interfaz con las skills de diseño del dueño) va al terminar las otras tres. Los arreglos de la tableta se publican con la fase 16 |
 | 19 | Televisor, tras la primera prueba | **En pausa.** Remotamente solo se abrió el navegador y el puntero se movió un poco; escribiendo la dirección a mano tampoco carga. Se retoma cuando estén hechas las demás modificaciones |
 
@@ -588,9 +601,10 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 10 Presentador | **Hecha** · 2026-10-14, publicada en la 1.10.0 | | Probada en Chrome (con dedos simulados) y en la auditoría de pantallas. Falta la prueba del dueño con un celular real y el proyector |
 | 11 Páginas web | **Hecha** · 2026-10-14 | 1.11.0 | Probada con pruebas automáticas y en Chrome real, con páginas de un servidor del propio equipo. **Falta la prueba del dueño**: la ventana aparte con el proyector, Canva y Kahoot de verdad, y en Windows |
 | 16 Videos | **Hecha** · 2026-10-17 | 1.19.0 | Videos es una pantalla propia del módulo de medios (`media/videos.js`), detrás del Himnario: los videos subidos, los de la carpeta y los de YouTube juntos, con el enlace de YouTube en la cabecera. Categorías con el nombre que se quiera (`media.category*`), un video en varias, que se renombran y se eliminan sin borrar videos. Medios queda con Imágenes y Audios; Alabanza recibe Videos. Salen también los arreglos de la tableta pequeña acostada y «Mover» con PowerPoint en vivo. Pruebas al cerrar: 166 automáticas (una nueva de las categorías), 454 en Chrome (con las cuatro órdenes nuevas pulsadas), auditoría de 10 tamaños sin problemas (con Videos, una categoría y YouTube). **Sin probar**: en celulares y tabletas reales, y en Windows |
-| 17 Diapositivas en Medios | **Pendiente** (decisión 40) | 1.20.0 | |
+| 17 Diapositivas en Medios | **Hecha** · 2026-10-17 | 1.20.0 | Medios tiene Imágenes, Audios y Diapositivas; Diapositivas sale del dock. La pestaña es `web/modules/slides/panel.js` (antes su `workspace.js`), con la forma de las de Medios, que la importa (excepción documentada). Arrastrar un PDF o un PowerPoint a Medios lo lleva a ella; «Añadir → Diapositivas» del orden abre esa pestaña (`ctx.go(id, parte)`). El servidor y el Presentador no cambian. Pruebas al cerrar: 166 automáticas, 454 en Chrome (una, la búsqueda de la Biblia, falló con el equipo cargado y pasó al repetir su grupo), auditoría de 10 tamaños sin problemas. **Sin probar**: en celulares y tabletas reales |
 | 18 Textos | **Pendiente** (decisión 40) | 1.21.0 | |
-| 19 Auditoría de la interfaz | **Pendiente** (decisión 40) | 1.22.0 | |
+| 19 Investigación: funciones para el celular | **Pendiente** (decisión 41) | sin versión | |
+| 20 Auditoría de la interfaz | **Pendiente** (decisión 40) | 1.22.0 | |
 | 15 Himnario corregido y Letras sin música | **Hecha** · 2026-10-16 | 1.17.0 | Categorías en dos niveles (sección y categoría, como el índice del himnario) y la pestaña «Letras sin música»: las diapositivas de cada himno, tipo `lyrics`, que se pasan a mano y tras la última vuelven a la portada del mismo himno. Con el himnario real corregido, en un servidor de prueba: 613 himnos, todos con letra y diapositivas, 46 categorías en 7 secciones, sin avisos. Cierra S7, S29, S30 y S31. Pruebas al cerrar: 160 automáticas, 444 en Chrome (8 nuevas del himnario), auditoría de 9 tamaños sin problemas (con la pestaña nueva). **Sin probar**: el himnario real en Chrome y en Windows, y las letras sin música en el proyector |
 | 14 Ajustes tras la prueba | **Hecha** · 2026-10-16 | 1.16.0 | Parte 1: YouTube con el Node de Manna como intérprete de JavaScript y el motivo de cada fallo en el registro; «Actualizar» ya no rompe el programa que funcionaba; «Escuchar aquí» con un solo reproductor y sincronización tolerante; «Escuchar» del Himnario siempre cantado; el Presentador ya no arrastra la diapositiva con el ratón y pierde el zoom viejo. Parte 2: mandos siempre a la vista en la barra de abajo, «Solo fondo» y «Negro» arriba, «Señalar» y «Mover» también en Control y Orden (`projection/gestures.js`), hoja de mandos del celular con márgenes, Presentador con la anterior y la siguiente debajo. Parte 3: categorías del Himnario más limpias, «Buscar en todo» con más aire, botón de la cola fijo y con forma según su estado, proyección de fondo que se desvanece en los bordes. Parte 4: sin desenfoque con un video al aire, y sin reproducir el video de fondo en los celulares salvo al escuchar. Parte 5: espacio en disco y «Limpiar multimedia temporales» (S24), tamaño de los subtítulos (S23), punto rojo encima del pase de PowerPoint (S39, revisado por Gemini). Pruebas al cerrar: 159 automáticas, 434 en Chrome, auditoría de 9 tamaños sin problemas. **Sin probar en Windows**: YouTube, el punto rojo en PowerPoint y el consumo en un equipo modesto; **ni en un celular real**: «Escuchar aquí» |
 | 12 PowerPoint en vivo | **Hecha** · 2026-10-15 | 1.14.0 | Antes, S37: la prueba en Chrome baja a menos de 3 min (YouTube y el himnario al grupo «red»). PowerPoint en vivo con el original guardado, «Pasar con PowerPoint» / «Pasar como imágenes», «Siguiente» y «Anterior» dados por PowerPoint (con las animaciones), seguimiento de lo que se pase en el equipo y vuelta a las imágenes si falla. Gemini revisó el guion de PowerShell y se aplicaron sus avisos (sección 10). Pruebas al cerrar: 157 automáticas, 427 en Chrome, auditoría de 9 tamaños sin problemas, todo con un PowerPoint de mentira. **El guion de verdad no se ha ejecutado: falta la prueba del dueño en Windows con PowerPoint y el proyector (S25)**. Sigue la fase 9 (auditoría) |
@@ -791,6 +805,10 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-16 | Fase 15: las categorías «Sección: Categoría» se agrupan bajo su sección, sin cambiar el formato del archivo de letras | El índice del himnario tiene dos niveles; el archivo ya los escribe así |
 | 2026-10-16 | S7, S29, S30 y S31 se cierran con la fase 15 | El dueño corrigió el archivo de letras (S7, S29) y sus categorías siguen el índice oficial (S30); «Letras sin música» proyecta las letras (S31) |
 | 2026-10-16 | S24 y S39 se hicieron en la fase 14; S27 se descarta | Decisión 36 |
+| 2026-10-17 | Se añade la fase 19 (investigación de funciones especializadas para el celular) antes de la auditoría de la interfaz, que pasa a ser la 20 | Decisión 41 |
+| 2026-10-17 | Fase 17: un módulo puede abrir la pestaña de otro (`ctx.go('medios', 'diapositivas')`, con `part(id)` en lo que devuelve su `mount`) | «Añadir → Diapositivas» del orden del culto llevaba al módulo que ya no está en el dock |
+| 2026-10-17 | Fase 17: «Presentaciones» (volver a la lista en el cajón estrecho) va dentro de la pestaña, encima de las diapositivas, no en la cabecera | La cabecera es de Medios (sus pestañas y «Subir») |
+| 2026-10-17 | Fase 17: la dirección `#diapositivas` ya no abre nada propio (lleva al primer módulo); `#medios` abre la última pestaña elegida | Diapositivas no tiene pantalla en el dock |
 | 2026-10-17 | Fase 16: las categorías van dentro de la cabecera de Videos, no en una fila aparte; en el cajón estrecho y en las pantallas bajas, sin el título «Videos» (lo dice el cajón) y con «Subir» y «Añadir» solo con su icono | Con una fila aparte, la auditoría daba 80 a 144 px para la lista en el celular pequeño, el celular acostado y la tableta pequeña acostada (pide 150). Así quedan 172 a 212 |
 | 2026-10-17 | Fase 16: en la tableta baja, el aviso de un programa que falta va en una sola fila (el texto se parte, los botones no) | Era lo que dejaba sin sitio a Medios › YouTube en 960 × 540 (problema conocido anotado el 2026-10-16); ahora sirve a Videos y a cualquier módulo |
 | 2026-10-17 | Fase 16: `media.categoryToggle` acepta `on` (poner o quitar) además de cambiarlo; los nombres de categoría tienen hasta 40 letras y no se repiten (sin contar mayúsculas) | Poner y quitar desde el menú del video no depende de lo que haya hecho otro dispositivo mientras tanto |

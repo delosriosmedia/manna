@@ -301,6 +301,8 @@ const tapEl = async (js, clicks = 1) => {
 };
 // Abre un módulo en el cajón. Pulsar el icono del que ya está abierto lo cierra: solo se pulsa si no está.
 const goTo = (id) => run(`const b = document.querySelector('.dock-item[data-id=${id}]'); if (!b.classList.contains('on')) b.click();`);
+// Diapositivas es una pestaña de Medios (fase 17).
+const openSlides = async () => { await goTo('medios'); await sleep(300); await run(`document.querySelector('.media-tabs [data-tab=diapositivas]').click()`); await sleep(500); };
 // Los mandos del tipo al aire: en el escritorio, siempre a la vista en la barra de abajo (fase 14); en el celular, en
 // una capa que se abre con el botón de la tarjeta de lo al aire. LIVE es el que se ve.
 const LIVE = `([...document.querySelectorAll('.tb-extra .live-controls, .controls-pop .live-controls')].find((c) => c.getClientRects().length) || document.querySelector('.tb-extra .live-controls'))`;
@@ -901,7 +903,7 @@ try {
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await sleep(500);
   const dockNames = `[...document.querySelectorAll('.dockbar .dock-item')].map(b => b.querySelector('.dock-name').textContent).join('|')`;
-  check('en el celular, el dock va abajo con todos los módulos y su nombre, sin «Más»', await run(`const r = document.querySelector('.dockbar').getBoundingClientRect(); return ${dockNames} === 'Orden|Biblia|Himnario|Videos|Medios|Diapositivas|Páginas web|Ajustes' && getComputedStyle(document.querySelector('.dock-name')).display !== 'none' && r.bottom > innerHeight - 30 && r.top > innerHeight / 2 && !document.querySelector('.tabbar') && ![...document.querySelectorAll('.dockbar button')].some(b => b.textContent === 'Más') && document.querySelector('.dock-item.on').dataset.id === 'medios'`), await run(`return ${dockNames}`));
+  check('en el celular, el dock va abajo con todos los módulos y su nombre, sin «Más»', await run(`const r = document.querySelector('.dockbar').getBoundingClientRect(); return ${dockNames} === 'Orden|Biblia|Himnario|Videos|Medios|Páginas web|Ajustes' && getComputedStyle(document.querySelector('.dock-name')).display !== 'none' && r.bottom > innerHeight - 30 && r.top > innerHeight / 2 && !document.querySelector('.tabbar') && ![...document.querySelectorAll('.dockbar button')].some(b => b.textContent === 'Más') && document.querySelector('.dock-item.on').dataset.id === 'medios'`), await run(`return ${dockNames}`));
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(400);
 
@@ -1382,19 +1384,18 @@ try {
 
   // ---- Grupo «biblioteca» (2): diapositivas, presentador y páginas web ----
   if (inGroup('biblioteca')) {
-  console.log('\n1. Interfaz · Diapositivas');
+  console.log('\n1. Interfaz · Diapositivas (pestaña de Medios)');
   {
-    const ws = `document.querySelector('.ws[data-module=diapositivas]')`;
-    const dbar = `${ws}.querySelector('.deck-bar')`;
+    const ws = `document.querySelector('.decks[data-panel=diapositivas]')`;
+    const dbar = `document.querySelector('.deck-bar')`;
     const decksNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).slides.decks)`).then(JSON.parse);
     const onAir = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ item: s.projection.item, live: s.live.state, order: s.order.items })`).then(JSON.parse);
-    const pickFile = async (file) => { await chooseFiles('.ws[data-module=diapositivas] input[type=file]', [file]); await sleep(600); };
+    const pickFile = async (file) => { await chooseFiles('.decks[data-panel=diapositivas] input[type=file]', [file]); await sleep(600); };
     const slide = (n) => `${ws}.querySelector('.slide-pick[data-n="${n}"]')`;
     const deckMenu = async (cardJs, label) => { await click(`${cardJs}.querySelector('.deck-more')`); await sleep(300); await menuItem(label); await sleep(400); };
     const liveBox = LIVE;
-    await goTo('diapositivas');
-    await sleep(500);
-    check('Diapositivas ya es un módulo: sin presentaciones, invita a subir un PDF o un PowerPoint', await run(`return document.title === 'Manna · Diapositivas' && ${ws}.querySelector('.empty').textContent.includes('Aún no hay presentaciones') && ${ws}.querySelector('.empty').textContent.includes('PDF o una presentación de PowerPoint') && ${dbar}.hidden`));
+    await openSlides();
+    check('Diapositivas es una pestaña de Medios (sin botón en el dock): sin presentaciones, invita a subir un PDF o un PowerPoint', await run(`return document.title === 'Manna · Medios' && !document.querySelector('.dock-item[data-id=diapositivas]') && ${ws}.querySelector('.empty').textContent.includes('Aún no hay presentaciones') && ${ws}.querySelector('.empty').textContent.includes('PDF o una presentación de PowerPoint') && ${dbar}.hidden`));
     const notDeck = path.join(tmp, 'no-es-presentacion.txt');
     fs.writeFileSync(notDeck, 'unas notas');
     await pickFile(notDeck);
@@ -1474,7 +1475,7 @@ try {
     check('desde el orden se proyecta la que se toque, y «Siguiente» sigue por ahí', air.item.number === 2 && air.item.source.orderId === inOrder.id && await (async () => { await press('ArrowRight'); return (await onAir()).item.number === 3; })());
 
     // Un PowerPoint: lo convierte el PowerPoint del equipo principal (aquí, uno de mentira).
-    await goTo('diapositivas');
+    await openSlides();
     await sleep(400);
     const lesson = path.join(tmp, 'escuela sabatica.pptx');
     fs.writeFileSync(lesson, fakePresentation());
@@ -1534,11 +1535,11 @@ try {
 
     // En el celular: primero las presentaciones; al tocar una, sus diapositivas.
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-    await chrome.send('Page.navigate', { url: `${local}/control?m=${Date.now()}#diapositivas` });
+    await chrome.send('Page.navigate', { url: `${local}/control?m=${Date.now()}#medios` });
     await sleep(2500);
-    const shownPane = () => run(`const vis = (s) => { const e = ${ws}.querySelector(s); return Boolean(e) && e.getClientRects().length > 0; }; return JSON.stringify({ list: vis('.deck-list'), pages: vis('.deck-pages'), back: vis('.deck-back'), tab: document.querySelector('.dock-item.on .dock-name')?.textContent })`).then(JSON.parse);
+    const shownPane = () => run(`const vis = (s) => { const e = ${ws}.querySelector(s); return Boolean(e) && e.getClientRects().length > 0; }; return JSON.stringify({ list: vis('.deck-list'), pages: vis('.deck-pages'), back: vis('.deck-back'), tab: document.querySelector('.media-tabs .chip.on')?.textContent })`).then(JSON.parse);
     let pane = await shownPane();
-    check('en el celular se ve el cajón de Diapositivas, con las presentaciones primero', pane.list && !pane.pages && !pane.back && pane.tab === 'Diapositivas', JSON.stringify(pane));
+    check('en el celular se ve el cajón de Medios en Diapositivas, con las presentaciones primero', pane.list && !pane.pages && !pane.back && pane.tab === 'Diapositivas', JSON.stringify(pane));
     await click(`${ws}.querySelector('.deck-pick')`);
     await sleep(400);
     pane = await shownPane();
@@ -1548,7 +1549,7 @@ try {
     pane = await shownPane();
     check('«Presentaciones» vuelve a la lista', pane.list && !pane.pages);
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
-    await chrome.send('Page.navigate', { url: `${local}/control?d=${Date.now()}#diapositivas` });
+    await chrome.send('Page.navigate', { url: `${local}/control?d=${Date.now()}#medios` });
     await sleep(2500);
   }
 
@@ -1655,7 +1656,7 @@ try {
     await sleep(500);
     check('con «Señalar» encendido, el toque señala en la proyección y no pasa', pointed.x != null && (await num()) === 2, JSON.stringify(pointed));
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
-    await chrome.send('Page.navigate', { url: `${local}/control?p=${Date.now()}#diapositivas` });
+    await chrome.send('Page.navigate', { url: `${local}/control?p=${Date.now()}#medios` });
     await sleep(2500);
     // Lo que señala el Presentador también se ve en el fondo del control.
     await run(`return await ${post('projection.pointer', { x: 0.4, y: 0.4 })}`);
@@ -2375,6 +2376,13 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await sleep(400);
   await click(`[...${ord}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes('Añadir'))`);
   await sleep(300);
+  await menuItem('Diapositivas');
+  await sleep(500);
+  check('y a las presentaciones, en la pestaña Diapositivas de Medios', (await chrome.evaluate('document.title')) === 'Manna · Medios' && await run(`return document.querySelector('.ws[data-module=medios] .media-tabs .chip.on')?.dataset.tab === 'diapositivas'`));
+  await goTo('orden');
+  await sleep(400);
+  await click(`[...${ord}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes('Añadir'))`);
+  await sleep(300);
   await menuItem('Página web');
   await sleep(500);
   check('y a las páginas web', (await chrome.evaluate('document.title')) === 'Manna · Páginas web');
@@ -2436,15 +2444,14 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   })());
 
   console.log('\n5. Diapositivas en un equipo sin PowerPoint');
-  await goTo('diapositivas');
-  await sleep(500);
+  await openSlides();
   const withoutPpt = path.join(tmp, 'sermon del sabado.pptx');
   fs.writeFileSync(withoutPpt, fakePresentation());
-  await chooseFiles('.ws[data-module=diapositivas] input[type=file]', [withoutPpt]);
+  await chooseFiles('.decks[data-panel=diapositivas] input[type=file]', [withoutPpt]);
   await sleep(600);
   check('sin PowerPoint, al elegir uno se explica cómo guardarlo como PDF, sin subir nada', await run(`return ${modal}.querySelector('h2').textContent === 'Hace falta el PDF de la presentación' && ${modal}.textContent.includes('Exportar') && !${modal}.querySelector('input')`) && await run(`return document.querySelector('.ws-notice').hidden`));
   await modalButton('Entendido');
-  check('y lo que ya estaba en la biblioteca sigue ahí tras reabrir Manna', await run(`return document.querySelectorAll('.ws[data-module=diapositivas] .deck[data-status=ready]').length === 1`));
+  check('y lo que ya estaba en la biblioteca sigue ahí tras reabrir Manna', await run(`return document.querySelectorAll('.decks[data-panel=diapositivas] .deck[data-status=ready]').length === 1`));
 
   console.log('\n5. Actualización con Manna abierto, reinicio y apagado');
   const bar = `document.querySelector('.update-bar')`;

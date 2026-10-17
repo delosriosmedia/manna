@@ -10,10 +10,11 @@ const SOURCES = { pdf: 'PDF', powerpoint: 'PowerPoint' };
 // Con sitio para las dos columnas, siempre hay una presentación abierta.
 const NARROW = 600; // por debajo de este ancho del cajón, una cosa cada vez (lo mismo dice slides.css)
 
-// Módulo Diapositivas: las presentaciones de la iglesia (PDF o PowerPoint), convertidas en
-// imágenes. A la izquierda, las presentaciones; a la derecha, las diapositivas de la elegida.
-// En pantallas estrechas se ve una cosa cada vez.
-function mount(el, ctx) {
+// Pestaña Diapositivas de Medios (fase 17 de docs/PLAN.md): las presentaciones de la iglesia (PDF o
+// PowerPoint), convertidas en imágenes. A la izquierda, las presentaciones; a la derecha, las diapositivas
+// de la elegida. En el cajón estrecho se ve una cosa cada vez. Tiene la forma de las pestañas de Medios
+// (media/workspace.js), que la importa: es la excepción a que un módulo no importe archivos de otro.
+export function createSlidesPanel(ctx) {
   let deckId = null;  // presentación elegida
   let page = 1;       // diapositiva elegida en ella
   let followed = '';  // lo último que se siguió de lo que está al aire
@@ -35,11 +36,10 @@ function mount(el, ctx) {
     if (picker.files[0]) startUpload(picker.files[0]);
     picker.value = '';
   });
-  const uploader = ctx.canEdit && h('button', { class: 'btn', onclick: () => picker.click() }, icon('upload-simple', 16), h('span', {}, 'Subir', h('span', { class: 'deck-long' }, ' presentación')));
   const back = h('button', { class: 'btn deck-back', onclick: () => choose(null) }, icon('caret-left', 16), 'Presentaciones');
   const list = h('div', { class: 'deck-list' });
-  const pages = h('div', { class: 'deck-pages' });
-  const body = h('div', { class: 'decks', dataset: { view: 'list' } }, list, pages);
+  const pages = h('div', {});
+  const el = h('div', { class: 'decks', dataset: { view: 'list', panel: 'diapositivas' } }, list, h('div', { class: 'deck-pages' }, back, pages), picker);
 
   // "Diapositiva 3 de 12" (en el celular, "3 de 12") y, al lado, el nombre de la presentación.
   const where = h('span', {});
@@ -49,7 +49,7 @@ function mount(el, ctx) {
     if (deck?.status === 'ready') await action('projection.show', { kind: 'slides', data: { id: deck.id }, step: page - 1 });
   });
   const show = h('button', { class: 'btn primary', onclick: () => project() }, icon('play', 16), 'Proyectar', h('kbd', {}, '↵'));
-  const bar = h('div', { class: 'abar deck-bar', hidden: true },
+  const bar = h('div', { class: 'abar media-bar deck-bar', hidden: true, dataset: { panel: 'diapositivas' } },
     h('span', { class: 'sel-ref' }, h('span', { class: 'deck-long' }, 'Diapositiva '), where), name,
     h('button', { class: 'btn', onclick: guard(async () => {
       const deck = current();
@@ -57,7 +57,6 @@ function mount(el, ctx) {
       toast(`«${deck.name}» añadida al orden del culto.`);
     }) }, icon('plus', 16), 'Añadir al orden'),
     show);
-  el.replaceChildren(h('div', { class: 'ws-head' }, back, h('h1', {}, 'Diapositivas'), h('span', { class: 'spacer' }), uploader), body, bar, picker);
 
   function choose(id, number = null) {
     awaited = id && !decks().some((d) => d.id === id) ? id : null;
@@ -199,8 +198,7 @@ function mount(el, ctx) {
     }
     const deck = current();
     if (deck && page > Math.max(1, deck.pages)) page = 1;
-    body.dataset.view = deck ? 'pages' : 'list';
-    el.classList.toggle('deck-open', Boolean(deck));
+    el.dataset.view = deck ? 'pages' : 'list';
     back.hidden = !deck;
     renderList(all, air);
     renderPages(deck, air);
@@ -224,25 +222,11 @@ function mount(el, ctx) {
   subscribe('tools', render);
   subscribe('jobs', () => { if (decks().some((d) => d.status === 'converting')) render(); });
 
-  // Arrastrar un archivo desde el escritorio.
-  if (ctx.canEdit) {
-    const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes('Files');
-    el.addEventListener('dragover', (e) => {
-      if (!hasFiles(e)) return;
-      e.preventDefault();
-      el.classList.add('dropping');
-    });
-    el.addEventListener('dragleave', (e) => { if (!el.contains(e.relatedTarget)) el.classList.remove('dropping'); });
-    el.addEventListener('drop', (e) => {
-      if (!hasFiles(e)) return;
-      e.preventDefault();
-      el.classList.remove('dropping');
-      const files = [...e.dataTransfer.files];
-      startUpload(files.find(acceptsDeck) || files[0]);
-    });
-  }
-
   return {
+    id: 'diapositivas', label: 'Diapositivas', uploadLabel: 'Subir presentación', el, bar,
+    pick: () => picker.click(),
+    accepts: acceptsDeck,
+    upload: (files) => startUpload(files.find(acceptsDeck) || files[0]),
     onShow: render,
     keys(e) {
       const deck = current();
@@ -259,8 +243,3 @@ function mount(el, ctx) {
   };
 }
 
-export default {
-  id: 'diapositivas', name: 'Diapositivas', icon: 'presentation-chart', mount,
-  // PowerPoint es opcional: sin él se suben los PDF. El módulo lo explica al elegir un archivo.
-  needs: [{ tools: ['powerpoint'], feature: 'abrir presentaciones de PowerPoint (los PDF sí funcionan)' }],
-};
