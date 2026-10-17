@@ -3,6 +3,7 @@ import { h, dialog, guard, menu, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { kindBadge, kindOf, titleOf } from '../../core/kinds.js';
 import { prefs } from '../../core/prefs.js';
+import { whenLabel } from '../../core/time.js';
 import { createStage } from '../projection/stage.js';
 import { createLiveControls } from '../projection/live.js';
 
@@ -25,6 +26,12 @@ function describe(item) {
 // Los tipos que suenan: su elemento ofrece «Escuchar en este dispositivo».
 const SOUNDS = new Set(['song', 'video', 'audio', 'youtube']);
 
+// El nombre que se propone al guardar un orden: el día, la fecha y la hora («Sábado 18/10/26 19:30»).
+const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const two = (n) => String(n).padStart(2, '0');
+const nameForNow = (d = new Date()) => `${DAYS[d.getDay()]} ${two(d.getDate())}/${two(d.getMonth() + 1)}/${two(d.getFullYear() % 100)} ${two(d.getHours())}:${two(d.getMinutes())}`;
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
 function mount(el, ctx) {
   let items = [];
   let selectedId = null;
@@ -46,13 +53,18 @@ function mount(el, ctx) {
   // Mandos del elemento que está al aire. Se crean una vez y se colocan en su detalle.
   const liveControls = h('div', {});
   createLiveControls(liveControls);
+  // El orden en uso («Sin nombre» o el suyo); con permiso de editar, abre «Órdenes guardados».
+  const orderName = h('span', {});
+  const switcher = ctx.canEdit
+    ? h('button', { class: 'btn order-switch', 'aria-haspopup': 'dialog', title: 'Órdenes guardados', onclick: () => openOrders() }, icon('folder-simple', 16), orderName, icon('caret-down', 14))
+    : h('span', { class: 'order-switch' }, orderName);
   const quick = h('input', {
     type: 'text', placeholder: 'Añadir una cita rápida: jn 3 16', autocomplete: 'off', 'aria-label': 'Añadir una cita al orden',
     onkeydown: (e) => { if (e.key === 'Enter') quickAdd(quick.value.trim()); },
   });
 
   el.replaceChildren(
-    h('div', { class: 'ws-head' }, h('h1', {}, 'Orden del culto'),
+    h('div', { class: 'ws-head' }, h('h1', {}, 'Orden del culto'), switcher,
       ctx.canEdit && h('label', { class: 'search' }, icon('plus', 16), quick, h('kbd', {}, '↵')),
       !ctx.canEdit && h('span', { class: 'spacer' }),
       ctx.canEdit && h('button', { class: 'btn', onclick: (e) => openAddMenu(e.currentTarget) }, icon('plus', 15), 'Añadir'),
@@ -110,6 +122,78 @@ function mount(el, ctx) {
     selectedId = item.id;
     toast(`Añadido: ${item.title}`);
   });
+
+  // ---- Órdenes guardados (fase 23 de docs/PLAN.md) ----
+  // Solo se guarda el que tiene nombre; el sin nombre se vacía al cerrar Manna. El que está en uso es el de la cola
+  // para todos los dispositivos, y cada cambio queda en él.
+  let ordersBox = null;
+  const ordersList = h('div', { class: 'orders' });
+  function openOrders() {
+    ordersBox = dialog('Órdenes guardados', ordersList,
+      h('p', { class: 'muted orders-note' }, 'Solo se guarda el orden que tiene nombre, y cada cambio queda guardado solo. El orden sin nombre se vacía al cerrar Manna.'),
+      h('div', { class: 'row', style: 'justify-content: flex-end;' }, h('button', { class: 'btn', onclick: () => startNew() }, icon('plus', 15), 'Nuevo orden')));
+    renderOrders();
+  }
+  function renderOrders() {
+    if (!ordersBox?.el.isConnected) return;
+    const o = state.order || {};
+    const row = ({ id = null, name, count, updated }) => {
+      const using = (o.active || null) === id;
+      return h('div', { class: `order-saved${using ? ' on' : ''}`, dataset: { id: id || '' } },
+        h('span', { class: 'item-text' }, h('strong', {}, name || 'Sin nombre'),
+          h('small', {}, [plural(count, 'elemento', 'elementos'), id ? whenLabel(updated) : 'se vacía al cerrar Manna'].join(' · '))),
+        using ? h('span', { class: 'badge' }, 'En uso') : h('button', { class: 'btn', onclick: () => use(id, name ? `«${name}»` : 'el orden sin nombre') }, 'Usar'),
+        !id && using && h('button', { class: 'btn primary', onclick: () => saveDraft() }, 'Guardar con un nombre'),
+        id && h('button', { class: 'icon-btn sm', 'aria-label': `Opciones de ${name}`, onclick: (e) => menu(e.currentTarget, [
+          { label: 'Cambiar el nombre', icon: 'pencil-simple', onclick: () => askTitle({ title: 'Cambiar el nombre', value: name, placeholder: name, onSave: (next) => run('order.renameOrder', { id, name: next }) }) },
+          { label: 'Duplicar', icon: 'copy', note: 'Una copia con otro nombre', onclick: () => askTitle({ title: 'Duplicar el orden', value: `${name} (copia)`, placeholder: name, onSave: (next) => run('order.duplicate', { id, name: next }) }) },
+          '-',
+          { label: 'Eliminar', icon: 'trash', onclick: () => confirmDelete(id, name) },
+        ]) }, icon('dots-three', 16)));
+    };
+    ordersList.replaceChildren(row({ count: o.draft || 0 }), ...(o.saved || []).map(row));
+  }
+  // then: lo que se hace después de guardarlo (empezar uno nuevo).
+  const saveDraft = (then = null) => askTitle({
+    title: 'Guardar con un nombre', value: nameForNow(), placeholder: nameForNow(),
+    hint: 'Queda en «Órdenes guardados» y sigue en uso. Cada cambio se guarda solo.',
+    onSave: guard(async (name) => {
+      await action('order.save', { name });
+      if (then) await then();
+    }),
+  });
+  // Lo que cambia para todos al dejar el orden en uso.
+  // buttons(close): los botones de la ventana, además de «Cancelar».
+  const ask = (title, text, buttons) => {
+    let box = null;
+    const close = () => box.close();
+    box = dialog(title, h('p', {}, text),
+      h('div', { class: 'row', style: 'justify-content: flex-end; flex-wrap: wrap;' },
+        h('button', { class: 'btn', onclick: close }, 'Cancelar'),
+        ...buttons(close)));
+  };
+  function use(id, label) {
+    ask('Cambiar de orden', `Todos los dispositivos verán ${label} en la cola del culto. Lo que está al aire sigue al aire.`, (close) => [
+      h('button', { class: 'btn primary', onclick: guard(async () => {
+        const { removed } = await action('order.use', id ? { id } : {});
+        close();
+        if (removed) toast(`Se quitaron ${plural(removed, 'elemento que ya no está', 'elementos que ya no están')} en la biblioteca.`);
+      }) }, 'Usar este orden')]);
+  }
+  function startNew() {
+    const o = state.order || {};
+    const lost = o.draft ? `El orden sin nombre tiene ${plural(o.draft, 'elemento', 'elementos')} y se vaciará. ` : '';
+    const kept = o.active ? `«${o.name}» queda guardado. ` : '';
+    if (!lost && !kept) return toast('Ya estás en un orden nuevo, sin nombre.');
+    ask('Nuevo orden', `${lost}${kept}Todos los dispositivos verán la cola vacía.`, (close) => [
+      lost && !o.active && h('button', { class: 'btn', onclick: () => { close(); saveDraft(() => action('order.new')); } }, 'Guardarlo antes'),
+      h('button', { class: `btn ${lost ? 'danger' : 'primary'}`, onclick: () => { run('order.new'); close(); } }, lost ? 'Vaciarlo y empezar' : 'Empezar uno nuevo'),
+    ].filter(Boolean));
+  }
+  function confirmDelete(id, name) {
+    ask('Eliminar el orden', `«${name}» se borra de los órdenes guardados.${state.order?.active === id ? ' Como está en uso, la cola pasa al orden sin nombre.' : ''}`, (close) => [
+      h('button', { class: 'btn danger', onclick: () => { run('order.deleteOrder', { id }); close(); } }, 'Eliminar')]);
+  }
 
   // Cualquier elemento puede llevar un nombre propio; el de su contenido sigue a la vista debajo.
   function rename(item) {
@@ -419,6 +503,8 @@ function mount(el, ctx) {
   // ---- Estado compartido ----
   subscribe('order', (o) => {
     items = o.items;
+    orderName.textContent = o.name || 'Sin nombre';
+    renderOrders();
     if (!items.some((i) => i.id === selectedId)) selectedId = null;
     renderList();
     const first = selectedId || (!collapsed && (live?.orderId || content()[0]?.id));

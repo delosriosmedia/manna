@@ -122,7 +122,10 @@ body.queue-closed.has-prep .drawer { --drawer-max: calc(100vw - 92px - 372px); }
 .queue { position: fixed; right: 18px; top: 84px; z-index: 2; width: 340px; max-height: calc(100dvh - 84px - var(--tb-space)); border-radius: 26px; background: var(--glass-2); display: flex; flex-direction: column; overflow: hidden; }
 body.has-prep .queue { max-height: calc(100dvh - 84px - var(--tb-space) - var(--prep-h, 0px) - 12px); }
 .queue-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; text-align: left; flex-shrink: 0; }
-.queue-head strong { flex: 1; font-weight: 600; }
+.queue-head strong { flex: 1; min-width: 0; font-weight: 600; }
+/* El nombre del orden en uso (órdenes guardados), debajo del título. */
+.queue-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-3); font-size: 12px; font-weight: 400; }
+.queue-name:empty { display: none; }
 .queue-head small { color: var(--ink-3); font: 500 12px var(--mono); }
 .queue-toggle { display: inline-flex; align-items: center; gap: 2px; color: var(--ink-2); }
 .queue-head:hover .queue-toggle { color: var(--accent); }

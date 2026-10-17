@@ -11,7 +11,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Biblia**: los 66 libros a la vista en una rejilla; capítulos y versículos; pasajes recientes. Lee los archivos `.xmm` (OpenLP) y `.xml` de la carpeta `Contenido/Biblias/`; basta copiar un archivo y aparece solo.
 - **Búsqueda**: por cita (`Juan 3:16-18`, `1 co 13 4`, `sal 23`) o por texto, mientras escribes. El texto se busca en la Reina-Valera 1960 (o en la versión elegida, si no está instalada) y el resultado se abre en la versión que tengas elegida. Los resultados salen por niveles (frase exacta, todas las palabras, parecidas), con lo encontrado resaltado, y se pueden limitar al Antiguo o al Nuevo Testamento.
 - **Comparar** (en la Biblia): el mismo pasaje en dos versiones, lado a lado o una sobre otra, cada una con su sigla. Se elige igual que cualquier pasaje, se proyecta, se añade al orden como elemento propio, y la disposición se puede cambiar mientras está al aire.
-- **Orden del culto**: la lista ordenada de todo lo que se va a proyectar, con secciones (Apertura, Mensaje…). Cada elemento muestra su tipo y sus pasos; "Siguiente" recorre los pasos y luego pasa al elemento que sigue. A cualquier elemento se le puede poner un nombre propio ("Lectura bíblica"). Se comparte entre todos los dispositivos.
+- **Orden del culto**: la lista ordenada de todo lo que se va a proyectar, con secciones (Apertura, Mensaje…). Cada elemento muestra su tipo y sus pasos; "Siguiente" recorre los pasos y luego pasa al elemento que sigue. A cualquier elemento se le puede poner un nombre propio ("Lectura bíblica"). Se comparte entre todos los dispositivos. **Órdenes guardados**: el orden de un culto se guarda con un nombre para volver a él más tarde con todos sus elementos, mientras tanto se usa otro; el que no tiene nombre se vacía al cerrar Manna.
 - **Himnario**: los himnos en video de tu iglesia, en una rejilla por número o agrupados por categorías (bajo su sección, como en el índice del himnario). Se llega a uno por su número, por su título o por un trozo de su letra; se elige si suena **cantado o solo la pista**, y se gobierna como cualquier video. Con el cajón ancho, la letra del elegido se lee al lado. **Letras sin música**: los mismos himnos en diapositivas, que se pasan a mano mientras se canta; tras la última, «Siguiente» vuelve a la portada del mismo himno.
 - **Medios**: toda la biblioteca de la iglesia en un mismo cajón, venga de donde venga: imágenes, videos (también de YouTube), audios y presentaciones. Va **separada por tipo**, cada grupo con su título, su color y cuántos hay, y dentro de cada uno del más antiguo al más reciente; cada elemento lleva la marca de su tipo. Un solo botón **Subir** para cualquier archivo.
   - **Categorías** con el nombre que quieras («Niños», «Domingo»…). **Principal** tiene lo que no está en ninguna; al poner algo en una categoría sale de Principal y queda solo ahí. Se pone **arrastrándolo hasta el nombre de la categoría** (con el dedo, manteniéndolo pulsado un momento) o desde su menú.
@@ -145,6 +145,18 @@ Reconecta solo; no hay que recargar la página. Si el aviso rojo no desaparece:
 - Si otro programa ya usa el puerto 80, Manna usa el 8000 y la dirección pasa a ser `manna.local:8000`. La dirección exacta siempre está en **Dispositivos**.
 - **En un televisor**: su navegador suele convertir la dirección en una página segura (`https`). Manna atiende de las dos formas; escribe la dirección completa, por ejemplo `192.168.1.14:8000/proyeccion` (está en **Dispositivos → ¿Es un televisor?**). Si el televisor muestra un aviso de seguridad, elige "Avanzado" y "Continuar": la página es tu propio equipo. Para pantalla completa, pulsa OK en su control.
 - Con dos Manna en la misma red, el segundo se llama `manna-2.local`.
+
+### Órdenes del culto guardados
+
+Al abrir Manna, el orden del culto empieza vacío y **sin nombre**. Solo se guarda el que tiene nombre; el sin nombre se vacía al cerrar Manna (si Manna se reinicia, o se cortó y vuelve a abrirse antes de 15 minutos, conserva lo que tenía).
+
+1. En **Orden**, junto al título, el nombre del orden en uso («Sin nombre») abre **Órdenes guardados**.
+2. **Guardar con un nombre** lo deja en la lista; el nombre que se propone es el día, la fecha y la hora («Sábado 18/10/26 19:30»). Sigue en uso, y cada cambio queda guardado solo.
+3. **Nuevo orden** empieza otro vacío (si el sin nombre tenía algo, avisa y ofrece guardarlo antes).
+4. **Usar** pone otro en uso: todos los dispositivos lo ven en la cola del culto, que muestra su nombre. Lo que está al aire sigue al aire. Si algo de ese orden ya no está en la biblioteca, se quita y se avisa.
+5. En el menú (⋯) de un orden guardado: **Cambiar el nombre**, **Duplicar** (para preparar el de la semana siguiente a partir de este) y **Eliminar**.
+
+La función «Control del orden» ve el nombre del orden en uso, pero no cambia de orden.
 
 ### Medios y sus categorías
 

@@ -128,8 +128,10 @@ export function createEscenario(ctx) {
   // El botón de plegar va siempre arriba a la derecha, y su forma dice qué hará: desplegada, la flecha hacia arriba
   // (plegar); plegada, la lista con la flecha hacia abajo (desplegar).
   const queueToggle = h('span', { class: 'queue-toggle', 'aria-hidden': 'true' });
+  // Debajo del título, el nombre del orden en uso (si tiene).
+  const queueName = h('span', { class: 'queue-name' });
   const queueHead = h('button', { class: 'queue-head', 'aria-expanded': String(queueOpen), onclick: () => setQueue(!queueOpen) },
-    h('strong', {}, 'Cola del culto'), queuePos, queueToggle);
+    h('strong', {}, 'Cola del culto', queueName), queuePos, queueToggle);
   const queue = h('aside', { class: 'queue glass', 'aria-label': 'Cola del culto' }, queueHead, jobs, queueList);
   function setQueue(open) {
     queueOpen = open;
@@ -344,7 +346,8 @@ export function createEscenario(ctx) {
     renderStory(p);
     renderPrepared();
   });
-  subscribe('order', () => {
+  subscribe('order', (o) => {
+    queueName.textContent = o.name || '';
     renderQueue();
     if (state.projection) renderStory(state.projection);
     upNext.textContent = nextText();

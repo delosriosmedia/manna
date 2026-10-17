@@ -4,6 +4,12 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.27.0 — 2026-10-17
+
+- **Órdenes del culto guardados**: el orden de un culto se guarda con un nombre (se propone el día, la fecha y la hora: «Sábado 18/10/26 19:30») para volver a él más tarde con todos sus elementos, mientras se usa otro. Se abren desde el nombre del orden, junto al título del Orden: usar otro, empezar uno nuevo, cambiar el nombre, duplicar y eliminar. Cada cambio se guarda solo, y la cola del culto muestra el nombre del que está en uso.
+- Al abrir Manna, el orden del culto empieza vacío y sin nombre: el que no tiene nombre se vacía al cerrar Manna. Si Manna se reinicia, o se cortó y vuelve a abrirse antes de 15 minutos, conserva lo que tenía.
+- Al actualizar, el orden que había queda guardado como «Orden del culto», y esa vez sigue en uso.
+
 ## 1.26.0 — 2026-10-17
 
 - **Medios lo tiene todo, en un mismo cajón**: imágenes, videos (también los de YouTube), audios y presentaciones (PDF y PowerPoint). Videos deja de ser un módulo aparte. Van separados por tipo, cada grupo con su título, su color y cuántos hay, y dentro de cada uno del más antiguo al más reciente; cada elemento lleva la marca de su tipo.
