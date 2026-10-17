@@ -1,5 +1,5 @@
 /* Medios (fase 22): toda la biblioteca en un cajón, en grupos por tipo, con las categorías arriba. */
-.ws[data-module='medios'] .ws-head { flex-wrap: wrap; row-gap: 10px; }
+.ws[data-module='medios'] .ws-head { flex-wrap: wrap; row-gap: 8px; }
 /* Las categorías, en la cabecera, en una fila propia que se desliza si no caben. Son también donde se suelta
    lo que se arrastra (drag.js). */
 .media-cats { order: 5; flex: 1 1 100%; min-width: 0; display: flex; align-items: center; gap: 6px; overflow-x: auto; scrollbar-width: none; }
@@ -86,10 +86,9 @@ html.touch .media-more { width: var(--tap); height: var(--tap); right: 2px; bott
 .up-row.done small { color: var(--ok); }
 .up-row.done .bar span { background: var(--ok); }
 
-/* Cajón mediano: el campo de YouTube va en su propia línea, bajo el título. */
+/* Cajón mediano. El campo de YouTube se queda en la fila del título, «Subir» y ampliar y cerrar; las categorías, debajo. */
 @container cajon (max-width: 899px) {
   .media-body { padding: 12px 16px 20px; }
-  .media-entry { order: 4; flex: 1 1 100%; max-width: none; }
 }
 @container cajon (max-width: 599px) {
   .media-body { padding: 10px 12px 16px; }
@@ -103,10 +102,10 @@ html.touch .media-more { width: var(--tap); height: var(--tap); right: 2px; bott
   .media-bar .sel-ref { display: none; }
 }
 /* Pantallas bajas (celular o tableta en horizontal): la cabecera en una sola fila, con el enlace, las
-   categorías (se deslizan) y «Subir» con su icono; sin repetir su nombre (lo dice el cajón). */
+   categorías (se deslizan) y «Subir» con su icono. */
 @media (max-width: 859px) and (max-height: 480px), (min-width: 860px) and (max-height: 640px) {
   .ws[data-module='medios'] .ws-head { flex-wrap: nowrap; }
-  .ws[data-module='medios'] .ws-head h1, .ws[data-module='medios'] .ws-head > .spacer, .media-upload span, .yt-add .btn span { display: none; }
+  .ws[data-module='medios'] .ws-head > .spacer, .media-upload span, .yt-add .btn span { display: none; }
   .ws[data-module='medios'] .media-entry { order: 0; flex: 3 1 0; max-width: 360px; }
   .media-cats, html:not(.touch) .media-cats { order: 1; flex: 2 1 0; flex-wrap: nowrap; overflow-x: auto; }
   .media-upload { order: 2; }

@@ -30,7 +30,6 @@ function mount(el, ctx) {
   // «Letras sin música»: el himno se proyecta con sus diapositivas (tipo lyrics), sin sonido.
   const letras = () => view === 'letras';
   const slideUrl = (hymn, i) => `${hymn.slidesBase}${encodeURIComponent(hymn.slideFiles[i])}`;
-  const lyricsPreview = (hymn) => ({ kind: 'lyrics', number: hymn.number, title: hymn.title, index: 1, pages: hymn.slides, url: slideUrl(hymn, 0), thumb: slideUrl(hymn, 0), fit: 'contain' });
   const hasFfmpeg = () => Boolean((state.tools?.list || []).find((t) => t.id === 'ffmpeg')?.found);
   // ¿Se puede usar la pista de este himno? Sin ffmpeg, no; y hay himnos que no la traen.
   const canPlayTrack = (hymn) => hasFfmpeg() && hymn?.instrumental !== false;
@@ -39,8 +38,11 @@ function mount(el, ctx) {
   // ---- Cabecera: buscador, vistas y avisos ----
   const input = h('input', { type: 'search', placeholder: 'Número, título o letra', 'aria-label': 'Buscar un himno por número, título o letra', autocomplete: 'off', enterKeyHint: 'search' });
   const views = h('div', { class: 'hymn-views', role: 'tablist' }, ...VIEWS.map(([id, label, glyph]) =>
-    h('button', { class: 'chip', role: 'tab', dataset: { view: id }, onclick: () => setView(id) }, icon(glyph, 14), label)));
-  const notesCount = h('span', {});
+    h('button', { class: 'chip', role: 'tab', dataset: { view: id }, title: label, 'aria-label': label, onclick: () => setView(id) }, icon(glyph, 14), h('span', { class: 'lbl' }, label))));
+  // Con el cajón estrecho, de los avisos queda solo el número (CSS).
+  const notesNum = h('span', {});
+  const notesWord = h('span', { class: 'lbl' });
+  const notesCount = h('span', {}, notesNum, notesWord);
   const notesButton = h('button', { class: 'btn hymn-notes', hidden: true, title: 'Lo que conviene revisar en la carpeta del himnario', onclick: () => showNotes() }, icon('warning-circle', 16), notesCount);
   const body = h('div', { class: 'hymns-body' });
 
@@ -259,9 +261,6 @@ function mount(el, ctx) {
       act.title = act.disabled ? 'Este himno no tiene diapositivas en la carpeta del himnario' : '';
     }
     if ((hymn ? `${hymn.number}${letras() ? ' letras' : ''}` : null) !== carded) drawCard(hymn);
-    if (el.isConnected && !el.hidden) {
-      ctx.setPreview(!hymn ? null : letras() ? lyricsPreview(hymn) : { kind: 'song', number: hymn.number, title: hymn.title, track: soundFor(hymn), duration: hymn.duration });
-    }
   }
 
   function render() {
@@ -274,7 +273,8 @@ function mount(el, ctx) {
     }
     const issues = ctx.canEdit ? book.report?.notes?.length || 0 : 0;
     notesButton.hidden = !issues;
-    notesCount.textContent = issues === 1 ? '1 aviso' : `${issues} avisos`;
+    notesNum.textContent = issues;
+    notesWord.textContent = issues === 1 ? ' aviso' : ' avisos';
     paint();
   }
 

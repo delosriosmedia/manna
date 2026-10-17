@@ -118,18 +118,20 @@ export function clipControls(host, { send }) {
   const bar = h('input', { type: 'range', min: 0, max: 1, step: 0.1, value: 0, 'aria-label': 'Avance' });
   const now = h('span', { class: 'clip-time' }, '0:00');
   const total = h('span', { class: 'clip-time' }, '');
-  const captions = h('button', { class: 'btn grow', onclick: () => sender.push({ subtitles: subtitles ? false : language.value || true }) }, icon('closed-captioning', 16), 'Subtítulos');
+  // Con la barra de abajo estrecha, los botones con texto (.lbl) se quedan en su icono y lo menos urgente (t2, t3) pasa a
+  // «Más mandos»: ver shell.css, «Barra de transporte».
+  const captions = h('button', { class: 'btn grow t2', 'aria-label': 'Subtítulos', title: 'Subtítulos', onclick: () => sender.push({ subtitles: subtitles ? false : language.value || true }) }, icon('closed-captioning', 16), h('span', { class: 'lbl' }, 'Subtítulos'));
   // Con subtítulos en más de un idioma (los de YouTube), se elige cuál.
-  const language = h('select', { class: 'select', 'aria-label': 'Idioma de los subtítulos', onchange: () => sender.push({ subtitles: language.value }) });
+  const language = h('select', { class: 'select t3', 'aria-label': 'Idioma de los subtítulos', onchange: () => sender.push({ subtitles: language.value }) });
   const captionsRow = h('div', { class: 'transport' }); // solo lleva sus mandos si el video tiene subtítulos
   let offered = ''; // qué subtítulos se están ofreciendo ahora
   const volume = createVolume();
   host.replaceChildren(
     h('div', { class: 'transport' },
-      h('button', { class: 'btn', title: 'Volver al principio', 'aria-label': 'Volver al principio', onclick: () => sender.push({ restart: true }) }, icon('arrow-counter-clockwise', 16)),
+      h('button', { class: 'btn t3', title: 'Volver al principio', 'aria-label': 'Volver al principio', onclick: () => sender.push({ restart: true }) }, icon('arrow-counter-clockwise', 16)),
       toggle,
-      h('button', { class: 'btn clip-jump', title: 'Retroceder 10 segundos', onclick: jump(-10) }, '−10'),
-      h('button', { class: 'btn clip-jump', title: 'Adelantar 10 segundos', onclick: jump(10) }, '+10')),
+      h('button', { class: 'btn clip-jump t2', title: 'Retroceder 10 segundos', onclick: jump(-10) }, '−10'),
+      h('button', { class: 'btn clip-jump t2', title: 'Adelantar 10 segundos', onclick: jump(10) }, '+10')),
     h('div', { class: 'transport clip-seek' }, now, bar, total),
     volume.el,
     captionsRow);
@@ -162,7 +164,10 @@ export function clipControls(host, { send }) {
   }
   function render() {
     const playing = Boolean(clock?.playing) && !ended();
-    toggle.replaceChildren(icon(playing ? 'pause' : 'play', 16), playing ? 'Pausar' : ended() ? 'Otra vez' : 'Reproducir');
+    const verb = playing ? 'Pausar' : ended() ? 'Otra vez' : 'Reproducir';
+    toggle.replaceChildren(icon(playing ? 'pause' : 'play', 16), h('span', { class: 'lbl' }, verb));
+    toggle.setAttribute('aria-label', verb);
+    toggle.title = verb;
     const known = clock?.duration != null;
     bar.disabled = !known;
     bar.max = known ? clock.duration : 1;

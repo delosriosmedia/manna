@@ -1,5 +1,5 @@
 import { action, api, state } from '../../core/api.js';
-import { h, marked } from '../../core/dom.js';
+import { h, guard, marked, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { kindBadge } from '../../core/kinds.js';
 import { prefs } from '../../core/prefs.js';
@@ -7,8 +7,8 @@ import { prefs } from '../../core/prefs.js';
 // «Buscar en todo» (Ctrl K, fase 13 de docs/PLAN.md): versículos, himnos, medios, presentaciones y
 // páginas en una sola lista. La Biblia (RV1960) y el himnario buscan en el servidor, con sus índices;
 // lo demás ya está en el estado y se filtra aquí por el nombre.
-// Un toque prepara (la tarjeta «Preparado» queda por encima de la capa); doble toque o Intro proyecta
-// y cierra. La capa se cierra al tocar fuera y con Esc.
+// Un toque marca la fila (con su ▶ para proyectar y, si se puede editar, su + para añadir al orden); doble toque
+// o Intro proyecta y cierra. La capa se cierra al tocar fuera y con Esc.
 const PAUSE_MS = 150;
 const LIMIT = 5;
 const fold = (text) => String(text || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -70,8 +70,8 @@ const SOURCES = [['Biblia', bible], ['Himnario', hymns], ['Videos', videos], ['M
 // Los grupos principales: con sitio (860 px o más), en columnas, uno al lado de otro; los demás, debajo, en filas.
 const MAIN = ['Biblia', 'Himnario', 'Videos'];
 
-// prepare / projectPrepared: los de la tarjeta «Preparado» (escenario.js). canEdit: ofrece Añadir al orden.
-export function createSearch({ prepare, projectPrepared, canEdit }) {
+// canEdit: ofrece Añadir al orden.
+export function createSearch({ canEdit }) {
   let rows = [];     // [{ result, el }] en el orden en que se ven
   let active = -1;   // el señalado con las flechas: Intro lo proyecta
   let shown = null;  // la búsqueda cuyos resultados se ven
@@ -86,7 +86,7 @@ export function createSearch({ prepare, projectPrepared, canEdit }) {
   const box = h('section', { class: 'finder glass', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Buscar en todo' },
     h('label', { class: 'finder-input' }, icon('magnifying-glass', 18), input, h('kbd', {}, 'Esc')),
     list,
-    h('p', { class: 'finder-hint' }, 'Un toque prepara · doble toque o Intro proyecta'));
+    h('p', { class: 'finder-hint' }, 'Un toque marca · ▶, doble toque o Intro proyecta'));
   const layer = h('div', { class: 'finder-layer', hidden: true, onclick: (e) => { if (e.target === layer) close(); }, onkeydown: (e) => keys(e) }, box);
   const mac = /Mac|iPhone|iPad/.test(navigator.platform);
   const button = h('button', { class: 'finder-chip glass', 'aria-label': 'Buscar en todo', 'aria-haspopup': 'dialog', title: `Buscar en todo (${mac ? '⌘' : 'Ctrl'} K)`, onclick: () => open() },
@@ -142,11 +142,18 @@ export function createSearch({ prepare, projectPrepared, canEdit }) {
   }
   function row(result) {
     const i = rows.length;
-    const el = h('button', {
+    const el = h('div', {
       class: 'finder-row', role: 'option', id: `finder-row-${i}`, 'aria-selected': 'false', title: result.title,
-      onclick: () => pick(i), ondblclick: () => { pick(i); projectPrepared(); },
+      onclick: () => mark(i), ondblclick: () => project(i),
     }, kindBadge(result.kind), h('span', { class: 'item-text' }, h('strong', {}, result.head || result.title),
-      result.text ? h('small', {}, ...marked(result.text, result.marks)) : result.subtitle && h('small', {}, result.subtitle)));
+      result.text ? h('small', {}, ...marked(result.text, result.marks)) : result.subtitle && h('small', {}, result.subtitle)),
+    h('span', { class: 'finder-acts' },
+      canEdit && h('button', { class: 'icon-btn sm', 'aria-label': `Añadir «${result.title}» al orden`, title: 'Añadir al orden del culto', tabindex: '-1', onclick: guard(async (e) => {
+        e.stopPropagation();
+        await action('order.add', { kind: result.kind, data: result.data });
+        toast(`«${result.title}» añadido al orden del culto.`);
+      }) }, icon('plus', 14)),
+      h('button', { class: 'icon-btn sm', 'aria-label': `Proyectar «${result.title}»`, title: 'Proyectar (Intro)', tabindex: '-1', onclick: (e) => { e.stopPropagation(); project(i); } }, icon('play', 14))));
     rows.push({ result, el });
     return el;
   }
@@ -160,24 +167,15 @@ export function createSearch({ prepare, projectPrepared, canEdit }) {
     input.setAttribute('aria-activedescendant', rows[i].el.id);
     rows[i].el.scrollIntoView({ block: 'nearest' });
   }
-  function pick(i) {
-    mark(i);
+  const project = guard(async (i) => {
     const { result } = rows[i];
-    prepare({
-      kind: result.kind, title: result.title, subtitle: result.subtitle,
-      project: () => {
-        close();
-        return action('projection.show', { kind: result.kind, data: result.data, step: result.step ?? null });
-      },
-      add: canEdit ? () => action('order.add', { kind: result.kind, data: result.data }) : null,
-    });
-  }
+    close();
+    await action('projection.show', { kind: result.kind, data: result.data, step: result.step ?? null });
+  });
   // Intro antes de que lleguen los resultados de lo último escrito: se esperan, para no proyectar los de antes.
   async function enter() {
     if (input.value.trim() !== shown) await run();
-    if (!rows[active]) return;
-    pick(active);
-    projectPrepared();
+    if (rows[active]) project(active);
   }
 
   // Dentro de la búsqueda, las letras y las flechas no gobiernan la proyección (atajos de shell.js).

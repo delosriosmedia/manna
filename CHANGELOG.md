@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Biblia al aire**: con un pasaje de la Biblia al aire, sus mandos traen tres botones: cambiar la versión, compararlo con otra y pasar a otro versículo, sin ir a buscar la cita.
+- La capa de versículos muestra los números del capítulo con lo que está al aire marcado. Un toque proyecta ese versículo; mantener pulsado (o Mayús y clic) amplía el tramo; las flechas cambian de capítulo.
+- Si el pasaje venía del orden del culto, cambiar la versión o comparar no lo saca del orden: «Siguiente» sigue por el orden en la versión que está al aire. Elegir otro versículo sí lo saca del orden. Si a la otra versión le falta algún versículo de ese pasaje, lo dice en vez de proyectar uno equivocado.
+
 ## 1.28.0 — 2026-10-17
 
 - **Un solo Manna a la vez.** Si al abrirse Manna encuentra otro ya funcionando en el mismo equipo o en la misma red, no funciona y lo dice en todas sus pantallas, con dónde está el otro: «Volver a comprobar» y, en el equipo principal, «Apagar este Manna». Se pone en marcha solo en cuanto el otro se apaga.

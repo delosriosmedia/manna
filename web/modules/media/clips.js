@@ -151,7 +151,6 @@ export function createClipsPanel(ctx, kind, lib) {
       name.textContent = clip.name;
       show.disabled = !clip.usable;
     }
-    if (el.isConnected && !el.hidden) ctx.setPreview(clip?.usable ? { kind: clip.kind, id: clip.id, title: clip.name, url: clip.url, poster: clip.poster, duration: clip.duration } : null);
   }
   subscribe('media', render);
   subscribe('projection', render);

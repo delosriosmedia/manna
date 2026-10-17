@@ -86,10 +86,10 @@ registerKind('web', {
   },
 
   controls(host, { send }) {
-    const text = h('small', { class: 'muted' });
+    const text = h('small', { class: 'muted sec' });
     const keys = h('div', { class: 'row web-keys' },
-      h('button', { class: 'btn', onclick: () => send({ key: 'ArrowLeft' }) }, icon('caret-left', 16), 'Anterior'),
-      h('button', { class: 'btn', onclick: () => send({ key: 'ArrowRight' }) }, 'Siguiente', icon('caret-right', 16)));
+      h('button', { class: 'btn', 'aria-label': 'Página anterior', title: 'Página anterior (flecha izquierda de la página)', onclick: () => send({ key: 'ArrowLeft' }) }, icon('caret-left', 16), h('span', { class: 'lbl' }, 'Anterior')),
+      h('button', { class: 'btn', 'aria-label': 'Página siguiente', title: 'Página siguiente (flecha derecha de la página)', onclick: () => send({ key: 'ArrowRight' }) }, h('span', { class: 'lbl' }, 'Siguiente'), icon('caret-right', 16)));
     host.replaceChildren(h('div', { class: 'live-part' }, keys, text));
     return {
       update(state, item) {

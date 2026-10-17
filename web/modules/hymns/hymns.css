@@ -1,11 +1,21 @@
 /* Módulo Himnario: todos los himnos en una rejilla de fichas (número grande y título), enteros o
    agrupados por categorías, con el buscador arriba y la acción abajo. */
-/* Con tres vistas, el buscador no se encoge: si no caben en una fila, las vistas bajan a otra. */
+/* La cabecera va en una fila: con el cajón de menos de 1000 px, las vistas solo con su icono; de menos de 600, también
+   el número de avisos sin su palabra y sin el nombre del módulo, y si aun así no cabe, baja a otra fila. */
 .ws[data-module='himnario'] .ws-head { flex-wrap: wrap; }
-.ws[data-module='himnario'] .ws-head .search { flex: 1 1 220px; }
+.ws[data-module='himnario'] .ws-head .search { flex: 1 1 200px; }
 .hymn-views { display: flex; gap: 6px; }
-.hymn-views .chip { display: inline-flex; align-items: center; gap: 6px; min-height: var(--control); padding: 0 12px; }
+.hymn-views .chip { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--control); padding: 0 12px; }
 .hymn-notes { color: var(--accent); white-space: nowrap; }
+@container cajon (max-width: 999px) {
+  .hymn-views { gap: 2px; }
+  .hymn-views .chip { width: var(--control); padding: 0; }
+  .hymn-views .lbl { display: none; }
+}
+@container cajon (max-width: 599px) {
+  .ws[data-module='himnario'] .ws-head h1, .hymn-notes .lbl { display: none; }
+  .ws[data-module='himnario'] .ws-head .search { flex: 1 1 110px; order: 0; }
+}
 .hymns-main { flex: 1; min-height: 0; display: flex; }
 .hymns-body { flex: 1; min-width: 0; min-height: 0; overflow-y: auto; padding: 16px 20px 24px; }
 

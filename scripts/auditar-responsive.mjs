@@ -4,17 +4,21 @@
 //   - nada se sale por los lados (sin desplazamiento horizontal)
 //   - el dock de módulos está a la vista (en el celular va abajo, con nombres, y se desliza si no caben)
 //   - lo que está al aire se ve y se gobierna siempre. Escritorio y tableta horizontal (860 px o más): la barra
-//     de estado y los botones de la barra de transporte, a la vista, y las piezas flotantes (cajón, cola, tarjeta
-//     «Preparado», barras, dock) sin pisarse. Celular: el
+//     de estado y los botones de la barra de transporte, a la vista, y las piezas flotantes (cajón, cola, barras,
+//     dock) sin pisarse. Celular: el
 //     recuadro de «Historias» por encima del cajón (o, con el cajón a pantalla completa, el estado «AL AIRE»)
 //   - la acción principal de cada pantalla (Proyectar), dentro del cajón, se alcanza sin desplazarse y nada la tapa
 //   - queda sitio útil para el contenido (lista de versículos, orden del culto)
-//   - en pantallas táctiles, los botones tienen tamaño para el dedo (40 px o más)
+//   - en pantallas táctiles, los botones tienen tamaño para el dedo (35 px o más)
 //   - los títulos largos del orden del culto se leen (no se cortan en una sola línea)
 //   - los mandos en vivo de lo que está al aire caben, en la capa «Mandos» y en el orden
 //   - la capa de versículos de un pasaje al aire cabe, con números para el dedo, y se cierra al tocar fuera
 //   - los resultados de la búsqueda y el aviso de un módulo al que le falta un programa caben
-//   - «Buscar en todo» cabe y, con un resultado preparado, deja a la vista la tarjeta «Preparado» por encima
+//   - «Buscar en todo» cabe y, con una fila marcada, lleva su ▶ (y su +) a la vista y dentro del recuadro
+//   - la barra de abajo va en una sola fila y baja de 60 px de alto, con lo que lleva dentro de ella y sin salirse; «Más mandos»
+//     abre la capa con todos los mandos (fase 25)
+//   - el cajón lleva una sola fila de cabecera (la del módulo, con ampliar y cerrar a la vista), salvo Medios, que
+//     lleva dos por sus categorías (fase 25)
 //   - Biblia (también comparando dos versiones) y Orden (también el Mapa del culto) caben en el cajón ancho, en el
 //     estrecho de 440 px y en el celular: se miden por su cajón, no por la pantalla
 //   - la tarjeta de un televisor y su control remoto caben, con teclas para el dedo
@@ -80,11 +84,10 @@ const SCREENS = [
   { name: 'Biblia: búsqueda', url: '/control#biblia', inside: '.search-pop', settle: 1200,
     prepare: `(() => { const i = document.querySelector('.ws[data-module=biblia] .search input'); i.focus(); i.value = 'amor'; i.dispatchEvent(new Event('input')); })()` },
   { name: 'Biblia: libros', url: '/control#biblia', narrowOnly: true, prepare: `document.querySelector('.crumbs button').click()`, primary: '.abar .btn.primary', content: '.col-books' },
-  // «Buscar en todo»: su recuadro cabe; con un resultado preparado, la tarjeta se ve encima y la búsqueda le deja sitio
-  // (con un cajón abierto, que en el celular la ocultaría).
+  // «Buscar en todo»: su recuadro cabe; con una fila marcada, sus botones (▶ y +) se ven dentro del recuadro.
   // closes: la capa abierta y su recuadro; tras medir, un toque fuera del recuadro debe cerrarla.
   { name: 'Buscar en todo', url: '/control', inside: '.finder', closes: ['.finder-layer', '.finder'], settle: 1100, prepare: `(() => { document.querySelector('.finder-chip').click(); const i = document.querySelector('.finder-input input'); i.value = 'luz'; i.dispatchEvent(new Event('input')); })()` },
-  { name: 'Buscar en todo, con algo preparado', url: '/control#biblia', inside: '.finder', prepared: true, settle: 1400, prepare: `(() => { document.querySelector('.finder-chip').click(); const i = document.querySelector('.finder-input input'); i.value = 'luz'; i.dispatchEvent(new Event('input')); setTimeout(() => document.querySelector('.finder-row').click(), 800); })()` },
+  { name: 'Buscar en todo, con una fila marcada', url: '/control#biblia', inside: '.finder', marcada: true, settle: 1400, prepare: `(() => { document.querySelector('.finder-chip').click(); const i = document.querySelector('.finder-input input'); i.value = 'luz'; i.dispatchEvent(new Event('input')); setTimeout(() => document.querySelectorAll('.finder-row')[1]?.click(), 800); })()` },
   // prefs: preferencias de este dispositivo con las que se abre la pantalla (se quitan al terminar).
   { name: 'Biblia: comparar', url: '/control#biblia', prefs: { 'biblia.comparar': true }, primary: '.abar .btn.primary', content: '.col-verses', inside: '.cmp-bar' },
   // wideOnly: solo donde hay escenario (860 px o más); ahí, el módulo en el cajón estrecho de 440 px.
@@ -106,6 +109,8 @@ const SCREENS = [
   { name: 'Ajustes, con aviso', url: '/control#ajustes', content: '.settings', inside: '.ws-notice' },
   // La capa de mandos abierta: su recuadro cabe en la pantalla y trae los mandos de lo que está al aire.
   { name: 'Capa de mandos', url: '/control#orden', show: 'testcard', narrowOnly: true, inside: '.controls-pop', closes: ['.controls-layer', '.controls-pop'], controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
+  // En el escritorio, «Más mandos» (en la barra de abajo) abre la misma capa, con todos los mandos de lo que está al aire.
+  { name: 'Capa de mandos en el escritorio', url: '/control#orden', show: 'slides', wideOnly: true, inside: '.controls-pop', closes: ['.controls-layer', '.controls-pop'], controls: '.controls-pop .live-controls', settle: 600, prepare: `document.querySelector('.tb-more').click()` },
   { name: 'Control del orden', url: '/orden#orden', content: '.olist', longTitles: true },
   // La función de alabanza lleva el volumen de Manna siempre a la vista: en el celular, bajo la barra de "Al aire".
   { name: 'Servicio de alabanza', url: '/alabanza#himnario', content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: { wide: '.transport-bar .tb-volume', narrow: '.story-volume.big' }, settle: 700,
@@ -205,7 +210,7 @@ const MEASURE = (screen, touch, narrow) => {
     const narrowNow = document.body.classList.contains('narrow');
     const scrim = (y) => { if (narrowNow) return 0; if (document.body.classList.contains('drawer-open')) return 0.35; const f = y / vh; return f < 0.22 ? 0.55 * (1 - f / 0.22) : f > 0.7 ? 0.65 * ((f - 0.7) / 0.3) : 0; };
     const low = [];
-    for (const el of document.querySelectorAll('.topbar *, .dockbar *, .queue *, .transport-bar *, .prep *, .drawer *, .story *')) {
+    for (const el of document.querySelectorAll('.topbar *, .dockbar *, .queue *, .transport-bar *, .drawer *, .story *')) {
       const own = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim();
       // Solo texto que se lee (con letras o cifras), no marcas decorativas como «·».
       if (!shown(el) || el.closest('[hidden], [disabled], .soon, .stage') || !(own.toLowerCase() !== own.toUpperCase() || /[0-9]/.test(own))) continue;
@@ -236,11 +241,11 @@ const MEASURE = (screen, touch, narrow) => {
     out.contraste = low.length === 0;
     if (low.length) out.flojos = [...new Set(low)].slice(0, 5);
   }
-  // Para el dedo, 40 px; en la disposición del escritorio (tableta en horizontal), 36 (--tap en app.css).
+  // Para el dedo, 35 px (--tap en app.css, decisión del dueño del 2026-10-17); se admite medio píxel de redondeo.
   if (${JSON.stringify(touch)}) {
     const small = [...document.querySelectorAll('button, a[href], select, summary, input:not([type=range]):not([type=color]):not([type=file])')]
       .filter((el) => shown(el) && !el.disabled && !el.closest('.soon') && !el.closest('[hidden]'))
-      .filter((el) => { const r = box(el); const p = el.closest('label.search'); const b = p ? box(p) : r; return Math.min(b.width, b.height) < (innerWidth >= 860 ? 35.5 : 39.5); })
+      .filter((el) => { const r = box(el); const p = el.closest('label.search'); const b = p ? box(p) : r; return Math.min(b.width, b.height) < 34.5; })
       .map((el) => (el.getAttribute('aria-label') || el.textContent || el.className).trim().slice(0, 24));
     out.dedos = small.length === 0;
     if (small.length) out.pequenos = [...new Set(small)].slice(0, 6);
@@ -268,8 +273,8 @@ const MEASURE = (screen, touch, narrow) => {
       // Anterior y Siguiente abajo; «Solo fondo» y «Negro» arriba, junto al estado (fase 14).
       const buttons = [...document.querySelectorAll('.tb-main .btn, .scene-modes .mode-chip')].filter(shown);
       out.alAire = inView(q('.scene-status')) && buttons.length >= 4 && buttons.every((b) => inView(b) && topmost(b));
-      // Las piezas flotantes (barra de estado, función, dock, cajón, cola, «Preparado» y transporte) no se pisan.
-      const names = ['.scene-status', '.role-chip', '.dockbar', '.drawer', '.queue', '.prep', '.transport-bar'].filter((n) => shown(q(n)));
+      // Las piezas flotantes (barra de estado, función, dock, cajón, cola y transporte) no se pisan.
+      const names = ['.scene-status', '.role-chip', '.dockbar', '.drawer', '.queue', '.transport-bar'].filter((n) => shown(q(n)));
       const hits = [];
       names.forEach((a, i) => names.slice(i + 1).forEach((b) => { const x = box(q(a)), y = box(q(b)); if (x.left < y.right - 1 && y.left < x.right - 1 && x.top < y.bottom - 1 && y.top < x.bottom - 1) hits.push(a + ' con ' + b + ' (' + Math.round(Math.min(x.right, y.right) - Math.max(x.left, y.left)) + ' × ' + Math.round(Math.min(x.bottom, y.bottom) - Math.max(x.top, y.top)) + ' px)'); }));
       out.solape = names.length >= 5 && hits.length === 0;
@@ -283,8 +288,29 @@ const MEASURE = (screen, touch, narrow) => {
       if (shown(frame)) { const m = box(frame); out.monitorProporcion = Math.abs(m.width / m.height - 16 / 9) < 0.08; }
     }
   }
-  ${screen.prepared ? `{ const f = q('.finder-layer:not([hidden]) .finder'), p = q('.prep'), a = box(f), b = box(p);
-    out.buscarPreparado = shown(f) && shown(p) && (a.bottom <= b.top + 1 || a.right <= b.left + 1 || b.right <= a.left + 1) && inView(p) && document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2)?.closest('.prep') === p; }` : ''}
+  // Fase 25: la barra de abajo, en una sola fila (y baja), con todo lo que lleva dentro de ella; el cajón, con una sola
+  // fila de cabecera y ampliar y cerrar a la vista.
+  if (!${JSON.stringify(Boolean(screen.noDock))} && !${JSON.stringify(narrow)}) {
+    const tb = q('.transport-bar'), ex = q('.tb-extra');
+    if (tb && shown(tb)) {
+      const r = box(tb);
+      const fits = (e) => box(e).right <= r.right + 1 && box(e).left >= r.left - 1 && box(e).top >= r.top - 1 && box(e).bottom <= r.bottom + 1;
+      const inner = [...tb.querySelectorAll('.tb-main > *, .tb-extra :is(button, input, select, .clip-time, .nav-zoom, .slide-next, .slide-count)')].filter(shown);
+      out.barraUnaFila = r.height <= 60 && inner.every(fits) && (!shown(ex) || inner.filter((e) => ex.contains(e)).every((e) => box(e).right <= box(ex).right + 1));
+      out.masMandos = shown(ex) ? shown(q('.tb-more')) : !shown(q('.tb-more'));
+    }
+  }
+  if (!${JSON.stringify(Boolean(screen.noDock))} && !${JSON.stringify(Boolean(screen.plain))}) {
+    const d = q('.drawer'), dh = q('.drawer > .drawer-head'), acts = q('.drawer-actions'), ws = [...document.querySelectorAll('.ws')].find((e) => !e.hidden), head = ws?.querySelector(':scope > .ws-head');
+    if (shown(d) && ws) {
+      const compact = d.classList.contains('compact'), mod = ws.dataset.module;
+      const hh = head && shown(head) ? box(head).height : 0, wide = box(d).width >= 640;
+      // Reducido (celular): la fila del cajón lleva ampliar y cerrar. Si no, la cabecera del módulo: una fila (60 px) con el cajón ancho, dos o tres (130) con el estrecho y más (Medios, por sus categorías) sin tope fijo.
+      out.cajonUnaFila = inView(acts) && (compact ? dh.contains(acts) && shown(dh) : !shown(dh) && (mod === 'ajustes' || mod === 'medios' || hh <= (wide ? 60 : 130)) && (mod === 'ajustes' || head.contains(acts)));
+    }
+  }
+  ${screen.marcada ? `{ const f = q('.finder-layer:not([hidden]) .finder'), r = f && q('.finder-row.on'), acts = r && [...r.querySelectorAll('.finder-acts button')].filter(shown);
+    out.buscarMarcada = Boolean(r) && acts.length >= 1 && acts.every((b) => { const x = box(b), y = box(f); return x.left >= y.left - 1 && x.right <= y.right + 1 && x.top >= y.top - 1 && x.bottom <= y.bottom + 1; }); }` : ''}
   ${screen.primary ? `{ const a = q(${JSON.stringify(screen.primary)}); out.accion = inView(a) && topmost(a) && (${JSON.stringify(Boolean(screen.noDock))} || Boolean(a.closest('.drawer'))); }` : ''}
   ${screen.content ? `{ const c = [...document.querySelectorAll(${JSON.stringify(screen.content)})].find(shown); out.espacioContenido = c ? Math.round(Math.min(box(c).bottom, vh) - Math.max(box(c).top, 0)) : 0; }` : ''}
   ${screen.longTitles ? `{ const t = [...document.querySelectorAll('.orow .item-text strong')].find((e) => e.textContent.length > 60); out.tituloLargo = Boolean(t) && t.scrollHeight <= t.clientHeight + 1; }` : ''}
@@ -292,7 +318,9 @@ const MEASURE = (screen, touch, narrow) => {
   ${screen.controls ? `{ const c = [...document.querySelectorAll(${JSON.stringify(screen.controls)})].find((e) => shown(e)) || q(${JSON.stringify(screen.controls)}); const r = box(c);
     // El volumen general no va en los mandos de la capa (vive en la barra de transporte): su CSS lo oculta a propósito.
     const list = [...c.querySelectorAll('button, select')].filter((b) => !b.closest('.volume'));
-    out.mandos = shown(c) && list.length > 0 && r.left >= -1 && r.right <= vw + 1 && list.every((b) => { const x = box(b); return shown(b) && x.left >= r.left - 1 && x.right <= r.right + 1; }); }` : ''}
+    // En la barra de abajo, lo que no cabe se queda en «Más mandos» (queda oculto a propósito): solo cuenta lo que se ve. En la capa, todo.
+    const bar = Boolean(c.closest('.tb-extra'));
+    out.mandos = shown(c) && list.some(shown) && r.left >= -1 && r.right <= vw + 1 && list.every((b) => { const x = box(b); return bar && !shown(b) ? true : shown(b) && x.left >= r.left - 1 && x.right <= r.right + 1; }); }` : ''}
   return out;
 })()`;
 };
@@ -308,7 +336,7 @@ async function ready(chrome, screen) {
   await sleep(350);
 }
 
-const LABELS = { buscarPreparado: 'la tarjeta «Preparado» encima de la búsqueda y sin pisarse con ella', sinDesborde: 'sin desborde lateral', navegacion: 'dock de módulos a la vista', alAire: 'lo que está al aire y sus botones a la vista', solape: 'cajón, cola, tarjeta «Preparado» y barras sin pisarse', monitorProporcion: 'recuadro de la proyección sin deformar', accion: 'acción principal a la vista y sin nada encima', tituloLargo: 'títulos largos legibles', mandos: 'mandos en vivo completos y sin salirse', dentro: 'el recuadro cabe en la pantalla', dedos: 'botones para el dedo', deLado: 'nada se desplaza de lado sin tener nada al lado', contraste: 'el texto se lee sobre una proyección blanca y sobre una negra', cierraFuera: 'la capa se cierra al tocar fuera' };
+const LABELS = { buscarMarcada: 'la fila marcada de la búsqueda lleva su ▶ (y su +) a la vista y dentro del recuadro', barraUnaFila: 'la barra de abajo en una sola fila, sin salirse', masMandos: '«Más mandos» a la vista con la barra', cajonUnaFila: 'el cajón con una sola fila de cabecera y ampliar y cerrar a la vista', sinDesborde: 'sin desborde lateral', navegacion: 'dock de módulos a la vista', alAire: 'lo que está al aire y sus botones a la vista', solape: 'cajón, cola y barras sin pisarse', monitorProporcion: 'recuadro de la proyección sin deformar', accion: 'acción principal a la vista y sin nada encima', tituloLargo: 'títulos largos legibles', mandos: 'mandos en vivo completos y sin salirse', dentro: 'el recuadro cabe en la pantalla', dedos: 'botones para el dedo', deLado: 'nada se desplaza de lado sin tener nada al lado', contraste: 'el texto se lee sobre una proyección blanca y sobre una negra', cierraFuera: 'la capa se cierra al tocar fuera' };
 const MIN_CONTENT = 150;
 
 // Qué revisar: las palabras que se le pasan eligen tamaños (por su nombre o «360x640») y pantallas.

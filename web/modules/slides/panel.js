@@ -196,9 +196,6 @@ export function createSlidesPanel(ctx, lib) {
       show.disabled = !usable;
       bar.querySelectorAll('.btn:not(.primary)').forEach((b) => { b.disabled = !usable; });
     }
-    if (el.isConnected && !el.hidden) {
-      ctx.setPreview(usable ? { kind: 'slides', id: deck.id, title: deck.name, reference: `Diapositiva ${page}`, number: page, pages: deck.pages, url: pageUrl(deck, page), thumb: thumbUrl(deck, page), width: deck.width, height: deck.height, fit: 'contain' } : null);
-    }
   }
   subscribe('slides', render);
   subscribe('projection', render);

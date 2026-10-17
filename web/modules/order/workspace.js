@@ -67,7 +67,7 @@ function mount(el, ctx) {
     h('div', { class: 'ws-head' }, h('h1', {}, 'Orden del culto'), switcher,
       ctx.canEdit && h('label', { class: 'search' }, icon('plus', 16), quick, h('kbd', {}, '↵')),
       !ctx.canEdit && h('span', { class: 'spacer' }),
-      ctx.canEdit && h('button', { class: 'btn', onclick: (e) => openAddMenu(e.currentTarget) }, icon('plus', 15), 'Añadir'),
+      ctx.canEdit && h('button', { class: 'btn order-add', 'aria-label': 'Añadir', onclick: (e) => openAddMenu(e.currentTarget) }, icon('plus', 15), h('span', {}, 'Añadir')),
       ctx.canEdit && h('button', { class: 'icon-btn', 'aria-label': 'Más opciones', onclick: (e) => menu(e.currentTarget, [
         { label: 'Vaciar el orden', icon: 'trash', onclick: confirmClear },
       ]) }, icon('dots-three', 18))),

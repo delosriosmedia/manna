@@ -9,7 +9,7 @@
 body.app { height: 100dvh; overflow: hidden; }
 /* Lo que flota sobre la proyección (que puede ser una diapositiva blanca) lleva el texto secundario más claro: con
    el gris de siempre quedaba en 3:1 sobre blanco; así pasa de 4,5:1 (lo mide scripts/auditar-responsive.mjs). */
-.topbar, .dockbar, .queue, .transport-bar, .prep, .story { --ink-3: #cdd3dd; }
+.topbar, .dockbar, .queue, .transport-bar, .story { --ink-3: #cdd3dd; }
 /* En el cajón, más opaco, basta un poco menos: lo justo para las filas teñidas (elegida en cian, al aire en rojo). */
 .drawer { --ink-3: #b9c1cd; }
 .glass { background: var(--glass-2); border: 1px solid var(--glass-line); backdrop-filter: blur(var(--blur-1)); -webkit-backdrop-filter: blur(var(--blur-1)); }
@@ -36,44 +36,43 @@ body.moving * { backdrop-filter: none !important; -webkit-backdrop-filter: none 
 body.drawer-open .scene-scrim { background: rgba(0, 0, 0, 0.35); }
 
 /* ---- Barra de arriba ---- */
-.topbar { position: fixed; left: 20px; right: 20px; top: 18px; z-index: 3; display: flex; align-items: center; gap: 12px; pointer-events: none; }
+.topbar { position: fixed; left: 14px; right: 14px; top: 12px; z-index: 3; display: flex; align-items: center; gap: 8px; pointer-events: none; }
 .topbar > * { pointer-events: auto; }
-.scene-status { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 680px; height: 44px; padding: 0 8px 0 6px; border-radius: var(--r-pill); background: var(--glass-2); }
-.brand-mark { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--s1); box-shadow: 0 0 16px rgba(92, 232, 255, 0.35); }
-.brand-mark img { width: 18px; height: 18px; }
-.scene-caption { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scene-status { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 640px; height: 36px; padding: 0 6px 0 4px; border-radius: var(--r-pill); background: var(--glass-2); }
+.brand-mark { flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--s1); box-shadow: 0 0 16px rgba(92, 232, 255, 0.35); }
+.brand-mark img { width: 16px; height: 16px; }
+html.touch .brand-mark { width: var(--tap); height: var(--tap); }
+.scene-caption { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* «Solo fondo» y «Negro», junto a lo que está al aire. */
 .scene-modes { display: flex; gap: 6px; flex-shrink: 0; }
-.mode-chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; font-weight: 600; }
-html.touch .mode-chip { height: var(--tap); padding: 0 14px; }
-.mode-chip kbd { font-size: 10px; }
-.live-pill { flex-shrink: 0; padding: 3px 10px; border-radius: var(--r-pill); background: var(--s3); color: var(--ink-2); font: 700 11px var(--mono); letter-spacing: 0.04em; white-space: nowrap; }
+.mode-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; font-weight: 600; }
+html.touch .mode-chip { height: var(--tap); padding: 0 12px; }
+.mode-chip kbd { font-size: 9px; }
+.live-pill { flex-shrink: 0; padding: 2px 9px; border-radius: var(--r-pill); background: var(--s3); color: var(--ink-2); font: 700 10px var(--mono); letter-spacing: 0.04em; white-space: nowrap; }
 .live-pill[data-state='live'] { background: var(--live-strong); color: var(--on-live); }
 .live-pill[data-state='black'] { background: #000; color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line-2); }
-.role-chip { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px 0 8px; border-radius: var(--r-pill); background: var(--glass-1); text-align: left; }
+.role-chip { display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px 0 4px; border-radius: var(--r-pill); background: var(--glass-1); text-align: left; }
 .role-chip:hover { border-color: var(--line-2); }
-.role-dot { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); box-shadow: inset 0 0 0 8px var(--glass-1), inset 0 0 0 14px var(--accent); }
+.role-dot { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); box-shadow: inset 0 0 0 7px var(--glass-1), inset 0 0 0 13px var(--accent); }
 .role-text { display: flex; flex-direction: column; line-height: 1.2; }
-.role-text strong { font-size: 12px; font-weight: 600; white-space: nowrap; }
-.role-version { color: var(--ink-3); font: 500 11px var(--mono); }
+.role-text strong { font-size: 11px; font-weight: 600; white-space: nowrap; }
+.role-version { color: var(--ink-3); font: 500 10px var(--mono); }
 
 /* ---- Dock de módulos ---- */
-.dockbar { position: fixed; left: 18px; top: 50%; transform: translateY(-50%); z-index: 3; display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 26px; background: var(--glass-1); max-height: calc(100dvh - 220px); overflow-y: auto; scrollbar-width: none; }
+.dockbar { position: fixed; left: 12px; top: 50%; transform: translateY(-50%); z-index: 3; display: flex; flex-direction: column; gap: 4px; padding: 6px; border-radius: 22px; background: var(--glass-1); max-height: calc(100dvh - 180px); overflow-y: auto; scrollbar-width: none; }
 .dockbar.single { display: none; }
-.dock-item { flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; color: var(--ink-3); transition: background 0.15s var(--ease), color 0.15s; }
+.dock-item { flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: var(--ink-3); transition: background 0.15s var(--ease), color 0.15s; }
 .dock-item:hover { background: var(--s3); color: var(--ink); }
 .dock-item.on { background: var(--accent-soft); color: var(--accent); }
 .dock-name { display: none; }
-.dock-fill { flex: 1; min-height: 6px; }
+.dock-fill { flex: 1; min-height: 4px; }
 
 /* ---- Cajón del módulo abierto ---- */
 /* Reducido, se puede ensanchar arrastrando su borde derecho (--drawer-w, desde shell.js) entre 360 px y la cola
    (--drawer-max, lo mismo que mide ampliado): nunca la tapa. */
-.drawer { --drawer-max: calc(100vw - 92px - 372px); position: fixed; left: 92px; top: 84px; bottom: var(--tb-space); z-index: 2; width: clamp(360px, var(--drawer-w, 440px), var(--drawer-max)); border-radius: 26px; display: flex; flex-direction: column; overflow: hidden; backdrop-filter: blur(var(--blur-2)); -webkit-backdrop-filter: blur(var(--blur-2)); }
+.drawer { --drawer-max: calc(100vw - 72px - 326px); position: fixed; left: 72px; top: 60px; bottom: var(--tb-space); z-index: 2; width: clamp(360px, var(--drawer-w, 440px), var(--drawer-max)); border-radius: 22px; display: flex; flex-direction: column; overflow: hidden; backdrop-filter: blur(var(--blur-2)); -webkit-backdrop-filter: blur(var(--blur-2)); }
 .drawer.wide { width: var(--drawer-max); }
-body.queue-closed .drawer { --drawer-max: calc(100vw - 92px - 98px); }
-/* «Preparado» va abajo a la derecha: el cajón no se mete debajo aunque la cola esté cerrada. */
-body.queue-closed.has-prep .drawer { --drawer-max: calc(100vw - 92px - 372px); }
+body.queue-closed .drawer { --drawer-max: calc(100vw - 72px - 84px); }
 .drawer[hidden], .drawer-backdrop[hidden] { display: none; }
 /* El borde que se arrastra: el derecho en el escritorio; arriba en el celular; a la izquierda en el celular en
    horizontal. Solo en el cajón reducido. */
@@ -90,15 +89,31 @@ body.queue-closed.has-prep .drawer { --drawer-max: calc(100vw - 92px - 372px); }
 .drawer.compact .scene-mini { flex: 0 0 auto; }
 .drawer.compact .scene-mini > :not(.live-pill) { display: none; }
 .drawer.compact .ws-head h1 { display: none; }
-.drawer-head { display: flex; align-items: center; gap: 6px; padding: 10px 10px 10px 20px; border-bottom: 1px solid var(--glass-line); flex-shrink: 0; }
-.drawer-head h2 { font-size: 15px; font-weight: 600; }
+.drawer-head { display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 14px; border-bottom: 1px solid var(--glass-line); flex-shrink: 0; }
+.drawer-head h2 { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; }
+/* Ampliar y cerrar (shell.js, dockActions): al final de la cabecera del módulo (una sola fila de cabecera) o, en el
+   cajón reducido del celular, en la fila del cajón. Tras lo que la cabecera lleva y antes de lo que baja de fila. */
+.drawer-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; margin-left: auto; }
+.drawer-head .drawer-actions { margin-left: 0; }
+.ws-head > .drawer-actions { order: 2; }
+.drawer:focus { outline: none; }
 .drawer-backdrop, .scene-mini { display: none; }
 /* Los módulos se miden por su cajón, no por la pantalla: sus reglas de ancho van con @container cajon. */
 .work { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; container: cajon / inline-size; }
 .ws { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
-.ws-head { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
-.ws-head h1 { margin-right: 8px; white-space: nowrap; }
+.ws-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.ws-head h1 { margin-right: 4px; white-space: nowrap; }
 .ws-head .search { flex: 1; min-width: 0; }
+.ws-head > .btn, .ws-head > .icon-btn { flex-shrink: 0; }
+/* Ajustes: el nombre, las secciones (que se deslizan) y ampliar y cerrar comparten una fila; su cabecera «desaparece»
+   para que sus hijos entren en la rejilla del módulo. */
+.ws[data-module='ajustes'] { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr); align-content: start; }
+.ws[data-module='ajustes'] > .ws-head { display: contents; }
+.ws[data-module='ajustes'] > .ws-head h1 { grid-area: 1 / 1; margin: 0 4px 0 14px; align-self: center; }
+.ws[data-module='ajustes'] > .set-nav { grid-area: 1 / 2; padding: 8px 6px; border-bottom: 0; }
+.ws[data-module='ajustes'] > .ws-head > .drawer-actions { grid-area: 1 / 3; margin: 0 8px 0 0; align-self: center; }
+.ws[data-module='ajustes'] > .settings { grid-area: 2 / 1 / 3 / -1; border-top: 1px solid var(--line); }
+@container cajon (max-width: 599px) { .ws[data-module='ajustes'] > .ws-head h1 { display: none; } .ws[data-module='ajustes'] > .set-nav { padding-left: 10px; } }
 
 /* Aviso de lo que le falta al módulo abierto (un programa del equipo principal). No bloquea. */
 .ws-notice { position: relative; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px 8px 16px; background: var(--accent-soft); border-bottom: 1px solid var(--line); color: var(--ink-2); flex-shrink: 0; }
@@ -107,86 +122,101 @@ body.queue-closed.has-prep .drawer { --drawer-max: calc(100vw - 92px - 372px); }
 .ws-notice strong { color: var(--ink); font-weight: 600; }
 /* Cajón estrecho (el de 440 px, el del celular): la cabecera de un módulo baja su buscador a otra fila. */
 @container cajon (max-width: 599px) {
-  .ws-head { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
-  .ws-head h1 { flex: 1; }
+  .ws-head { padding: 8px 10px; gap: 6px; flex-wrap: wrap; }
   .ws-head .search { flex: 1 1 100%; order: 3; }
 }
+/* Con el cajón completo de un celular, el estado de lo que está al aire ocupa sitio junto a ampliar y cerrar: el buscador
+   comparte fila con ellos en vez de ocupar una propia. */
+@container cajon (max-width: 419px) {
+  .ws-head .search { flex: 1 1 100px; order: 1; }
+}
 /* Aviso de que Manna se actualizó estando abierto: flota bajo la barra de arriba. */
-.update-bar { position: fixed; left: 50%; top: 72px; transform: translateX(-50%); z-index: 5; width: min(720px, calc(100vw - 32px)); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px 8px 16px; border-radius: var(--r-lg); border-color: var(--accent); color: var(--ink-2); }
+.update-bar { position: fixed; left: 50%; top: 56px; transform: translateX(-50%); z-index: 5; width: min(720px, calc(100vw - 32px)); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px 8px 16px; border-radius: var(--r-lg); border-color: var(--accent); color: var(--ink-2); }
 .update-bar[hidden] { display: none; }
 .update-bar > .ic { color: var(--accent); }
 .update-bar p { flex: 1 1 240px; min-width: 0; }
 .update-bar strong { color: var(--ink); font-weight: 600; }
 
 /* ---- Cola del culto ---- */
-.queue { position: fixed; right: 18px; top: 84px; z-index: 2; width: 340px; max-height: calc(100dvh - 84px - var(--tb-space)); border-radius: 26px; background: var(--glass-2); display: flex; flex-direction: column; overflow: hidden; }
-body.has-prep .queue { max-height: calc(100dvh - 84px - var(--tb-space) - var(--prep-h, 0px) - 12px); }
-.queue-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; text-align: left; flex-shrink: 0; }
+.queue { position: fixed; right: 14px; top: 60px; z-index: 2; width: 300px; max-height: calc(100dvh - 60px - var(--tb-space)); border-radius: 22px; background: var(--glass-2); display: flex; flex-direction: column; overflow: hidden; }
+.queue-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; text-align: left; flex-shrink: 0; }
 .queue-head strong { flex: 1; min-width: 0; font-weight: 600; }
 /* El nombre del orden en uso (órdenes guardados), debajo del título. */
-.queue-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-3); font-size: 12px; font-weight: 400; }
+.queue-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-3); font-size: 11px; font-weight: 400; }
 .queue-name:empty { display: none; }
-.queue-head small { color: var(--ink-3); font: 500 12px var(--mono); }
+.queue-head small { color: var(--ink-3); font: 500 11px var(--mono); }
 .queue-toggle { display: inline-flex; align-items: center; gap: 2px; color: var(--ink-2); }
 .queue-head:hover .queue-toggle { color: var(--accent); }
-.queue.closed { width: 62px; border-radius: 26px; }
-.queue.closed .queue-head { padding: 14px 12px; justify-content: flex-end; }
+.queue.closed { width: 54px; border-radius: 22px; }
+.queue.closed .queue-head { padding: 10px 10px; justify-content: flex-end; }
 .queue.closed :is(.queue-head strong, .queue-head small, .scene-jobs, .queue-list) { display: none; }
-.scene-jobs:not(:empty) { padding: 0 12px 8px; }
-.queue-list { overflow-y: auto; padding: 0 8px 10px; display: flex; flex-direction: column; gap: 2px; }
-.queue-section { padding: 10px 10px 4px; color: var(--ink-3); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-.queue-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border-radius: var(--r); text-align: left; border: 1px solid transparent; flex-shrink: 0; }
+.scene-jobs:not(:empty) { padding: 0 10px 6px; }
+.queue-list { overflow-y: auto; padding: 0 6px 8px; display: flex; flex-direction: column; gap: 2px; }
+.queue-section { padding: 8px 8px 3px; color: var(--ink-3); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.queue-item { display: flex; align-items: center; gap: 4px; width: 100%; padding: 5px 4px 5px 8px; border-radius: var(--r); border: 1px solid transparent; flex-shrink: 0; }
+.queue-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; text-align: left; }
+/* El ▶ solo en la fila marcada que aún no está al aire: un toque marca, el ▶ (o el doble toque, o Intro) proyecta. */
+.queue-play, .story-play { display: none; color: var(--accent); }
+.queue-item.prepared:not(.live) .queue-play { display: inline-grid; }
 .queue-item:hover { background: var(--s2); }
 .queue-item.done { opacity: 0.7; }
 .queue-item.prepared { border-color: var(--accent); background: var(--accent-soft); }
 .queue-item.live { border-color: var(--live); background: var(--live-soft); }
 .queue-item .item-text strong { -webkit-line-clamp: 2; }
+.queue .kind { width: 24px; height: 24px; }
 .queue-empty { padding: 4px 10px 8px; }
-.queue-live { display: grid; gap: 6px; padding-bottom: 6px; }
-.queue-steps { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 10px; }
-.step-cell { min-width: 30px; height: 30px; padding: 0 8px; border-radius: var(--r-sm); background: var(--s2); border: 1px solid var(--line); font: 600 12px var(--mono); }
+.queue-live { display: grid; gap: 4px; padding-bottom: 4px; }
+.queue-steps { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 8px; }
+.step-cell { min-width: 26px; height: 26px; padding: 0 6px; border-radius: var(--r-sm); background: var(--s2); border: 1px solid var(--line); font: 600 11px var(--mono); }
 .step-cell.done { color: var(--accent); border-radius: var(--r-pill); }
 .step-cell.on { background: var(--live-strong); border-color: var(--live-strong); color: var(--on-live); }
 html.touch .step-cell { min-width: var(--tap); height: var(--tap); }
 
-/* ---- Preparado ---- */
-.prep { position: fixed; right: 18px; bottom: var(--tb-space); z-index: 4; width: 340px; padding: 12px; border-radius: 24px; background: var(--glass-3); border-color: rgba(92, 232, 255, 0.4); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; gap: 10px; }
-.prep[hidden] { display: none; }
-.prep-head { display: flex; align-items: center; justify-content: space-between; }
-.prep-label { color: var(--accent); font: 700 11px var(--mono); letter-spacing: 0.06em; }
-.prep-monitor { border-radius: var(--r); }
-.prep-text { display: flex; align-items: center; gap: 10px; }
-.prep-actions { display: flex; gap: 8px; }
-.prep-actions .btn { flex: 1; justify-content: center; }
-
 /* ---- Barra de transporte ---- */
-/* Su alto (--tb-h, lo mide escenario.js) más lo que la separa del borde y de lo de encima. Lleva mandos, como un
-   cajón: su cristal es el de la cola (más opaco), para que se lean sobre una diapositiva blanca. */
-body { --tb-space: calc(var(--tb-h, 68px) + 44px); }
-.transport-bar { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 4; width: min(1000px, calc(100vw - 32px)); display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 10px; border-radius: var(--r-xl); background: var(--glass-2); backdrop-filter: blur(var(--blur-2)); -webkit-backdrop-filter: blur(var(--blur-2)); }
-.tb-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.tb-main .btn { height: 48px; flex-shrink: 0; }
-.tb-main .btn.round { width: 48px; padding: 0; justify-content: center; }
-.tb-main .btn.next { padding: 0 22px; font-size: 15px; }
-/* Encima, siempre a la vista, los mandos de lo que está al aire y «Señalar» / «Mover». En filas que se reparten
-   el ancho: una fila de botones que no cabe baja a otra. */
-.tb-extra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 2px 4px 10px; border-bottom: 1px solid var(--glass-line); }
+/* Una sola fila: Anterior, Siguiente, los mandos de lo que está al aire, el volumen y «Más mandos». Su alto (--tb-h, lo
+   mide escenario.js) más lo que la separa del borde y de lo de encima. Lleva mandos, como un cajón: su cristal es el de
+   la cola (más opaco), para que se lean sobre una diapositiva blanca. */
+body { --tb-space: calc(var(--tb-h, 50px) + 28px); }
+.transport-bar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 4; width: min(1000px, calc(100vw - 32px)); padding: 6px 8px; border-radius: var(--r-xl); background: var(--glass-2); backdrop-filter: blur(var(--blur-2)); -webkit-backdrop-filter: blur(var(--blur-2)); }
+.tb-main { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.tb-main > .btn { height: 36px; flex-shrink: 0; }
+.tb-main > .btn.round { width: 36px; padding: 0; }
+.tb-main > .btn.next { padding: 0 14px; }
+html.touch .tb-main > .btn { height: max(36px, var(--tap)); }
+html.touch .tb-main > .btn.round { width: max(36px, var(--tap)); }
+/* Los mandos de lo que está al aire y «Señalar» / «Mover», en el sitio que sobra. Cada mando lleva su prioridad:
+   sin marca (t1) se ve siempre; t2 y t3 solo si hay sitio (por la medida de esta región, no de la pantalla); los
+   botones con texto (.lbl) se quedan en su icono si es estrecha; .sec, nunca aquí: solo en «Más mandos». */
+.tb-extra { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 8px; container: live / inline-size; }
 .tb-extra[hidden] { display: none; }
-.tb-extra .live-controls { flex: 1 1 520px; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 0; border: 0; background: none; }
+.tb-extra .scene-tools { flex-wrap: nowrap; flex-shrink: 0; }
+.tb-extra .live-controls { flex: 1 1 0; min-width: 0; display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; padding: 0; border: 0; background: none; }
 .tb-extra .live-controls[hidden] { display: none; }
-.tb-extra .live-part { display: contents; }
-.tb-extra .transport { flex-wrap: wrap; }
-.tb-extra .btn { height: 40px; }
-.tb-extra .live-controls .btn.grow { flex: 0 0 auto; padding: 0 14px; }
-.tb-extra .clip-seek { flex: 1 1 260px; min-width: 200px; }
-.tb-extra .nav-row { flex: 1 1 200px; min-width: 160px; }
-/* El volumen general ya está abajo; y en la barra se acerca y se mueve sobre la proyección («Mover»), sin el recuadro.
-   «Vista completa» (de los mandos) hace lo que «Restablecer»: en la barra va solo el primero. */
-.tb-extra .live-controls .volume, .tb-extra .nav { display: none; }
+.tb-extra .live-part, .tb-extra .transport, .tb-extra .slide-framing { display: contents; }
+.tb-extra .btn, .tb-extra .tool-chip { height: 32px; flex-shrink: 0; }
+html.touch .tb-extra .btn, html.touch .tb-extra .tool-chip { height: max(32px, var(--tap)); }
+.tb-extra .live-controls .btn.grow { flex: 0 0 auto; padding: 0 10px; }
+.tb-extra .clip-seek { display: flex; align-items: center; gap: 6px; flex: 1 1 130px; min-width: 120px; }
+.tb-extra .clip-seek input { min-width: 60px; }
+.tb-extra .nav-row { display: flex; align-items: center; gap: 6px; flex: 1 1 130px; min-width: 100px; }
+.tb-extra .nav-row input { min-width: 50px; }
+.tb-extra .select { max-width: 110px; }
+.tb-extra .slide-info { display: flex; align-items: center; gap: 12px; flex: 0 1 auto; min-width: 0; }
+.tb-extra .slide-count { display: flex; align-items: baseline; gap: 8px; }
+.tb-extra .slide-next-thumb { width: 56px; }
+.tb-extra .song-tracks { display: contents; }
+.tb-extra .bible-bar { flex-wrap: nowrap; flex: 0 1 auto; }
+/* El volumen general ya está a la vista (a la derecha); y en la barra se acerca y se mueve sobre la proyección
+   («Mover»). «Vista completa» (de los mandos) hace lo que «Restablecer»: en la barra va solo el primero. */
+.tb-extra .live-controls .volume { display: none; }
 .tb-extra .scene-tools .tool-chip[aria-label='Restablecer el zoom'] { display: none; }
-.tb-extra .slide-info { display: flex; align-items: center; gap: 14px; flex: 0 1 auto; min-width: 0; }
-.tb-extra .slide-next-thumb { width: 72px; }
-.tb-extra .live-controls p { flex: 1 1 100%; margin: 0; }
+.tb-extra .sec { display: none; }
+@container live (max-width: 479px) { .tb-extra .t2 { display: none; } }
+@container live (max-width: 579px) { .tb-extra .t3 { display: none; } }
+/* Los botones con texto (.lbl) van solos con su icono (su nombre, en el título): el texto, en «Más mandos». */
+.tb-extra .lbl { display: none; }
+.tb-extra :is(.btn, .tool-chip):has(> .lbl) { width: 32px; padding: 0; justify-content: center; }
+html.touch .tb-extra :is(.btn, .tool-chip):has(> .lbl) { width: max(32px, var(--tap)); }
 /* Señalar y Mover (escenario.js): en la barra del escritorio y bajo el recuadro de «Historias». */
 .scene-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .scene-tools[hidden] { display: none; }
@@ -196,13 +226,15 @@ html.touch .tool-chip { height: var(--control); padding: 0 14px; }
 .scene-bg[data-tool] { touch-action: none; user-select: none; -webkit-user-select: none; }
 .scene-bg[data-tool='point'] { cursor: crosshair; }
 .scene-bg[data-tool='move'] { cursor: grab; }
-.up-next { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
-.up-next small { color: var(--ink-3); font: 700 10px var(--mono); letter-spacing: 0.08em; }
-.up-next strong { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tb-volume { display: flex; align-items: center; gap: 4px; width: 200px; flex-shrink: 0; }
-.tb-volume .volume { flex: 1; min-width: 0; }
+/* Corto: el icono de silencio y un deslizador; el porcentaje sale en su título. */
+.tb-volume { display: flex; align-items: center; gap: 2px; flex-shrink: 0; margin-left: auto; }
+.tb-extra:not([hidden]) + .tb-volume { margin-left: 0; }
+.tb-volume .volume input { flex: none; width: 84px; }
+.tb-volume .vol-amount { display: none; }
+.tb-volume .icon-btn, .tb-more { width: 32px; height: 32px; }
+html.touch .tb-volume .icon-btn, html.touch .tb-more { width: var(--tap); height: var(--tap); }
 /* «Escuchar antes de añadir» (projection/preview.js): una barra arriba, por encima del cajón, con su ×. */
-.preview-bar { position: fixed; left: 50%; top: 74px; transform: translateX(-50%); z-index: calc(var(--z-sheet) + 2); width: min(560px, calc(100vw - 24px)); display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: var(--r-pill); }
+.preview-bar { position: fixed; left: 50%; top: 56px; transform: translateX(-50%); z-index: calc(var(--z-sheet) + 2); width: min(560px, calc(100vw - 24px)); display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: var(--r-pill); }
 .preview-bar[hidden] { display: none; }
 .preview-bar > .ic { color: var(--accent); flex-shrink: 0; }
 .pv-text { display: grid; min-width: 0; flex: 0 1 auto; }
@@ -216,8 +248,8 @@ html.touch .tool-chip { height: var(--control); padding: 0 14px; }
 /* ---- Mandos de lo que está al aire (capa que se cierra al tocar fuera) ---- */
 .controls-layer { position: fixed; inset: 0; z-index: var(--z-sheet); background: rgba(3, 4, 6, 0.35); }
 .controls-layer[hidden] { display: none; }
-.controls-pop { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); width: min(420px, calc(100vw - 24px)); max-height: calc(100dvh - 140px); overflow-y: auto; border-radius: var(--r-xl); background: var(--glass-3); }
-.controls-pop .drawer-head { padding-left: 18px; }
+.controls-pop { position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%); width: min(420px, calc(100vw - 24px)); max-height: calc(100dvh - 110px); overflow-y: auto; border-radius: var(--r-xl); background: var(--glass-3); }
+.controls-pop .drawer-head { padding-left: 14px; }
 /* El volumen ya está a la vista (barra de transporte, o «Historias» en el celular). */
 .controls-pop .live-controls .volume { display: none; }
 .controls-pop .live-controls { border: 0; background: none; padding: 6px 16px 18px; gap: 10px; }
@@ -225,16 +257,13 @@ html.touch .tool-chip { height: var(--control); padding: 0 14px; }
 .controls-pop .live-controls .transport { flex-wrap: wrap; }
 
 /* ---- Buscar en todo (capa que se cierra al tocar fuera) ---- */
-.finder-chip { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; white-space: nowrap; border-radius: var(--r-pill); background: var(--glass-1); color: var(--ink-2); font-weight: 600; }
+.finder-chip { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; white-space: nowrap; border-radius: var(--r-pill); background: var(--glass-1); color: var(--ink-2); font-weight: 600; }
 .finder-chip:hover { border-color: var(--line-2); color: var(--ink); }
 .finder-layer { position: fixed; inset: 0; z-index: var(--z-sheet); background: rgba(3, 4, 6, 0.45); }
-.finder { position: absolute; left: 50%; top: 84px; transform: translateX(-50%); width: min(640px, calc(100vw - 32px)); max-height: calc(100dvh - 108px); display: flex; flex-direction: column; overflow: hidden; border-radius: var(--r-xl); background: var(--glass-3); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); }
-/* Lo preparado desde la búsqueda se ve encima de su capa, y la búsqueda le deja sitio. */
-body.finding .prep { z-index: calc(var(--z-sheet) + 1); }
-body.has-prep .finder { max-height: calc(100dvh - 208px - var(--prep-h, 0px)); }
-.finder-input { display: flex; align-items: center; gap: 12px; padding: 0 22px; border-bottom: 1px solid var(--glass-line); color: var(--ink-3); flex-shrink: 0; }
+.finder { position: absolute; left: 50%; top: 60px; transform: translateX(-50%); width: min(640px, calc(100vw - 32px)); max-height: calc(100dvh - 84px); display: flex; flex-direction: column; overflow: hidden; border-radius: var(--r-xl); background: var(--glass-3); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); }
+.finder-input { display: flex; align-items: center; gap: 10px; padding: 0 18px; border-bottom: 1px solid var(--glass-line); color: var(--ink-3); flex-shrink: 0; }
 .finder-input:focus-within { color: var(--accent); }
-.finder-input input { flex: 1; min-width: 0; height: 56px; border: 0; background: none; color: var(--ink); font-size: 17px; outline: none; }
+.finder-input input { flex: 1; min-width: 0; height: 48px; border: 0; background: none; color: var(--ink); font-size: 15px; outline: none; }
 .finder-list { overflow-y: auto; padding: 8px 12px 12px; }
 /* Con resultados en más de un grupo principal, el recuadro se ensancha: Biblia, Himnario y Videos en columnas, uno al
    lado de otro, y los demás grupos debajo, en filas (search.js, MAIN). */
@@ -242,8 +271,12 @@ body.has-prep .finder { max-height: calc(100dvh - 208px - var(--prep-h, 0px)); }
 .finder-main { display: grid; grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); gap: 0 12px; align-items: start; }
 .finder-col { min-width: 0; }
 .finder-main + .finder-group { margin-top: 10px; border-top: 1px solid var(--glass-line); }
-.finder-group { display: block; padding: 14px 12px 6px; color: var(--ink-3); font: 600 11px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
-.finder-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: var(--control); padding: 10px 12px; border-radius: var(--r); border: 1px solid transparent; text-align: left; }
+.finder-group { display: block; padding: 10px 10px 4px; color: var(--ink-3); font: 600 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.finder-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: var(--control); padding: 6px 10px; border-radius: var(--r); border: 1px solid transparent; text-align: left; cursor: pointer; }
+/* La fila marcada lleva sus botones: ▶ proyecta y, si se puede editar, + añade al orden. */
+.finder-acts { display: none; flex-shrink: 0; gap: 2px; }
+.finder-row.on .finder-acts { display: flex; }
+.finder-acts .icon-btn { color: var(--accent); }
 .finder-row:hover { background: var(--s2); }
 .finder-row.on { background: var(--accent-soft); border-color: var(--accent); }
 .finder-row .item-text strong { -webkit-line-clamp: 1; }
@@ -316,25 +349,22 @@ html.touch .verse-pop .icon-btn.sm { width: var(--tap); }
    ocupan hasta tres líneas; en celular, hasta cinco. El elemento elegido se muestra entero. */
 .item-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .item-text strong { font-weight: 600; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.item-text small { color: var(--ink-3); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-text small { color: var(--ink-3); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---- Presentador: un solo módulo a pantalla completa ---- */
 body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
 
 /* Los avisos generales, sobre las capas. */
 .escena .offline-bar { position: fixed; top: 0; left: 0; right: 0; z-index: var(--z-toast); }
-.escena #toast { bottom: 96px; }
+.escena #toast { bottom: 72px; }
 
 /* ============ Tableta en horizontal y portátil pequeño ============ */
 @media (max-width: 1179px) {
-  .queue, .prep { width: 290px; }
-  .drawer, body.queue-closed.has-prep .drawer { --drawer-max: calc(100vw - 92px - 322px); }
-  .ws-head { padding: 12px 16px; }
-  .tb-volume { width: 150px; }
-  .tb-main .btn.next { padding: 0 16px; }
+  .queue { width: 260px; }
+  .drawer { --drawer-max: calc(100vw - 72px - 286px); }
   .transport-bar kbd, .mode-chip kbd { display: none; }
   /* Con los mandos, la barra crece hacia arriba: que empiece a la derecha del dock para no pisarlo. */
-  .transport-bar { left: 96px; right: 16px; width: auto; transform: none; }
+  .transport-bar { left: 76px; right: 14px; width: auto; transform: none; }
 }
 
 /* ============ Celular y tableta en vertical: «Historias» ============ */
@@ -342,7 +372,7 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .scene-bg > .stage { display: none; }
   .scene-ambient { opacity: 0.35; }
   .scene-scrim, .queue, .transport-bar { display: none; }
-  .topbar { left: 12px; right: 12px; top: 10px; }
+  .topbar { left: 10px; right: 10px; top: 8px; }
   /* En el celular lo que está al aire se ve en «Historias»: arriba solo queda la M (y, en el equipo principal,
      el botón del proyector), sin una píldora vacía. */
   .scene-status { flex: 0 1 auto; max-width: none; }
@@ -352,9 +382,14 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .drawer-head { padding: 6px 6px 6px 14px; }
   .drawer-head h2 { display: none; }
   .scene-mini { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+  /* En la cabecera del módulo (cajón completo), el estado de lo que está al aire va junto a ampliar y cerrar: solo su
+     etiqueta, y lo que se ve también si sobra sitio. */
+  .drawer-actions .scene-mini { flex: 0 1 auto; margin-right: 4px; }
+  .drawer-actions.in-ws .scene-mini > :not(.live-pill) { display: none; }
+  @container cajon (min-width: 600px) { .drawer-actions.in-ws .scene-mini > :not(.live-pill) { display: block; max-width: 220px; } }
   .role-chip { padding-right: 12px; }
 
-  .story { display: flex; flex-direction: column; gap: 12px; position: fixed; inset: 0; z-index: 1; overflow-y: auto; padding: 66px 12px calc(84px + env(safe-area-inset-bottom)); }
+  .story { display: flex; flex-direction: column; gap: 12px; position: fixed; inset: 0; z-index: 1; overflow-y: auto; padding: 54px 12px calc(70px + env(safe-area-inset-bottom)); }
   .story > * { flex-shrink: 0; }
   /* En una tableta en vertical, el recuadro no pasa de un tercio del alto: deja sitio al cajón. */
   .story-frame { position: relative; width: min(100%, calc(34dvh * 16 / 9)); align-self: center; aspect-ratio: 16 / 9; border-radius: var(--r-lg); overflow: hidden; background: #000; border: 2px solid var(--line-2); }
@@ -375,7 +410,7 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .story-caption .item-text strong { font-size: 16px; -webkit-line-clamp: 2; }
   .story-hint { color: var(--ink-3); font-size: 12px; margin-top: -6px; }
   .story-modes { display: flex; gap: 4px; padding: 4px; border-radius: var(--r-pill); background: var(--glass-1); border: 1px solid var(--glass-line); }
-  .seg-btn { flex: 1; min-height: 44px; border-radius: var(--r-pill); color: var(--ink-2); font-weight: 600; }
+  .seg-btn { flex: 1; min-height: 38px; border-radius: var(--r-pill); color: var(--ink-2); font-weight: 600; }
   .seg-btn.on { background: var(--s3); color: var(--ink); }
   .seg-btn.on[data-mode='live'] { background: var(--live-strong); color: var(--on-live); }
   .story-volume { display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 12px; border-radius: var(--r-pill); background: var(--glass-1); border: 1px solid var(--glass-line); }
@@ -387,40 +422,34 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .story-next-head strong { white-space: nowrap; }
   .story-next-head small { color: var(--ink-3); font-size: 12px; text-align: right; }
   .story-next-list { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 2px; }
-  .story-card { flex: 0 0 150px; scroll-snap-align: start; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px; border-radius: var(--r-lg); background: var(--glass-2); border: 1px solid var(--glass-line); text-align: left; }
+  .story-card { position: relative; flex: 0 0 150px; scroll-snap-align: start; display: flex; border-radius: var(--r-lg); background: var(--glass-2); border: 1px solid var(--glass-line); }
+.story-card.prepared { border-color: var(--accent); background: var(--accent-soft); }
+.story-card.prepared .story-play { display: inline-grid; }
+.story-main { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px; text-align: left; }
+.story-card .story-play { position: absolute; top: 2px; right: 2px; width: 35px; height: 35px; }
   .story-card strong { font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .story-card small { color: var(--ink-3); font-size: 12px; }
 
-  .dockbar { left: 12px; right: 12px; top: auto; bottom: calc(8px + env(safe-area-inset-bottom)); transform: none; flex-direction: row; justify-content: space-around; gap: 2px; padding: 4px; max-height: none; overflow-x: auto; border-radius: var(--r-xl); background: var(--glass-2); z-index: 6; }
+  .dockbar { left: 10px; right: 10px; top: auto; bottom: calc(6px + env(safe-area-inset-bottom)); transform: none; flex-direction: row; justify-content: space-around; gap: 2px; padding: 4px; max-height: none; overflow-x: auto; border-radius: var(--r-xl); background: var(--glass-2); z-index: 6; }
   .dock-fill { display: none; }
-  .dock-item { width: auto; min-width: 58px; height: 50px; border-radius: var(--r-lg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0 6px; }
+  .dock-item { width: auto; min-width: 54px; height: 44px; border-radius: var(--r-lg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0 6px; }
   .dock-name { display: block; font-size: 10px; font-weight: 600; white-space: nowrap; }
 
   .drawer-backdrop { display: block; position: fixed; inset: 0; z-index: 5; background: rgba(3, 4, 6, 0.5); }
   /* Reducido, se agranda arrastrando su borde de arriba (--drawer-top) entre la barra de arriba y un mínimo de
      un tercio de la pantalla o 400 px (lo que mida más), para que el módulo siga teniendo sitio. */
-  .drawer, .drawer.wide, body.queue-closed .drawer.wide { left: 6px; right: 6px; top: clamp(74px, var(--drawer-top, calc(74px + min((100vw - 24px) * 9 / 16, 34dvh))), calc(100dvh - 74px - max(33dvh, 400px))); bottom: calc(74px + env(safe-area-inset-bottom)); width: auto; z-index: 5; border-radius: var(--r-xl); background: var(--glass-3); }
+  .drawer, .drawer.wide, body.queue-closed .drawer.wide { left: 6px; right: 6px; top: clamp(62px, var(--drawer-top, calc(62px + min((100vw - 24px) * 9 / 16, 34dvh))), calc(100dvh - 62px - max(33dvh, 400px))); bottom: calc(62px + env(safe-area-inset-bottom)); width: auto; z-index: 5; border-radius: var(--r-xl); background: var(--glass-3); }
   .drawer.wide, body.queue-closed .drawer.wide { top: 10px; }
   .drawer-grip { left: 0; right: 0; bottom: auto; width: auto; height: 18px; cursor: ns-resize; }
   .drawer-grip::after { top: 6px; right: auto; left: 50%; width: 44px; height: 4px; margin: 0 0 0 -22px; }
-  .drawer.compact .drawer-head { padding-top: 14px; }
-
-  .prep { left: 10px; right: 10px; width: auto; bottom: calc(78px + env(safe-area-inset-bottom)); z-index: 7; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 8px 8px 8px 12px; }
-  .prep-head, .prep-monitor { display: none; }
-  .prep-text { flex: 1 1 140px; min-width: 0; }
-  .prep-actions { flex: 0 0 auto; }
-  .prep-actions .btn { flex: 0 0 auto; }
-  /* Con un cajón abierto, el módulo ya muestra lo suyo y la tarjeta taparía su acción principal. */
-  body.drawer-open .prep { display: none; }
+  .drawer.compact .drawer-head { padding-top: 12px; }
 
   .controls-pop { left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); transform: none; width: auto; max-height: 80dvh; }
-  .finder-chip { width: 44px; padding: 0; justify-content: center; flex-shrink: 0; }
+  .finder-chip { width: 36px; padding: 0; justify-content: center; flex-shrink: 0; }
   .finder-chip :is(span, kbd) { display: none; }
-  .finder, .finder.wide { top: 10px; width: calc(100vw - 12px); max-height: calc(100dvh - 20px); }
+  .finder, .finder.wide { top: 8px; width: calc(100vw - 12px); max-height: calc(100dvh - 20px); }
   .finder-main { display: block; }
-  body.has-prep .finder { max-height: calc(100dvh - 104px - var(--prep-h, 0px) - env(safe-area-inset-bottom)); }
-  body.finding.drawer-open .prep { display: flex; }
-  .escena #toast { bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .escena #toast { bottom: calc(72px + env(safe-area-inset-bottom)); }
   /* Dos filas: qué suena y sus botones; debajo, el avance y el tiempo. */
   .preview-bar { top: 10px; z-index: 8; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: 'ic text toggle close' 'seek seek seek time'; gap: 4px 8px; border-radius: var(--r-lg); padding: 8px 8px 10px 12px; }
   .preview-bar > .ic { grid-area: ic; }
@@ -437,7 +466,6 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .ws-notice > .ic { display: none; }
   .ws-notice p { flex: 1 1 100%; padding-right: 40px; }
   .ws-notice > .icon-btn { position: absolute; top: 2px; right: 2px; }
-  .prep-actions .btn:not(.primary) { display: none; }
   /* La función se ve al abrir su menú: aquí el ancho es para lo que está al aire. */
   .role-text { display: none; }
   .role-chip { padding: 0 8px; }
@@ -446,17 +474,17 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
 /* Celular en horizontal: sobra ancho y falta altura. El dock pasa a la izquierda y la proyección
    y lo que sigue se ponen lado a lado. */
 @media (max-width: 859px) and (max-height: 480px) {
-  .topbar { left: 84px; top: 6px; }
-  .story { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-content: start; gap: 8px 14px; padding: 56px 12px 12px 84px; }
+  .topbar { left: 70px; top: 6px; }
+  .story { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-content: start; gap: 8px 14px; padding: 48px 12px 10px 70px; }
   .story-frame { grid-row: span 4; align-self: start; width: 100%; }
   .story-next { grid-column: 2; }
   .story-hint { display: none; }
-  .seg-btn { min-height: 40px; }
-  .dockbar { left: 10px; right: auto; top: 50%; bottom: auto; transform: translateY(-50%); flex-direction: column; max-height: calc(100dvh - 20px); overflow-y: auto; }
-  .dock-item { min-width: 0; width: 56px; height: 48px; }
+  .seg-btn { min-height: 36px; }
+  .dockbar { left: 8px; right: auto; top: 50%; bottom: auto; transform: translateY(-50%); flex-direction: column; max-height: calc(100dvh - 16px); overflow-y: auto; }
+  .dock-item { min-width: 0; width: 48px; height: 42px; }
   .dock-name { display: none; }
   /* Reducido, se ensancha arrastrando su borde izquierdo (--drawer-left), sin pasar del dock. */
-  .drawer, .drawer.wide, body.queue-closed .drawer.wide { left: clamp(80px, var(--drawer-left, 46vw), 60vw); right: 8px; top: 8px; bottom: 8px; }
+  .drawer, .drawer.wide, body.queue-closed .drawer.wide { left: clamp(68px, var(--drawer-left, 46vw), 60vw); right: 8px; top: 8px; bottom: 8px; }
   .drawer-grip { left: 0; right: auto; top: 0; bottom: 0; width: 18px; height: auto; cursor: ew-resize; }
   .drawer-grip::after { top: 50%; left: 6px; width: 4px; height: 44px; margin: -22px 0 0; }
   .drawer.compact .drawer-head { padding-top: 0; }
@@ -464,26 +492,19 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .ws-head { flex-wrap: nowrap; padding: 6px 12px; }
   .ws-head h1 { flex: 0 0 auto; }
   .ws-head .search { flex: 1; order: 0; }
-  .drawer.wide, body.queue-closed .drawer.wide { left: 80px; }
-  .prep { left: auto; right: 10px; width: min(420px, calc(100vw - 100px)); bottom: 10px; }
+  .drawer.wide, body.queue-closed .drawer.wide { left: 68px; }
   .escena #toast { bottom: 16px; }
 }
 
 /* Tableta baja en horizontal (860 px o más de ancho y 640 o menos de alto): las barras se arriman a los bordes y la
-   cabecera del módulo va en una fila, sin repetir su nombre (lo dice el cajón), para que quede sitio al contenido. */
+   cabecera del módulo, más baja, para que quede sitio al contenido. */
 @media (min-width: 860px) and (max-height: 640px) {
   .topbar { top: 8px; }
-  .drawer, .queue { top: 60px; }
-  .queue { max-height: calc(100dvh - 60px - var(--tb-space)); }
-  body.has-prep .queue { max-height: calc(100dvh - 60px - var(--tb-space) - var(--prep-h, 0px) - 12px); }
-  body { --tb-space: calc(var(--tb-h, 60px) + 24px); }
-  .transport-bar { bottom: 12px; padding: 8px; }
-  .tb-main .btn { height: 40px; }
-  .tb-main .btn.round { width: 40px; }
-  .drawer-head { padding-top: 6px; padding-bottom: 6px; }
-  .ws-head { flex-wrap: nowrap; padding: 6px 12px; }
-  .ws-head h1 { display: none; }
-  .ws-head .search { flex: 1; order: 0; }
+  .drawer, .queue { top: 52px; }
+  .queue { max-height: calc(100dvh - 52px - var(--tb-space)); }
+  body { --tb-space: calc(var(--tb-h, 50px) + 22px); }
+  .transport-bar { bottom: 8px; }
+  .ws-head { padding-top: 6px; padding-bottom: 6px; }
   /* El aviso de un programa que falta, en una sola fila: el texto se parte, los botones no. */
   .ws-notice { flex-wrap: nowrap; padding-top: 4px; padding-bottom: 4px; font-size: 13px; }
   .ws-notice p { flex: 1 1 0; }
@@ -496,3 +517,5 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
 @media (hover: hover) and (pointer: fine) {
   body.bar-idle:not(.narrow) .transport-bar { opacity: 0; }
 }
+/* Tocar el fondo la esconde del todo (también con el dedo): sin recibir toques, para no pulsar un botón que no se ve. */
+body.bar-off .transport-bar { opacity: 0; pointer-events: none; }

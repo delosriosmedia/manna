@@ -16,22 +16,22 @@ registerKind('slides', {
 
   controls(host, tools) {
     const where = h('strong', {});
-    const left = h('small', {});
+    const left = h('small', { class: 't3' });
     const picture = h('img', { alt: '' });
     const label = h('span', {});
-    const next = h('div', { class: 'slide-next' }, h('span', { class: 'slide-next-thumb' }, picture), h('span', { class: 'slide-next-text' }, h('small', {}, 'Sigue'), label));
+    const next = h('div', { class: 'slide-next t3' }, h('span', { class: 'slide-next-thumb' }, picture), h('span', { class: 'slide-next-text' }, h('small', {}, 'Sigue'), label));
     const info = h('div', { class: 'slide-info' }, h('div', { class: 'slide-count' }, where, left), next);
     // Los mandos del encuadre van debajo, tal cual; sin «Completa / Llenar»: una diapositiva va siempre entera.
     // Si la pasa PowerPoint, se dice debajo.
     const framing = h('div', { class: 'live-part slide-framing' });
-    const ppt = h('p', { class: 'slide-ppt muted' }, 'La pasa PowerPoint en el proyector, con sus videos y animaciones: «Siguiente» avanza también las animaciones, y «Señalar» se ve encima. Al acercarla, PowerPoint se aparta hasta volver a la vista completa.');
+    const ppt = h('p', { class: 'slide-ppt muted sec' }, 'La pasa PowerPoint en el proyector, con sus videos y animaciones: «Siguiente» avanza también las animaciones, y «Señalar» se ve encima. Al acercarla, PowerPoint se aparta hasta volver a la vista completa.');
     host.replaceChildren(info, framing, ppt);
     const view = pictureControls(framing, tools, { fits: false });
 
     return {
       update(state, item) {
         const remaining = item.pages - item.number;
-        where.textContent = `Diapositiva ${item.number} de ${item.pages}`;
+        where.replaceChildren(h('span', { class: 'lbl' }, 'Diapositiva '), `${item.number} de ${item.pages}`);
         left.textContent = remaining === 0 ? 'Es la última' : remaining === 1 ? 'Queda 1' : `Quedan ${remaining}`;
         next.classList.toggle('none', !item.next);
         if (item.next) {

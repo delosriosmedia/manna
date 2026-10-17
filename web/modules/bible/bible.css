@@ -78,6 +78,9 @@ html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
   .abar { padding: 10px 16px; }
   .abar .hint { visibility: hidden; }
   .search-pop { left: 16px; right: 16px; }
+  /* Comparar y Varios, solo con su icono: la cabecera (con ampliar y cerrar) cabe en una fila. */
+  .ws[data-module='biblia'] .ws-head .btn { width: var(--control); padding: 0; justify-content: center; }
+  .ws[data-module='biblia'] .ws-head .btn > span { display: none; }
 }
 
 /* Cajón estrecho (el de 440 px, el del celular): una columna a la vez. Libro -> capítulo -> versículos,
@@ -100,11 +103,9 @@ html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
   /* Al comparar en estrecho, la segunda versión ocupa la fila y los dos textos van uno bajo otro. */
   .cmp-bar .select { flex: 1; max-width: none; }
   .cmp-bar > .muted { display: none; }
-  /* Comparar y Varios, solo con su icono: caben con el título y la versión en una fila. */
+  /* El título, la versión y los dos botones en una fila; el buscador, en la de abajo. */
   .ws[data-module='biblia'] .ws-head h1 { flex: 0 0 auto; }
-  .ws[data-module='biblia'] .ws-head .select { flex: 1 1 0; min-width: 0; max-width: none; }
-  .ws[data-module='biblia'] .ws-head .btn { width: var(--control); padding: 0; justify-content: center; }
-  .ws[data-module='biblia'] .ws-head .btn > span { display: none; }
+  .ws[data-module='biblia'] .ws-head .select { flex: 1 1 110px; min-width: 100px; max-width: none; }
   .verse-heads { display: none; }
   .verse.two { grid-template-columns: 22px minmax(0, 1fr); gap: 4px 10px; }
   .verse.two > span:nth-child(3) { grid-column: 2; color: var(--ink-3); }

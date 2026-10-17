@@ -13,10 +13,6 @@ function mount(el, ctx) {
   let comparing = prefs.get('biblia.comparar', false);
   let layout = LAYOUTS.some(([id]) => id === prefs.get('comparar.disposicion')) ? prefs.get('comparar.disposicion') : 'columns';
   const versions = () => state.bible?.versions || [];
-  const abbr = (id) => {
-    const v = versions().find((x) => x.id === id);
-    return v?.abbr || v?.name || '';
-  };
   const options = (list) => list.map((v) => h('option', { value: v.id }, v.abbr ? `${v.name} (${v.abbr})` : v.name));
 
   // Las dos versiones no pueden ser la misma: elegir en un lado la que está en el otro las intercambia.
@@ -45,7 +41,6 @@ function mount(el, ctx) {
       layout = id;
       prefs.set('comparar.disposicion', id);
       paintCompare();
-      browser.updatePreview();
     },
   }, icon(glyph, 18)));
   const compareBtn = h('button', { class: 'btn', 'aria-pressed': 'false', title: 'El mismo pasaje en dos versiones', 'aria-label': 'Comparar', onclick: () => setComparing(!comparing) }, icon('columns', 16), h('span', {}, 'Comparar'));
@@ -81,18 +76,10 @@ function mount(el, ctx) {
       ? {
         kind: 'compare',
         data: { versions: [p.versionId, second.value], ref: p.ref, layout },
-        preview: {
-          kind: 'compare', reference: p.reference, ref: p.ref, layout,
-          sides: [
-            { versionId: p.versionId, version: abbr(p.versionId), verses: p.verses },
-            { versionId: second.value, version: abbr(second.value), verses: p.others },
-          ],
-        },
       }
       : {
         kind: 'verses',
         data: { versionId: p.versionId, ref: p.ref },
-        preview: { kind: 'verses', versionId: p.versionId, ref: p.ref, reference: p.reference, version: abbr(p.versionId), verses: p.verses },
       }),
     // versionId llega de passages.js: aquí `browser` aún no existe mientras se monta.
     liveRef: (item, versionId) => {

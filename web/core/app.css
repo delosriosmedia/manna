@@ -56,13 +56,13 @@
   --r-sm: 10px;
   --r: 14px;
   --r-lg: 22px;
-  --r-xl: 28px;
+  --r-xl: 24px;
   --r-pill: 999px;
 
   --font: 'Sora', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --control: 34px;
+  --control: 30px;
 
   /* Capas */
   --z-nav: 20;
@@ -79,11 +79,11 @@
 
 /* Pantallas táctiles: controles más altos para el dedo. La clase "touch" la pone un script
    mínimo en la cabecera de cada página (pantalla táctil, o ?tactil en la dirección). */
-html.touch { --control: 44px; --tap: 40px; }
-/* En una tableta en horizontal (la disposición del escritorio, 860 px o más) los de 44 px no dejaban sitio al
-   escenario: más pequeños, como pidió el dueño el 2026-10-16. */
+html.touch { --control: 38px; --tap: 35px; }
+/* En una tableta en horizontal (la disposición del escritorio, 860 px o más) los de 38 px no dejaban sitio al
+   escenario: más pequeños, como pidió el dueño el 2026-10-16. Nada que se toque baja de 35 px (--tap, 2026-10-17). */
 @media (min-width: 860px) {
-  html.touch { --control: 36px; --tap: 36px; }
+  html.touch { --control: 35px; --tap: 35px; }
   html.touch .chip { padding: 8px 12px; }
 }
 
@@ -94,16 +94,16 @@ body {
   margin: 0;
   background: var(--canvas);
   color: var(--ink);
-  font: 13px/1.45 var(--font);
+  font: 12px/1.45 var(--font);
   font-feature-settings: 'tnum';
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
-html.touch body { font-size: 15px; }
+html.touch body { font-size: 14px; }
 
 h1, h2, h3, p { margin: 0; }
-h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
-h2 { font-size: 15px; font-weight: 600; letter-spacing: -0.005em; }
+h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+h2 { font-size: 14px; font-weight: 600; letter-spacing: -0.005em; }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; padding: 0; }
 [hidden] { display: none !important; }
@@ -116,7 +116,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 kbd {
-  font: 500 11px var(--mono); color: var(--ink-3);
+  font: 500 10px var(--mono); color: var(--ink-3);
   border: 1px solid var(--line-2); border-radius: 4px; padding: 0 5px; margin-left: 6px;
 }
 html.touch kbd { display: none; }
@@ -140,7 +140,7 @@ a.btn { color: inherit; text-decoration: none; }
 .btn.danger { color: var(--live-ink); }
 .btn.danger:hover { border-color: var(--live); }
 .btn.grow { flex: 1; }
-.btn.big { min-height: 48px; font-size: 15px; }
+.btn.big { min-height: 40px; font-size: 14px; }
 
 .icon-btn {
   width: var(--control); height: var(--control); flex-shrink: 0;
@@ -149,7 +149,7 @@ a.btn { color: inherit; text-decoration: none; }
 }
 .icon-btn:hover { background: var(--s3); color: var(--ink); }
 .icon-btn:disabled { opacity: 0.35; cursor: default; }
-.icon-btn.sm { width: 28px; height: 28px; }
+.icon-btn.sm { width: 26px; height: 26px; }
 html.touch .icon-btn.sm { width: var(--tap); height: var(--tap); }
 html.touch .chip { padding: 10px 14px; }
 html.touch .link { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 6px; }

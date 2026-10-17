@@ -2,7 +2,7 @@ import { action, connectionId, state, subscribe } from '../../core/api.js';
 import { h, guard, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { createJobsList } from '../../core/jobs.js';
-import { keyOf, kindBadge, kindOf, titleOf } from '../../core/kinds.js';
+import { kindBadge, kindOf } from '../../core/kinds.js';
 import { prefs } from '../../core/prefs.js';
 import { createStage } from './stage.js';
 import { createLiveControls } from './live.js';
@@ -21,7 +21,6 @@ const BAR_IDLE_MS = 2500; // sin mover el ratón ni pulsar una tecla, la barra d
 //   queue      cola del culto: el orden para operar, con los pasos de lo que está al aire
 //   transport  barra de abajo: los mandos de lo que está al aire (siempre a la vista) y, debajo, Anterior,
 //              Siguiente, qué sigue y el volumen
-//   prep       tarjeta «Preparado»: lo elegido, con Proyectar y Añadir al orden
 //   story      celular («Historias»): la proyección en su recuadro, con toques para pasar y lo que sigue
 //   controls   los mandos del tipo al aire (live.js) para el celular, que el shell abre en una capa; en el
 //              escritorio van en la barra de abajo
@@ -57,68 +56,26 @@ export function createEscenario(ctx) {
   const miniCaption = h('strong', { class: 'scene-caption' });
   const mini = h('div', { class: 'scene-mini' }, livePill(), miniCaption);
 
-  // ---- Lo preparado ----
-  // { item?, kind?, title, subtitle?, project?, add?, orderId?, preview? }. preview: lo que un módulo tiene
-  // seleccionado (setPreview); se proyecta desde el propio módulo, así que la tarjeta solo lo muestra.
+  // ---- Lo marcado ----
+  // { orderId, step, project }: el elemento de la cola o de «A continuación» que se tocó. Se ve con su borde cian y
+  // un ▶ para proyectarlo; Intro (shell.js) y el doble toque también lo proyectan.
   let prepared = null;
-  const prepMonitor = h('div', { class: 'monitor prep-monitor' });
-  const prepStage = createStage(prepMonitor, { thumbnail: true });
-  const prepBadge = h('span', { class: 'prep-badge' });
-  const prepTitle = h('strong', {});
-  const prepSub = h('small', {});
-  const prepLabel = h('small', { class: 'prep-label' });
-  const prepAdd = h('button', { class: 'btn', onclick: guard(async () => {
-    await prepared?.add?.();
-    toast(`«${prepared.title}» añadido al orden del culto.`);
-  }) }, icon('plus', 15), 'Añadir al orden');
-  const prepGo = h('button', { class: 'btn primary', onclick: () => projectPrepared() }, 'Proyectar', h('kbd', {}, '↵'));
-  const prep = h('section', { class: 'prep glass', 'aria-label': 'Preparado', hidden: true },
-    h('div', { class: 'prep-head' }, prepLabel, h('button', { class: 'icon-btn sm', 'aria-label': 'Quitar lo preparado', onclick: () => clearPrepared() }, icon('x', 14))),
-    prepMonitor,
-    h('div', { class: 'prep-text' }, prepBadge, h('span', { class: 'item-text' }, prepTitle, prepSub)),
-    h('div', { class: 'prep-actions' }, prepAdd, prepGo));
-
-  // La cola deja sitio a la tarjeta, mida lo que mida (con o sin miniatura).
-  new ResizeObserver(() => document.body.style.setProperty('--prep-h', `${prep.offsetHeight}px`)).observe(prep);
-
-  function renderPrepared() {
-    const p = state.projection;
-    const src = p?.item?.source;
-    // Lo preparado que ya está al aire sobra.
-    const onAir = prepared && p?.mode === 'live' && ((prepared.orderId && src?.orderId === prepared.orderId && (prepared.step ?? 0) === (src?.step ?? 0))
-      || (prepared.item && keyOf(prepared.item) === keyOf(p.item)));
-    prep.hidden = !prepared || onAir;
-    document.body.classList.toggle('has-prep', !prep.hidden);
-    if (prep.hidden) return;
-    prepLabel.textContent = prepared.project ? 'PREPARADO' : 'SELECCIONADO';
-    prepMonitor.hidden = !prepared.item;
-    if (prepared.item) prepStage.render({ mode: 'live', item: prepared.item, styles: p?.styles || {} });
-    prepBadge.replaceChildren(prepared.kind ? kindBadge(prepared.kind) : '');
-    prepTitle.textContent = prepared.title || titleOf(prepared.item);
-    prepSub.textContent = prepared.subtitle || (prepared.project ? '' : 'Se proyecta desde su módulo');
-    prepGo.hidden = !prepared.project;
-    prepAdd.hidden = !prepared.add;
-  }
-  function prepare(next) {
-    prepared = next;
-    renderPrepared();
-    renderQueue();
-  }
-  function clearPrepared() {
-    prepare(null);
-  }
+  const markPrepared = () => {
+    for (const row of [...queueList.querySelectorAll('.queue-item'), ...carousel.querySelectorAll('.story-card')]) row.classList.toggle('prepared', prepared?.orderId === row.dataset.id);
+  };
   const projectPrepared = guard(async () => {
     if (!prepared?.project) return false;
     const go = prepared.project;
-    clearPrepared();
+    prepared = null;
+    markPrepared();
     await go();
     return true;
   });
-  const search = ctx.canEdit ? createSearch({ prepare, projectPrepared, canEdit: ctx.canEdit }) : null;
-  const prepareOrder = (item, k = 0) => prepare({
-    kind: item.kind, title: item.title, subtitle: item.steps > 1 ? `${item.subtitle} · paso ${k + 1}` : item.subtitle,
-    orderId: item.id, step: k, project: () => action('order.show', { id: item.id, step: k }),
-  });
+  const search = ctx.canEdit ? createSearch({ canEdit: ctx.canEdit }) : null;
+  const prepareOrder = (item, k = 0) => {
+    prepared = { orderId: item.id, step: k, project: () => action('order.show', { id: item.id, step: k }) };
+    markPrepared();
+  };
 
   // ---- Cola del culto ----
   let queueOpen = prefs.get('cola', true);
@@ -144,6 +101,8 @@ export function createEscenario(ctx) {
   }
   setQueue(queueOpen);
 
+  // El ▶ de la fila marcada (CSS: solo se ve en la que está marcada y no al aire).
+  const playButton = (item, cls) => h('button', { class: `icon-btn sm ${cls}`, 'aria-label': `Proyectar «${item.title}»`, title: 'Proyectar (Intro)', onclick: projectPrepared }, icon('play', 14));
   const orderItems = () => state.order?.items || [];
   const liveSource = () => state.projection?.item?.source || null;
   // La cola solo se rehace si cambia lo que muestra (los elementos, el que está al aire o su paso); preparar otro
@@ -158,7 +117,7 @@ export function createEscenario(ctx) {
     queuePos.textContent = at < 0 ? '' : `${items.slice(0, at + 1).filter((i) => i.kind !== 'section').length} de ${items.filter((i) => i.kind !== 'section').length}`;
     const shape = JSON.stringify([items.map((i) => [i.id, i.kind, i.title, i.subtitle, i.steps]), liveId, liveId ? src.step ?? 0 : null]);
     if (shape === queueShape) {
-      for (const row of queueList.querySelectorAll('.queue-item')) row.classList.toggle('prepared', prepared?.orderId === row.dataset.id);
+      markPrepared();
       return;
     }
     queueShape = shape;
@@ -170,11 +129,12 @@ export function createEscenario(ctx) {
     queueList.replaceChildren(...items.map((item, i) => {
       if (item.kind === 'section') return h('small', { class: 'queue-section' }, item.title);
       const live = item.id === liveId;
-      const row = h('button', {
+      const row = h('div', {
         class: `queue-item${live ? ' live' : ''}${prepared?.orderId === item.id ? ' prepared' : ''}${at >= 0 && i < at ? ' done' : ''}`,
-        dataset: { id: item.id, key: item.id }, title: item.title, 'aria-current': live ? 'true' : null,
-        onclick: () => prepareOrder(item), ondblclick: guard(() => action('order.show', { id: item.id })),
-      }, kindBadge(item.kind), h('span', { class: 'item-text' }, h('strong', {}, item.title), h('small', {}, item.subtitle)));
+        dataset: { id: item.id }, 'aria-current': live ? 'true' : null,
+      }, h('button', { class: 'queue-main', dataset: { key: item.id }, title: item.title, onclick: () => prepareOrder(item), ondblclick: guard(() => action('order.show', { id: item.id })) },
+        kindBadge(item.kind), h('span', { class: 'item-text' }, h('strong', {}, item.title), h('small', {}, item.subtitle))),
+      playButton(item, 'queue-play'));
       if (!live || !(item.steps > 1)) return row;
       const now = src.step ?? 0;
       return h('div', { class: 'queue-live' }, row, h('div', { class: 'queue-steps' }, ...Array.from({ length: item.steps }, (_, k) =>
@@ -193,8 +153,8 @@ export function createEscenario(ctx) {
   const toolSets = [];
   const toolSet = () => {
     const chips = [['point', 'hand-pointing', 'Señalar'], ['move', 'arrows-out-cardinal', 'Mover']].map(([id, glyph, label]) =>
-      h('button', { class: 'chip tool-chip', dataset: { tool: id }, 'aria-pressed': 'false', onclick: () => { tool = tool === id ? null : id; paintTools(); } }, icon(glyph, 15), label));
-    const reset = h('button', { class: 'chip tool-chip', 'aria-label': 'Restablecer el zoom', title: 'Ver la imagen entera', onclick: () => gestures.reset() }, icon('arrow-counter-clockwise', 15), 'Restablecer');
+      h('button', { class: 'chip tool-chip', dataset: { tool: id }, title: label, 'aria-label': label, 'aria-pressed': 'false', onclick: () => { tool = tool === id ? null : id; paintTools(); } }, icon(glyph, 15), h('span', { class: 'lbl' }, label)));
+    const reset = h('button', { class: 'chip tool-chip', 'aria-label': 'Restablecer el zoom', title: 'Ver la imagen entera', onclick: () => gestures.reset() }, icon('arrow-counter-clockwise', 15), h('span', { class: 'lbl' }, 'Restablecer'));
     const el = h('div', { class: 'scene-tools', role: 'group', 'aria-label': 'Señalar y mover sobre la proyección', hidden: true }, ...chips, reset);
     toolSets.push({ el, chips, reset });
     return el;
@@ -221,27 +181,34 @@ export function createEscenario(ctx) {
   }
 
   // ---- Barra de transporte ----
-  const upNext = h('strong', {});
-  // Los mandos de lo que está al aire, siempre a la vista encima de los botones de pasar (en el escritorio).
+  // Una sola fila: Anterior, Siguiente, los mandos de lo que está al aire (con prioridades: lo que no cabe se queda en
+  // «Más mandos»; ver shell.css), el volumen y «Más mandos».
   const barControls = h('div', { class: 'tb-live' });
   createLiveControls(barControls);
   const barTools = toolSet();
   const barExtra = h('div', { class: 'tb-extra' }, barTools, barControls);
   const noSound = h('button', { class: 'icon-btn no-sound', hidden: true, title: NO_SOUND, 'aria-label': 'No suena en ningún sitio', onclick: () => toast(NO_SOUND, 'error') }, icon('warning', 18));
   const volume = createVolume();
+  const more = h('button', { class: 'icon-btn tb-more', 'aria-label': 'Más mandos', title: 'Más mandos', 'aria-haspopup': 'dialog', onclick: () => ctx.openControls?.() }, icon('sliders-horizontal', 18));
   // «Escuchar antes de añadir», solo fuera del equipo principal (este ya suena para la iglesia).
   const preview = ctx.isLocal ? null : createPreview();
-  const transport = h('div', { class: 'transport-bar glass', role: 'group', 'aria-label': 'Al aire' }, barExtra,
+  const transport = h('div', { class: 'transport-bar glass', role: 'group', 'aria-label': 'Al aire' },
     h('div', { class: 'tb-main' },
       h('button', { class: 'btn round', 'aria-label': 'Anterior', title: 'Anterior (←)', onclick: step(-1) }, icon('caret-left', 18)),
       h('button', { class: 'btn primary next', onclick: step(1) }, 'Siguiente', icon('caret-right', 18)),
-      h('div', { class: 'up-next' }, h('small', {}, 'SIGUE'), upNext),
-      h('div', { class: 'tb-volume' }, noSound, volume.el)));
-  // Con ratón y en pantalla ancha (shell.css), la barra se aparta tras unos segundos sin mover el ratón ni pulsar
-  // una tecla, como en un reproductor de video, para que la proyección se vea entera; cualquier movimiento la trae.
+      barExtra,
+      h('div', { class: 'tb-volume' }, noSound, volume.el),
+      more));
+  // La barra se aparta (shell.css): con ratón y en pantalla ancha, tras unos segundos sin mover el ratón ni pulsar una
+  // tecla, como en un reproductor de video; y, con ratón o con dedo, al tocar el fondo (la proyección), salvo con
+  // «Señalar» o «Mover», donde el toque es para señalar. Moviendo el ratón (o con otro toque en el fondo) vuelve.
   let idle = null;
-  const wake = () => {
-    document.body.classList.remove('bar-idle');
+  let held = null; // dónde se tocó el fondo para esconderla: el temblor del clic no debe traerla de vuelta
+  const wake = (e) => {
+    if (e?.type === 'pointerdown' && e.target.closest?.('.scene-bg')) return; // el toque en el fondo la esconde (tapBackground)
+    if (held && e?.type === 'mousemove' && Math.hypot(e.clientX - held.x, e.clientY - held.y) < 8) return;
+    held = null;
+    document.body.classList.remove('bar-idle', 'bar-off');
     clearTimeout(idle);
     idle = setTimeout(() => {
       // No se aparta mientras se usa: el ratón encima, algo suyo con el foco, o un menú o una ventana abiertos.
@@ -250,20 +217,8 @@ export function createEscenario(ctx) {
     }, BAR_IDLE_MS);
   };
   for (const type of ['mousemove', 'pointerdown', 'keydown', 'wheel']) document.addEventListener(type, wake, { passive: true });
-  // Lo que ocupa la barra (crece con los mandos): el cajón, la cola y «Preparado» le dejan sitio.
+  // Lo que ocupa la barra: el cajón y la cola le dejan sitio.
   new ResizeObserver(() => { if (transport.offsetHeight) document.body.style.setProperty('--tb-h', `${transport.offsetHeight}px`); }).observe(transport);
-
-  function nextText() {
-    const items = orderItems();
-    const src = liveSource();
-    const at = items.findIndex((i) => i.id === src?.orderId);
-    if (at >= 0) {
-      const cur = items[at];
-      if (cur.steps > 1 && (src.step ?? 0) + 1 < cur.steps) return `${cur.title} · paso ${(src.step ?? 0) + 2}`;
-      return items.slice(at + 1).find((i) => i.kind !== 'section')?.title || 'Fin del orden del culto';
-    }
-    return state.projection?.item ? 'El paso siguiente' : 'Nada en pantalla';
-  }
 
   // ---- Mandos del tipo al aire ----
   const controls = h('div', { class: 'scene-controls' });
@@ -291,7 +246,7 @@ export function createEscenario(ctx) {
     toolSet(),
     h('div', { class: 'story-modes', role: 'group', 'aria-label': 'Qué se ve en la proyección' }, ...modes),
     h('div', { class: `story-volume${ctx.role === 'alabanza' ? ' big' : ''}` }, storyVolume.el),
-    h('div', { class: 'story-next' }, h('div', { class: 'story-next-head' }, h('strong', {}, 'A continuación'), h('small', {}, 'Toca: prepara · doble toque: proyecta')), carousel));
+    h('div', { class: 'story-next' }, h('div', { class: 'story-next-head' }, h('strong', {}, 'A continuación'), h('small', {}, 'Toca: marca · ▶ o doble toque: proyecta')), carousel));
 
   function renderStory(p) {
     const items = orderItems();
@@ -311,8 +266,10 @@ export function createEscenario(ctx) {
     const at = items.findIndex((i) => i.id === src?.orderId);
     const upcoming = items.slice(at + 1).filter((i) => i.kind !== 'section').slice(0, 8);
     carousel.replaceChildren(...(upcoming.length
-      ? upcoming.map((item) => h('button', { class: 'story-card', title: item.title, onclick: () => prepareOrder(item), ondblclick: guard(() => action('order.show', { id: item.id })) },
-        kindBadge(item.kind), h('strong', {}, item.title), h('small', {}, item.subtitle)))
+      ? upcoming.map((item) => h('div', { class: `story-card${prepared?.orderId === item.id ? ' prepared' : ''}`, dataset: { id: item.id } },
+        h('button', { class: 'story-main', title: item.title, onclick: () => prepareOrder(item), ondblclick: guard(() => action('order.show', { id: item.id })) },
+          kindBadge(item.kind), h('strong', {}, item.title), h('small', {}, item.subtitle)),
+        playButton(item, 'story-play')))
       : [h('p', { class: 'muted' }, items.length ? 'No queda nada más en el orden.' : 'El orden del culto está vacío.')]));
   }
 
@@ -338,19 +295,20 @@ export function createEscenario(ctx) {
     black.setAttribute('aria-pressed', String(p.mode === 'black'));
     clear.setAttribute('aria-pressed', String(p.mode === 'clear' && Boolean(p.item)));
     barExtra.hidden = !(p.item && kindOf(p.item.kind)?.controls) && !stage.pointable();
+    more.hidden = barExtra.hidden;
     paintTools();
     paintMotion();
-    upNext.textContent = nextText();
     paintBackground(p.styles);
+    // Lo marcado que ya está al aire sobra.
+    const src = p.item?.source;
+    if (prepared && p.mode === 'live' && src?.orderId === prepared.orderId && (prepared.step ?? 0) === (src?.step ?? 0)) prepared = null;
     renderQueue();
     renderStory(p);
-    renderPrepared();
   });
   subscribe('order', (o) => {
     queueName.textContent = o.name || '';
     renderQueue();
     if (state.projection) renderStory(state.projection);
-    upNext.textContent = nextText();
   });
   // Con un video en movimiento detrás, el cristal deja de desenfocar (shell.css, body.moving): desenfocar lo que
   // cambia en cada fotograma es lo que más gasta la tarjeta gráfica.
@@ -368,24 +326,22 @@ export function createEscenario(ctx) {
   });
 
   return {
-    bg, status, mini, queue, transport, prep, story, controls, search, preview,
+    bg, status, mini, queue, transport, story, controls, search, preview,
     // En el celular la proyección va en el recuadro de «Historias»; en el escritorio, de fondo.
     place(narrow) {
       (narrow ? frame : bg).prepend(screen);
     },
     toggleMode,
-    prepare,
     projectPrepared,
-    clearPrepared,
-    // Lo que el módulo abierto tiene seleccionado (o null): se muestra, y se proyecta desde el módulo. Si es lo mismo
-    // que ya se ve, no se rehace nada (los módulos lo piden en cada cambio, también al escribir).
-    setPreview(item) {
-      if (!item) {
-        if (prepared?.preview) clearPrepared();
-        return;
+    // Un toque en el fondo (shell.js) esconde la barra de abajo, o la trae si ya estaba escondida (con el dedo no hay
+    // «mover el ratón»).
+    tapBackground(e) {
+      if (document.body.classList.contains('bar-off')) wake();
+      else {
+        held = { x: e.clientX, y: e.clientY };
+        clearTimeout(idle);
+        document.body.classList.add('bar-off');
       }
-      if (prepared?.preview && JSON.stringify(prepared.item) === JSON.stringify(item)) return;
-      prepare({ item, title: titleOf(item), preview: true });
     },
   };
 }

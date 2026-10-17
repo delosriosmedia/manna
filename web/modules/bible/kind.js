@@ -114,8 +114,8 @@ registerKind('compare', {
 
   controls(host, { send }) {
     const bar = createBibleBar();
-    const buttons = LAYOUTS.map(([id, glyph, label]) => h('button', { class: 'btn grow', dataset: { layout: id }, onclick: () => send({ layout: id }) }, icon(glyph, 16), label));
-    host.replaceChildren(bar.el, h('div', { class: 'transport' }, ...buttons));
+    const buttons = LAYOUTS.map(([id, glyph, label]) => h('button', { class: 'btn grow', dataset: { layout: id }, 'aria-label': label, title: label, onclick: () => send({ layout: id }) }, icon(glyph, 16), h('span', { class: 'lbl' }, label)));
+    host.replaceChildren(bar.el, h('div', { class: 'transport t2' }, ...buttons));
     return {
       update(state, item) {
         const layout = state?.layout || item.layout;

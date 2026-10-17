@@ -43,7 +43,7 @@ registerKind('song', {
     const buttons = TRACKS.map(([id, label]) => h('button', { class: 'btn grow', dataset: { track: id }, onclick: () => tools.send({ track: id }) }, label));
     let number = null;
     // La letra entera, para leerla en este dispositivo (lo pidió el dueño para Alabanza).
-    const lyrics = h('button', { class: 'btn song-lyrics', onclick: guard(() => openLyrics(number)) }, icon('rows', 16), 'Letra');
+    const lyrics = h('button', { class: 'btn song-lyrics t2', 'aria-label': 'Letra', title: 'Letra', onclick: guard(() => openLyrics(number)) }, icon('rows', 16), h('span', { class: 'lbl' }, 'Letra'));
     const row = h('div', { class: 'transport song-tracks', role: 'group', 'aria-label': 'Sonido del himno' }, ...buttons, lyrics);
     // Debajo, los mandos de cualquier cosa que suena.
     const rest = h('div', { class: 'live-part' });
@@ -81,16 +81,16 @@ registerKind('lyrics', {
 
   controls(host, tools) {
     const where = h('strong', {});
-    const left = h('small', {});
+    const left = h('small', { class: 't3' });
     const picture = h('img', { alt: '' });
     const label = h('span', {});
-    const next = h('div', { class: 'slide-next' }, h('span', { class: 'slide-next-thumb' }, picture), h('span', { class: 'slide-next-text' }, h('small', {}, 'Sigue'), label));
+    const next = h('div', { class: 'slide-next t3' }, h('span', { class: 'slide-next-thumb' }, picture), h('span', { class: 'slide-next-text' }, h('small', {}, 'Sigue'), label));
     const framing = h('div', { class: 'live-part slide-framing' });
     host.replaceChildren(h('div', { class: 'slide-info' }, h('div', { class: 'slide-count' }, where, left), next), framing);
     const view = pictureControls(framing, tools, { fits: false });
     return {
       update(state, item) {
-        where.textContent = item.index === 1 ? `Portada · ${item.pages} en total` : `Diapositiva ${item.index} de ${item.pages}`;
+        where.replaceChildren(...(item.index === 1 ? ['Portada', h('span', { class: 'lbl' }, ` · ${item.pages} en total`)] : [h('span', { class: 'lbl' }, 'Diapositiva '), `${item.index} de ${item.pages}`]));
         left.textContent = item.index === item.pages ? 'Es la última' : `Quedan ${item.pages - item.index}`;
         next.classList.toggle('none', !item.next);
         if (item.next) {

@@ -52,12 +52,13 @@ registerKind('testcard', {
   controls(host, { send }) {
     const time = h('strong', { class: 'tc-clock' }, '0:00.0');
     const toggle = h('button', { class: 'btn grow', onclick: () => send({ playing: !clock?.playing }) });
-    const patterns = PATTERNS.map(([id, label]) => h('button', { class: 'btn grow', dataset: { id }, onclick: () => send({ pattern: id }) }, label));
+    const verb = (playing) => { toggle.replaceChildren(icon(playing ? 'pause' : 'play', 15), h('span', { class: 'lbl' }, playing ? 'Pausar' : 'Cronómetro')); toggle.setAttribute('aria-label', playing ? 'Pausar el cronómetro' : 'Cronómetro'); };
+    const patterns = PATTERNS.map(([id, label]) => h('button', { class: 'btn grow t2', dataset: { id }, onclick: () => send({ pattern: id }) }, label));
     host.replaceChildren(
       h('div', { class: 'transport' }, ...patterns),
       h('div', { class: 'transport' }, time, toggle,
-        h('button', { class: 'btn', title: 'Poner el cronómetro en cero', 'aria-label': 'Reiniciar el cronómetro', onclick: () => send({ restart: true, playing: false }) }, icon('arrow-counter-clockwise', 16))),
-      h('p', { class: 'muted' }, 'El cronómetro debe marcar lo mismo en todas las pantallas.'));
+        h('button', { class: 'btn t3', title: 'Poner el cronómetro en cero', 'aria-label': 'Reiniciar el cronómetro', onclick: () => send({ restart: true, playing: false }) }, icon('arrow-counter-clockwise', 16))),
+      h('p', { class: 'muted sec' }, 'El cronómetro debe marcar lo mismo en todas las pantallas.'));
 
     let clock = null;
     const paint = () => { time.textContent = formatTime(positionAt(clock), { tenths: true }); };
@@ -66,7 +67,7 @@ registerKind('testcard', {
       update(state) {
         clock = state?.clock || null;
         patterns.forEach((b) => b.classList.toggle('on', b.dataset.id === (state?.pattern || 'ajuste')));
-        toggle.replaceChildren(icon(clock?.playing ? 'pause' : 'play', 15), clock?.playing ? 'Pausar' : 'Cronómetro');
+        verb(clock?.playing);
         paint();
         if (clock?.playing) frames.start(); else frames.stop();
       },

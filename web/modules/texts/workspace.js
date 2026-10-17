@@ -143,10 +143,6 @@ function mount(el, ctx) {
     where.textContent = text ? firstLine(text) : 'Texto nuevo';
     bar.hidden = !text || (narrow && !open);
     show.disabled = add.disabled = !text || (!ctx.canEdit && dirty());
-    // «Preparado» muestra lo que se proyectaría: la primera parte (o todo, si es una).
-    if (el.isConnected && !el.hidden) {
-      ctx.setPreview(text ? { kind: 'text', id: selected || 'nuevo', style, author: author.value.trim(), title: firstLine(text), text: parts[0], part: parts.length > 1 ? 1 : null, parts: parts.length } : null);
-    }
   }
   area.addEventListener('input', paint);
   author.addEventListener('input', paint);

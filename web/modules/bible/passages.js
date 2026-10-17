@@ -23,11 +23,11 @@ const SCOPES = [['all', 'Toda la Biblia'], ['ot', 'Antiguo Testamento'], ['nt', 
 //   controls     nodos de la cabecera, entre el título y el buscador (selectores de versión…)
 //   second()     id de una segunda versión cuyo texto se muestra junto a cada versículo, o null
 //   toItem(p)    qué se hace con el pasaje p = { versionId, ref, reference, verses, others }:
-//                devuelve { kind, data, preview }. `others` son los versículos de second()
+//                devuelve { kind, data }. `others` son los versículos de second()
 //   liveRef(it, versionId) si lo que está al aire (it) es de esta pantalla y de sus versiones, su ref; si no, null
 //   onVersion(id) la versión principal cambió
 //
-// Devuelve { api, versionId(), setVersion(id), refresh(), updatePreview(), empty(mensaje) }.
+// Devuelve { api, versionId(), setVersion(id), refresh(), empty(mensaje) }.
 // `api` es lo que la pantalla devuelve a la estructura de la app ({ onShow, keys }).
 export function mountPassages(el, ctx, { title, controls = [], second = () => null, toItem, liveRef, onVersion = () => {} }) {
   const view = { versionId: null, books: [], book: 1, chapter: 1, verses: [], others: new Map(), secondId: null, name: '', sel: null, live: null };
@@ -218,7 +218,7 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
   }
 
   // ---- Selección ----
-  // El pasaje elegido y lo que la pantalla quiere hacer con él ({ kind, data, preview }).
+  // El pasaje elegido y lo que la pantalla quiere hacer con él ({ kind, data }).
   function selection() {
     if (!view.sel) return null;
     const { start, end } = view.sel;
@@ -232,8 +232,6 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
     };
     return { passage, ...toItem(passage) };
   }
-
-  const updatePreview = () => { if (view.sel) ctx.setPreview(selection().preview); };
 
   // reveal: cómo llevar la selección a la vista.
   //   'none'    no mover la lista. Es lo que usan los clics: si la lista se moviera, el segundo
@@ -255,7 +253,6 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
     const count = s.passage.verses.length;
     selRef.textContent = s.passage.reference;
     selHint.textContent = count > 1 ? `${count} versículos seleccionados` : 'Mayús + clic o «Varios» para elegir un tramo';
-    ctx.setPreview(s.preview);
   }
 
   // Amplía o reduce la selección por el final (en celular no hay Mayús + clic).
@@ -441,14 +438,12 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
     versionId: () => view.versionId,
     setVersion,
     refresh,
-    updatePreview,
     // Sin biblias (o sin las suficientes): un mensaje en el sitio de los versículos.
     empty(heading, text) {
       view.versionId = null;
       colVerses.replaceChildren(h('div', { class: 'empty' }, h('strong', {}, heading), text));
     },
     api: {
-      onShow() { updatePreview(); },
       keys(e) {
         if (e.key === 'Enter') project();
         else if (e.key === 'ArrowDown') move(1);

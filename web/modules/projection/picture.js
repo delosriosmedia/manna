@@ -100,15 +100,15 @@ export function drawPicture(host, { thumbnail = false } = {}) {
 //   fits: false quita los botones «Completa» / «Llenar» (una diapositiva siempre va completa).
 export function pictureControls(host, { send }, { fits: withFits = true } = {}) {
   const fits = withFits ? [['contain', 'Completa'], ['cover', 'Llenar']].map(([id, label]) =>
-    h('button', { class: 'btn grow', dataset: { fit: id }, onclick: () => push({ fit: id }) }, label)) : [];
+    h('button', { class: 'btn grow t2', dataset: { fit: id }, onclick: () => push({ fit: id }) }, label)) : [];
   const thumb = h('img', { alt: '' });
   thumb.draggable = false;
   const frame = h('div', { class: 'nav-frame' });
   const picture = h('div', { class: 'nav-img' }, thumb, frame);
-  const nav = h('div', { class: 'nav', role: 'application', 'aria-label': 'Encuadre: arrastra para elegir qué parte de la imagen se ve; rueda o dos dedos para acercar' }, picture);
+  const nav = h('div', { class: 'nav sec', role: 'application', 'aria-label': 'Encuadre: arrastra para elegir qué parte de la imagen se ve; rueda o dos dedos para acercar' }, picture);
   const slider = h('input', { type: 'range', min: 1, max: MAX_ZOOM, step: 0.05, value: 1, 'aria-label': 'Acercar' });
   const amount = h('strong', { class: 'nav-zoom' }, '1,0×');
-  const reset = h('button', { class: 'btn nav-reset', title: 'Volver a la vista completa', onclick: () => push({ reset: true }) }, icon('arrows-out', 15), 'Vista completa');
+  const reset = h('button', { class: 'btn nav-reset', title: 'Volver a la vista completa', 'aria-label': 'Vista completa', onclick: () => push({ reset: true }) }, icon('arrows-out', 15), h('span', { class: 'lbl' }, 'Vista completa'));
   host.replaceChildren(
     h('div', { class: 'transport' }, ...fits),
     nav,

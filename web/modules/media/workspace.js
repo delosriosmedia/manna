@@ -36,13 +36,11 @@ function mount(el, ctx) {
       ctx.setPart(id);
     },
   });
-  // Cada grupo prepara lo suyo solo si es el que tiene algo elegido.
-  const own = (id) => ({ ...ctx, setPreview: (item) => { if (active?.id === id) ctx.setPreview(item); } });
   const groups = [
-    createImagesPanel(own('imagenes'), lib('imagenes')),
-    createClipsPanel(own('videos'), 'video', lib('videos')),
-    createClipsPanel(own('audios'), 'audio', lib('audios')),
-    createSlidesPanel(own('diapositivas'), lib('diapositivas')),
+    createImagesPanel(ctx, lib('imagenes')),
+    createClipsPanel(ctx, 'video', lib('videos')),
+    createClipsPanel(ctx, 'audio', lib('audios')),
+    createSlidesPanel(ctx, lib('diapositivas')),
   ];
   const videos = groups[1];
 

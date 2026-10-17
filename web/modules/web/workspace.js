@@ -118,9 +118,6 @@ function mount(el, ctx) {
     const page = current();
     bar.hidden = !page;
     name.textContent = page?.name || '';
-    if (el.isConnected && !el.hidden) {
-      ctx.setPreview(page ? { kind: 'web', id: page.id, title: page.name, url: page.url, file: page.source === 'file', window: page.framable ? null : page.url } : null);
-    }
   }
   subscribe('web', render);
   subscribe('projection', render);

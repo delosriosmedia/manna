@@ -79,7 +79,6 @@ export function createImagesPanel(ctx, lib) {
         if (f.picture.getAttribute('src') !== (image.thumb || image.url)) f.picture.src = image.thumb || image.url;
       }
     }
-    if (el.isConnected && !el.hidden) ctx.setPreview(image ? { kind: 'image', title: image.name, url: image.url, width: image.width, height: image.height, fit: image.fit } : null);
   }
   subscribe('media', render);
   subscribe('projection', render);
