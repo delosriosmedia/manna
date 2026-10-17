@@ -1,4 +1,5 @@
 import { action, connect, onServerUpdate, state, subscribe } from './api.js';
+import { watchBlocked } from './blocked.js';
 import { mountConnectionBar } from './connection.js';
 import { h, allowLeaving, confirmBeforeClose, dialog, go, guard, menu } from './dom.js';
 import { icon } from './icons.js';
@@ -235,6 +236,7 @@ export function createShell({ role, isLocal, modules, extras = [], createScene, 
           box.close();
         }) }, 'Reiniciar ahora')));
   };
+  watchBlocked({ isLocal });
   subscribe('system', ({ stale }) => {
     update.hidden = !stale;
     if (!stale || update.childNodes.length) return;

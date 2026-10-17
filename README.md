@@ -127,6 +127,7 @@ Para usar Manna desde fuera de la iglesia (un celular con datos, otra casa), en 
 - Sin más, la dirección es de prueba (`…trycloudflare.com`) y cambia cada vez que se abre: Ajustes la muestra con un botón para copiarla.
 - **Con un dominio propio**, la dirección es siempre la misma (por ejemplo `https://manna.tuiglesia.org`). En [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) (gratis), *Networks → Tunnels → Create a tunnel* (tipo *Cloudflared*). En *Public Hostname* pon la dirección y, como servicio, `HTTP` y `localhost:80` (o el puerto que muestre Manna). Copia la clave que empieza por `eyJ…` (vale pegar la orden entera) y pégala en **Ajustes → Conexión por internet → Usar un dominio propio**, con la dirección. La clave se guarda solo en el equipo principal y no se vuelve a mostrar.
 - **Encendida** quiere decir que funciona de verdad: cada minuto Manna entra por su propia dirección de internet, como un celular de fuera, y comprueba que contesta él mismo. Mientras no lo consigue, Ajustes dice «Comprobando…» o el problema concreto (por ejemplo, que en Cloudflare el servicio del túnel apunta a otro puerto, o que el mismo túnel está abierto en otro equipo), y si falla varias veces seguidas, Manna rehace la conexión solo.
+- **Un solo equipo por dominio propio.** Antes de conectarse, Manna mira quién contesta en su dirección. Si ya la usa otro equipo con Manna (la misma clave abierta en otro equipo), este no se conecta, para no cortar a quien entra desde fuera, y Ajustes lo dice («la está usando otro equipo con Manna»). Vuelve a mirar cada minuto y se conecta solo cuando el otro la suelta. Si dos se encienden a la vez, uno se aparta.
 - El programa de Cloudflare que abre Manna vive solo mientras Manna está abierto: si Manna se cierra de cualquier forma (también de golpe, desde el Administrador de tareas), se cierra con él. Un cloudflared que no abrió Manna (por ejemplo, el servicio de Cloudflare de Windows) no se toca.
 - Por internet viaja todo lo que se ve: también los videos y las imágenes que cargue un control remoto. Con una conexión lenta, mejor proyectar desde la red de la iglesia.
 
@@ -136,6 +137,12 @@ Reconecta solo; no hay que recargar la página. Si el aviso rojo no desaparece:
 
 - Comprueba que el dispositivo sigue en la misma wifi y que Manna está abierto en el equipo principal.
 - Si el router se reinició, el equipo principal pudo recibir otra dirección. Los dispositivos que entraron por `manna.local` reconectan solos en un minuto aproximadamente. Los que no admiten ese nombre (Android anterior a la versión 12) deben volver a escanear el código de **Dispositivos**.
+
+### Un solo Manna en la red
+
+Si al abrirse Manna encuentra otro Manna ya funcionando **en el mismo equipo** (por ejemplo, una instalación anterior que quedó abierta) o **en otro equipo de la misma red**, este no funciona: no se anuncia, no abre la proyección, no se conecta a internet y no acepta órdenes. Todas sus pantallas lo dicen, con dónde está el otro: usa ese, o apágalo y pulsa **Volver a comprobar** (en el equipo principal también está **Apagar este Manna**). Vuelve a mirar cada 15 segundos y se pone en marcha solo en cuanto el otro se apaga. El primero que se abrió sigue funcionando como siempre.
+
+Solo cuentan los Manna con el mismo nombre en la red (`manna.local`); abrir dos veces el mismo Manna (los mismos datos) solo vuelve a mostrar su control, como siempre.
 
 ### Sobre la dirección `manna.local`
 

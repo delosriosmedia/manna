@@ -9,6 +9,8 @@ import { HttpError } from '../../core/router.js';
 // La clave vive solo en data/tunel.json: nunca en el estado ni en el registro.
 // cloudflared vive solo mientras viva Manna (tools.spawn con `tied`), y Manna comprueba cada poco, entrando
 // por su dirección de internet como lo haría un celular de fuera, que quien contesta es él mismo.
+// Un solo Manna por dominio propio (fase 21): antes de conectarse mira quién contesta en su dirección y, si es
+// otro Manna, no se conecta (`busy`) y vuelve a mirar cada minuto; si lo nota ya conectado, se aparta él.
 
 const RETRY_MS = [5_000, 15_000, 60_000];
 const QUICK = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/;
@@ -38,7 +40,7 @@ async function ask(base) {
   try {
     const res = await fetch(`${base}/api/ping?comprobar=${Date.now()}`, { signal: AbortSignal.timeout(15_000), headers: { 'User-Agent': 'Manna (comprobacion del tunel)' } });
     const body = await res.json().catch(() => ({}));
-    return { ok: res.ok, status: res.status, id: body?.id };
+    return { ok: res.ok, status: res.status, id: body?.id, version: body?.version };
   } catch {
     return { error: true };
   }
@@ -58,14 +60,16 @@ export default function setup(app) {
   const { store } = app;
   const saved = app.storage('tunel', { on: false, token: '', address: '' });
   const set = (patch) => store.set('internet', patch);
-  store.register('internet', { on: Boolean(saved.data.on), status: 'off', url: null, own: Boolean(saved.data.token), error: null });
+  store.register('internet', { on: Boolean(saved.data.on), status: 'off', url: null, own: Boolean(saved.data.token), error: null, busy: null });
   let child = null;
   let tries = 0;
   let timer = null;
   let checkTimer = null;
   let fails = 0;
+  let round = 0; // cada start() y stop() empieza otra vuelta: lo que llegue de una anterior no cuenta
 
   function stop() {
+    round += 1;
     clearTimeout(timer);
     clearTimeout(checkTimer);
     timer = null;
@@ -74,12 +78,38 @@ export default function setup(app) {
     old?.kill();
   }
 
-  function start() {
+  // Lo contesta otro Manna (no este): su versión, o '' si no la dice.
+  const other = (reply) => (reply.ok && reply.id && reply.id !== app.settings.data.id ? reply.version || '' : null);
+  // Otro equipo usa ya el dominio: este no se conecta y vuelve a mirar en un minuto y pico. Lo que se espere
+  // de más es al azar, para que dos que se apartan a la vez no vuelvan a chocar.
+  function yieldTo(version) {
+    stop();
+    set({ status: 'busy', busy: version, url: null, error: null });
+    timer = setTimeout(start, every() * (6 + 3 * Math.random()));
+    timer.unref();
+  }
+
+  async function start() {
     stop();
     const { on, token, address } = saved.data;
     set({ on: Boolean(on), own: Boolean(token) });
-    if (!on) return set({ status: 'off', url: null, error: null });
+    if (!on || app.blocked) return set({ status: 'off', url: null, error: null, busy: null });
     if (!app.tools.has('cloudflared')) return set({ status: 'error', url: null, error: 'Falta cloudflared, el programa de Cloudflare. Instálalo en Ajustes → Revisar el equipo.' });
+    // El túnel rápido tiene una dirección nueva cada vez: no puede chocar. El propio, sí.
+    const where = token && (process.env.MANNA_TUNEL_PRUEBA || address);
+    if (where) {
+      const mine = round;
+      // Mientras pregunta, «ocupada» sigue a la vista: no salta a «Conectando…» en cada vuelta.
+      if (store.get('internet').status !== 'busy') set({ status: 'starting', url: address || null, error: tries ? store.get('internet').error : null });
+      const version = other(await ask(where));
+      if (mine !== round) return; // se apagó o se cambió mientras tanto
+      if (version !== null) return yieldTo(version);
+    }
+    set({ busy: null });
+    launch(token, address);
+  }
+
+  function launch(token, address) {
     const args = token ? ['tunnel', '--no-autoupdate', 'run'] : ['tunnel', '--no-autoupdate', '--url', `http://127.0.0.1:${app.port}`];
     // Al reintentar, el último problema sigue a la vista hasta que funcione.
     set({ status: 'starting', url: token ? address || null : null, error: tries ? store.get('internet').error : null });
@@ -130,8 +160,11 @@ export default function setup(app) {
     checkTimer.unref();
   }
   async function check(mine) {
-    const problem = diagnose(await ask(target()), { me: app.settings.data.id, own: Boolean(saved.data.token), port: app.port });
+    const reply = await ask(target());
     if (child !== mine) return; // se apagó o se rehízo mientras tanto
+    // Con dominio propio, otro Manna conectado al mismo túnel (se encendieron casi a la vez): este se aparta.
+    if (saved.data.token && other(reply) !== null) return yieldTo(other(reply));
+    const problem = diagnose(reply, { me: app.settings.data.id, own: Boolean(saved.data.token), port: app.port });
     if (!problem) {
       fails = 0;
       tries = 0;

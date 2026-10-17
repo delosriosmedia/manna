@@ -2541,6 +2541,39 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     check('sin recargar la página', await chrome.evaluate('window.__marca === true'));
     check('recupera lo que estaba en pantalla', /Salmos 23:1/.test(await text('.scene-caption')));
     check('acepta órdenes sin volver a pedir el PIN', (await run(`return await ${post('projection.mode', { mode: 'black' })}`)) === 200);
+
+    // ================= 5. Un solo Manna a la vez (fase 21) =================
+    // Otro Manna con el mismo nombre en la red y otros datos se abre en el puerto siguiente: no funciona y lo dice.
+    console.log('\n5. Un solo Manna a la vez');
+    await stopServer(server);
+    server = startServer(null);
+    await sleep(3000);
+    const twin = startServer(null, { MANNA_DATA: path.join(tmp, 'gemelo') });
+    const twinUrl = `http://localhost:${PORT + 1}`;
+    let twinUp = false;
+    for (let i = 0; i < 60 && !twinUp; i += 1) {
+      await sleep(250);
+      twinUp = await fetch(`${twinUrl}/api/ping`).then(() => true, () => false);
+    }
+    // Lo que la pantalla pida sola al abrirse, el segundo lo rechaza.
+    expectError('otro en la red');
+    await chrome.send('Page.navigate', { url: `${twinUrl}/control` });
+    await sleep(3000);
+    const notice = `document.querySelector('.blocked')`;
+    check('el segundo Manna lo dice en toda la pantalla, con dónde está el otro', await run(`return Boolean(${notice}) && ${notice}.textContent.includes('Ya hay otro Manna funcionando') && ${notice}.textContent.includes('localhost:${PORT}')`));
+    check('y no acepta órdenes', (await run(`return await ${post('projection.mode', { mode: 'black' })}`)) === 409);
+    await click(`[...${notice}.querySelectorAll('.btn')].find((b) => b.textContent === 'Volver a comprobar')`);
+    await sleep(2000);
+    check('«Volver a comprobar», con el otro abierto, lo deja como estaba', await run(`return Boolean(${notice})`));
+    await click(`[...${notice}.querySelectorAll('.btn')].find((b) => b.textContent === 'Apagar este Manna')`);
+    let twinClosed = false;
+    for (let i = 0; i < 40 && !twinClosed; i += 1) {
+      await sleep(250);
+      twinClosed = twin.exitCode !== null || twin.signalCode !== null;
+    }
+    check('«Apagar este Manna» lo cierra, y el primero sigue funcionando', twinClosed && (await fetch(`${local}/api/ping`).then((res) => res.ok, () => false)));
+    await chrome.send('Page.navigate', { url: `${local}/control` });
+    await sleep(2000);
   }
 
   // ---- Grupo «biblioteca»: el cierre ----

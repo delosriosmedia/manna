@@ -3,6 +3,7 @@ import { $ } from '../core/dom.js';
 import { createStage } from '../modules/projection/stage.js';
 import { preferStableAddress } from '../core/upgrade.js';
 import { ensureRole } from '../core/session.js';
+import { watchBlocked } from '../core/blocked.js';
 
 // Pantalla de proyección: solo muestra. La usan la ventana de la segunda pantalla
 // y cualquier dispositivo que elija esta función.
@@ -16,6 +17,7 @@ subscribe('projection', (p) => stage.render(p));
 subscribe('live', (live) => stage.setLive(live));
 subscribe('pointer', (p) => stage.setPointer(p));
 subscribe('conexiones', ({ sonido }) => stage.setSound(Boolean(sonido) && sonido === connectionId()));
+watchBlocked({ buttons: false });
 connect('proyeccion');
 // Una pantalla remota que entró por la IP pasa a la dirección con nombre si puede.
 if (me) preferStableAddress(me);

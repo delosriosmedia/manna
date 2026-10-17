@@ -100,10 +100,11 @@ function mount(el, ctx) {
     checking: 'Conectada con Cloudflare. Comprobando que se llega a Manna desde internet…',
     on: 'Encendida y comprobada desde internet. Se entra por esta dirección:',
     unchecked: 'Conectada con Cloudflare, sin comprobar: falta la dirección del dominio propio («Cambiar el dominio propio»).',
+    busy: 'Esta conexión ya la está usando otro equipo con Manna. Este no se conecta, para no cortar a quien entra desde fuera, y se conectará solo cuando el otro la suelte.',
   };
   subscribe('internet', (s) => {
     // Mientras reintenta, el último problema sigue a la vista.
-    net.textContent = s.status === 'error' ? s.error : [NET[s.status], s.error && `Último intento: ${s.error}`].filter(Boolean).join(' ');
+    net.textContent = s.status === 'error' ? s.error : [NET[s.status], s.status === 'busy' && s.busy && `(El otro tiene Manna ${s.busy}.)`, s.error && `Último intento: ${s.error}`].filter(Boolean).join(' ');
     net.classList.toggle('warn', Boolean(s.error));
     netAddress.hidden = !(s.on && s.url);
     if (s.url) {

@@ -71,7 +71,7 @@ test('la conexión por internet se enciende, se recuerda, usa la clave sin publi
       res.end('<h1>Bad gateway</h1>');
       return;
     }
-    const body = edge === 'otro' ? JSON.stringify({ id: 'otro-equipo' }) : await (await fetch(`http://127.0.0.1:${app.port}${req.url}`)).text();
+    const body = edge === 'otro' ? JSON.stringify({ id: 'otro-equipo', version: '9.9.9' }) : await (await fetch(`http://127.0.0.1:${app.port}${req.url}`)).text();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(body);
   });
@@ -142,6 +142,19 @@ test('la conexión por internet se enciende, se recuerda, usa la clave sin publi
     const last = asked().at(-1);
     assert.deepEqual([last.args, last.token], [['tunnel', '--no-autoupdate', 'run'], true]);
 
+    // Un solo Manna por dominio propio: si otro equipo con Manna lo contesta, este se aparta y no vuelve a abrir
+    // cloudflared mientras el otro lo tenga; cuando lo suelta, se conecta solo.
+    edge = 'otro';
+    now = await until((s) => s.status === 'busy');
+    assert.deepEqual([now.status, now.busy, now.error], ['busy', '9.9.9', null]);
+    assert.ok(await gone(last.pid), 'se apartó: cerró su cloudflared');
+    const launched = asked().length;
+    await sleep(1200);
+    assert.deepEqual([state().status, asked().length], ['busy', launched], 'mientras el otro lo tenga, ni se conecta');
+    edge = 'pasa';
+    now = await until((s) => s.status === 'on', 3000);
+    assert.deepEqual([now.status, now.busy, asked().length], ['on', null, launched + 1], 'cuando lo suelta, se conecta solo');
+
     // Una clave no válida: lo dice, con palabras de quien usa Manna.
     assert.equal((await send('internet.own', { token: `malo${'z'.repeat(50)}` })).http, 200);
     now = await until((s) => s.status === 'error');
@@ -162,6 +175,7 @@ test('la conexión por internet se enciende, se recuerda, usa la clave sin publi
     assert.ok(await gone(open), 'al apagarla, cloudflared se cierra');
   } finally {
     await send('internet.set', { on: false }).catch(() => {});
+    await app.close(); // también el nombre en la red, que se anuncia a los 10 s y dejaría el proceso abierto
     server.close();
     edgeServer.close();
     delete process.env.MANNA_TUNEL_PRUEBA;

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { HttpError } from '../../core/router.js';
-import { networkName } from '../../core/app.js';
+import { networkName, portCandidates } from '../../core/app.js';
 import { codeSignature } from '../../core/build.js';
 import { lanInterfaces, origin } from './network.js';
 import { createResponder } from './mdns.js';
@@ -9,6 +9,7 @@ import { diskUsage } from './disk.js';
 
 const REFRESH_MS = 10_000;
 const CODE_CHECK_MS = 20_000;
+const RIVAL_MS = 15_000;
 
 // Módulo de sistema: funciones (roles), sesiones, PIN y cómo se llega a este equipo desde la red.
 export default function setup(app) {
@@ -23,7 +24,8 @@ export default function setup(app) {
   // de https (443), al que llega un navegador que convierte la dirección por su cuenta, o null.
   // build: huella del código con el que arrancó. stale: el código del disco ya es otro (Manna se
   // actualizó estando abierto) y hay que reiniciarlo para que interfaz y servidor vuelvan a coincidir.
-  store.register('system', { name: 'Manna', version, build: app.build, stale: false, addresses: [], port: null, altPort: null, secure: false, securePort: null, hostname: null, nameUrl: null });
+  // blocked: otro Manna ya funciona en este equipo o en esta red (fase 21): { where, version, here } o null.
+  store.register('system', { name: 'Manna', version, build: app.build, stale: false, addresses: [], port: null, altPort: null, secure: false, securePort: null, hostname: null, nameUrl: null, blocked: null });
 
   const responder = createResponder({ base: networkName() });
   let announced = null;
@@ -44,9 +46,10 @@ export default function setup(app) {
       // o si dejó de funcionar sin avisar (equipo que durmió, wifi que se cayó y volvió).
       // Si la comprobación falla tres veces seguidas incluso recién rehecho, es que este sistema
       // no permite hacerla; se deja de comprobar para no reiniciar el nombre sin parar.
-      const broken = failures < 3 && !(await responder.healthy());
+      // Con otro Manna en la red, este no se anuncia: los dispositivos irían a dos sitios.
+      const broken = !app.blocked && failures < 3 && !(await responder.healthy());
       failures = broken ? failures + 1 : 0;
-      if (signature !== announced || broken) {
+      if (!app.blocked && (signature !== announced || broken)) {
         announced = signature;
         await responder.start(networks);
       }
@@ -67,7 +70,61 @@ export default function setup(app) {
       busy = false;
     }
   }
-  app.services.network = { refresh };
+  // ¿Hay otro Manna con el mismo nombre (MANNA_NAME) en este equipo (contesta en sus puertos) o en otro de la
+  // red (contesta por «manna.local»)? Se confirma pidiéndole /api/ping. Devuelve { where, version, here } o
+  // null. Uno con estos mismos datos (el mismo id) no es otro: es este, y lo atiende server/app.js.
+  async function rival() {
+    const name = networkName();
+    const pingAt = async (host, port) => {
+      try {
+        const ping = await (await fetch(`http://${host}:${port}/api/ping`, { signal: AbortSignal.timeout(700) })).json();
+        // Los de antes de la 1.28 no dicen su nombre: son los de nombre «manna».
+        return ping.app === 'manna' && ping.id !== settings.data.id && (ping.name || 'manna') === name ? { port, version: ping.version || '' } : null;
+      } catch {
+        return null;
+      }
+    };
+    const ports = portCandidates(Number(process.env.PORT) || settings.data.port);
+    const here = (await Promise.all(ports.map((port) => pingAt('127.0.0.1', port)))).find(Boolean);
+    if (here) return { here: true, where: origin('localhost', here.port), version: here.version };
+    const interfaces = (await lanInterfaces()).filter((i) => !i.virtual);
+    const others = await responder.probe(interfaces.map((i) => ({ via: i.address, address: i.address, netmask: i.netmask })));
+    for (const address of others) {
+      const found = (await Promise.all(ports.map((port) => pingAt(address, port)))).find(Boolean);
+      if (found) return { here: false, where: origin(address, found.port), version: found.version };
+    }
+    return null;
+  }
+  // Bloqueado, se vuelve a mirar cada poco; en cuanto el otro se apaga, Manna se reinicia y arranca como siempre.
+  // Una sola vez a la vez (el reloj y «Volver a comprobar» podrían coincidir y pisarse los sondeos). Para darlo por
+  // libre hacen falta dos miradas seguidas sin rival, separadas un rato al azar: por wifi se pierden consultas, y dos
+  // bloqueados que vean a la vez que el otro se apagó no arrancan juntos.
+  let checking = null;
+  const publishBlocked = (found) => {
+    app.blocked = found;
+    if (JSON.stringify(store.get('system').blocked) !== JSON.stringify(found)) store.set('system', { blocked: found });
+  };
+  function recheck() {
+    checking ||= (async () => {
+      let found = await rival();
+      if (!found) {
+        await new Promise((resolve) => { setTimeout(resolve, 1000 + Math.random() * 2000); });
+        found = await rival();
+      }
+      if (found) {
+        publishBlocked(found);
+        return { blocked: true };
+      }
+      console.log('El otro Manna ya no está: este se pone en marcha.');
+      // Tras contestar: el reinicio corta las peticiones abiertas. La copia nueva abre el control (esta pestaña puede
+      // quedarse en un puerto que ya no se usa).
+      setTimeout(() => app.restart({ open: true }), 200);
+      return { blocked: false };
+    })().finally(() => { checking = null; });
+    return checking;
+  }
+  app.services.network = { refresh, rival, publishBlocked };
+  app.action('system.recheck', { permission: null }, () => (app.blocked ? recheck() : null));
 
   // ¿Sigue siendo este el código que hay en disco? Se mira cada poco; al notar el cambio se avisa
   // una vez y se deja de mirar. Hacen falta dos lecturas seguidas distintas a la de arranque,
@@ -85,6 +142,7 @@ export default function setup(app) {
 
   let timer = null;
   store.on('listening', () => {
+    if (app.blocked) setInterval(recheck, RIVAL_MS).unref();
     timer = setInterval(refresh, REFRESH_MS);
     timer.unref();
     codeTimer = setInterval(checkCode, Number(process.env.MANNA_REVISAR_CODIGO_MS) || CODE_CHECK_MS);
@@ -125,7 +183,7 @@ export default function setup(app) {
       'Cache-Control': 'no-store',
       'Access-Control-Allow-Origin': '*',
     });
-    ctx.res.end(JSON.stringify({ app: 'manna', id: settings.data.id, version, build: app.build }));
+    ctx.res.end(JSON.stringify({ app: 'manna', id: settings.data.id, version, build: app.build, name: networkName() }));
   });
 
   // El PIN solo se puede ver desde el propio equipo servidor.

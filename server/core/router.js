@@ -182,7 +182,10 @@ function sendFile(req, res, file) {
   return true;
 }
 
-export function createRouter({ webDir, sessions }) {
+// refuse(): con un texto, se rechaza (409) todo lo que no es una lectura, salvo abrir sesión, el aviso del sonido y
+// las órdenes (que filtra la propia ruta de órdenes). Lo usa el bloqueo de «otro Manna en la red».
+const OPEN_WHILE_REFUSED = new Set(['/api/session', '/api/events/sound', '/api/action']);
+export function createRouter({ webDir, sessions, refuse = () => null }) {
   const routes = [];
   const mounts = []; // carpetas de contenido servidas bajo un prefijo: { prefix: '/media/', dir }
 
@@ -231,6 +234,7 @@ export function createRouter({ webDir, sessions }) {
       // Una página de otro sitio (también de otro puerto o subdominio: «same-site»), o una de las encerradas que sirve
       // Manna (origen «null»), no da órdenes.
       if (!reads && (req.headers.origin === 'null' || ['cross-site', 'same-site'].includes(req.headers['sec-fetch-site']))) throw new HttpError(403, 'Esa orden no viene de Manna.');
+      if (!reads && !OPEN_WHILE_REFUSED.has(url.pathname) && refuse()) throw new HttpError(409, refuse());
       for (const r of routes) {
         if (r.method !== req.method) continue;
         const m = r.rx.exec(url.pathname);

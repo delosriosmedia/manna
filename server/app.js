@@ -105,6 +105,10 @@ async function run() {
   if (outdated) app = createApp(options);
 
   for (const setup of MODULES) await setup(app);
+  // Un solo Manna a la vez (fase 21): si ya funciona otro con el mismo nombre en este equipo o en la red, este se
+  // abre igual (para decirlo en todas sus pantallas) pero no hace nada hasta que el otro se apague.
+  app.services.network.publishBlocked(await app.services.network.rival());
+  if (app.blocked) console.log(`Ya hay otro Manna funcionando (${app.blocked.where}): este espera a que se apague.`);
 
   // Apagar y reiniciar se dejan listos antes de abrir el puerto: en cuanto Manna responde, sus
   // botones ya tienen que funcionar.
@@ -119,7 +123,8 @@ async function run() {
   };
   // Reinicio: cierra todo y lanza otra copia, que arranca con el código que haya ahora en disco.
   // No abre otra pestaña: las que hay se reconectan solas y se recargan.
-  app.restart = async () => {
+  // open: la copia nueva abre el control en el navegador (al ponerse en marcha un Manna que estaba bloqueado).
+  app.restart = async ({ open = false } = {}) => {
     if (closing) return;
     closing = true;
     console.log('Manna se reinicia.');
@@ -127,7 +132,7 @@ async function run() {
     // (La huella fingida de las pruebas no se hereda: la copia nueva calcula la suya.)
     const { MANNA_HUELLA: _fake, ...env } = process.env;
     spawn(process.execPath, process.argv.slice(1), {
-      cwd: process.cwd(), env: { ...env, MANNA_REINICIO: '1' }, detached: true, stdio: 'ignore', windowsHide: true,
+      cwd: process.cwd(), env: { ...env, MANNA_REINICIO: '1', MANNA_ABRIR: open ? '1' : '' }, detached: true, stdio: 'ignore', windowsHide: true,
     }).on('error', () => {}).unref();
     process.exit(0);
   };
@@ -162,7 +167,7 @@ async function run() {
     console.log(`  Falta ${tool.name}: ${tool.purpose}`);
   }
   // Tras un reinicio pedido desde el control ya hay pestañas abiertas: se reconectan solas.
-  if (!process.env.MANNA_REINICIO) openInBrowser(`${localUrl(port)}${entry}`);
+  if (!process.env.MANNA_REINICIO || process.env.MANNA_ABRIR) openInBrowser(`${localUrl(port)}${entry}`);
 
   process.on('SIGINT', app.shutdown);
   process.on('SIGTERM', app.shutdown);

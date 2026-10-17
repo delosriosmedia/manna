@@ -130,6 +130,7 @@ export function createResponder({ base }) {
   let candidate = base;  // nombre que se está comprobando
   let hostname = null;   // nombre ya conseguido
   let conflict = false;
+  const rivals = new Set(); // direcciones de otros equipos que contestaron por el nombre que se comprobaba
 
   const send = (entry, packet, port = PORT, to = GROUP) => {
     try { entry.socket.send(packet, port, to, () => {}); } catch { /* red caída: se reintenta en el próximo anuncio */ }
@@ -148,7 +149,10 @@ export function createResponder({ base }) {
       }
       // Otro equipo responde por el nombre que queremos, con una dirección que no es nuestra.
       const mine = sockets.map((s) => s.address);
-      if (addresses.some((address) => !mine.includes(address))) conflict = true;
+      for (const address of addresses.filter((a) => !mine.includes(a))) {
+        conflict = true;
+        rivals.add(address);
+      }
       return;
     }
     if (!hostname) return; // todavía comprobando si el nombre está libre
@@ -239,6 +243,22 @@ export function createResponder({ base }) {
     return sockets.every((s) => s.heard >= since);
   }
 
+  // Quién más contesta por el nombre, sin anunciarse ni quedárselo: las direcciones de otros equipos (las
+  // del propio, como un Manna abierto en otro puerto, no cuentan). Lo usa el aviso de «otro Manna en la red».
+  async function probe(networks) {
+    closeSockets();
+    sockets = (await Promise.all(networks.map(openSocket))).filter(Boolean);
+    hostname = null;
+    candidate = base;
+    rivals.clear();
+    for (let i = 0; i < 3; i += 1) {
+      for (const s of sockets) send(s, buildQuery(`${base}.local`));
+      await wait(PROBE_MS / 2);
+    }
+    closeSockets();
+    return [...rivals];
+  }
+
   async function stop() {
     announce(0);
     await wait(50);
@@ -246,5 +266,5 @@ export function createResponder({ base }) {
     hostname = null;
   }
 
-  return { start, stop, healthy, announce, get name() { return hostname ? `${hostname}.local` : null; } };
+  return { start, stop, probe, healthy, announce, get name() { return hostname ? `${hostname}.local` : null; } };
 }

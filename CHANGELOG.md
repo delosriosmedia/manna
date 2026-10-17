@@ -4,6 +4,11 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.28.0 — 2026-10-17
+
+- **Un solo Manna a la vez.** Si al abrirse Manna encuentra otro ya funcionando en el mismo equipo o en la misma red, no funciona y lo dice en todas sus pantallas, con dónde está el otro: «Volver a comprobar» y, en el equipo principal, «Apagar este Manna». Se pone en marcha solo en cuanto el otro se apaga.
+- **Conexión por internet con dominio propio**: si la está usando otro equipo con Manna, este no se conecta (para no cortar a quien entra desde fuera) y lo dice en Ajustes; vuelve a mirar cada minuto y se conecta solo cuando el otro la suelta. Si dos se encienden a la vez, uno se aparta.
+
 ## 1.27.1 — 2026-10-17
 
 - Órdenes guardados: en una tableta baja en horizontal, el botón del orden en uso va solo con su icono (su nombre está en la cola), para que la cita rápida tenga sitio.

@@ -133,6 +133,7 @@ export default function setup(app) {
 
   // Se restaura cuando todos los módulos han registrado sus tipos de contenido.
   store.on('listening', () => {
+    if (app.blocked) return;
     const restore = liveToRestore(saved.data.live);
     if (!restore) return;
     try { present(restore.source, restore.mode, restore.previous); } catch { /* ese contenido ya no existe */ }
@@ -409,6 +410,7 @@ export default function setup(app) {
 
   let timer = null;
   store.on('listening', () => {
+    if (app.blocked) return; // otro Manna ya tiene la proyección
     reconcile();
     timer = setInterval(reconcile, SCREEN_POLL_MS);
     timer.unref();

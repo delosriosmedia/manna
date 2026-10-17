@@ -50,7 +50,8 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
   }
   const store = new Store();
   const sessions = createSessions({ storage, roles: ROLES });
-  const router = createRouter({ webDir: path.join(rootDir, 'web'), sessions });
+  const BLOCKED = 'Este Manna no funciona mientras haya otro en la red: usa ese, o apágalo y pulsa «Volver a comprobar».';
+  const router = createRouter({ webDir: path.join(rootDir, 'web'), sessions, refuse: () => (app.blocked ? BLOCKED : null) });
   const realtime = createRealtime({ store, router });
   const jobs = createJobs({ store });
   const actions = new Map();
@@ -110,6 +111,9 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
     kind(name, def) { kinds.set(name, def); },
     shutdown: null, // lo asigna server/app.js: apagado ordenado de todo el programa
     restart: null,  // lo asigna server/app.js: cierra y vuelve a abrir con el código que haya en disco
+    // Otro Manna ya funciona en este equipo o en esta red (fase 21; lo mira server/app.js al arrancar): este no
+    // se anuncia, no proyecta, no se conecta a internet y no acepta órdenes, salvo apagarse y volver a mirar.
+    blocked: null,
     // Atiende una petición HTTP. Lo usa listen(); las pruebas lo montan en su propio servidor.
     handle: router.handle,
     listen,
@@ -123,6 +127,7 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
     const { type, payload } = await ctx.json();
     const def = actions.get(type);
     if (!def) throw new HttpError(404, `Manna no reconoce la orden «${String(type).slice(0, 60)}». Si acabas de actualizarlo, reinícialo desde Ajustes.`);
+    if (app.blocked && !['system.shutdown', 'system.recheck'].includes(type)) throw new HttpError(409, BLOCKED);
     ctx.require(def.permission);
     return { result: (await def.handler(payload || {}, ctx)) ?? null };
   });
