@@ -274,6 +274,10 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 En `docs/PLAN.md`, sección 11.
 
+### 0 bis. Funciones especializadas para el celular (fase 19)
+
+La propuesta está en `docs/funciones-celular.md`. Hacen falta las doce decisiones de su sección 10: qué funciones, Sonido aparte o no, qué pasa con «Control completo» en el celular, el PIN, Atril sin PIN, y el orden de construcción. Con ellas se añaden las fases que construyan lo aprobado.
+
 ### 1. Instaladores compilados (aplazada)
 
 Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron**. Los dispositivos remotos seguirían entrando por navegador. Aplazada el 2026-10-03: se revisará más adelante si es momento de crear compilaciones.
