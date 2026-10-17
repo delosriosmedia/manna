@@ -283,7 +283,7 @@ En `docs/PLAN.md`, sección 11.
 
 ### 0 bis. Funciones especializadas para el celular (fase 19)
 
-La propuesta está en `docs/funciones-celular.md`. Hacen falta las doce decisiones de su sección 10: qué funciones, Sonido aparte o no, qué pasa con «Control completo» en el celular, el PIN, Atril sin PIN, y el orden de construcción. Con ellas se añaden las fases que construyan lo aprobado.
+La propuesta está en `docs/funciones-celular.md`. Hacen falta las catorce decisiones de su sección 10: qué funciones, Sonido aparte o no, qué pasa con «Control completo» en el celular, el PIN, Atril sin PIN, qué entra primero de lo nuevo, y el orden de construcción. La simulación (`docs/funciones-celular.html`) se rehízo el 2026-10-17 con más capacidades por función. Con ellas se añaden las fases que construyan lo aprobado.
 
 ### 1. Instaladores compilados (aplazada)
 
