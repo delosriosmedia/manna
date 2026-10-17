@@ -844,6 +844,11 @@ try {
     // Versión: se cambia al aire sin salir del orden; «Siguiente» sigue por el orden.
     await tapEl(barBtn(0));
     check('«Versión» ofrece las versiones instaladas y marca la que está al aire', JSON.stringify(await menuNow()) === JSON.stringify(['Reina-Valera 1909 (RV1909)al aire', 'Versión de prueba']), JSON.stringify(await menuNow()));
+    const uid = (await shown()).item.uid;
+    await menuItem('Reina-Valera 1909');
+    await sleep(500);
+    check('elegir la versión que ya está al aire no hace nada', (await shown()).item.uid === uid);
+    await tapEl(barBtn(0));
     await menuItem('Versión de prueba');
     await sleep(600);
     let on = await shown();
@@ -876,9 +881,12 @@ try {
     check('y «Siguiente» sigue con el versículo 18, del orden', on.item.source.orderId === three && on.item.source.step === 2 && on.item.reference === 'Juan 3:18');
 
     // Versículos: la capa con los números del capítulo.
-    await tapEl(barBtn(2));
+    await tapEl(barBtn(2), 2); // un doble clic rápido no abre dos capas
     await sleep(700);
-    check('«Versículos» abre una capa con los números del capítulo y marca el que está al aire', await run(`return Boolean(${pop}) && ${pop}.querySelector('.vp-title').textContent === 'Juan 3' && ${pop}.querySelectorAll('.vp-n').length === 36`) && (await liveCells()) === '18');
+    check('«Versículos» abre una capa con los números del capítulo y marca el que está al aire', await run(`return document.querySelectorAll('.verse-pop').length === 1 && ${pop}.querySelector('.vp-title').textContent === 'Juan 3' && ${pop}.querySelectorAll('.vp-n').length === 36`) && (await liveCells()) === '18');
+    check('el foco entra en la capa, en el número que está al aire', await run(`return document.activeElement === ${cell(18)}`));
+    await press('ArrowRight');
+    check('las flechas mueven el foco por la rejilla, sin pasar el versículo al aire', await run(`return document.activeElement === ${cell(19)}`) && (await shown()).item.reference === 'Juan 3:18');
     await tapEl(cell(20));
     await sleep(600);
     on = await shown();
@@ -902,6 +910,17 @@ try {
     await sleep(600);
     await clickAt(10, 10);
     check('y tocar fuera también', await run(`return !${pop}`));
+    // Las flechas de capítulo se apagan en el primero de la Biblia y en el último.
+    for (const [r, which] of [[ref(1, 1, 1), 'anterior'], [ref(66, 22, 21), 'siguiente']]) {
+      await run(`await ${post('projection.show', verses(r))}`);
+      await sleep(400);
+      await tapEl(barBtn(2));
+      await sleep(600);
+      check(`en ${which === 'anterior' ? 'Génesis 1' : 'Apocalipsis 22'}, la flecha «${which}» está apagada y la otra no`, await run(`const b = (n) => ${pop}.querySelector('.icon-btn[aria-label="Capítulo ' + n + '"]'); return b('anterior').disabled === ${which === 'anterior'} && b('siguiente').disabled === ${which === 'siguiente'}`));
+      await press('Escape');
+    }
+    await run(`await ${post('projection.show', verses(ref(43, 3, 20, 25)))}`);
+    await sleep(400);
     // «Siguiente», ahora fuera del orden, sigue leyendo por la Biblia.
     await press('ArrowRight');
     check('fuera del orden, «Siguiente» sigue por la Biblia', (await shown()).item.reference === 'Juan 3:26');
@@ -916,6 +935,10 @@ try {
     await tapEl(cell(30));
     await sleep(600);
     check('con el dedo, un toque proyecta el versículo', (await shown()).item.reference === 'Juan 3:30');
+    await clickAt(4, 4);
+    check('tocar fuera cierra la capa de versículos y deja la hoja de mandos: una a la vez', await run(`return !${pop} && !document.querySelector('.controls-layer').hidden`));
+    await tapEl(`document.querySelector('.controls-pop .bar-btn:nth-child(3)')`);
+    await sleep(600);
     await press('Escape');
     check('Esc cierra la capa de versículos y deja abierta la de mandos', await run(`return !${pop} && !document.querySelector('.controls-layer').hidden`));
     await closeControls();

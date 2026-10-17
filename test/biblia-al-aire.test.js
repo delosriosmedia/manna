@@ -11,7 +11,7 @@ import projection from '../server/modules/projection/index.js';
 import order from '../server/modules/order/index.js';
 
 // Fase 24: cambiar la versión de un pasaje que está al aire (projection.swap) sin salir del orden del culto.
-// Versiones con textos inventados; a «Corta» le falta el versículo 18.
+// Versiones con textos inventados; a «Corta» le falta el versículo 18 y a «Salto», el 17.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-biblia-aire-'));
 const bibles = path.join(tmp, 'biblias');
@@ -20,6 +20,7 @@ const write = (file, verses) => fs.writeFileSync(path.join(bibles, file), `<bibl
 write('Antigua.xmm', [16, 17, 18]);
 write('Moderna.xmm', [16, 17, 18]);
 write('Corta.xmm', [16, 17]);
+write('Salto.xmm', [16, 18]);
 
 const app = createApp({ rootDir: ROOT, dataDir: path.join(tmp, 'datos'), biblesDir: bibles });
 for (const setup of [system, bible, projection, order]) await setup(app);
@@ -83,9 +84,30 @@ test('projection.swap valida lo que recibe y, si falla, deja lo que estaba al ai
   assert.equal(await fail('projection.swap', verses('moderna', ref(16))), 409, 'nada al aire');
   const shown = await run('projection.show', verses('antigua', ref(18)));
   for (const bad of [{}, { kind: 5, data: {} }, { kind: 'verses' }, { kind: 'verses', data: [] }]) assert.equal(await fail('projection.swap', bad), 400, JSON.stringify(bad));
-  assert.equal(await fail('projection.swap', { kind: 'inventado', data: {} }), 404);
+  assert.equal(await fail('projection.swap', { kind: 'inventado', data: {} }), 400, 'solo entre tipos con pasos identificables');
+  assert.equal(await fail('projection.swap', { kind: 'testcard', data: {} }), 400);
   assert.equal(await fail('projection.swap', verses('no-existe', ref(18))), 404);
   assert.equal(await fail('projection.swap', verses('corta', ref(18))), 404, 'a esa versión le falta el versículo');
   assert.equal(onAir().uid, shown.uid);
+  await run('projection.clear');
+});
+
+test('con un paso del orden, solo se cambia a una versión con los mismos versículos: nunca sale otro, ni falla después', async () => {
+  const el = await run('order.add', verses('antigua', ref(16, 18)));
+  await run('order.show', { id: el.id, step: 1 }); // el versículo 17
+  // A «Salto» le falta el 17: su segundo paso sería el 18.
+  assert.equal(await fail('projection.swap', verses('salto', ref(16, 18))), 409);
+  assert.equal(await fail('projection.swap', { kind: 'compare', data: { versions: ['salto', 'antigua'], ref: ref(16, 18) } }), 409);
+  assert.deepEqual([onAir().versionId, onAir().verses[0].n], ['antigua', 17], 'lo que estaba al aire no cambia');
+  // En una comparación los pasos son los de la primera versión: a la segunda puede faltarle un versículo.
+  await run('projection.swap', { kind: 'compare', data: { versions: ['antigua', 'salto'], ref: ref(16, 18) } });
+  assert.deepEqual([onAir().kind, onAir().source.step, onAir().sides[1].verses.length], ['compare', 1, 0]);
+  // Una comparación al aire de la que se sale a «Salto» como primera versión tampoco vale.
+  assert.equal(await fail('projection.swap', verses('salto', ref(16, 18))), 409);
+  // Sin paso (proyectado desde la Biblia) no hay nada que desalinear: se cambia a la versión que sea.
+  await run('projection.show', verses('antigua', ref(16, 18)));
+  await run('projection.swap', verses('salto', ref(16, 18)));
+  assert.deepEqual([onAir().versionId, onAir().verses.map((v) => v.n)], ['salto', [16, 18]]);
+  await run('order.clear');
   await run('projection.clear');
 });
