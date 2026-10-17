@@ -78,6 +78,11 @@ export function plan({ origen, oculta, documentos, aqui: from = null, lanzador =
   const datos = saved.datos || (antigua ? path.join(antigua, 'data') : null);
   const contenido = saved.contenido || (antigua ? path.join(antigua, 'Contenido') : path.join(documentos, 'Manna', 'Contenido'));
   const raiz = path.dirname(contenido);
+  // Una copia de desarrollo (con su .git) nunca se reordena: pasó el 2026-10-17 en el Mac del dueño, cuya app
+  // Manna apuntaba a la carpeta del proyecto. Se actualiza con git.
+  for (const dir of [antigua, raiz]) {
+    if (dir && exists(path.join(dir, '.git'))) throw new Error(`${dir} es la carpeta del proyecto, con git: el instalador no la toca. Esa copia se actualiza con git (ya tiene lo último que se programó), no con este archivo.`);
+  }
   const enNube = nube == null ? synced(raiz, { home, env }) : nube;
   const programa = enNube ? oculta : path.join(raiz, 'Programa');
   // Otra instalación que sigue apuntando a este mismo Contenido con otros datos: la que dejó atrás la 1.25.1.

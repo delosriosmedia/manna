@@ -171,12 +171,15 @@ test('si una versión anterior eligió mal los datos, al volver a abrirlo vuelve
   }
 });
 
-test('una copia de desarrollo (con .git) no se reordena aunque el instalador se abra desde ella', async () => {
+test('una copia de desarrollo (con .git) no se reordena, ni abriendo el instalador desde ella ni si la app apunta a ella', async () => {
   const t = setup();
   try {
     const dev = path.join(t.tmp, 'proyecto');
     for (const file of ['.git/HEAD', 'server/index.js', 'data/ajustes.json', 'Contenido/LEEME.txt']) write(path.join(dev, file));
     await arrange({ ...t, aqui: dev, nube: false });
+    assert.deepEqual(list(dev), ['.git', 'Contenido', 'data', 'server']);
+    // Como el Mac del dueño (2026-10-17): la app Manna apuntaba a la carpeta del proyecto.
+    await assert.rejects(arrange({ ...t, aqui: dev, lanzador: dev, nube: false }), /con git/);
     assert.deepEqual(list(dev), ['.git', 'Contenido', 'data', 'server']);
   } finally {
     fs.rmSync(t.tmp, { recursive: true, force: true });
