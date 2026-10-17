@@ -102,7 +102,9 @@ export function createPlayer(media, { onDuration = () => {}, onAudible = () => {
           media.playbackRate = 1;
         } else media.playbackRate = Math.abs(drift) < NUDGE_OVER ? 1 : drift > 0 ? 0.95 : 1.05;
       }
-      if (media.paused) start();
+      // Si el archivo termina un poco antes que su reloj, se queda en el final: play() en un video
+      // terminado lo vuelve a empezar, y sonaría su principio hasta que llegue la pausa.
+      if (media.paused && !media.ended) start();
       return;
     }
 

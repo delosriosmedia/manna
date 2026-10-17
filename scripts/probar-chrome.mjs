@@ -958,6 +958,19 @@ try {
     check('propone un nombre para cada video', await run(`return ${modal}.querySelector('h2').textContent === 'Subir 2 videos' && [...${modal}.querySelectorAll('.up-row input')].map(i => i.value).join('|') === 'video de bienvenida|testimonio'`));
     await modalButton('Subir');
     check('sube los videos y cierra la ventana', await until(`!${modal} && ${vids}.querySelectorAll('.media-card').length === 2`, 80));
+    // Pasó el 2026-10-17 con los himnos: si el archivo acaba un poco antes que su reloj, el reproductor le daba
+    // «reproducir» al video ya terminado, que volvía a empezar, y sonaba su principio hasta la pausa.
+    const replay = await run(`const url = (await (await fetch('/api/state')).json()).media.videos.find((v) => v.url && v.name === 'video de bienvenida')?.url;
+      const { createPlayer } = await import('/modules/projection/player.js'); const { serverNow } = await import('/core/api.js');
+      const v = document.createElement('video'); document.body.append(v); const p = createPlayer(v); p.load(url);
+      await new Promise((r) => { v.addEventListener('loadedmetadata', r, { once: true }); });
+      const real = v.duration; let reached = false; let back = null;
+      v.addEventListener('timeupdate', () => { if (v.currentTime > real - 0.3) reached = true; else if (reached) back = v.currentTime; });
+      p.apply({ playing: true, position: real - 0.8, at: serverNow(), duration: real + 1.5 });
+      await new Promise((r) => { setTimeout(r, 2600); });
+      p.release();
+      return JSON.stringify({ real, reached, back });`).then(JSON.parse);
+    check('un video que termina antes que su reloj se queda en el final, sin volver a sonar desde el principio', replay.reached && replay.back === null, JSON.stringify(replay));
     check('el que el navegador no reproduce se convierte solo y queda listo', await until(`${vids}.querySelectorAll('.media-card[data-status=ready]').length === 2`, 100));
     let videos = await videosNow();
     const main = videos.find((v) => v.name === 'video de bienvenida');
@@ -1187,7 +1200,7 @@ try {
     await paste('https://youtu.be/pruebaManna?si=compartido');
     check('al pegar un enlace empieza a descargarse y lo muestra con su avance, sin detener la app', await until(`${tubeCard}?.dataset.status === 'downloading' && ${tubeCard}.querySelector('.media-status .bar')`, 10)
       && (await text('#toast')).includes('Descargando') && await run(`return ${linkBox}.value === '' && ${tubeBar}.querySelector('.btn.primary').disabled`));
-    check('el título llega antes que el video, y el avance se mueve (también en las tareas del panel)', await until(`${tubeCard}.querySelector('strong').textContent === 'Saludo de la iglesia hermana' && Number(${tubeCard}.querySelector('.bar')?.getAttribute('aria-valuenow')) > 0 && [...document.querySelectorAll('.queue .scene-jobs .job strong')].some(s => s.textContent === 'Descargando «Saludo de la iglesia hermana»')`, 20),
+    check('el título llega antes que el video y el avance se mueve en su ficha, con la velocidad, sin salir en la cola del culto', await until(`${tubeCard}.querySelector('strong').textContent === 'Saludo de la iglesia hermana' && Number(${tubeCard}.querySelector('.bar')?.getAttribute('aria-valuenow')) > 0 && ${tubeCard}.querySelector('.media-status small')?.textContent.includes('2,5 MB/s') && ![...document.querySelectorAll('.queue .scene-jobs .job strong')].some(s => s.textContent.startsWith('Descargando'))`, 20),
       await run(`return ${tubeCard}.querySelector('strong').textContent + ' · ' + ${tubeCard}.querySelector('.media-status small')?.textContent`));
     check('queda listo, con su imagen, su duración y sus subtítulos', await until(`${tubeCard}.dataset.status === 'ready' && ${tubeCard}.querySelector('.media-thumb img')?.naturalWidth > 0 && ${tubeCard}.querySelector('.media-duration')?.textContent === '0:06' && ${tubeCard}.querySelector('.media-cc')`, 60));
     const saved = (await tubesNow())[0];
@@ -1231,7 +1244,7 @@ try {
     await paste('https://www.youtube.com/watch?v=privado0001');
     const failedCard = `${tube}.querySelector('.media-card[data-status=error]')`;
     check('si YouTube no deja descargarlo, la ficha dice por qué y ofrece reintentar', await until(`${failedCard}?.querySelector('.media-status small')?.textContent.includes('privado o se quitó')`, 30)
-      && await run(`return [...${failedCard}.querySelectorAll('.media-status .btn')].map(b => b.textContent).join() === 'Reintentar' && document.querySelectorAll('.queue .scene-jobs .job.error').length === 1`));
+      && await run(`return [...${failedCard}.querySelectorAll('.media-status .btn')].map(b => b.textContent).join() === 'Reintentar' && !document.querySelector('.queue .scene-jobs .job.error')`));
     await click(`${failedCard}.querySelector('.media-status .btn')`);
     check('"Reintentar" lo descarga de nuevo', await until(`${tube}.querySelectorAll('.media-card[data-status=downloading]').length === 1`, 10) && await until(`${failedCard}`, 30));
     await cardMenu(failedCard, 'Eliminar');

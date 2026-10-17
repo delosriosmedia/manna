@@ -47,7 +47,7 @@ test('las órdenes de yt-dlp llevan la dirección que escribe Manna, nunca el te
   assert.equal(args[args.indexOf('-o') + 1], path.join('/t/yt', 'video.%(ext)s'));
   assert.deepEqual(args.slice(args.indexOf('--ffmpeg-location'), args.indexOf('--ffmpeg-location') + 2), ['--ffmpeg-location', '/opt/bin']);
   assert.match(args[args.indexOf('-f') + 1], /height<=1080.*avc1.*mp4a/, 'hasta 1080p, con lo que reproduce cualquier navegador');
-  for (const flag of ['--ignore-config', '--no-playlist', '--no-simulate', '--newline']) assert.ok(args.includes(flag), flag);
+  for (const flag of ['--ignore-config', '--no-playlist', '--no-simulate', '--newline', '--throttled-rate']) assert.ok(args.includes(flag), flag);
   assert.equal(downloadArgs({ id: 'dQw4w9WgXcQ', dir: '/t' }).includes('--ffmpeg-location'), false);
   const subs = subtitleArgs({ id: 'dQw4w9WgXcQ', dir: '/t/yt' });
   assert.ok(subs.includes('--skip-download') && subs.includes('--write-auto-subs'));
@@ -67,6 +67,7 @@ test('readLine y createProgress entienden lo que yt-dlp va diciendo', () => {
   assert.deepEqual(readLine('MANNA\tduration\t222'), { duration: 222 });
   assert.equal(readLine('MANNA\tduration\tNA'), null);
   assert.deepEqual(readLine('MANNA\tprogress\t500\t2000\tNA'), { downloaded: 500, total: 2000 });
+  assert.deepEqual(readLine('MANNA\tprogress\t500\t2000\tNA\t3200000.5'), { downloaded: 500, total: 2000, speed: 3200000.5 }, 'con la velocidad');
   assert.deepEqual(readLine('MANNA\tprogress\t500\tNA\t4000'), { downloaded: 500, total: 4000 }, 'si no sabe el total, vale el estimado');
   assert.equal(readLine('[download] 50% of 10MiB'), null);
   assert.equal(readLine('MANNA\tprogress\tNA\tNA\tNA'), null);

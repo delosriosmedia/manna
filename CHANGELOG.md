@@ -4,6 +4,13 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.24.1 — 2026-10-17
+
+- Arreglado: al terminar un himno (o un video) sonaba un instante de su principio antes de quedarse parado. Pasaba cuando el archivo acaba una fracción de segundo antes de lo que Manna calculaba.
+- Arreglado: en Windows, «Cancelar» una descarga de YouTube no la detenía. Seguía descargando hasta el final, la siguiente en cola esperaba, y al terminar se descartaba.
+- Las descargas de YouTube ya no salen en la cola del culto: su avance, con la velocidad, se ve en la ficha de cada video.
+- Descargas de YouTube muy lentas: si YouTube frena una descarga, yt-dlp le pide otro enlace y sigue. Si aun así va lenta, Manna lo apunta en su registro (`manna.log`) con lo que dijo yt-dlp, para ver la causa.
+
 ## 1.24.0 — 2026-10-17
 
 - **Conexión por internet comprobada de verdad**: «Encendida» ya no quiere decir solo que Cloudflare aceptó la conexión. Cada minuto Manna entra por su propia dirección de internet, como un celular de fuera, y comprueba que contesta él mismo. Si no, Ajustes dice el problema concreto (Cloudflare no llega a Manna y qué puerto poner en su panel, el mismo túnel abierto en otro equipo, o sin internet) y, tras varios fallos seguidos, Manna rehace la conexión solo.

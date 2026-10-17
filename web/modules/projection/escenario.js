@@ -266,7 +266,7 @@ export function createEscenario(ctx) {
   // ---- Mandos del tipo al aire ----
   const controls = h('div', { class: 'scene-controls' });
   createLiveControls(controls);
-  createJobsList(jobs, { canDismiss: ctx.canEdit });
+  createJobsList(jobs, { canDismiss: ctx.canEdit, filter: (job) => !job.quiet });
 
   // ---- Celular: «Historias» ----
   const segments = h('div', { class: 'story-steps', 'aria-hidden': 'true' });

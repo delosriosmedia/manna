@@ -38,9 +38,10 @@ export function createJobs({ store, now = Date.now }) {
     if (!timer) timer = setTimeout(publishNow, PUBLISH_MS);
   };
 
-  function start({ title, detail = '', owner = null, ref = null }) {
+  // quiet: no sale en la cola del culto; su avance lo muestra su módulo (las descargas de YouTube, en Videos).
+  function start({ title, detail = '', owner = null, ref = null, quiet = false }) {
     const id = crypto.randomUUID();
-    const job = { view: { id, title, detail, owner, ref, state: 'running', progress: null, eta: null, error: null }, samples: [] };
+    const job = { view: { id, title, detail, owner, ref, quiet, state: 'running', progress: null, eta: null, error: null }, samples: [] };
     jobs.set(id, job);
     // Las tareas con error se quedan hasta que alguien las descarta; se limita cuántas se guardan.
     for (const [old, j] of jobs) {

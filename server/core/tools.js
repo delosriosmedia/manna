@@ -383,7 +383,13 @@ export function setupTools(app) {
         const name = CATALOG.find((t) => t.id === id)?.name || id;
         throw new HttpError(409, `Falta ${name} en el equipo principal. Se instala desde Ajustes, en "Programas del equipo principal".`);
       }
-      if (!tied) return spawn(file, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], ...options });
+      if (!tied) {
+        const child = spawn(file, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], ...options });
+        // En Windows un programa puede abrir otros (yt-dlp.exe abre una segunda copia, que es la que descarga):
+        // kill() cierra el árbol entero. Si no, al cancelar seguía descargando hasta el final.
+        if (WIN) child.kill = () => { if (child.pid) execFile('taskkill', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true }, () => {}); };
+        return child;
+      }
       const child = spawn(process.execPath, [VIGIA, file, ...args], { windowsHide: true, ...options, stdio: ['pipe', 'pipe', 'pipe'] });
       child.stdin.on('error', () => {}); // el vigilante ya terminó
       // Se cierra cortándole la entrada: en Windows, matar al vigilante dejaría suelto el programa.

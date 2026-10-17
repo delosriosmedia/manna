@@ -34,7 +34,7 @@ if (args.includes('--skip-download')) {
 }
 say(${JSON.stringify(`MANNA\ttitle\t${title}`)});
 say('MANNA\\tduration\\t${seconds}');
-for (const [done, total] of [[0, 1000], [400, 1000], [1000, 1000], [0, 100], [100, 100]]) { say('MANNA\\tprogress\\t' + done + '\\t' + total + '\\tNA'); wait(${Number(pause)}); }
+for (const [done, total] of [[0, 1000], [400, 1000], [1000, 1000], [0, 100], [100, 100]]) { say('MANNA\\tprogress\\t' + done + '\\t' + total + '\\tNA\\t2500000'); wait(${Number(pause)}); }
 const made = spawnSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=25:duration=${seconds}', '-f', 'lavfi', '-i', 'sine=frequency=392:duration=${seconds}', '-af', 'volume=0.05', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', path.join(dir, 'video.mp4')]);
 if (made.status !== 0) { console.error('ERROR: ' + made.stderr); process.exit(1); }
 spawnSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', path.join(dir, 'video.mp4'), '-frames:v', '1', '-vf', 'scale=320:-2', path.join(dir, 'video.jpg')]);

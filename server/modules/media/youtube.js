@@ -44,8 +44,12 @@ export const jsRuntime = (version = process.versions.node, node = process.execPa
 // ffmpegDir: dónde está ffmpeg, para unir imagen y sonido. js: el intérprete de JavaScript (jsRuntime).
 export function downloadArgs({ id, dir, ffmpegDir = null, js = null }) {
   return [
-    '--ignore-config', '--no-playlist', '--no-warnings', '--newline', '--no-simulate', '--socket-timeout', '20', '--retries', '3',
+    // Con avisos: si una descarga va lenta, lo que dijo yt-dlp va al registro (ver SLOW).
+    '--ignore-config', '--no-playlist', '--newline', '--no-simulate', '--socket-timeout', '20', '--retries', '3',
     ...(js ? ['--js-runtimes', js] : []),
+    // YouTube a veces frena una descarga a unos 50 KB/s (1 minuto pasaba a 30, visto el 2026-10-17): por debajo
+    // de esto, yt-dlp le pide otro enlace y sigue.
+    '--throttled-rate', '100K',
     // Un directo no tiene final: no se puede guardar.
     '--match-filter', '!is_live',
     // No se le fuerza un "player_client": con «android,web» YouTube solo entrega 360p (visto el 2026-10-10).
@@ -55,7 +59,7 @@ export function downloadArgs({ id, dir, ffmpegDir = null, js = null }) {
     // Lo que se sabe del video, antes de empezar; y el avance, una línea cada vez.
     '--print', `before_dl:${MARK}\ttitle\t%(title)s`,
     '--print', `before_dl:${MARK}\tduration\t%(duration)s`,
-    '--progress', '--progress-template', `download:${MARK}\tprogress\t%(progress.downloaded_bytes)s\t%(progress.total_bytes)s\t%(progress.total_bytes_estimate)s`,
+    '--progress', '--progress-template', `download:${MARK}\tprogress\t%(progress.downloaded_bytes)s\t%(progress.total_bytes)s\t%(progress.total_bytes_estimate)s\t%(progress.speed)s`,
     '-o', path.join(dir, 'video.%(ext)s'),
     '--', watchUrl(id),
   ];
@@ -73,7 +77,7 @@ export function subtitleArgs({ id, dir, js = null }) {
   ];
 }
 
-// Lo que dice una línea de yt-dlp: { title }, { duration }, { downloaded, total } o null.
+// Lo que dice una línea de yt-dlp: { title }, { duration }, { downloaded, total, speed? } o null.
 export function readLine(line) {
   const [mark, what, ...rest] = String(line).trim().split('\t');
   if (mark !== MARK) return null;
@@ -85,7 +89,8 @@ export function readLine(line) {
   if (what === 'progress') {
     const downloaded = Number(rest[0]);
     const total = Number(rest[1]) || Number(rest[2]);
-    return Number.isFinite(downloaded) && total > 0 ? { downloaded, total } : null;
+    const speed = Number(rest[3]); // bytes por segundo
+    return Number.isFinite(downloaded) && total > 0 ? { downloaded, total, ...(speed > 0 ? { speed } : {}) } : null;
   }
   return null;
 }
@@ -108,6 +113,9 @@ export function createProgress() {
 export const definitive = (stderr) => /private video|video unavailable|has been removed|no longer available|This video is not available|age.restricted|confirm your age|does not pass filter|is_live|ffmpeg.*(?:not found|not installed)|Postprocessing.*ffmpeg/i.test(String(stderr || ''));
 // Los demás suelen pasar al rato o con un yt-dlp más nuevo: se reintenta solo, tras esperar esto.
 const RETRY_WAITS = [5000, 20000];
+// Una descarga más lenta que esto (de media) se apunta en el registro, con lo que dijo yt-dlp, para ver la causa.
+const SLOW = 500_000;
+const rate = (bytes) => (bytes >= 1e6 ? `${(bytes / 1e6).toFixed(1).replace('.', ',')} MB/s` : `${Math.round(bytes / 1e3)} KB/s`);
 
 export function explain(stderr, js = jsRuntime()) {
   const text = String(stderr || '');
@@ -196,6 +204,7 @@ export function createDownloader(app) {
     const video = path.join(task.dir, 'video.mp4');
     let result;
     let ok = false;
+    const began = Date.now();
     for (let attempt = 0; ; attempt += 1) {
       job.update({ detail: attempt ? 'Reintentando' : 'Descargando de YouTube', progress: 0 });
       fs.rmSync(task.dir, { recursive: true, force: true });
@@ -210,7 +219,7 @@ export function createDownloader(app) {
           const name = task.onInfo(said);
           if (name) job.update({ title: `Descargando «${name}»` });
         }
-        if (said.total) job.update({ progress: progress(said) });
+        if (said.total) job.update({ progress: progress(said), ...(said.speed ? { detail: `Descargando de YouTube · ${rate(said.speed)}` } : {}) });
       });
       ok = result.code === 0 && fs.existsSync(video) && !current.cancelled;
       if (ok || current.cancelled || closed || attempt >= RETRY_WAITS.length || definitive(result.err)) break;
@@ -222,6 +231,9 @@ export function createDownloader(app) {
       if (current.cancelled || closed) break;
     }
     if (ok) {
+      const size = fs.statSync(video).size;
+      const average = size / Math.max(1, (Date.now() - began) / 1000);
+      if (average < SLOW && size > 5e6) console.error(`YouTube descargó ${task.videoId} despacio (${rate(average)} de media): ${String(result.err).trim().split(/\r?\n/).slice(-6).join(' | ') || 'yt-dlp no dijo nada'}`);
       // Los subtítulos, si los hay. Que fallen no estropea nada.
       job.update({ progress: 0.99, detail: 'Buscando subtítulos' });
       await run(subtitleArgs({ id: task.videoId, dir: task.dir, js }), () => {});
@@ -248,7 +260,7 @@ export function createDownloader(app) {
     download(task) {
       // Un intento anterior que falló deja su aviso: se retira al volver a intentarlo.
       forget(task.id);
-      const job = app.jobs.start({ title: `Descargando «${task.name}»`, detail: 'En cola', owner: 'media', ref: task.id });
+      const job = app.jobs.start({ title: `Descargando «${task.name}»`, detail: 'En cola', owner: 'media', ref: task.id, quiet: true });
       queue.push({ task, job });
       next();
       return job;
