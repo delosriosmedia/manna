@@ -93,13 +93,19 @@ export function createShell({ role, isLocal, modules, extras = [], createScene, 
     wideButton.setAttribute('aria-label', label);
     wideButton.title = label;
   }
+  // Con el teclado, el foco entra en el cajón al abrirlo (en su título, si el módulo no lo pone en otro sitio) y vuelve
+  // a su botón del dock al cerrarlo.
+  drawerTitle.tabIndex = -1;
   function openDrawer() {
     drawer.hidden = false;
     backdrop.hidden = !narrow.matches;
     document.body.classList.add('drawer-open');
+    if (!drawer.contains(document.activeElement)) drawerTitle.focus({ preventScroll: true });
   }
   function closeDrawer() {
+    const inside = drawer.contains(document.activeElement);
     drawer.hidden = true;
+    if (inside) dockbar.querySelector(`.dock-item[data-id="${current?.id}"]`)?.focus({ preventScroll: true });
     backdrop.hidden = true;
     document.body.classList.remove('drawer-open');
     paintDock();
@@ -178,11 +184,17 @@ export function createShell({ role, isLocal, modules, extras = [], createScene, 
       h('div', { class: 'drawer-head' }, h('h2', {}, 'Mandos'), h('span', { class: 'spacer' }),
         h('button', { class: 'icon-btn sm', 'aria-label': 'Cerrar', onclick: () => closeControls() }, icon('x', 16))),
       scene?.controls));
+  // El foco entra en los mandos al abrirlos y vuelve al botón que los abrió.
+  let controlsOpener = null;
   function openControls() {
+    controlsOpener = document.activeElement;
     controlsLayer.hidden = false;
+    controlsLayer.querySelector('.controls-pop button')?.focus({ preventScroll: true });
   }
   function closeControls() {
+    const inside = controlsLayer.contains(document.activeElement);
     controlsLayer.hidden = true;
+    if (inside && controlsOpener?.isConnected) controlsOpener.focus({ preventScroll: true });
   }
 
   // ---- Aviso de lo que le falta al módulo abierto ----

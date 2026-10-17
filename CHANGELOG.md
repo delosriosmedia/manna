@@ -4,6 +4,12 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.23.0 — 2026-10-17
+
+- **Con el teclado, en toda la pantalla de control**: al abrir un módulo el foco entra en su cajón y al cerrarlo vuelve a su botón; lo mismo con los mandos. Las filas del orden del culto se alcanzan con Tab y se abren con Intro, y la cola del culto y el orden no pierden el foco cuando cambia lo que está al aire. Un lector de pantalla anuncia el resultado señalado de «Buscar en todo», los versículos elegidos y lo que está al aire.
+- **Más ligero en un equipo modesto**: la cola del culto y el detalle del orden ya no se rehacen enteros con cada «Siguiente» (con una presentación larga eran hasta 60 miniaturas cada vez), escribir un texto ya no rehace la lista ni la cola en cada tecla, y el cajón cambia de tamaño sin animación.
+- **Las etiquetas «al aire»** (y el botón «Al aire» del celular) usan un rojo un poco más oscuro para que su letra blanca se lea mejor.
+- Arreglado: si un archivo cambiaba justo mientras Manna lo enviaba, la respuesta podía salir rota.
 ## 1.22.0 — 2026-10-17
 
 - **Revisión de la interfaz** (fase 20, con las skills de diseño del dueño):

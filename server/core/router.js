@@ -168,7 +168,13 @@ function sendFile(req, res, file) {
     res.end();
     return true;
   }
-  const stream = fs.createReadStream(file, range || undefined);
+  // Nunca más bytes de los anunciados: si el archivo creció entre stat y la lectura (alguien lo reescribió), la
+  // respuesta seguiría siendo válida. Pasó en las pruebas el 2026-10-17 («Response does not match the HTTP/1.1 protocol»).
+  if (!stat.size) {
+    res.end();
+    return true;
+  }
+  const stream = fs.createReadStream(file, range || { start: 0, end: stat.size - 1 });
   stream.on('error', () => res.destroy());
   // Al saltar dentro de un video el navegador abandona la petición anterior: se suelta el archivo.
   res.on('close', () => stream.destroy());

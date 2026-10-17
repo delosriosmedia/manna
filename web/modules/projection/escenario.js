@@ -144,29 +144,41 @@ export function createEscenario(ctx) {
 
   const orderItems = () => state.order?.items || [];
   const liveSource = () => state.projection?.item?.source || null;
+  // La cola solo se rehace si cambia lo que muestra (los elementos, el que está al aire o su paso); preparar otro
+  // solo mueve su marca. Al rehacerla, el foco vuelve al mismo botón (data-key).
+  let queueShape = null;
+  const focusKey = (el) => el?.closest?.('[data-key]')?.dataset.key || null;
   function renderQueue() {
     const items = orderItems();
     const src = liveSource();
     const liveId = src?.orderId;
     const at = items.findIndex((i) => i.id === liveId);
     queuePos.textContent = at < 0 ? '' : `${items.slice(0, at + 1).filter((i) => i.kind !== 'section').length} de ${items.filter((i) => i.kind !== 'section').length}`;
+    const shape = JSON.stringify([items.map((i) => [i.id, i.kind, i.title, i.subtitle, i.steps]), liveId, liveId ? src.step ?? 0 : null]);
+    if (shape === queueShape) {
+      for (const row of queueList.querySelectorAll('.queue-item')) row.classList.toggle('prepared', prepared?.orderId === row.dataset.id);
+      return;
+    }
+    queueShape = shape;
     if (!items.length) {
       queueList.replaceChildren(h('p', { class: 'muted queue-empty' }, 'El orden del culto está vacío. Se prepara en el módulo Orden.'));
       return;
     }
+    const focused = queueList.contains(document.activeElement) ? focusKey(document.activeElement) : null;
     queueList.replaceChildren(...items.map((item, i) => {
       if (item.kind === 'section') return h('small', { class: 'queue-section' }, item.title);
       const live = item.id === liveId;
       const row = h('button', {
         class: `queue-item${live ? ' live' : ''}${prepared?.orderId === item.id ? ' prepared' : ''}${at >= 0 && i < at ? ' done' : ''}`,
-        dataset: { id: item.id }, title: item.title,
+        dataset: { id: item.id, key: item.id }, title: item.title, 'aria-current': live ? 'true' : null,
         onclick: () => prepareOrder(item), ondblclick: guard(() => action('order.show', { id: item.id })),
       }, kindBadge(item.kind), h('span', { class: 'item-text' }, h('strong', {}, item.title), h('small', {}, item.subtitle)));
       if (!live || !(item.steps > 1)) return row;
       const now = src.step ?? 0;
       return h('div', { class: 'queue-live' }, row, h('div', { class: 'queue-steps' }, ...Array.from({ length: item.steps }, (_, k) =>
-        h('button', { class: `step-cell${k === now ? ' on' : k < now ? ' done' : ''}`, 'aria-label': `Paso ${k + 1}`, onclick: guard(() => action('order.show', { id: item.id, step: k })) }, String(k + 1)))));
+        h('button', { class: `step-cell${k === now ? ' on' : k < now ? ' done' : ''}`, dataset: { key: `${item.id}|${k}` }, 'aria-label': `Paso ${k + 1}`, 'aria-current': k === now ? 'step' : null, onclick: guard(() => action('order.show', { id: item.id, step: k })) }, String(k + 1)))));
     }));
+    if (focused) [...queueList.querySelectorAll('[data-key]')].find((b) => b.dataset.key === focused)?.focus({ preventScroll: true });
   }
 
   // ---- Señalar y Mover, sobre la proyección ----
@@ -362,12 +374,14 @@ export function createEscenario(ctx) {
     prepare,
     projectPrepared,
     clearPrepared,
-    // Lo que el módulo abierto tiene seleccionado (o null): se muestra, y se proyecta desde el módulo.
+    // Lo que el módulo abierto tiene seleccionado (o null): se muestra, y se proyecta desde el módulo. Si es lo mismo
+    // que ya se ve, no se rehace nada (los módulos lo piden en cada cambio, también al escribir).
     setPreview(item) {
       if (!item) {
         if (prepared?.preview) clearPrepared();
         return;
       }
+      if (prepared?.preview && JSON.stringify(prepared.item) === JSON.stringify(item)) return;
       prepare({ item, title: titleOf(item), preview: true });
     },
   };

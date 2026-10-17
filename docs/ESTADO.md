@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Última actualización: 2026-10-17 · Versión: 1.22.0
+Última actualización: 2026-10-17 · Versión: 1.23.0
 
 Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver `.claude/rules/documentacion.md`). El historial está en `CHANGELOG.md`.
 
@@ -158,7 +158,6 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 - **Lo que dejó anotado la auditoría (fase 9, 2026-10-16)**, de poco riesgo en la red de una iglesia: las sesiones de la pantalla de proyección se guardan sin límite de número; un enlace simbólico dentro de una carpeta de contenido se sigue al servir archivos; Páginas web acepta direcciones del propio equipo (las usan las pruebas); sin ffmpeg, un video subido se acepta por su extensión. En el código quedan duplicados menores que no compensa tocar sin una razón (los diálogos de nombre y borrar en Medios, Diapositivas y Páginas web, cada uno con sus textos; el envío de arrastres de `projection/picture.js`, que podría usar `web/core/sender.js`, y que funciona; dos líneas iguales en Himnario y Medios para notar que se instaló ffmpeg) y algunos colores y radios sueltos en las hojas de estilo. El 2026-10-16, tras revisar el grafo del proyecto (graphify), se unificó lo que era idéntico: `nameFromFile` (`web/core/names.js`), las direcciones de las diapositivas (`web/modules/slides/deck.js`), `cleanName` en el orden del culto, `plainAddress` en el tiempo real y `LOOPBACK`, y se quitó una función sin usar.
 - **YouTube falló en el equipo Windows** (visto por el dueño el 2026-10-16 con la 1.14). Corregido sin probar en Windows (parte 1 de la fase 14): yt-dlp usa el Node de Manna como intérprete de JavaScript (probado en el Mac con `--no-js-runtimes --js-runtimes node:…`: YouTube entrega 1080p), el motivo exacto de un fallo va a `manna.log`, y «Actualizar» ya no deja sin yt-dlp si el nuevo no arranca. Si vuelve a fallar, el registro dirá por qué.
-- **Prueba automática que falló sola una vez**: «lo que el navegador ya tiene no se vuelve a enviar, y un archivo cambiado sí» (`test/servidor.test.js`) falló el 2026-10-17 con un error al leer la respuesta (`HTTPParserError`) y pasó al repetir, sin cambiar nada. Si vuelve a pasar, revisar cómo responde el servidor a una petición condicional mientras otra prueba usa la red.
 - **Prueba de Chrome que a veces falla sola**: «al dejar de reproducirse se termina la copia, y llega a lo que está en pantalla sin interrumpirlo» (Medios, videos) falló una vez el 2026-10-14 y pasó al repetir sin cambiar nada. Parece cuestión de tiempos de la prueba; sin investigar.
 - **Prueba automática que falló una vez**: «lo que el navegador ya tiene no se vuelve a enviar, y un archivo cambiado sí» falló una vez el 2026-10-14 y pasó en las dos siguientes. Probablemente el archivo cambia dentro del mismo milisegundo y su huella (tamaño y fecha) no cambia. Sin investigar.
 - **Un archivo borrado justo mientras Manna lo está mirando** (menos de un segundo tras descargarlo de YouTube o reintentarlo) puede dejar un aviso de conversión fallida en la cola del culto. Se quita con su aspa.
@@ -218,6 +217,7 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 ## Decisiones tomadas
 
+- **2026-10-17 · S43, S44 y S45, hechas** (las sugerencias de la revisión de la interfaz): teclado y lector de pantalla en el escenario, listas que no se rehacen enteras y el rojo de las etiquetas «al aire».
 - **2026-10-17 · Textos solo en Control completo**: el Servicio de alabanza no crea ni cambia textos (los proyecta desde el orden del culto).
 - **2026-10-17 · Funciones especializadas para el celular** (decisión 41): antes de la auditoría de la interfaz, una investigación que plantee desde cero funciones dedicadas para el celular, con pocas cosas en pantalla, en lugar del control total (fase 19). La auditoría pasa a ser la fase 20.
 - **2026-10-16 · Fases 16 a 19** (decisión 40 de `docs/PLAN.md`): Videos aparte con categorías, Diapositivas dentro de Medios, Textos (mensajes y citas con autor) y, al final, una auditoría de la interfaz con las skills de diseño del dueño. Con las recomendaciones del asistente; los arreglos de la tableta salen con la fase 16.
@@ -300,7 +300,6 @@ Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron*
 ## Próximos pasos
 
 - **Fase 19** (funciones especializadas para el celular): la propuesta está en `docs/funciones-celular.md`; el dueño la sigue en otra sesión y decide.
-- **Sugerencias de la fase 20** (`docs/PLAN.md`, sección 11): S43 (teclado y lector de pantalla en el escenario), S44 (no rehacer listas en cada cambio) y S45 (rojo de los chips «al aire» y colores sueltos), a decidir por el dueño.
 - **Fase 9** (auditoría, sección 8 de `docs/PLAN.md`): hecha la parte de código (1.18.0); la del equipo real son las pruebas del dueño, y al pasarlas se publica la 2.0.
 - **Pruebas del dueño en el equipo real**: la lista, con lo que falta de cada versión, está en una página con casillas (https://claude.ai/artifact/LFoR7BN5hs5ZffgvdbrMJg, privada del dueño). Es solo una comodidad: lo que resulte se pasa a la tabla «Probado y sin probar» de este documento, que es el registro. Cubre instalar y actualizar en Windows, la revisión del equipo, el Firewall, el proyector, el PIN, el sonido, un video 4K, el Himnario y las letras sin música, Páginas web (Canva, Kahoot), PowerPoint convertido y en vivo con el punto rojo, el Presentador, YouTube, Ajustes (disco y subtítulos), la conexión por internet, celulares reales (Alabanza, Presentador, Escuchar, cajón) y Medios. Fuera de la página quedan `manna.local` con un router real y celulares Android antiguos.
 - **Reiniciar el Manna que esté abierto** (aviso «Manna se actualizó» → «Reiniciar ahora») para que valga la corrección de seguridad, y **cambiar el PIN** en «Dispositivos»: eso cierra las sesiones que se abrieron por el túnel sin PIN. Después, **encender la conexión por internet en Ajustes** (el dominio propio que ya había se conserva) y dejar de usar los antiguos «Conectar Internet», que ya no existen.

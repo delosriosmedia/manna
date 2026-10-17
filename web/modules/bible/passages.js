@@ -44,7 +44,8 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
   const crumbs = h('div', { class: 'crumbs' });
   const colBooks = h('div', { class: 'col col-books' });
   const colChapters = h('div', { class: 'col col-chapters' });
-  const colVerses = h('div', { class: 'col col-verses' });
+  // Los versículos, como una lista para un lector de pantalla: se llega con Tab y ↑ ↓ mueven la selección (keys).
+  const colVerses = h('div', { class: 'col col-verses', role: 'listbox', tabindex: '0', 'aria-label': 'Versículos', 'aria-multiselectable': 'true' });
   // En celular solo cabe una columna: se avanza libro -> capítulo -> versículos.
   const picker = h('div', { class: 'picker', dataset: { step: 'versiculos' } }, colBooks, colChapters, colVerses);
   const selRef = h('strong', { class: 'sel-ref' });
@@ -135,11 +136,11 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
   function renderVerses() {
     const two = Boolean(view.secondId);
     colVerses.replaceChildren(...[
-      h('p', { class: 'col-label' }, h('b', {}, `${view.name} ${view.chapter}`), `${view.verses.length} versículos`),
+      h('p', { class: 'col-label', role: 'presentation' }, h('b', {}, `${view.name} ${view.chapter}`), `${view.verses.length} versículos`),
       // Con dos versiones, cada una en su columna, con su sigla arriba.
-      two && h('div', { class: 'verse-heads' }, h('span', {}), h('b', {}, abbrOf(view.versionId)), h('b', {}, abbrOf(view.secondId))),
+      two && h('div', { class: 'verse-heads', role: 'presentation' }, h('span', {}), h('b', {}, abbrOf(view.versionId)), h('b', {}, abbrOf(view.secondId))),
       ...view.verses.map((v) => h('div', {
-        class: `verse${two ? ' two' : ''}`, dataset: { n: v.n },
+        class: `verse${two ? ' two' : ''}`, dataset: { n: v.n }, role: 'option', id: `verso-${v.n}`,
         onclick: (e) => pickVerse(v.n, e.shiftKey),
         ondblclick: () => { select(v.n); project(); },
       }, h('span', { class: 'vn' }, String(v.n)), h('span', {}, v.text),
@@ -169,7 +170,13 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
       node.classList.toggle('sel', Boolean(sel) && n >= sel.start && n <= sel.end);
       node.classList.toggle('live', Boolean(liveHere) && n >= live.verseStart && n <= live.verseEnd);
       node.classList.toggle('anchor', n === pending);
+      // Para un lector de pantalla: elegidos, el que está al aire y el señalado (las flechas lo mueven).
+      node.setAttribute('aria-selected', String(Boolean(sel) && n >= sel.start && n <= sel.end));
+      if (liveHere && n >= live.verseStart && n <= live.verseEnd) node.setAttribute('aria-current', 'true');
+      else node.removeAttribute('aria-current');
     });
+    if (sel) colVerses.setAttribute('aria-activedescendant', `verso-${sel.start}`);
+    else colVerses.removeAttribute('aria-activedescendant');
   }
 
   // ---- «Varios» ----

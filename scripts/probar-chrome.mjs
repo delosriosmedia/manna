@@ -743,6 +743,23 @@ try {
     await sleep(400);
   }
 
+  console.log('\n1. Interfaz · Teclado');
+  {
+    await goTo('orden');
+    await sleep(500);
+    check('al abrir un módulo, el foco entra en su cajón', await run(`return document.querySelector('.drawer').contains(document.activeElement)`));
+    await run(`document.querySelector('.ws[data-module=orden] .orow:not(.selected)').focus()`);
+    const rowId = await run(`return document.activeElement.dataset.id`);
+    await press('Enter');
+    await sleep(500);
+    check('una fila del orden del culto se alcanza con Tab y se abre con Intro', await run(`const r = document.querySelector('.ws[data-module=orden] .orow[data-id="${rowId}"]'); return r.getAttribute('role') === 'button' && r.getAttribute('aria-expanded') === 'true' && document.activeElement === r`));
+    await press('Escape');
+    await sleep(400);
+    check('Esc cierra el cajón y el foco vuelve a su botón del dock', await run(`return document.querySelector('.drawer').hidden && document.activeElement === document.querySelector('.dock-item[data-id=orden]')`));
+    await goTo('orden');
+    await sleep(400);
+  }
+
   console.log('\n1. Interfaz · Biblia: comparar versiones');
   const cmp = `document.querySelector('.ws[data-module=biblia]')`;
   const headBtn = (label) => `[...${cmp}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes(${JSON.stringify(label)}))`;

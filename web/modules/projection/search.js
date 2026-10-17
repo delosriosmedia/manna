@@ -79,8 +79,10 @@ export function createSearch({ prepare, projectPrepared, canEdit }) {
   let timer = null;
   let opener = null;
 
-  const input = h('input', { type: 'search', placeholder: 'Una cita, un himno, un video…', 'aria-label': 'Buscar en todo', autocomplete: 'off', enterKeyHint: 'search', oninput: () => soon() });
-  const list = h('div', { class: 'finder-list', role: 'listbox', 'aria-label': 'Resultados' });
+  // Para un lector de pantalla, el campo es un combobox: anuncia la fila señalada con las flechas (aria-activedescendant).
+  const input = h('input', { type: 'search', placeholder: 'Una cita, un himno, un video…', 'aria-label': 'Buscar en todo', autocomplete: 'off', enterKeyHint: 'search', oninput: () => soon(),
+    role: 'combobox', 'aria-controls': 'finder-list', 'aria-autocomplete': 'list', 'aria-expanded': 'false' });
+  const list = h('div', { class: 'finder-list', id: 'finder-list', 'aria-label': 'Resultados' });
   const box = h('section', { class: 'finder glass', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Buscar en todo' },
     h('label', { class: 'finder-input' }, icon('magnifying-glass', 18), input, h('kbd', {}, 'Esc')),
     list,
@@ -126,18 +128,22 @@ export function createSearch({ prepare, projectPrepared, canEdit }) {
     active = -1;
     const main = (groups || []).filter((g) => MAIN.includes(g.label));
     box.classList.toggle('wide', main.length > 1);
+    const found = Boolean(groups?.length);
+    if (found) list.setAttribute('role', 'listbox'); else list.removeAttribute('role');
+    input.setAttribute('aria-expanded', String(found));
+    input.removeAttribute('aria-activedescendant');
     if (!groups) return list.replaceChildren(h('p', { class: 'finder-empty' }, 'Escribe una cita (jn 3 16), el número o unas palabras de un himno, o el nombre de una imagen, un video, una presentación o una página.'));
     if (!groups.length) return list.replaceChildren(h('p', { class: 'finder-empty' }, `Nada encontrado para «${q}».`));
-    const section = (g) => [h('small', { class: 'finder-group' }, g.label), ...g.results.map(row)];
+    const section = (g) => [h('small', { class: 'finder-group', role: 'presentation' }, g.label), ...g.results.map(row)];
     list.replaceChildren(
-      ...(main.length ? [h('div', { class: 'finder-main', style: `--cols: ${main.length}` }, ...main.map((g) => h('div', { class: 'finder-col' }, ...section(g))))] : []),
+      ...(main.length ? [h('div', { class: 'finder-main', role: 'presentation', style: `--cols: ${main.length}` }, ...main.map((g) => h('div', { class: 'finder-col', role: 'presentation' }, ...section(g))))] : []),
       ...groups.filter((g) => !MAIN.includes(g.label)).flatMap(section));
     mark(0);
   }
   function row(result) {
     const i = rows.length;
     const el = h('button', {
-      class: 'finder-row', role: 'option', 'aria-selected': 'false', title: result.title,
+      class: 'finder-row', role: 'option', id: `finder-row-${i}`, 'aria-selected': 'false', title: result.title,
       onclick: () => pick(i), ondblclick: () => { pick(i); projectPrepared(); },
     }, kindBadge(result.kind), h('span', { class: 'item-text' }, h('strong', {}, result.head || result.title),
       result.text ? h('small', {}, ...marked(result.text, result.marks)) : result.subtitle && h('small', {}, result.subtitle)));
@@ -151,6 +157,7 @@ export function createSearch({ prepare, projectPrepared, canEdit }) {
     if (!rows[i]) return;
     rows[i].el.classList.add('on');
     rows[i].el.setAttribute('aria-selected', 'true');
+    input.setAttribute('aria-activedescendant', rows[i].el.id);
     rows[i].el.scrollIntoView({ block: 'nearest' });
   }
   function pick(i) {

@@ -31,6 +31,8 @@ Solo modo oscuro: se usa junto a un proyector, y un panel claro deslumbra.
 | `--ink-4` | `#5b6375` | Solo decorativo o deshabilitado: no alcanza el contraste mínimo. |
 | `--accent` `--accent-hover` | `#5ce8ff` `#8af0ff` | **El único acento**, el cian de la M: selección, acción principal, foco. |
 | `--live` `--live-ink` | `#e0383e` `#ffaaad` | **Rojo: solo "al aire"** y acciones destructivas. |
+| `--live-strong` `--on-live` `--live-line` | `#d02f35` `#fff` 50 % | El rojo de fondo de una etiqueta o un botón «al aire» con texto blanco encima (5:1; con `--live` el blanco se queda en 4,4:1), y el borde de una fila al aire o con error. |
+| `--media-bg` `--scrim` `--shadow-color` | negro, negro al 75 %, negro al 55 % | Detrás de una miniatura que no llena su recuadro; fichas sobre una miniatura (duración, subtítulos); la sombra de lo que flota. |
 
 Reglas:
 
@@ -170,7 +172,7 @@ Toda pantalla contempla, además del caso normal:
 - **Cargando:** siluetas con la forma de lo que va a aparecer. Sin ruedas giratorias.
 - **Error:** aviso flotante con lo que pasó y qué hacer, en una frase. Sin "¡Ups!" ni signos de exclamación.
 - **Sin conexión:** barra roja arriba; la reconexión es automática.
-- **Pulsado:** los botones se encogen un 2 % al pulsar. **Foco:** contorno cian de 2 px, siempre visible con teclado. Una ventana pone el foco en su primer campo (o en ella misma) y lo devuelve al cerrar; un menú, en su primera opción, se recorre con ↑ ↓ y Esc vuelve al botón que lo abrió. Con «reducir movimiento», nada se anima, y una barra sin avance conocido se ve entera y tenue.
+- **Pulsado:** los botones se encogen un 2 % al pulsar. **Foco:** contorno cian de 2 px, siempre visible con teclado. Al abrir un módulo, el foco entra en su cajón (en su título, si el módulo no lo pone en otro sitio) y al cerrarlo vuelve a su botón del dock; igual con los mandos. Las filas del orden se alcanzan con Tab y se abren con Intro. Una ventana pone el foco en su primer campo (o en ella misma) y lo devuelve al cerrar; un menú, en su primera opción, se recorre con ↑ ↓ y Esc vuelve al botón que lo abrió. Con «reducir movimiento», nada se anima, y una barra sin avance conocido se ve entera y tenue.
 
 ## 10. Movimiento
 

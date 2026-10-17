@@ -48,7 +48,7 @@ body.drawer-open .scene-scrim { background: rgba(0, 0, 0, 0.35); }
 html.touch .mode-chip { height: var(--tap); padding: 0 14px; }
 .mode-chip kbd { font-size: 10px; }
 .live-pill { flex-shrink: 0; padding: 3px 10px; border-radius: var(--r-pill); background: var(--s3); color: var(--ink-2); font: 700 11px var(--mono); letter-spacing: 0.04em; white-space: nowrap; }
-.live-pill[data-state='live'] { background: var(--live); color: #fff; }
+.live-pill[data-state='live'] { background: var(--live-strong); color: var(--on-live); }
 .live-pill[data-state='black'] { background: #000; color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line-2); }
 .role-chip { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px 0 8px; border-radius: var(--r-pill); background: var(--glass-1); text-align: left; }
 .role-chip:hover { border-color: var(--line-2); }
@@ -69,13 +69,12 @@ html.touch .mode-chip { height: var(--tap); padding: 0 14px; }
 /* ---- Cajón del módulo abierto ---- */
 /* Reducido, se puede ensanchar arrastrando su borde derecho (--drawer-w, desde shell.js) entre 360 px y la cola
    (--drawer-max, lo mismo que mide ampliado): nunca la tapa. */
-.drawer { --drawer-max: calc(100vw - 92px - 372px); position: fixed; left: 92px; top: 84px; bottom: var(--tb-space); z-index: 2; width: clamp(360px, var(--drawer-w, 440px), var(--drawer-max)); border-radius: 26px; display: flex; flex-direction: column; overflow: hidden; backdrop-filter: blur(var(--blur-2)); -webkit-backdrop-filter: blur(var(--blur-2)); transition: width 0.2s var(--ease); }
+.drawer { --drawer-max: calc(100vw - 92px - 372px); position: fixed; left: 92px; top: 84px; bottom: var(--tb-space); z-index: 2; width: clamp(360px, var(--drawer-w, 440px), var(--drawer-max)); border-radius: 26px; display: flex; flex-direction: column; overflow: hidden; backdrop-filter: blur(var(--blur-2)); -webkit-backdrop-filter: blur(var(--blur-2)); }
 .drawer.wide { width: var(--drawer-max); }
 body.queue-closed .drawer { --drawer-max: calc(100vw - 92px - 98px); }
 /* «Preparado» va abajo a la derecha: el cajón no se mete debajo aunque la cola esté cerrada. */
 body.queue-closed.has-prep .drawer { --drawer-max: calc(100vw - 92px - 372px); }
 .drawer[hidden], .drawer-backdrop[hidden] { display: none; }
-.drawer.sizing { transition: none; }
 /* El borde que se arrastra: el derecho en el escritorio; arriba en el celular; a la izquierda en el celular en
    horizontal. Solo en el cajón reducido. */
 .drawer-grip { position: absolute; z-index: 2; top: 0; bottom: 0; right: 0; width: 12px; cursor: ew-resize; touch-action: none; }
@@ -144,7 +143,7 @@ body.has-prep .queue { max-height: calc(100dvh - 84px - var(--tb-space) - var(--
 .queue-steps { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 10px; }
 .step-cell { min-width: 30px; height: 30px; padding: 0 8px; border-radius: var(--r-sm); background: var(--s2); border: 1px solid var(--line); font: 600 12px var(--mono); }
 .step-cell.done { color: var(--accent); border-radius: var(--r-pill); }
-.step-cell.on { background: var(--live); border-color: var(--live); color: #fff; }
+.step-cell.on { background: var(--live-strong); border-color: var(--live-strong); color: var(--on-live); }
 html.touch .step-cell { min-width: var(--tap); height: var(--tap); }
 
 /* ---- Preparado ---- */
@@ -269,7 +268,7 @@ body.has-prep .finder { max-height: calc(100dvh - 208px - var(--prep-h, 0px)); }
 .vol-nobody { color: var(--accent); }
 .live-controls .transport:empty { display: none; }
 /* Mandos de una imagen al aire: la imagen entera y, marcado, lo que se ve en pantalla. */
-.nav { display: grid; place-items: center; height: 124px; background: #000; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+.nav { display: grid; place-items: center; height: 124px; background: var(--media-bg); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
 .nav:active { cursor: grabbing; }
 .nav-img { position: relative; }
 .nav-img img { display: block; width: 100%; height: 100%; opacity: 0.55; pointer-events: none; }
@@ -285,7 +284,7 @@ body.has-prep .finder { max-height: calc(100dvh - 208px - var(--prep-h, 0px)); }
 .slide-count small, .slide-next small { color: var(--ink-3); font-size: 12px; white-space: nowrap; }
 .slide-ppt { margin: 10px 0 0; color: var(--ink-3); font-size: 13px; line-height: 1.4; }
 .slide-next { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.slide-next-thumb { width: 96px; aspect-ratio: 16 / 9; flex-shrink: 0; background: #000; border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
+.slide-next-thumb { width: 96px; aspect-ratio: 16 / 9; flex-shrink: 0; background: var(--media-bg); border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
 .slide-next-thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .slide-next-thumb img:not([src]) { visibility: hidden; }
 .slide-next-text { display: grid; gap: 1px; min-width: 0; font-weight: 500; }
@@ -358,7 +357,7 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .story-modes { display: flex; gap: 4px; padding: 4px; border-radius: var(--r-pill); background: var(--glass-1); border: 1px solid var(--glass-line); }
   .seg-btn { flex: 1; min-height: 44px; border-radius: var(--r-pill); color: var(--ink-2); font-weight: 600; }
   .seg-btn.on { background: var(--s3); color: var(--ink); }
-  .seg-btn.on[data-mode='live'] { background: var(--live); color: #fff; }
+  .seg-btn.on[data-mode='live'] { background: var(--live-strong); color: var(--on-live); }
   .story-volume { display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 12px; border-radius: var(--r-pill); background: var(--glass-1); border: 1px solid var(--glass-line); }
   .story-volume > .volume { flex: 1; min-width: 0; }
   .story-volume.big { flex-wrap: wrap; }
@@ -380,7 +379,7 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .drawer-backdrop { display: block; position: fixed; inset: 0; z-index: 5; background: rgba(3, 4, 6, 0.5); }
   /* Reducido, se agranda arrastrando su borde de arriba (--drawer-top) entre la barra de arriba y un mínimo de
      un tercio de la pantalla o 400 px (lo que mida más), para que el módulo siga teniendo sitio. */
-  .drawer, .drawer.wide, body.queue-closed .drawer.wide { left: 6px; right: 6px; top: clamp(74px, var(--drawer-top, calc(74px + min((100vw - 24px) * 9 / 16, 34dvh))), calc(100dvh - 74px - max(33dvh, 400px))); bottom: calc(74px + env(safe-area-inset-bottom)); width: auto; z-index: 5; border-radius: var(--r-xl); background: var(--glass-3); transition: top 0.2s var(--ease); }
+  .drawer, .drawer.wide, body.queue-closed .drawer.wide { left: 6px; right: 6px; top: clamp(74px, var(--drawer-top, calc(74px + min((100vw - 24px) * 9 / 16, 34dvh))), calc(100dvh - 74px - max(33dvh, 400px))); bottom: calc(74px + env(safe-area-inset-bottom)); width: auto; z-index: 5; border-radius: var(--r-xl); background: var(--glass-3); }
   .drawer.wide, body.queue-closed .drawer.wide { top: 10px; }
   .drawer-grip { left: 0; right: 0; bottom: auto; width: auto; height: 18px; cursor: ns-resize; }
   .drawer-grip::after { top: 6px; right: auto; left: 50%; width: 44px; height: 4px; margin: 0 0 0 -22px; }

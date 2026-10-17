@@ -124,6 +124,11 @@ function mount(el, ctx) {
     body.dataset.view = narrow && !open ? 'list' : 'edit';
     back.hidden = !narrow;
     renderList();
+    paint();
+  }
+  // Lo que cambia al escribir: sin rehacer la lista.
+  function paint() {
+    const narrow = el.clientWidth > 0 && el.clientWidth < NARROW;
     for (const b of styles) {
       b.classList.toggle('on', b.dataset.style === style);
       b.setAttribute('aria-checked', String(b.dataset.style === style));
@@ -143,8 +148,8 @@ function mount(el, ctx) {
       ctx.setPreview(text ? { kind: 'text', id: selected || 'nuevo', style, author: author.value.trim(), title: firstLine(text), text: parts[0], part: parts.length > 1 ? 1 : null, parts: parts.length } : null);
     }
   }
-  area.addEventListener('input', render);
-  author.addEventListener('input', render);
+  area.addEventListener('input', paint);
+  author.addEventListener('input', paint);
   subscribe('texts', () => {
     // Si lo abierto cambió (en otro dispositivo, o el servidor lo limpió al guardar) y aquí no hay cambios, se ve lo nuevo.
     const t = current();

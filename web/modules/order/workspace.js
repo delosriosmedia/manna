@@ -30,6 +30,7 @@ function mount(el, ctx) {
   let selectedId = null;
   let live = null;        // source de lo que está al aire: { orderId, step }
   let loaded = null;      // { key, steps, whole } del elemento seleccionado
+  let loadedShown = null; // el `loaded` con el que se dibujó el detalle
   let collapsed = false;  // el usuario recogió el detalle a propósito: no se vuelve a abrir solo
   let opened = false;     // ya se mostró el orden por primera vez
   let wide = false;       // el cajón deja sitio a la columna de los pasos
@@ -145,6 +146,10 @@ function mount(el, ctx) {
     }
     const liveIndex = items.findIndex((i) => i.id === live?.orderId);
     let n = 0;
+    // La lista se rehace con cada cambio de lo que está al aire: el foco vuelve a la misma fila (o a su botón).
+    const focusedRow = list.contains(document.activeElement) ? document.activeElement.closest('[data-id]') : null;
+    const focusedId = focusedRow?.dataset.id;
+    const focusedPart = focusedRow && document.activeElement !== focusedRow ? document.activeElement.getAttribute('aria-label') : null;
     list.replaceChildren(...items.map((item, index) => {
       const more = ctx.canEdit && h('button', { class: 'icon-btn sm', 'aria-label': 'Opciones', onclick: (e) => { e.stopPropagation(); rowMenu(e.currentTarget, item, index); } }, icon('dots-three', 16));
       if (item.kind === 'section') {
@@ -155,7 +160,14 @@ function mount(el, ctx) {
       return h('div', {
         class: `orow${isLive ? ' live' : ''}${liveIndex > index ? ' past' : ''}${item.id === selectedId ? ' selected' : ''}`,
         dataset: { id: item.id }, draggable: ctx.canEdit, title: item.title,
-        'aria-expanded': String(item.id === selectedId),
+        // Con el teclado se llega con Tab, e Intro o Espacio hacen lo mismo que un clic.
+        role: 'button', tabindex: '0', 'aria-expanded': String(item.id === selectedId), 'aria-current': isLive ? 'true' : null,
+        onkeydown: (e) => {
+          if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
+          e.preventDefault();
+          e.stopPropagation();
+          e.currentTarget.click();
+        },
         // Un clic despliega los pasos del elemento; otro clic sobre el mismo los recoge.
         onclick: () => (item.id === selectedId ? collapse() : select(item.id)),
         ondblclick: () => { if (item.id !== selectedId) select(item.id); show(item.id); },
@@ -169,6 +181,11 @@ function mount(el, ctx) {
         : h('button', { class: 'icon-btn sm', 'aria-label': `Proyectar ${item.title}`, onclick: (e) => { e.stopPropagation(); show(item.id); } }, icon('play', 14)),
       more);
     }));
+    if (focusedId) {
+      const row = [...list.querySelectorAll('[data-id]')].find((r) => r.dataset.id === focusedId);
+      const part = focusedPart && [...(row?.querySelectorAll('button') || [])].find((b) => b.getAttribute('aria-label') === focusedPart);
+      (part || row)?.focus({ preventScroll: true });
+    }
     placeDetail();
     renderMap();
   }
@@ -280,11 +297,27 @@ function mount(el, ctx) {
     renderDetail(item);
   });
 
-  function slide(caption, contentItem, isLive, onclick) {
+  // step: el paso que muestra (null = el elemento entero), para marcar el que está al aire sin rehacer la miniatura.
+  function slide(caption, contentItem, isLive, onclick, step) {
     const monitor = h('div', { class: `monitor${isLive ? ' on-air' : ''}` });
     createStage(monitor, { thumbnail: true }).render({ mode: 'live', item: contentItem, styles: state.projection.styles });
-    return h('button', { class: 'slide', onclick }, monitor,
+    return h('button', { class: 'slide', dataset: { step: step == null ? 'todo' : String(step) }, onclick }, monitor,
       h('span', { class: 'slide-cap' }, h('span', {}, caption), isLive ? h('b', {}, 'Al aire') : null));
+  }
+  // Pasar al paso siguiente del mismo elemento solo mueve la marca «Al aire»: con una presentación larga, rehacer sus
+  // 60 miniaturas en cada «Siguiente» pesa.
+  let detailShape = null;
+  function markLiveStep(item) {
+    const onAir = live?.orderId === item.id;
+    for (const b of detail.querySelectorAll('.slide[data-step]')) {
+      const step = b.dataset.step === 'todo' ? null : Number(b.dataset.step);
+      const on = onAir && (live.step ?? null) === step;
+      b.querySelector('.monitor').classList.toggle('on-air', on);
+      const cap = b.querySelector('.slide-cap');
+      const badge = cap.querySelector('b');
+      if (on && !badge) cap.append(h('b', {}, 'Al aire'));
+      if (!on && badge) badge.remove();
+    }
   }
 
   // Lo que suena se puede oír solo en este dispositivo antes de pasarlo (no en el equipo principal: ctx.listen es null).
@@ -300,6 +333,13 @@ function mount(el, ctx) {
   });
 
   function renderDetail(item) {
+    const shape = item && loaded && JSON.stringify([item.id, item.title, item.subtitle, item.steps, items.indexOf(item), items.length, live?.orderId === item.id, state.projection.styles]);
+    if (shape && shape === detailShape && loadedShown === loaded) {
+      markLiveStep(item);
+      return;
+    }
+    detailShape = shape;
+    loadedShown = loaded;
     if (!item) {
       detail.replaceChildren(h('div', { class: 'empty' }, h('strong', {}, 'Elige un elemento'), 'Aquí verás sus pasos: los versículos de un pasaje, las estrofas de un himno o las diapositivas de una presentación.'));
       return;
@@ -324,10 +364,10 @@ function mount(el, ctx) {
     // Un elemento de un solo paso se rotula con su tipo; los demás, con lo que muestra cada paso.
     const caption = (s, i) => (loaded.steps.length === 1 ? kindOf(item.kind)?.label : s.reference || titleOf(s)) || `Paso ${i + 1}`;
     const slides = loaded.steps.slice(0, MAX_SLIDES).map((s, i) =>
-      slide(caption(s, i), s, onAir && live.step === i, () => show(item.id, i)));
+      slide(caption(s, i), s, onAir && live.step === i, () => show(item.id, i), i));
     // Elementos cortos (un pasaje de pocos versículos): también se pueden mostrar enteros.
     if (loaded.whole && item.steps <= (kindOf(item.kind)?.wholeUpTo || 0)) {
-      slides.unshift(slide('Todo junto', loaded.whole, onAir && live.step == null, () => show(item.id, null)));
+      slides.unshift(slide('Todo junto', loaded.whole, onAir && live.step == null, () => show(item.id, null), null));
     }
     detail.replaceChildren(...[head, listenButton, onAir && liveControls, h('div', { class: 'slides' }, ...slides),
       loaded.steps.length > MAX_SLIDES && h('p', { class: 'muted', style: 'margin-top: 12px;' }, `Se muestran los primeros ${MAX_SLIDES} pasos. Usa "Siguiente" para recorrer el resto.`),
