@@ -700,7 +700,7 @@ try {
   console.log('\n1. Interfaz · Buscar en todo');
   {
     const layerOpen = () => run(`return !document.querySelector('.finder-layer').hidden && document.body.classList.contains('finding')`);
-    const seen = () => run(`return JSON.stringify([...document.querySelectorAll('.finder-list > *')].map(e => e.classList.contains('finder-group') ? '# ' + e.textContent : e.querySelector('strong')?.textContent))`).then(JSON.parse);
+    const seen = () => run(`return JSON.stringify([...document.querySelectorAll('.finder-list .finder-group, .finder-list .finder-row')].map(e => e.classList.contains('finder-group') ? '# ' + e.textContent : e.querySelector('strong')?.textContent))`).then(JSON.parse);
     const ask = async (q) => { await run(`const i = document.querySelector('.finder-input input'); i.value = ${JSON.stringify(q)}; i.dispatchEvent(new Event('input'));`); await sleep(800); };
     const ctrlK = async () => { for (const t of ['keyDown', 'keyUp']) await chrome.send('Input.dispatchKeyEvent', { type: t, key: 'k', code: 'KeyK', modifiers: 2, windowsVirtualKeyCode: 75 }); await sleep(300); };
     await run(`document.activeElement?.blur()`);
@@ -715,6 +715,8 @@ try {
     await ask('3');
     rows = await seen();
     check('un número busca el himno', rows.includes('# Himnario') && rows[rows.indexOf('# Himnario') + 1]?.startsWith('3 · '), JSON.stringify(rows));
+    await ask('luz');
+    check('en el escritorio, los grupos principales (Biblia, Himnario, Videos) van en columnas, uno al lado de otro', await run(`const c = [...document.querySelectorAll('.finder-col')]; return document.querySelector('.finder').classList.contains('wide') && c.length >= 2 && c.every(e => Math.abs(e.getBoundingClientRect().top - c[0].getBoundingClientRect().top) < 2) && c[1].getBoundingClientRect().left >= c[0].getBoundingClientRect().right`), JSON.stringify(await seen()));
     await ask('sal 23 2');
     await press('Enter');
     check('Intro proyecta el primero y cierra la búsqueda', (await live()).ref === 'Salmos 23:2' && !await layerOpen());

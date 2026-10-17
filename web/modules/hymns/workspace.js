@@ -218,7 +218,7 @@ function mount(el, ctx) {
       button.setAttribute('aria-pressed', n === selected);
       const fav = favorites().includes(n);
       if (fav !== Boolean(button.querySelector('.hymn-star'))) {
-        if (fav) button.append(h('span', { class: 'hymn-star', 'aria-label': 'Favorito' }, icon('star', 12)));
+        if (fav) button.append(h('span', { class: 'hymn-star', role: 'img', 'aria-label': 'Favorito' }, icon('star', 12)));
         else button.querySelector('.hymn-star').remove();
       }
     }

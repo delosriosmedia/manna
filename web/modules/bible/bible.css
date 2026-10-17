@@ -59,7 +59,7 @@ html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
 .verse.two, .verse-heads { display: grid; grid-template-columns: 22px minmax(0, 1fr) minmax(0, 1fr); gap: 4px 16px; }
 .verse-heads { padding: 0 12px 6px; color: var(--ink-3); font-size: 12px; }
 .verse-heads b { font-weight: 600; }
-.verse .absent { color: var(--ink-4); font-style: italic; }
+.verse .absent { color: var(--ink-3); font-style: italic; }
 .verse.anchor { box-shadow: inset 0 0 0 1px var(--accent); }
 
 .abar { display: flex; align-items: center; gap: 8px; padding: 10px 20px; border-top: 1px solid var(--line); background: var(--s1); flex-shrink: 0; }

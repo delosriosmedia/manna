@@ -321,6 +321,8 @@ export function createEscenario(ctx) {
     miniCaption.textContent = caption.textContent;
     black.classList.toggle('on', p.mode === 'black');
     clear.classList.toggle('on', p.mode === 'clear' && Boolean(p.item));
+    black.setAttribute('aria-pressed', String(p.mode === 'black'));
+    clear.setAttribute('aria-pressed', String(p.mode === 'clear' && Boolean(p.item)));
     barExtra.hidden = !(p.item && kindOf(p.item.kind)?.controls) && !stage.pointable();
     paintTools();
     paintMotion();

@@ -60,7 +60,10 @@ function mount(el, ctx) {
     compareBtn.setAttribute('aria-pressed', String(comparing && can));
     cmpBar.hidden = !(comparing && can);
     el.classList.toggle('comparing', comparing && can);
-    layoutButtons.forEach((b) => b.classList.toggle('on', b.dataset.layout === layout));
+    layoutButtons.forEach((b) => {
+      b.classList.toggle('on', b.dataset.layout === layout);
+      b.setAttribute('aria-pressed', String(b.dataset.layout === layout));
+    });
   }
   function setComparing(on) {
     comparing = on;

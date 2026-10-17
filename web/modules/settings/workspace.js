@@ -35,7 +35,7 @@ function mount(el, ctx) {
     const box = h('section', { class: 'set' },
       h('div', { class: 'set-title' }, h('h2', {}, title), hint && h('p', { class: 'muted' }, hint)),
       h('div', { class: 'set-body' }, ...content));
-    nav.append(h('button', { class: 'btn', onclick: () => box.scrollIntoView({ block: 'start', behavior: 'smooth' }) }, short));
+    nav.append(h('button', { class: 'btn', onclick: () => box.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }, short));
     return box;
   };
 

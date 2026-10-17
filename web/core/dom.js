@@ -19,12 +19,16 @@ export function h(tag, props = {}, ...children) {
 }
 
 let toastTimer;
+// El aviso existe desde que carga la página: un lector de pantalla solo anuncia lo que cambia en algo que ya estaba.
+if (document.body && !$('#toast')) document.body.append(h('div', { id: 'toast', role: 'status' }));
 export function toast(message, kind = 'info') {
   let el = $('#toast');
   if (!el) {
     el = h('div', { id: 'toast', role: 'status' });
     document.body.append(el);
   }
+  // Un error se anuncia en el acto.
+  el.setAttribute('role', kind === 'error' ? 'alert' : 'status');
   el.textContent = message;
   el.dataset.kind = kind;
   el.classList.add('show');
@@ -72,11 +76,14 @@ export function guard(fn) {
   };
 }
 
-// Ventana modal sencilla. Devuelve { el, close }.
+// Ventana modal sencilla. Devuelve { el, close }. El foco entra en ella (su primer campo o, si no tiene, la
+// propia ventana) y vuelve al cerrar a donde estaba.
 export function dialog(title, ...content) {
+  const opener = document.activeElement;
   const close = () => {
     backdrop.remove();
     document.removeEventListener('keydown', onKey);
+    if (opener?.isConnected) opener.focus?.();
   };
   const onKey = (e) => { if (e.key === 'Escape') close(); };
   const backdrop = h('div', { class: 'modal-backdrop', onclick: (e) => { if (e.target === backdrop) close(); } },
@@ -87,25 +94,40 @@ export function dialog(title, ...content) {
       h('div', { class: 'modal-body' }, ...content)));
   document.addEventListener('keydown', onKey);
   document.body.append(backdrop);
+  const box = backdrop.querySelector('.modal');
+  box.tabIndex = -1;
+  (box.querySelector('.modal-body :is(input, textarea, select)') || box).focus();
   return { el: backdrop, close };
 }
 
 // Menú desplegable junto a un botón. items: [{ label, icon?, note?, disabled?, onclick }] o '-' (separador).
+// Con el teclado: el foco entra en el primero, ↑ ↓ lo mueven, Esc cierra y el foco vuelve al botón.
 export function menu(anchor, items) {
   document.querySelector('.menu')?.remove();
   const el = h('div', { class: 'menu', role: 'menu' }, ...items.map((item) => (item === '-'
     ? h('hr')
     : h('button', {
       role: 'menuitem', disabled: item.disabled,
-      onclick: () => { close(); item.onclick?.(); },
+      onclick: () => { close(true); item.onclick?.(); },
     }, item.icon && icon(item.icon, 16), item.label, item.note && h('small', {}, item.note)))));
-  const close = () => {
+  // back: devolver el foco al botón que lo abrió (no al tocar fuera: ahí va adonde se tocó).
+  const close = (back = false) => {
     el.remove();
     document.removeEventListener('pointerdown', outside, true);
     document.removeEventListener('keydown', onKey);
+    if (back && anchor.isConnected) anchor.focus();
   };
   const outside = (e) => { if (!el.contains(e.target)) close(); };
-  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  const options = () => [...el.querySelectorAll('button:not(:disabled)')];
+  const onKey = (e) => {
+    if (e.key === 'Escape') close(true);
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const list = options();
+      const at = list.indexOf(document.activeElement);
+      list[(at + (e.key === 'ArrowDown' ? 1 : -1) + list.length) % list.length]?.focus();
+    }
+  };
   document.body.append(el);
   // Se abre bajo el botón, sin salirse de la pantalla.
   const a = anchor.getBoundingClientRect();
@@ -115,6 +137,7 @@ export function menu(anchor, items) {
   setTimeout(() => {
     document.addEventListener('pointerdown', outside, true);
     document.addEventListener('keydown', onKey);
+    options()[0]?.focus();
   });
   return close;
 }

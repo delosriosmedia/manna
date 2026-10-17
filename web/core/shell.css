@@ -79,6 +79,8 @@ body.queue-closed.has-prep .drawer { --drawer-max: calc(100vw - 92px - 372px); }
 /* El borde que se arrastra: el derecho en el escritorio; arriba en el celular; a la izquierda en el celular en
    horizontal. Solo en el cajón reducido. */
 .drawer-grip { position: absolute; z-index: 2; top: 0; bottom: 0; right: 0; width: 12px; cursor: ew-resize; touch-action: none; }
+/* Con el dedo, en la disposición del escritorio (tableta acostada), un borde más ancho para agarrarlo. */
+@media (min-width: 860px) { html.touch .drawer-grip { width: 24px; } }
 .drawer-grip::after { content: ''; position: absolute; top: 50%; right: 3px; width: 4px; height: 44px; margin-top: -22px; border-radius: 4px; background: var(--glass-line); transition: background 0.15s var(--ease); }
 .drawer-grip:hover::after, .drawer-grip:focus-visible::after, .drawer.sizing .drawer-grip::after { background: var(--accent); }
 .drawer.wide .drawer-grip { display: none; }
@@ -133,7 +135,7 @@ body.has-prep .queue { max-height: calc(100dvh - 84px - var(--tb-space) - var(--
 .queue-section { padding: 10px 10px 4px; color: var(--ink-3); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 .queue-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border-radius: var(--r); text-align: left; border: 1px solid transparent; flex-shrink: 0; }
 .queue-item:hover { background: var(--s2); }
-.queue-item.done { opacity: 0.5; }
+.queue-item.done { opacity: 0.7; }
 .queue-item.prepared { border-color: var(--accent); background: var(--accent-soft); }
 .queue-item.live { border-color: var(--live); background: var(--live-soft); }
 .queue-item .item-text strong { -webkit-line-clamp: 2; }
@@ -232,6 +234,12 @@ body.has-prep .finder { max-height: calc(100dvh - 208px - var(--prep-h, 0px)); }
 .finder-input:focus-within { color: var(--accent); }
 .finder-input input { flex: 1; min-width: 0; height: 56px; border: 0; background: none; color: var(--ink); font-size: 17px; outline: none; }
 .finder-list { overflow-y: auto; padding: 8px 12px 12px; }
+/* Con resultados en más de un grupo principal, el recuadro se ensancha: Biblia, Himnario y Videos en columnas, uno al
+   lado de otro, y los demás grupos debajo, en filas (search.js, MAIN). */
+.finder.wide { width: min(1080px, calc(100vw - 48px)); }
+.finder-main { display: grid; grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); gap: 0 12px; align-items: start; }
+.finder-col { min-width: 0; }
+.finder-main + .finder-group { margin-top: 10px; border-top: 1px solid var(--glass-line); }
 .finder-group { display: block; padding: 14px 12px 6px; color: var(--ink-3); font: 600 11px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
 .finder-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: var(--control); padding: 10px 12px; border-radius: var(--r); border: 1px solid transparent; text-align: left; }
 .finder-row:hover { background: var(--s2); }
@@ -389,7 +397,8 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .controls-pop { left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); transform: none; width: auto; max-height: 80dvh; }
   .finder-chip { width: 44px; padding: 0; justify-content: center; flex-shrink: 0; }
   .finder-chip :is(span, kbd) { display: none; }
-  .finder { top: 10px; width: calc(100vw - 12px); max-height: calc(100dvh - 20px); }
+  .finder, .finder.wide { top: 10px; width: calc(100vw - 12px); max-height: calc(100dvh - 20px); }
+  .finder-main { display: block; }
   body.has-prep .finder { max-height: calc(100dvh - 104px - var(--prep-h, 0px) - env(safe-area-inset-bottom)); }
   body.finding.drawer-open .prep { display: flex; }
   .escena #toast { bottom: calc(84px + env(safe-area-inset-bottom)); }

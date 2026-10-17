@@ -9,6 +9,8 @@
 .video-cats .chip.on small { color: inherit; }
 .video-cats .chip.add { border-style: dashed; color: var(--ink-3); }
 .video-cats .icon-btn { flex-shrink: 0; }
+/* Con ratón, una fila que se desliza de lado no se alcanza: las categorías pasan a otra línea. */
+html:not(.touch) .video-cats { flex-wrap: wrap; row-gap: 6px; overflow: visible; }
 /* Videos: en la cabecera, el campo para pegar el enlace de YouTube. */
 .media-entry { flex: 1 1 280px; min-width: 0; max-width: 460px; }
 .yt-add { display: flex; gap: 8px; }
@@ -99,7 +101,7 @@ html.touch .media-more { width: var(--tap); height: var(--tap); right: 2px; bott
   .ws[data-module='videos'] .ws-head { flex-wrap: nowrap; }
   .ws[data-module='videos'] .ws-head h1, .ws[data-module='videos'] .ws-head > .spacer, .video-upload span, .yt-add .btn span { display: none; }
   .ws[data-module='videos'] .media-entry { order: 0; flex: 3 1 0; max-width: 360px; }
-  .video-cats { order: 1; flex: 2 1 0; }
+  .video-cats, html:not(.touch) .video-cats { order: 1; flex: 2 1 0; flex-wrap: nowrap; overflow-x: auto; }
   .video-upload { order: 2; }
 }
 /* Tableta baja en horizontal: las pestañas, en la fila de «Subir». */

@@ -257,7 +257,7 @@ html.touch .seg .icon-btn { width: var(--tap); height: var(--tap); }
 .menu button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: var(--control); padding: 0 12px; border-radius: var(--r); text-align: left; }
 .menu button:hover:not(:disabled) { background: var(--s3); }
 .menu button:disabled { color: var(--ink-4); cursor: default; }
-.menu button small { margin-left: auto; color: var(--ink-4); font-size: 11px; }
+.menu button small { margin-left: auto; color: var(--ink-3); font-size: 11px; }
 .menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
 
 /* ---- Conexión perdida ---- */
@@ -290,4 +290,6 @@ html.touch .alt-addresses summary { padding: 11px 0; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+  /* Sin la franja que va y viene, una barra sin avance conocido se ve entera y tenue: quieta en el 35 % parecería un avance. */
+  .bar.busy span { width: 100% !important; opacity: 0.4; }
 }

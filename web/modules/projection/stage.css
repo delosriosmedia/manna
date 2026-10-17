@@ -52,9 +52,10 @@
   line-height: 0;
 }
 
-/* Un texto del módulo Textos respeta sus saltos de línea. */
+/* Un texto del módulo Textos respeta sus saltos de línea, y una palabra más ancha que la pantalla se parte. */
 .stage-message {
   white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 .stage-ref {

@@ -100,7 +100,7 @@ Reglas:
 | **Preparado** (abajo a la derecha) | Lo elegido para proyectar: «PREPARADO» con su título y «Proyectar ↵» (Intro lo proyecta desde cualquier módulo) y, si viene de un módulo, «Añadir al orden». Lo seleccionado en un módulo sale como «SELECCIONADO», con su miniatura: se proyecta desde el módulo. Desaparece cuando eso ya está al aire. |
 | **Transporte** (abajo, centrado) | Dos niveles en la misma barra de cristal. Arriba, **siempre a la vista, los mandos de lo que está al aire** (si los tiene) en filas que bajan si no caben: un himno, Cantado/Pista, Letra, pausa, saltos y avance; un video, pausa, saltos, avance y subtítulos; una imagen o una diapositiva, **«Señalar» y «Mover»** (sobre la propia proyección de fondo, como en el Presentador), Completa/Llenar, acercar y «Vista completa». Abajo, Anterior, «Siguiente» (cian), «SIGUE» y lo que viene, y el volumen de Manna. El cajón, la cola y «Preparado» se apoyan en su borde de arriba, crezca lo que crezca. |
 | **Mandos** (celular) | En «Historias», los de lo que está al aire se abren en una hoja con márgenes desde el botón de la tarjeta; «Señalar», «Mover» y «Restablecer» van bajo el recuadro (con una herramienta encendida, el recuadro es para el dedo y no pasa). |
-| **Buscar en todo** (Ctrl K) | Un recuadro arriba, centrado (en el celular, toda la anchura): el campo y lo encontrado por grupos (Biblia, Himnario, Videos, Medios, Diapositivas, Textos, Páginas web), cinco de cada uno como mucho, con su tipo a la izquierda y lo hallado resaltado. El primero va señalado en cian; las flechas mueven la señal. Un toque prepara (la tarjeta «Preparado» se ve encima de la capa y la búsqueda le deja sitio); doble toque o Intro proyecta y cierra. Solo en las funciones que preparan el culto (Control completo y Servicio de alabanza). |
+| **Buscar en todo** (Ctrl K) | Un recuadro arriba, centrado (en el celular, toda la anchura): el campo y lo encontrado por grupos (Biblia, Himnario, Videos, Medios, Diapositivas, Textos, Páginas web), cinco de cada uno como mucho. Con sitio (860 px o más), los principales (Biblia, Himnario y Videos) van en columnas, uno al lado de otro, y el recuadro se ensancha (hasta 1080 px); los demás, debajo, en filas a todo lo ancho. En el celular, todos en una columna. Cada resultado va con su tipo a la izquierda y lo hallado resaltado. El primero va señalado en cian; las flechas mueven la señal. Un toque prepara (la tarjeta «Preparado» se ve encima de la capa y la búsqueda le deja sitio); doble toque o Intro proyecta y cierra. Solo en las funciones que preparan el culto (Control completo y Servicio de alabanza). |
 
 Reglas para un módulo:
 
@@ -170,7 +170,7 @@ Toda pantalla contempla, además del caso normal:
 - **Cargando:** siluetas con la forma de lo que va a aparecer. Sin ruedas giratorias.
 - **Error:** aviso flotante con lo que pasó y qué hacer, en una frase. Sin "¡Ups!" ni signos de exclamación.
 - **Sin conexión:** barra roja arriba; la reconexión es automática.
-- **Pulsado:** los botones se encogen un 2 % al pulsar. **Foco:** contorno cian de 2 px, siempre visible con teclado.
+- **Pulsado:** los botones se encogen un 2 % al pulsar. **Foco:** contorno cian de 2 px, siempre visible con teclado. Una ventana pone el foco en su primer campo (o en ella misma) y lo devuelve al cerrar; un menú, en su primera opción, se recorre con ↑ ↓ y Esc vuelve al botón que lo abrió. Con «reducir movimiento», nada se anima, y una barra sin avance conocido se ve entera y tenue.
 
 ## 10. Movimiento
 

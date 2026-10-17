@@ -4,6 +4,15 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.22.0 — 2026-10-17
+
+- **Revisión de la interfaz** (fase 20, con las skills de diseño del dueño):
+  - Con el teclado, las ventanas y los menús llevan el foco dentro: el cursor entra en el primer campo, ↑ ↓ recorren un menú y Esc lo cierra y vuelve al botón que lo abrió. Los avisos de error se anuncian en el acto a un lector de pantalla.
+  - Una palabra muy larga en un texto ya no se sale de la proyección: se parte.
+  - Con ratón, muchas categorías de videos pasan a otra línea en lugar de quedar escondidas a un lado.
+  - Con «reducir movimiento» en el equipo, una barra sin avance conocido se ve entera y tenue (antes, quieta en un 35 %, parecía un avance).
+  - Más legibles: las notas de los menús, los versículos que faltan en una versión y lo ya pasado del orden del culto. En la tableta acostada, el borde del cajón se agarra mejor con el dedo.
+- **«Buscar en todo» en columnas** en el escritorio y la tableta acostada: los resultados de Biblia, Himnario y Videos salen uno al lado de otro, y los demás (Medios, Diapositivas, Textos, Páginas web) debajo, en filas. En el celular, como antes.
 ## 1.21.0 — 2026-10-17
 
 - **Textos, un módulo nuevo** (fase 18): mensajes y **citas con su autor** para proyectar con el fondo y la letra de la Biblia. Se escriben y se guardan en una lista para volver a usarlos; una línea en blanco los parte en pantallas que se pasan con «Siguiente»; la cita va entre comillas, con «— Autor» debajo. Se añaden al orden del culto y aparecen en «Buscar en todo». Solo los crea «Control completo».

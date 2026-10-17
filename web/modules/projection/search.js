@@ -67,6 +67,8 @@ async function pages(q) {
   return byName(q, (state.web?.pages || []).map((p) => ({ kind: 'web', data: { id: p.id }, title: p.name, subtitle: p.subtitle })));
 }
 const SOURCES = [['Biblia', bible], ['Himnario', hymns], ['Videos', videos], ['Medios', media], ['Diapositivas', slides], ['Textos', texts], ['Páginas web', pages]];
+// Los grupos principales: con sitio (860 px o más), en columnas, uno al lado de otro; los demás, debajo, en filas.
+const MAIN = ['Biblia', 'Himnario', 'Videos'];
 
 // prepare / projectPrepared: los de la tarjeta «Preparado» (escenario.js). canEdit: ofrece Añadir al orden.
 export function createSearch({ prepare, projectPrepared, canEdit }) {
@@ -79,11 +81,11 @@ export function createSearch({ prepare, projectPrepared, canEdit }) {
 
   const input = h('input', { type: 'search', placeholder: 'Una cita, un himno, un video…', 'aria-label': 'Buscar en todo', autocomplete: 'off', enterKeyHint: 'search', oninput: () => soon() });
   const list = h('div', { class: 'finder-list', role: 'listbox', 'aria-label': 'Resultados' });
-  const layer = h('div', { class: 'finder-layer', hidden: true, onclick: (e) => { if (e.target === layer) close(); }, onkeydown: (e) => keys(e) },
-    h('section', { class: 'finder glass', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Buscar en todo' },
-      h('label', { class: 'finder-input' }, icon('magnifying-glass', 18), input, h('kbd', {}, 'Esc')),
-      list,
-      h('p', { class: 'finder-hint' }, 'Un toque prepara · doble toque o Intro proyecta')));
+  const box = h('section', { class: 'finder glass', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Buscar en todo' },
+    h('label', { class: 'finder-input' }, icon('magnifying-glass', 18), input, h('kbd', {}, 'Esc')),
+    list,
+    h('p', { class: 'finder-hint' }, 'Un toque prepara · doble toque o Intro proyecta'));
+  const layer = h('div', { class: 'finder-layer', hidden: true, onclick: (e) => { if (e.target === layer) close(); }, onkeydown: (e) => keys(e) }, box);
   const mac = /Mac|iPhone|iPad/.test(navigator.platform);
   const button = h('button', { class: 'finder-chip glass', 'aria-label': 'Buscar en todo', 'aria-haspopup': 'dialog', title: `Buscar en todo (${mac ? '⌘' : 'Ctrl'} K)`, onclick: () => open() },
     icon('magnifying-glass', 18), h('span', {}, 'Buscar en todo'), h('kbd', {}, mac ? '⌘ K' : 'Ctrl K'));
@@ -122,9 +124,14 @@ export function createSearch({ prepare, projectPrepared, canEdit }) {
     shown = q;
     rows = [];
     active = -1;
+    const main = (groups || []).filter((g) => MAIN.includes(g.label));
+    box.classList.toggle('wide', main.length > 1);
     if (!groups) return list.replaceChildren(h('p', { class: 'finder-empty' }, 'Escribe una cita (jn 3 16), el número o unas palabras de un himno, o el nombre de una imagen, un video, una presentación o una página.'));
     if (!groups.length) return list.replaceChildren(h('p', { class: 'finder-empty' }, `Nada encontrado para «${q}».`));
-    list.replaceChildren(...groups.flatMap((g) => [h('small', { class: 'finder-group' }, g.label), ...g.results.map(row)]));
+    const section = (g) => [h('small', { class: 'finder-group' }, g.label), ...g.results.map(row)];
+    list.replaceChildren(
+      ...(main.length ? [h('div', { class: 'finder-main', style: `--cols: ${main.length}` }, ...main.map((g) => h('div', { class: 'finder-col' }, ...section(g))))] : []),
+      ...groups.filter((g) => !MAIN.includes(g.label)).flatMap(section));
     mark(0);
   }
   function row(result) {
