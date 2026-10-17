@@ -2434,7 +2434,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     await run(`window.__wifi = []; new MutationObserver(() => window.__wifi.push(${wifi}.dataset.state)).observe(${wifi}, { attributes: true, attributeFilter: ['data-state'] });`);
     await click(wifi);
     await sleep(300);
-    check('al tocar el wifi se abre su hoja, con el estado, «Encender» y el enlace a Ajustes', await sheetText() === 'Apagada.' && await run(`const b = [...${sheet}.querySelectorAll('.btn')].map((x) => x.textContent.trim()); return b.join() === 'Encender,Más opciones en Ajustes' && ${sheet}.querySelector('.net-address').hidden`));
+    check('al tocar el wifi se abre su hoja, con el estado, «Encender» y el enlace a Ajustes', await sheetText() === 'Apagada.' && await run(`const b = [...${sheet}.querySelectorAll('.net-actions .btn')].map((x) => x.textContent.trim()); return b.join() === 'Encender,Más opciones en Ajustes' && ${sheet}.querySelector('.net-address').hidden`));
     await modalButton('Encender');
     check('«Encender» desde la hoja pasa por «conectando» y termina en «conectado»', await wifiIs('on', 'Conectado por internet') && await run(`const w = window.__wifi; return w.includes('connecting') && w.indexOf('connecting') < w.lastIndexOf('on')`), await run(`return window.__wifi.join()`));
     check('la hoja se repinta sola: encendida y comprobada, con la dirección, desde cuándo y «Apagar»', await until(`${sheet}.querySelector('.net-text').textContent.startsWith('Encendida y comprobada') && !${sheet}.querySelector('.net-address').hidden`)

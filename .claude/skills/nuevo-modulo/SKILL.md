@@ -64,8 +64,7 @@ Lee `.claude/rules/arquitectura.md` y `DESIGN.md`, y la fase correspondiente de 
    function mount(el, ctx) {
      // Dibuja con h() dentro de el: una cabecera .ws-head y el contenido.
      // Se suscribe al estado con subscribe('<id>', ...).
-     // ctx.setPreview(elemento) muestra lo seleccionado en «Preparado» para proyectar desde el módulo;
-     // ctx.prepare({ item?, kind?, title, subtitle?, project(), add?() }) deja algo preparado (Intro o «Proyectar»).
+     // Lo elegido se marca en la lista (borde cian) y se proyecta desde la barra de acciones del módulo (.abar).
      return { keys(e) { /* true si atendió la tecla */ } };
    }
    export default {

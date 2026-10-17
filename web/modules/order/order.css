@@ -17,16 +17,22 @@ span.order-switch { color: var(--ink-3); }
 .order-saved .item-text small { color: var(--ink-3); font-size: 12px; }
 .order-saved .badge { background: var(--accent); color: var(--on-accent); }
 .orders-note { margin: 12px 0; font-size: 12px; }
-/* La cabecera va en una fila (con ampliar y cerrar): con el cajón de menos de 800 px, la cita rápida baja a otra fila;
-   con menos de 600, el selector del orden ocupa el sitio del nombre del módulo. */
+/* La cabecera va en una fila (con ampliar y cerrar): con el cajón de menos de 800 px, el selector del orden ocupa el
+   sitio del nombre del módulo; con menos de 600, la cita rápida baja a otra fila. */
 .ws[data-module='orden'] .ws-head { flex-wrap: wrap; }
-.ws[data-module='orden'] .ws-head .search { min-width: 180px; }
+.ws[data-module='orden'] .ws-head .search { min-width: 140px; }
 @container cajon (max-width: 799px) {
-  .ws[data-module='orden'] .ws-head .search { flex: 1 1 100%; order: 3; }
+  .ws[data-module='orden'] .ws-head h1 { display: none; }
+}
+/* Pantallas bajas (celular o tableta en horizontal): todo en una fila, como en los demás módulos; la cita rápida cede. */
+@media (max-width: 859px) and (max-height: 480px), (min-width: 860px) and (max-height: 640px) {
+  .ws[data-module='orden'] .ws-head { flex-wrap: nowrap; }
+  .ws[data-module='orden'] .ws-head h1 { display: none; }
+  .ws[data-module='orden'] .ws-head .search { min-width: 0; order: 0; flex: 1 1 0; }
 }
 @container cajon (max-width: 599px) {
-  .ws[data-module='orden'] .ws-head h1 { display: none; }
-  .order-switch { flex: 1 1 0; justify-content: flex-start; max-width: none; }
+  .ws[data-module='orden'] .ws-head .search { flex: 1 1 100%; order: 3; }
+  .order-switch { flex: 1 1 0; justify-content: flex-start; max-width: none; min-width: 96px; }
   .order-add { width: var(--control); padding: 0; }
   .order-add span { display: none; }
 }

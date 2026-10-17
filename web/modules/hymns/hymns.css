@@ -3,7 +3,7 @@
 /* La cabecera va en una fila: con el cajón de menos de 1000 px, las vistas solo con su icono; de menos de 600, también
    el número de avisos sin su palabra y sin el nombre del módulo, y si aun así no cabe, baja a otra fila. */
 .ws[data-module='himnario'] .ws-head { flex-wrap: wrap; }
-.ws[data-module='himnario'] .ws-head .search { flex: 1 1 200px; }
+.ws[data-module='himnario'] .ws-head .search { flex: 1 1 140px; }
 .hymn-views { display: flex; gap: 6px; }
 .hymn-views .chip { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--control); padding: 0 12px; }
 .hymn-notes { color: var(--accent); white-space: nowrap; }

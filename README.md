@@ -6,7 +6,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 
 ## Qué hace
 
-- **«Escenario»**: lo que está al aire ocupa el fondo de la pantalla y, encima, los módulos (en un cajón que se abre desde el dock de la izquierda), la **cola del culto** (un toque prepara, doble toque proyecta), la tarjeta **Preparado** (Intro la proyecta) y la barra de abajo: anterior, siguiente, lo que sigue, solo fondo, negro, mandos y volumen. En el control del equipo principal, arriba junto al estado, está el botón que **enciende y apaga el proyector**.
+- **«Escenario»**: lo que está al aire ocupa el fondo de la pantalla y, encima, los módulos (en un cajón que se abre desde el dock de la izquierda), la **cola del culto** (un toque marca, con un ▶ para proyectar; doble toque o Intro proyecta) y la barra de abajo, en una sola fila: anterior, siguiente, los mandos de lo que está al aire, el volumen y «Más mandos». La barra se aparta al tocar el fondo y vuelve al mover el ratón. En el control del equipo principal, arriba junto al estado, está el botón que **enciende y apaga el proyector**.
 - **Buscar en todo** (Ctrl K): versículos, himnos, medios, presentaciones y páginas web en una sola búsqueda. Un toque prepara lo encontrado; doble toque o Intro lo proyecta.
 - **Biblia**: los 66 libros a la vista en una rejilla; capítulos y versículos; pasajes recientes. Lee los archivos `.xmm` (OpenLP) y `.xml` de la carpeta `Contenido/Biblias/`; basta copiar un archivo y aparece solo.
 - **Búsqueda**: por cita (`Juan 3:16-18`, `1 co 13 4`, `sal 23`) o por texto, mientras escribes. El texto se busca en la Reina-Valera 1960 (o en la versión elegida, si no está instalada) y el resultado se abre en la versión que tengas elegida. Los resultados salen por niveles (frase exacta, todas las palabras, parecidas), con lo encontrado resaltado, y se pueden limitar al Antiguo o al Nuevo Testamento.
@@ -283,7 +283,7 @@ Conviene fijar en el router la dirección del equipo principal y la del televiso
 | B | Pantalla en negro |
 | C | Solo el fondo, sin texto |
 | ↓ ↑ | Mover la selección (versículo en Biblia, elemento en el orden) |
-| Enter | Proyectar lo preparado (la tarjeta «Preparado»: versículo, elemento del orden, himno o imagen) |
+| Enter | Proyectar lo marcado en la cola del culto (o, en un módulo, lo elegido) |
 | / | Ir al buscador de la Biblia |
 | ↓ ↑ en el buscador | Recorrer los resultados |
 | Enter en el buscador | Ir al resultado señalado (o al pasaje, si es una cita). Enter otra vez lo proyecta |

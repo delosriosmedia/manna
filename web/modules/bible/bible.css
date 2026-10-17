@@ -52,7 +52,7 @@ html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
    cada versículo. «Varios»: el aviso de qué versículo toca ahora. */
 /* La cabecera lleva versión, Comparar y Varios: si no cabe el buscador, baja a su propia fila. */
 .ws[data-module='biblia'] .ws-head { flex-wrap: wrap; }
-.ws[data-module='biblia'] .ws-head .search { min-width: 200px; }
+.ws[data-module='biblia'] .ws-head .search { min-width: 140px; }
 .cmp-bar, .multi-hint { display: flex; align-items: center; gap: 8px; padding: 8px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
 .cmp-bar .select { max-width: 240px; min-width: 0; flex: 0 1 auto; }
 .multi-hint { background: var(--accent-soft); color: var(--ink); font-size: 13px; }
@@ -134,6 +134,11 @@ html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
 @media (min-width: 860px) and (max-height: 640px) {
   .crumbs { padding-top: 4px; padding-bottom: 4px; }
   @container cajon (max-width: 439px) { .ws[data-module='biblia'] .abar .btn:not(.primary) span { display: none; } }
+  /* En el cajón más estrecho, el buscador no cabe junto a la versión: baja a su propia fila. */
+  @container cajon (max-width: 439px) {
+    .ws[data-module='biblia'] .ws-head { flex-wrap: wrap; }
+    .ws[data-module='biblia'] .ws-head .search { flex: 1 1 100%; order: 3; }
+  }
 }
 /* La barra de acción de los demás módulos, en una fila en el celular en horizontal (su cajón es ancho). */
 @media (max-width: 859px) and (max-height: 480px) {

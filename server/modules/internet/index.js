@@ -161,7 +161,13 @@ export default function setup(app) {
     checkTimer.unref();
   }
   async function check(mine) {
-    const reply = await ask(target());
+    let reply = await ask(target());
+    // Con dominio propio, hasta tres veces y con pausas al azar: si Cloudflare reparte las visitas alternando (o
+    // por cercanía) entre dos equipos conectados, una sola pregunta puede dar siempre con este (simulación de la fase 21).
+    for (let i = 1; saved.data.token && i < 3 && child === mine && other(reply) === null; i += 1) {
+      await new Promise((resolve) => { setTimeout(resolve, every() * 0.3 * Math.random()); });
+      reply = await ask(target());
+    }
     if (child !== mine) return; // se apagó o se rehízo mientras tanto
     // Con dominio propio, otro Manna conectado al mismo túnel (se encendieron casi a la vez): este se aparta.
     if (saved.data.token && other(reply) !== null) return yieldTo(other(reply));

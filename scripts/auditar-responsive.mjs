@@ -305,8 +305,12 @@ const MEASURE = (screen, touch, narrow) => {
     if (shown(d) && ws) {
       const compact = d.classList.contains('compact'), mod = ws.dataset.module;
       const hh = head && shown(head) ? box(head).height : 0, wide = box(d).width >= 640;
-      // Reducido (celular): la fila del cajón lleva ampliar y cerrar. Si no, la cabecera del módulo: una fila (60 px) con el cajón ancho, dos o tres (130) con el estrecho y más (Medios, por sus categorías) sin tope fijo.
-      out.cajonUnaFila = inView(acts) && (compact ? dh.contains(acts) && shown(dh) : !shown(dh) && (mod === 'ajustes' || mod === 'medios' || hh <= (wide ? 60 : 130)) && (mod === 'ajustes' || head.contains(acts)));
+      // Reducido (celular): la fila del cajón lleva ampliar y cerrar. Si no, la cabecera del módulo: una fila (60 px) con el cajón ancho,
+      // dos (130) con el estrecho, tres (150, menos que antes con la fila del cajón aparte) en un cajón de menos de 420 px, y más
+      // (Medios, por sus categorías) sin tope fijo.
+      const most = wide ? 60 : box(d).width < 420 ? 150 : 130;
+      out.cajonUnaFila = inView(acts) && (compact ? dh.contains(acts) && shown(dh) : !shown(dh) && (mod === 'ajustes' || mod === 'medios' || hh <= most) && (mod === 'ajustes' || head.contains(acts)));
+      out.cajonDetalle = JSON.stringify({ reducido: compact, alto: Math.round(hh), ancho: Math.round(box(d).width), filaDelCajon: shown(dh), enLaCabecera: Boolean(head?.contains(acts)), aLaVista: inView(acts) });
     }
   }
   ${screen.marcada ? `{ const f = q('.finder-layer:not([hidden]) .finder'), r = f && q('.finder-row.on'), acts = r && [...r.querySelectorAll('.finder-acts button')].filter(shown);
@@ -428,7 +432,7 @@ async function worker(list, n) {
           await sleep(300);
           m.cierraFuera = await chrome.evaluate(`!document.querySelector(${JSON.stringify(screen.closesOutside)})`);
         }
-        const failures = Object.keys(LABELS).filter((k) => m[k] === false).map((k) => LABELS[k] + (k === 'dedos' ? `: ${m.pequenos.join(', ')}` : k === 'solape' && m.solapan ? `: ${m.solapan.join('; ')}` : k === 'deLado' ? `: ${m.ladeados.join(', ')}` : k === 'contraste' ? `: ${m.flojos.join('; ')}` : ''));
+        const failures = Object.keys(LABELS).filter((k) => m[k] === false).map((k) => LABELS[k] + (k === 'dedos' ? `: ${m.pequenos.join(', ')}` : k === 'solape' && m.solapan ? `: ${m.solapan.join('; ')}` : k === 'deLado' ? `: ${m.ladeados.join(', ')}` : k === 'contraste' ? `: ${m.flojos.join('; ')}` : k === 'cajonUnaFila' ? `: ${m.cajonDetalle}` : ''));
         if (m.espacioContenido !== undefined && m.espacioContenido < MIN_CONTENT) failures.push(`poco espacio para el contenido (${m.espacioContenido} px)`);
         problems += failures.length;
         const room = m.espacioContenido !== undefined ? ` · contenido ${m.espacioContenido} px` : '';

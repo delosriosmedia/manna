@@ -101,7 +101,11 @@ export function createShell({ role, isLocal, modules, extras = [], topTools = []
     (head || drawerHead).append(actions); // append mueve el nodo: el foco no se pierde
     actions.classList.toggle('in-ws', Boolean(head));
     drawerHead.hidden = Boolean(head);
+    measureActions();
   }
+  // Lo que ocupan ampliar y cerrar (cambia con lo que está al aire, en el celular): la cabecera les guarda ese sitio.
+  const measureActions = () => actions.parentElement?.style.setProperty('--acts-w', `${actions.offsetWidth}px`);
+  new ResizeObserver(measureActions).observe(actions);
   // Con el teclado, el foco entra en el cajón al abrirlo (si el módulo no lo pone en otro sitio) y vuelve a su botón
   // del dock al cerrarlo.
   function openDrawer() {

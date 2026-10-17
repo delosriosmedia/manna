@@ -4,6 +4,15 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.29.0 — 2026-10-17
+
+- **Escenario más compacto**: todo un poco más pequeño, en el escritorio y en el celular, para que haya más sitio (en pantallas táctiles, los botones miden 35 px como mínimo).
+- **La barra de abajo, en una sola fila**: Anterior, Siguiente, los mandos de lo que está al aire, el volumen y «Más mandos», que abre todos. Se aparta también al tocar el fondo, y vuelve al mover el ratón.
+- **Los cajones, sin repetir**: el nombre del módulo, sus controles, ampliar y cerrar van en una sola fila.
+- **Sin la tarjeta «Seleccionado»**: lo elegido ya se ve marcado. En la cola del culto y en «Buscar en todo», al tocar algo queda marcado con un ▶ para proyectarlo (y, en la búsqueda, un + para añadirlo al orden).
+- **Arriba, el wifi y el código QR**: el wifi dice de un vistazo cómo está la conexión por internet (apagada, conectando, funcionando, con un problema o usada por otro equipo) y, al tocarlo, deja encenderla o apagarla; el QR abre «Dispositivos».
+- Conexión por internet con dominio propio: la comprobación pregunta varias veces, para notar a otro equipo conectado aunque Cloudflare le mande las visitas siempre al mismo.
+
 - **Biblia al aire**: con un pasaje de la Biblia al aire, sus mandos traen tres botones: cambiar la versión, compararlo con otra y pasar a otro versículo, sin ir a buscar la cita.
 - La capa de versículos muestra los números del capítulo con lo que está al aire marcado. Un toque proyecta ese versículo; mantener pulsado (o Mayús y clic) amplía el tramo; las flechas cambian de capítulo.
 - Si el pasaje venía del orden del culto, cambiar la versión o comparar no lo saca del orden: «Siguiente» sigue por el orden en la versión que está al aire. Elegir otro versículo sí lo saca del orden. Si a la otra versión le falta algún versículo de ese pasaje, lo dice en vez de proyectar uno equivocado.
