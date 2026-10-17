@@ -97,6 +97,10 @@ const SCREENS = [
   { name: 'Himnario en el cajón más pequeño', url: '/control#himnario', prefs: { 'cajon.ancho': false, 'cajon.medida': 300, 'cajon.completo': false, 'cajon.alto': 0.95, 'cajon.lado': 0.95 }, content: '.hymns-body', settle: 700 },
   // El Mapa del culto, la cita rápida y el enlace de YouTube solo están con el cajón completo (en el celular).
   { name: 'Orden: mapa del culto', url: '/control#orden', prefs: { 'orden.vista': 'mapa', 'cajon.completo': true }, content: '.omap' },
+  // Órdenes guardados (fase 23): la ventana abierta, con el orden sin nombre y dos guardados (uno con un nombre muy largo).
+  // El ejemplo trae uno solo («Orden del culto»); se duplica con otro nombre si aún no hay dos.
+  { name: 'Orden: órdenes guardados', url: '/control#orden', inside: '.modal', settle: 900,
+    prepare: `(async () => { const s = await (await fetch('/api/state')).json(); if (s.order.saved.length < 2) await fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'order.duplicate', payload: { id: s.order.saved[0].id, name: 'Culto del sábado por la tarde con un nombre muy largo para ver cómo se corta en el celular' } }) }); await new Promise((r) => setTimeout(r, 400)); document.querySelector('.ws[data-module=orden] .order-switch').click(); })()` },
   // El equipo de la auditoría "no tiene" navegador para la proyección: Ajustes lleva su aviso.
   { name: 'Ajustes, con aviso', url: '/control#ajustes', content: '.settings', inside: '.ws-notice' },
   // La capa de mandos abierta: su recuadro cabe en la pantalla y trae los mandos de lo que está al aire.

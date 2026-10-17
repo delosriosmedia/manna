@@ -4,6 +4,11 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.27.1 — 2026-10-17
+
+- Órdenes guardados: en una tableta baja en horizontal, el botón del orden en uso va solo con su icono (su nombre está en la cola), para que la cita rápida tenga sitio.
+- Las pruebas en Chrome pulsan ahora cada botón de «Órdenes guardados», y la auditoría de pantallas revisa su ventana en los 10 tamaños.
+
 ## 1.27.0 — 2026-10-17
 
 - **Órdenes del culto guardados**: el orden de un culto se guarda con un nombre (se propone el día, la fecha y la hora: «Sábado 18/10/26 19:30») para volver a él más tarde con todos sus elementos, mientras se usa otro. Se abren desde el nombre del orden, junto al título del Orden: usar otro, empezar uno nuevo, cambiar el nombre, duplicar y eliminar. Cada cambio se guarda solo, y la cola del culto muestra el nombre del que está en uso.

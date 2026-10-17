@@ -504,6 +504,7 @@ function mount(el, ctx) {
   subscribe('order', (o) => {
     items = o.items;
     orderName.textContent = o.name || 'Sin nombre';
+    if (ctx.canEdit) switcher.setAttribute('aria-label', `Órdenes guardados (en uso: ${orderName.textContent})`);
     renderOrders();
     if (!items.some((i) => i.id === selectedId)) selectedId = null;
     renderList();
