@@ -4,6 +4,15 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.19.0 — 2026-10-17
+
+- **Videos, un módulo propio** (fase 16): un botón «Videos» en la barra de módulos, detrás del Himnario, con todos los videos juntos: los subidos, los de la carpeta de la iglesia y los de YouTube. El enlace de YouTube se pega arriba, junto a «Subir videos», y el video descargado entra en la misma lista con su icono; ya no hay pestaña de YouTube. Medios queda con Imágenes y Audios.
+- **Categorías de videos**, con el nombre que quieras («Niños», «Domingo»…): se crean arriba de la lista, se renombran y se eliminan sin borrar sus videos, y cada video se pone en una o varias desde su menú (⋯ → Categorías). Tocar una categoría muestra solo sus videos. Se ven igual en todos los dispositivos.
+- El **Servicio de alabanza** trae Videos en lugar de Medios, y «Añadir» del orden del culto separa «Video» de «Imagen o audio». «Buscar en todo» agrupa los videos aparte.
+- **La Biblia vuelve a verse en una tableta pequeña acostada**: el cajón dejaba ver un solo versículo. En pantallas bajas la cabecera va en una fila, sin «Recientes», y la barra de abajo también.
+- **«Mover» y el pellizco también con PowerPoint en vivo** (Windows): al acercar o desplazar la diapositiva, PowerPoint se aparta y se ve la imagen de Manna acercada; al volver a la vista completa («Vista completa» o «Restablecer») o al pasar de diapositiva, PowerPoint sigue en la misma.
+- **En la tableta acostada, los botones son más pequeños** (36 px en lugar de 44) y, si la pantalla es baja, las barras se acercan a los bordes: queda más sitio para cada módulo. El Himnario y Medios juntan sus pestañas en una fila, y «Buscar en todo» y el nombre de la función ya no se parten en dos líneas.
+
 ## 1.18.2 — 2026-10-16
 
 - **yt-dlp ya no aparece como «Falta» en Mac** después de instalarlo: el de Mac tarda unos segundos en arrancar y Manna lo daba por ausente antes de que respondiera (y avisaba de que «este equipo no lo dejó abrir»).

@@ -91,10 +91,16 @@ export default function setup(app) {
   const failed = new Set(); // las que PowerPoint no pudo pasar: van como imágenes hasta que se vuelva a pedir
   const inPowerPoint = (deck) => Boolean(deck.live) && liveable(deck) && !failed.has(deck.id);
   let session = null; // { deck, live, showing, at }: at = la diapositiva en que está PowerPoint (1…)
+  // Acercada o desplazada («Mover»), PowerPoint se aparta y se ve la imagen de Manna con su encuadre; vuelve con la
+  // vista completa o al pasar de diapositiva.
+  const framed = (item) => {
+    const { uid, state: v } = store.get('live') || {};
+    return uid === item.uid && Boolean(v) && (v.zoom > 1 || Math.abs(v.x - 0.5) > 0.001 || Math.abs(v.y - 0.5) > 0.001);
+  };
 
   function wanted() {
     const { item, mode, display } = store.get('projection') || {};
-    if (item?.kind !== 'slides' || mode !== 'live' || !(display?.open || fake)) return null;
+    if (item?.kind !== 'slides' || mode !== 'live' || !(display?.open || fake) || framed(item)) return null;
     const deck = ready(item.source.data?.id);
     return deck && inPowerPoint(deck) ? { deck, number: item.number } : null;
   }
@@ -106,7 +112,8 @@ export default function setup(app) {
       if (session?.showing) {
         const current = session;
         current.showing = false;
-        current.live.send('parar').then((said) => answer(current, said));
+        // Si mientras tanto volvió a pasarla (se acercó y se alejó enseguida), lo que valga lo dirá esa orden.
+        current.live.send('parar').then((said) => current.showing || answer(current, said));
       }
       return;
     }
@@ -174,7 +181,8 @@ export default function setup(app) {
     app.services.projection?.refresh();
   }
   store.on('change', (ns) => {
-    if (ns === 'projection') sync();
+    // Los mandos, solo si son de lo que está al aire (al proyectar algo, llegan antes que ello).
+    if (ns === 'projection' || (ns === 'live' && store.get('live').uid === store.get('projection')?.item?.uid)) sync();
     // «Señalar» sobre una presentación en vivo: el punto lo dibuja PowerPoint encima del pase (S39). Cambia muchas
     // veces por segundo: no se espera la respuesta.
     else if (ns === 'pointer' && session?.showing) {
@@ -203,7 +211,7 @@ export default function setup(app) {
     return {
       id: deck.id, title: deck.name, reference: `Diapositiva ${n}`, number: n, pages: deck.pages,
       url: pageUrl(deck, n), thumb: thumbUrl(deck, n), width: deck.width, height: deck.height, fit: 'contain',
-      // La pasa PowerPoint: en el proyector no hay zoom de Manna; el puntero lo dibuja una capa encima del pase.
+      // La pasa PowerPoint (salvo acercada: ver framed); el puntero lo dibuja una capa encima del pase.
       powerpoint: inPowerPoint(deck),
       // La que viene, para verla antes de pasar a ella.
       next: n < deck.pages ? { number: n + 1, thumb: thumbUrl(deck, n + 1) } : null,

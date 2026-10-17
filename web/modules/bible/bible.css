@@ -35,7 +35,7 @@
 .tile { height: 32px; border-radius: var(--r-sm); background: var(--s1); border: 1px solid var(--line); color: var(--ink-2); font-weight: 500; font-size: 12.5px; transition: background 0.12s, border-color 0.12s; }
 .tile:hover { background: var(--s3); border-color: var(--line-2); color: var(--ink); }
 .tile.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
-html.touch .tile { height: 40px; }
+html.touch .tile { height: var(--tap); }
 /* Con el dedo las casillas necesitan 40 px de ancho: las columnas de libros y capítulos se ensanchan. */
 html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
 
@@ -111,8 +111,9 @@ html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
 }
 
 /* Celular en horizontal: el cajón es ancho pero bajo. Una columna cada vez (como en estrecho), salvo al
-   comparar, que necesita los versículos a toda altura; sin recientes y la barra de acción en una fila. */
-@media (max-width: 859px) and (max-height: 480px) {
+   comparar, que necesita los versículos a toda altura; sin recientes y la barra de acción en una fila. Igual en una
+   tableta baja en horizontal (la del dueño, 2026-10-16: el cajón dejaba ver un solo versículo). */
+@media (max-width: 859px) and (max-height: 480px), (min-width: 860px) and (max-height: 640px) {
   .ws:not(.comparing) .crumbs { display: flex; }
   .ws:not(.comparing) .picker, html.touch .ws:not(.comparing) .picker { display: block; }
   .ws:not(.comparing) .col { display: none; height: 100%; border: 0; padding: 12px; }
@@ -124,6 +125,17 @@ html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
   .chips { display: none; }
   .ws[data-module='biblia'] .ws-head { flex-wrap: nowrap; }
   .ws[data-module='biblia'] .ws-head .search { min-width: 0; }
+  .ws[data-module='biblia'] .abar { flex-wrap: nowrap; padding: 6px 12px; }
+  .ws[data-module='biblia'] .sel-ref { flex: 0 1 auto; }
+  .ws[data-module='biblia'] .abar .btn { flex: 1 1 0; }
+}
+/* En la tableta, la ruta más baja y «Añadir al orden» solo con su icono si el cajón no da para los dos botones con nombre. */
+@media (min-width: 860px) and (max-height: 640px) {
+  .crumbs { padding-top: 4px; padding-bottom: 4px; }
+  @container cajon (max-width: 439px) { .ws[data-module='biblia'] .abar .btn:not(.primary) span { display: none; } }
+}
+/* La barra de acción de los demás módulos, en una fila en el celular en horizontal (su cajón es ancho). */
+@media (max-width: 859px) and (max-height: 480px) {
   .abar { flex-wrap: nowrap; padding: 6px 12px; }
   .sel-ref { flex: 0 1 auto; }
   .abar .btn { flex: 1 1 0; }

@@ -263,6 +263,14 @@ test('PowerPoint en vivo: la pasa el propio PowerPoint, que da los pasos (tambi�
     assert.ok(await until(() => orders().at(-1) === 'punto 0.2500 0.5000'), orders().slice(-2).join());
     await s.send('projection.pointer', {});
     assert.ok(await until(() => orders().at(-1) === 'punto'));
+    // «Mover»: acercada, PowerPoint se aparta y se ve la imagen de Manna; con la vista completa, vuelve por la misma.
+    await s.send('projection.control', { zoom: 2 });
+    assert.ok(await until(() => orders().at(-1) === 'parar'), 'al acercarla, PowerPoint deja de pasarla');
+    await s.send('projection.control', { zoom: 2.5 });
+    await s.send('projection.control', { reset: true });
+    assert.ok(await until(() => orders().at(-1) === 'ir 1'), orders().slice(-3).join());
+    assert.equal(orders().filter((o) => o === 'parar').length, 1, 'acercar más no le vuelve a pedir nada');
+    const sent = orders().length;
     await step(1);
     assert.equal((await onAir()).number, 2, '«Siguiente» lo da PowerPoint y Manna pone su foto');
     await step(1);
@@ -274,6 +282,7 @@ test('PowerPoint en vivo: la pasa el propio PowerPoint, que da los pasos (tambi�
     await step(1);
     await step(1);
     assert.deepEqual(orders().filter((o) => o === 'siguiente' || o === 'anterior').length, 6);
+    assert.ok(!orders().slice(sent).some((o) => o.startsWith('ir ')), 'al pasar, Manna no le reenvía la diapositiva');
     assert.equal((await onAir()).kind, 'testcard', 'al acabar la presentación, Manna sigue con el orden del culto');
     assert.ok(await until(() => orders().at(-1) === 'parar'), 'y PowerPoint deja de pasarla');
 

@@ -43,11 +43,15 @@ const byName = (q, list) => {
   const words = fold(q).split(/\s+/).filter(Boolean);
   return list.filter((r) => words.every((w) => fold(r.title).includes(w))).slice(0, LIMIT);
 };
+async function videos(q) {
+  const m = state.media || {};
+  return byName(q, [...(m.videos || []), ...(m.youtube || [])].map((x) => ({ kind: x.kind, data: { id: x.id }, title: x.name })));
+}
 async function media(q) {
   const m = state.media || {};
   return byName(q, [
     ...(m.images || []).map((x) => ({ kind: 'image', data: { id: x.id, fit: x.fit }, title: x.name })),
-    ...[['videos', 'video'], ['audios', 'audio'], ['youtube', 'youtube']].flatMap(([key, kind]) => (m[key] || []).map((x) => ({ kind, data: { id: x.id }, title: x.name }))),
+    ...(m.audios || []).map((x) => ({ kind: 'audio', data: { id: x.id }, title: x.name })),
   ]);
 }
 async function slides(q) {
@@ -57,7 +61,7 @@ async function slides(q) {
 async function pages(q) {
   return byName(q, (state.web?.pages || []).map((p) => ({ kind: 'web', data: { id: p.id }, title: p.name, subtitle: p.subtitle })));
 }
-const SOURCES = [['Biblia', bible], ['Himnario', hymns], ['Medios', media], ['Diapositivas', slides], ['Páginas web', pages]];
+const SOURCES = [['Biblia', bible], ['Himnario', hymns], ['Videos', videos], ['Medios', media], ['Diapositivas', slides], ['Páginas web', pages]];
 
 // prepare / projectPrepared: los de la tarjeta «Preparado» (escenario.js). canEdit: ofrece Añadir al orden.
 export function createSearch({ prepare, projectPrepared, canEdit }) {

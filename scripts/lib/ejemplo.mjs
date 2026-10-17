@@ -74,7 +74,12 @@ export function seedExample(dataDir) {
     clip('ejemplo-privado', 'youtube', 'Video de YouTube', 'youtube/ejemplo-privado.mp4', null, 0,
       { source: 'youtube', videoId: 'ejemplo0002', status: 'error', direct: false, added: Date.now() - 9000, error: 'Ese video no está disponible: es privado o se quitó de YouTube.' }),
   ];
-  fs.writeFileSync(path.join(dataDir, 'medios.json'), JSON.stringify({ images, clips }));
+  // Categorías de Videos: una con un video y uno de YouTube, otra con un nombre largo y aún vacía.
+  const categories = [
+    { id: 'ejemplo-domingo', name: 'Domingo de mañana', videos: ['ejemplo-video', 'ejemplo-youtube'] },
+    { id: 'ejemplo-jovenes', name: 'Reunión de jóvenes y adolescentes del sábado', videos: [] },
+  ];
+  fs.writeFileSync(path.join(dataDir, 'medios.json'), JSON.stringify({ images, clips, categories }));
   const video = { id: id(), kind: 'video', title: clips[0].name, subtitle: 'Video · 0:24', steps: 1, data: { id: clips[0].id } };
   // Una presentación ya convertida: doce diapositivas (sin miniaturas: se usa la propia imagen).
   const SLIDE_COLORS = [[[29, 78, 216], [147, 51, 234]], [[15, 118, 110], [202, 138, 4]], [[190, 18, 60], [234, 88, 12]], [[30, 41, 59], [71, 85, 105]]];

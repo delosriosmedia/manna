@@ -60,6 +60,7 @@ const DEVICES = [
   { name: 'Celular, horizontal', w: 844, h: 390, touch: true },
   { name: 'Tableta, vertical', w: 768, h: 1024, touch: true },
   { name: 'Tableta, horizontal', w: 1024, h: 768, touch: true },
+  { name: 'Tableta pequeña, horizontal', w: 960, h: 540, touch: true },
   { name: 'Tableta grande, horizontal', w: 1366, h: 1024, touch: true },
   { name: 'Portátil', w: 1280, h: 720, touch: false },
   { name: 'Escritorio', w: 1920, h: 1080, touch: false },
@@ -108,13 +109,16 @@ const SCREENS = [
   { name: 'Al aire con mandos en vivo', url: '/control#ajustes', show: 'testcard', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Medios: imágenes', url: '/control#medios', content: '.media-body[data-panel=imagenes]', primary: '.media-bar[data-panel=imagenes] .btn.primary', inside: '.media-bar[data-panel=imagenes]', settle: 600,
     prepare: `(() => { document.querySelector('.media-tabs [data-tab=imagenes]').click(); document.querySelector('.media-body[data-panel=imagenes] .media-card .media-pick').click(); })()` },
-  { name: 'Medios: videos', url: '/control#medios', content: '.media-body[data-panel=videos]', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.media-bar[data-panel=videos]', settle: 700,
-    prepare: `(() => { document.querySelector('.media-tabs [data-tab=videos]').click(); document.querySelector('.media-body[data-panel=videos] .media-card .media-pick').click(); })()` },
+  { name: 'Videos', url: '/control#videos', content: '.media-body[data-panel=videos]', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.media-bar[data-panel=videos]', settle: 700,
+    prepare: `document.querySelector('.media-body[data-panel=videos] .media-card .media-pick').click()` },
+  // Con una categoría elegida: su menú (⋯) a la vista junto a ella.
+  { name: 'Videos: una categoría', url: '/control#videos', content: '.media-body[data-panel=videos]', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.video-cats .icon-btn', settle: 700,
+    prepare: `(() => { [...document.querySelectorAll('.video-cats .chip')].find(c => c.textContent.startsWith('Domingo')).click(); setTimeout(() => document.querySelector('.media-body[data-panel=videos] .media-card .media-pick').click(), 150); })()` },
   { name: 'Medios: audios', url: '/control#medios', content: '.media-body[data-panel=audios]', settle: 500,
     prepare: `document.querySelector('.media-tabs [data-tab=audios]').click()` },
-  // El equipo de la auditoría "no tiene" yt-dlp: las pestañas de Medios llevan su aviso encima.
-  { name: 'Medios: YouTube', url: '/control#medios', prefs: { 'cajon.completo': true }, content: '.media-body[data-panel=youtube]', primary: '.media-bar[data-panel=youtube] .btn.primary', inside: '.yt-add', settle: 700,
-    prepare: `(() => { document.querySelector('.media-tabs [data-tab=youtube]').click(); document.querySelector('.media-body[data-panel=youtube] .media-card[data-status=ready] .media-pick').click(); })()` },
+  // El equipo de la auditoría "no tiene" yt-dlp: Videos lleva su aviso encima, y el enlace de YouTube a la vista.
+  { name: 'Videos: YouTube', url: '/control#videos', prefs: { 'cajon.completo': true }, content: '.media-body[data-panel=videos]', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.yt-add', settle: 700,
+    prepare: `document.querySelector('.media-body[data-panel=videos] .media-card[data-status=ready][data-id=ejemplo-youtube] .media-pick').click()` },
   { name: 'Al aire con un video de YouTube', url: '/control#orden', show: 'youtube', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Al aire con un video', url: '/control#orden', show: 'video', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Orden con un video al aire', url: '/control#orden', show: 'video', controls: '.odetail .live-controls' },
@@ -163,7 +167,7 @@ const MEASURE = (screen, touch, narrow) => {
   // Nada se desplaza de lado si no tiene nada al lado (lo vio el dueño en el Orden del celular): ningún panel con
   // desplazamiento horizontal cuyo contenido le sobre. Las tiras que se deslizan a propósito (el dock, las pestañas,
   // lo reciente, «A continuación», el Mapa del culto, las secciones de Ajustes) quedan fuera.
-  const SIDEWAYS_OK = '.dockbar, .media-tabs, .chips, .story-next, .omap-scroll, .omap, .search-scope, .recent, .crumbs, .set-nav';
+  const SIDEWAYS_OK = '.dockbar, .media-tabs, .video-cats, .hymn-views, .chips, .story-next, .omap-scroll, .omap, .search-scope, .recent, .crumbs, .set-nav';
   const sideways = [...document.querySelectorAll('body *')].filter((el) => {
     if (!shown(el) || el.closest(SIDEWAYS_OK) || el.closest('[hidden]')) return false;
     const x = getComputedStyle(el).overflowX;
@@ -214,10 +218,11 @@ const MEASURE = (screen, touch, narrow) => {
     out.contraste = low.length === 0;
     if (low.length) out.flojos = [...new Set(low)].slice(0, 5);
   }
+  // Para el dedo, 40 px; en la disposición del escritorio (tableta en horizontal), 36 (--tap en app.css).
   if (${JSON.stringify(touch)}) {
     const small = [...document.querySelectorAll('button, a[href], select, summary, input:not([type=range]):not([type=color]):not([type=file])')]
       .filter((el) => shown(el) && !el.disabled && !el.closest('.soon') && !el.closest('[hidden]'))
-      .filter((el) => { const r = box(el); const p = el.closest('label.search'); const b = p ? box(p) : r; return Math.min(b.width, b.height) < 39.5; })
+      .filter((el) => { const r = box(el); const p = el.closest('label.search'); const b = p ? box(p) : r; return Math.min(b.width, b.height) < (innerWidth >= 860 ? 35.5 : 39.5); })
       .map((el) => (el.getAttribute('aria-label') || el.textContent || el.className).trim().slice(0, 24));
     out.dedos = small.length === 0;
     if (small.length) out.pequenos = [...new Set(small)].slice(0, 6);

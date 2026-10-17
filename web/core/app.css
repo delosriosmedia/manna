@@ -73,7 +73,13 @@
 
 /* Pantallas táctiles: controles más altos para el dedo. La clase "touch" la pone un script
    mínimo en la cabecera de cada página (pantalla táctil, o ?tactil en la dirección). */
-html.touch { --control: 44px; }
+html.touch { --control: 44px; --tap: 40px; }
+/* En una tableta en horizontal (la disposición del escritorio, 860 px o más) los de 44 px no dejaban sitio al
+   escenario: más pequeños, como pidió el dueño el 2026-10-16. */
+@media (min-width: 860px) {
+  html.touch { --control: 36px; --tap: 36px; }
+  html.touch .chip { padding: 8px 12px; }
+}
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
@@ -138,9 +144,9 @@ a.btn { color: inherit; text-decoration: none; }
 .icon-btn:hover { background: var(--s3); color: var(--ink); }
 .icon-btn:disabled { opacity: 0.35; cursor: default; }
 .icon-btn.sm { width: 28px; height: 28px; }
-html.touch .icon-btn.sm { width: 40px; height: 40px; }
+html.touch .icon-btn.sm { width: var(--tap); height: var(--tap); }
 html.touch .chip { padding: 10px 14px; }
-html.touch .link { display: inline-flex; align-items: center; min-height: 40px; padding: 0 6px; }
+html.touch .link { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 6px; }
 
 .link { color: var(--accent); font-weight: 500; }
 .link:hover { text-decoration: underline; }
@@ -198,7 +204,7 @@ input[type='file'].input { padding: 6px; height: auto; }
 .seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--s2); border: 1px solid var(--line); border-radius: var(--r-pill); }
 .seg .icon-btn { width: calc(var(--control) - 6px); height: calc(var(--control) - 6px); }
 .seg .icon-btn.on { background: var(--s3); color: var(--accent); }
-html.touch .seg .icon-btn { width: 40px; height: 40px; }
+html.touch .seg .icon-btn { width: var(--tap); height: var(--tap); }
 
 /* ---- Tareas con avance (convertir, descargar): ver core/jobs.js ---- */
 .jobs { display: grid; gap: 8px; }

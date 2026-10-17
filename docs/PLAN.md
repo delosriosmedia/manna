@@ -142,12 +142,18 @@ De menor a mayor riesgo; cada fase deja algo usable y **se publica al cerrarla**
 | 13 | Rediseño «Escenario» de toda la interfaz de control (decisión 32) | L+ | 1.11 a 1.13; va antes de la 12 |
 | 14 | Ajustes tras la prueba del dueño con la 1.14 (decisión 36) | L | 1.16 |
 | 15 | Himnario corregido y «Letras sin música» (decisión 37) | M | 1.17 |
+| 16 | Videos, módulo aparte con categorías (decisión 40) | L | 1.19 |
+| 17 | Diapositivas dentro de Medios (decisión 40) | M | 1.20 |
+| 18 | Textos: mensajes y citas con autor (decisión 40) | M | 1.21 |
+| 19 | Auditoría de la interfaz con las skills de diseño (decisión 40) | M | 1.22 |
 
 **Orden cambiado el 2026-10-04 (decisión 20)**: la fase 6 va antes que la 5, mientras el dueño revisa las letras de los himnos. La reproducción (pausa, avance, volumen, una sola pantalla que suena), que iba a estrenarse con el himnario, se construye con los videos.
 
 **Y el 2026-10-14 (decisión 30)**: se añaden las fases 10 a 12, en ese orden, a petición del dueño.
 
 **Y el 2026-10-05 (decisión 28)**: tras la fase 7 se hace la 8 (diapositivas); ahí se detiene el trabajo para que el dueño pruebe, y después se revisa el himnario.
+
+**Y el 2026-10-16 (decisión 40)**: se añaden las fases 16 a 19, en ese orden. La 2.0 sigue esperando la parte del equipo real de la fase 9 (las pruebas del dueño).
 
 Por qué este orden: búsqueda y comparador usan datos que ya existen; los televisores dependen de pruebas del dueño, que conviene empezar pronto; las imágenes estrenan biblioteca y subidas sin la complejidad del sonido; el himnario estrena la reproducción con archivos que ya son compatibles; YouTube y diapositivas, los que dependen de programas de terceros, al final.
 
@@ -316,6 +322,46 @@ Decisión 37. El dueño reemplazó el himnario por uno revisado (613 himnos, let
 - **Letras sin música**, una pestaña más junto a Categorías: los himnos con diapositivas en `Contenido/Himnario/diapositivas/` (una carpeta por himno con el nombre de su video; `01.jpg`, la portada). Se proyectan como una presentación (tipo `lyrics`) y se pasan a mano. Tras la última, «Siguiente» vuelve a la portada del mismo himno; en la portada, «Anterior» se queda. Nunca salen del himno ni avanzan en el orden del culto. Se añaden al orden como elemento propio.
 - Con eso se cierran S7, S29, S30 y S31.
 
+### Fase 16 · Videos, módulo aparte con categorías — hecha (1.19.0)
+
+Decisión 40. «Videos» sale de Medios y es un botón propio del dock, con todos los videos juntos: los subidos, los de la carpeta de la iglesia (`Contenido/Medios`) y los descargados de YouTube.
+
+- **Sin pestaña de YouTube**: la casilla para pegar el enlace va en la cabecera de Videos, junto a «Subir videos», y lo descargado entra en la misma lista, con su icono.
+- **Categorías con nombre propio**: una fila con «Todos», las categorías y «+ Nueva categoría». Cada una se renombra o se borra (borrarla no borra sus videos). En el menú de cada video, «Agregar a una categoría» y «Quitar de esta categoría». Un video puede estar en **varias** categorías, también los de la carpeta de la iglesia. Se guardan en el equipo principal (`medios.json`, `categories: [{ id, name, videos }]`, publicadas en el espacio `media`) y se ven igual en todos los dispositivos. Órdenes `media.categoryAdd`, `media.categoryRename`, `media.categoryRemove` y `media.categoryToggle`, con el permiso `media.edit`; quitar un video lo quita de sus categorías.
+- **Cómo se hace**: una segunda pantalla del módulo de medios (`web/modules/media/videos.js`, como el Presentador en Diapositivas), que reutiliza la lista, la subida y la reproducción de hoy; el servidor sigue en `server/modules/media/`. Medios se queda con Imágenes y Audios; los avisos de ffmpeg, yt-dlp y Node.js pasan a Videos.
+- **Funciones**: Videos va detrás del Himnario en el dock. El Servicio de alabanza recibe **Videos en lugar de Medios**. «Buscar en todo» lleva los videos a Videos.
+- **Con ella salen los arreglos de la tableta** que esperan publicarse (la Biblia en la tableta pequeña acostada, botones de 36 px en la tableta en horizontal).
+- **Lecciones que aplicar** (de los arreglos de la tableta): toda pantalla nueva pasa la auditoría también en 960 × 540; cabeceras en una fila; las reglas de clases compartidas (`.abar`, `.chips`) se limitan con `.ws[data-module=…]`; una tira que se desliza va en `SIDEWAYS_OK`; los tamaños táctiles con `var(--control)` y `var(--tap)`. La casilla de YouTube con el aviso de yt-dlp en 960 × 540 es hoy el único caso que falla en la auditoría (deja 85 px): Videos tiene que resolverlo.
+
+### Fase 17 · Diapositivas dentro de Medios
+
+Decisión 40. Medios queda con **Imágenes, Audios y Diapositivas**, y Diapositivas sale del dock.
+
+- La pestaña funciona como el módulo de hoy: subir un PDF o un PowerPoint, ver sus diapositivas, «Pasar con PowerPoint». Arrastrar un PDF o un PowerPoint a Medios lo lleva a esa pestaña.
+- El Presentador y su función no cambian. «Buscar en todo» lleva a la pestaña (`medios.pestana`). El servidor no cambia (`slides.*`, permiso `slides.edit`).
+- **Cómo se hace**: Diapositivas ofrece su pestaña con la forma de las de Medios (`web/modules/slides/panel.js`, sacado de su `workspace.js`) y Medios la importa: una excepción documentada a «un módulo no importa archivos de otro», que se anota en `web.md` y `arquitectura.md`.
+
+### Fase 18 · Textos: mensajes y citas con autor
+
+Decisión 40. Un módulo nuevo (`server/modules/texts/`, `web/modules/texts/`, tipo de contenido `text`) para proyectar mensajes.
+
+- **Una lista de textos guardados**, para volver a usarlos y añadirlos al orden del culto.
+- **Dos tipos**: *Texto*, un mensaje normal; y *Cita*, la cita en grande y debajo «— Autor».
+- **Una línea en blanco parte un texto largo en pantallas**, que se pasan con «Siguiente», como los versículos.
+- Se proyecta con el fondo y la letra de la proyección (los de la Biblia, `projection/text.js`), con el tamaño ajustado para que quepa. Se ve antes en «Preparado».
+- Guardado con `app.storage('textos')` (`{ id, style: 'normal' | 'quote', text, author, added }`), órdenes `texts.save` y `texts.remove` con el permiso nuevo `texts.edit`, longitud validada en el servidor. En «Buscar en todo».
+- **Al empezar la fase se confirma con el dueño** si el Servicio de alabanza también tiene Textos.
+
+### Fase 19 · Auditoría de la interfaz con las skills de diseño
+
+Decisión 40. Al terminar las fases 16 a 18, una revisión de toda la interfaz con las skills de diseño instaladas en el equipo del dueño, además de la auditoría de pantallas de siempre (`auditar-responsive`):
+
+- **impeccable**: sus revisiones de auditoría, crítica, robustez y adaptación a cada pantalla (jerarquía, legibilidad, estados vacíos y de error, accesibilidad, celular y tableta).
+- **break-ui**: los peores datos posibles en cada pantalla (nombres larguísimos, listas vacías o enormes, categorías y textos sin nombre, citas sin autor).
+- **review-animations** y **emil-design-eng**: las transiciones y los detalles de acabado.
+
+Reglas: lo que digan las skills se contrasta con `DESIGN.md`, que manda; los hallazgos se comprueban en la app antes de corregirlos y se le presentan al dueño, que decide los cambios grandes (primero el plan). Se cierra con las pruebas completas y la auditoría de pantallas.
+
 ### Fase 13 · Rediseño «Escenario» de la interfaz de control
 
 Decisión 32. El diseño se aprobó sobre un lienzo de prototipos navegables (https://claude.ai/artifact/J1nL2fMbgmB3wiUgVZKJW4, privado del dueño). Lo que hace falta para construirlo está aquí; al empezar, `DESIGN.md` se reescribe con ello.
@@ -449,6 +495,7 @@ Tomadas el 2026-10-04.
 | 37 | Himnario corregido (2026-10-16) | **Sí a la fase 15** (himnario corregido y «Letras sin música»), tal como se propuso. Con la portada al aire, «Anterior» se queda en ella. `HIMNARIO_NUEVO.md` y «Categorías del himnario.md» (de `Contenido/Himnario/`) no se publican: de `Contenido/` solo van los `LEEME.txt` |
 | 38 | Tras probar la 1.17 (2026-10-16) | «Escuchar aquí» se quita si no hay una solución segura (no la hay sin un celular de verdad para probar). La barra de abajo del escritorio se aparta sola sin uso. yt-dlp se pone al día solo y YouTube reintenta. **Node.js propio para YouTube**: si el del equipo es anterior al 22, Manna instala el oficial (nodejs.org) solo para eso y lo pone al día solo. Publicar todo junto en la 1.18.0 |
 | 39 | Manejar páginas web desde el celular (2026-10-16) | **S40 se descarta por ahora**, aunque la prueba de concepto funcionó. El estudio queda en la sección 11 por si se retoma |
+| 40 | Videos, Medios con Diapositivas, Textos y auditoría de la interfaz (2026-10-16) | **Sí a las fases 16 a 19**, con las recomendaciones del asistente: un video puede estar en varias categorías, también los de la carpeta de la iglesia; el Servicio de alabanza recibe Videos en lugar de Medios; en Textos, una línea en blanco parte un texto largo en pantallas; orden 16, 17, 18 y 19. La fase 19 (auditoría de la interfaz con las skills de diseño del dueño) va al terminar las otras tres. Los arreglos de la tableta se publican con la fase 16 |
 | 19 | Televisor, tras la primera prueba | **En pausa.** Remotamente solo se abrió el navegador y el puntero se movió un poco; escribiendo la dirección a mano tampoco carga. Se retoma cuando estén hechas las demás modificaciones |
 
 **Decisión 5 · Letras.** El dueño pidió incluirlas: las iglesias donde se usará Manna tienen la licencia de las letras y de toda la música oficial de la Iglesia Adventista del Séptimo Día. Cómo se resuelve:
@@ -540,6 +587,10 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 9 Auditoría | **Hecha la parte de código** · 2026-10-16 | 1.18.0 | Ver sección 8. Seguridad: 5 fallos corregidos (el más serio, una orden que cerraba Manna). Arquitectura e interfaz: 3 fallos y 6 estados o mensajes corregidos; descartados 4 hallazgos que no se sostenían en el código. Documentos: unos veinte datos al día. Rendimiento medido. Pruebas al cerrar: 161 automáticas, 445 en Chrome, auditoría de 9 tamaños sin problemas. **Falta la parte del equipo real** (pruebas del dueño); la 2.0 se publica cuando pase |
 | 10 Presentador | **Hecha** · 2026-10-14, publicada en la 1.10.0 | | Probada en Chrome (con dedos simulados) y en la auditoría de pantallas. Falta la prueba del dueño con un celular real y el proyector |
 | 11 Páginas web | **Hecha** · 2026-10-14 | 1.11.0 | Probada con pruebas automáticas y en Chrome real, con páginas de un servidor del propio equipo. **Falta la prueba del dueño**: la ventana aparte con el proyector, Canva y Kahoot de verdad, y en Windows |
+| 16 Videos | **Hecha** · 2026-10-17 | 1.19.0 | Videos es una pantalla propia del módulo de medios (`media/videos.js`), detrás del Himnario: los videos subidos, los de la carpeta y los de YouTube juntos, con el enlace de YouTube en la cabecera. Categorías con el nombre que se quiera (`media.category*`), un video en varias, que se renombran y se eliminan sin borrar videos. Medios queda con Imágenes y Audios; Alabanza recibe Videos. Salen también los arreglos de la tableta pequeña acostada y «Mover» con PowerPoint en vivo. Pruebas al cerrar: 166 automáticas (una nueva de las categorías), 454 en Chrome (con las cuatro órdenes nuevas pulsadas), auditoría de 10 tamaños sin problemas (con Videos, una categoría y YouTube). **Sin probar**: en celulares y tabletas reales, y en Windows |
+| 17 Diapositivas en Medios | **Pendiente** (decisión 40) | 1.20.0 | |
+| 18 Textos | **Pendiente** (decisión 40) | 1.21.0 | |
+| 19 Auditoría de la interfaz | **Pendiente** (decisión 40) | 1.22.0 | |
 | 15 Himnario corregido y Letras sin música | **Hecha** · 2026-10-16 | 1.17.0 | Categorías en dos niveles (sección y categoría, como el índice del himnario) y la pestaña «Letras sin música»: las diapositivas de cada himno, tipo `lyrics`, que se pasan a mano y tras la última vuelven a la portada del mismo himno. Con el himnario real corregido, en un servidor de prueba: 613 himnos, todos con letra y diapositivas, 46 categorías en 7 secciones, sin avisos. Cierra S7, S29, S30 y S31. Pruebas al cerrar: 160 automáticas, 444 en Chrome (8 nuevas del himnario), auditoría de 9 tamaños sin problemas (con la pestaña nueva). **Sin probar**: el himnario real en Chrome y en Windows, y las letras sin música en el proyector |
 | 14 Ajustes tras la prueba | **Hecha** · 2026-10-16 | 1.16.0 | Parte 1: YouTube con el Node de Manna como intérprete de JavaScript y el motivo de cada fallo en el registro; «Actualizar» ya no rompe el programa que funcionaba; «Escuchar aquí» con un solo reproductor y sincronización tolerante; «Escuchar» del Himnario siempre cantado; el Presentador ya no arrastra la diapositiva con el ratón y pierde el zoom viejo. Parte 2: mandos siempre a la vista en la barra de abajo, «Solo fondo» y «Negro» arriba, «Señalar» y «Mover» también en Control y Orden (`projection/gestures.js`), hoja de mandos del celular con márgenes, Presentador con la anterior y la siguiente debajo. Parte 3: categorías del Himnario más limpias, «Buscar en todo» con más aire, botón de la cola fijo y con forma según su estado, proyección de fondo que se desvanece en los bordes. Parte 4: sin desenfoque con un video al aire, y sin reproducir el video de fondo en los celulares salvo al escuchar. Parte 5: espacio en disco y «Limpiar multimedia temporales» (S24), tamaño de los subtítulos (S23), punto rojo encima del pase de PowerPoint (S39, revisado por Gemini). Pruebas al cerrar: 159 automáticas, 434 en Chrome, auditoría de 9 tamaños sin problemas. **Sin probar en Windows**: YouTube, el punto rojo en PowerPoint y el consumo en un equipo modesto; **ni en un celular real**: «Escuchar aquí» |
 | 12 PowerPoint en vivo | **Hecha** · 2026-10-15 | 1.14.0 | Antes, S37: la prueba en Chrome baja a menos de 3 min (YouTube y el himnario al grupo «red»). PowerPoint en vivo con el original guardado, «Pasar con PowerPoint» / «Pasar como imágenes», «Siguiente» y «Anterior» dados por PowerPoint (con las animaciones), seguimiento de lo que se pase en el equipo y vuelta a las imágenes si falla. Gemini revisó el guion de PowerShell y se aplicaron sus avisos (sección 10). Pruebas al cerrar: 157 automáticas, 427 en Chrome, auditoría de 9 tamaños sin problemas, todo con un PowerPoint de mentira. **El guion de verdad no se ha ejecutado: falta la prueba del dueño en Windows con PowerPoint y el proyector (S25)**. Sigue la fase 9 (auditoría) |
@@ -740,6 +791,13 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-16 | Fase 15: las categorías «Sección: Categoría» se agrupan bajo su sección, sin cambiar el formato del archivo de letras | El índice del himnario tiene dos niveles; el archivo ya los escribe así |
 | 2026-10-16 | S7, S29, S30 y S31 se cierran con la fase 15 | El dueño corrigió el archivo de letras (S7, S29) y sus categorías siguen el índice oficial (S30); «Letras sin música» proyecta las letras (S31) |
 | 2026-10-16 | S24 y S39 se hicieron en la fase 14; S27 se descarta | Decisión 36 |
+| 2026-10-17 | Fase 16: las categorías van dentro de la cabecera de Videos, no en una fila aparte; en el cajón estrecho y en las pantallas bajas, sin el título «Videos» (lo dice el cajón) y con «Subir» y «Añadir» solo con su icono | Con una fila aparte, la auditoría daba 80 a 144 px para la lista en el celular pequeño, el celular acostado y la tableta pequeña acostada (pide 150). Así quedan 172 a 212 |
+| 2026-10-17 | Fase 16: en la tableta baja, el aviso de un programa que falta va en una sola fila (el texto se parte, los botones no) | Era lo que dejaba sin sitio a Medios › YouTube en 960 × 540 (problema conocido anotado el 2026-10-16); ahora sirve a Videos y a cualquier módulo |
+| 2026-10-17 | Fase 16: `media.categoryToggle` acepta `on` (poner o quitar) además de cambiarlo; los nombres de categoría tienen hasta 40 letras y no se repiten (sin contar mayúsculas) | Poner y quitar desde el menú del video no depende de lo que haya hecho otro dispositivo mientras tanto |
+| 2026-10-17 | Fase 16: «Añadir» del orden del culto separa «Video» de «Imagen o audio», y «Buscar en todo» agrupa los videos aparte; en Medios, el aviso de ffmpeg sale solo en Audios | Siguen a Videos como pantalla propia |
+| 2026-10-16 | Se añaden las fases 16 (Videos), 17 (Diapositivas en Medios), 18 (Textos) y 19 (auditoría de la interfaz con las skills de diseño) | Decisión 40 |
+| 2026-10-16 | Fuera de las fases: con PowerPoint en vivo también se puede «Mover» y pellizcar; mientras está acercada, PowerPoint se aparta y se ve la imagen de Manna, y vuelve con la vista completa o al pasar de diapositiva | El dueño lo echó en falta al probar en Windows. Cambia lo decidido en la fase 12 («lo que pasa PowerPoint no se acerca desde Manna») |
+| 2026-10-16 | Fuera de las fases: la tableta pequeña en horizontal (960 × 540) entra en la auditoría de pantallas, y en la tableta en horizontal los botones son de 36 px | Lo encontró el dueño: la Biblia no se veía y los botones no dejaban sitio. Sale con la fase 16 (decisión 40) |
 | 2026-10-16 | Se añade la fase 14 (ajustes tras la prueba del dueño con la 1.14) y va antes de la 9 | Decisión 36: lo encontrado al probar en el Mac y en el equipo Windows |
 | 2026-10-15 | S32 se acepta: favoritos en el Himnario, ya (decisión 35) | Con 613 himnos, los que más se cantan a un toque; no depende de la revisión del himnario que hace el dueño |
 | 2026-10-15 | S23 se acepta cambiada: el tamaño de los subtítulos se elige en Ajustes, sin darles el estilo de la proyección (decisión 34). Hecho en la fase 14 (1.16.0) | Los actuales se leen bien; lo que falta es poder agrandarlos o achicarlos |
@@ -841,6 +899,7 @@ Las sugerencias S9 a S11 son del televisor: quedan para el final de todo, cuando
 | S11 | Otras marcas de televisor | El módulo está hecho para añadirlas. Los LG (webOS) sí aceptan que se les indique la dirección por la red | Solo si alguna iglesia lo necesita; hace falta un televisor de esa marca para probar |
 | S25 | Que el dueño pruebe **PowerPoint en el equipo Windows** con dos o tres presentaciones reales, **convertidas y en vivo** (fase 12) | Es lo único de la fase 8 que no se pudo ejecutar: en el equipo de desarrollo no hay Windows, y en Mac PowerPoint no respondió sin que alguien aceptara un permiso | Nada en el plan. Si falla, lo que diga la tarjeta de la presentación es el punto de partida; mientras tanto, el PDF funciona **Pospuesta** hasta que el asistente estudie si PowerPoint puede pasar la presentación en segundo plano (decisión 35) |
 | S35 | **Proyectar una pestaña ya abierta en el Chrome del equipo principal**, como al compartir en Google Meet | Serviría para cualquier página, también las que no se dejan mostrar o piden iniciar sesión, sin ZIP | Estudiado el 2026-10-14: ver «S35 · lo que se sabe», debajo. Mediano |
+| S42 | **Ordenar a mano** las categorías de Videos y los videos dentro de una | Hoy van en el orden en que se crearon y de lo más nuevo a lo más viejo. Se dejó fuera de la fase 16 para no alargarla | Arrastrar para reordenar, en el escritorio y en el celular. Mediano |
 | S41 | **Letras sin música en un proyector 16:9**: fondo negro a los lados | Las diapositivas del himnario son 4:3 (1024 × 768): en un proyector 16:9 quedan franjas a los lados, donde se ve el fondo de la proyección | Si al probarlas en la iglesia molestan, poner negro detrás solo de las letras sin música. Pequeño |
 
 

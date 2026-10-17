@@ -70,7 +70,8 @@ function mount(el, ctx) {
     menu(anchor, [
       { label: 'Pasaje bíblico', icon: 'book-open-text', onclick: () => ctx.go('biblia') },
       { label: 'Himno', icon: 'music-notes', onclick: () => ctx.go('himnario') },
-      { label: 'Imagen, video o audio', icon: 'image', note: 'Medios', onclick: () => ctx.go('medios') },
+      { label: 'Video', icon: 'video', note: 'También de YouTube', onclick: () => ctx.go('videos') },
+      { label: 'Imagen o audio', icon: 'image', note: 'Medios', onclick: () => ctx.go('medios') },
       { label: 'Diapositivas', icon: 'presentation-chart', note: 'PDF o PowerPoint', onclick: () => ctx.go('diapositivas') },
       { label: 'Página web', icon: 'globe', note: 'Canva, Kahoot…', onclick: () => ctx.go('paginas') },
       { label: 'Sección', icon: 'rows', onclick: () => askTitle({ title: 'Nueva sección', onSave: (title) => run('order.addSection', { title }) }) },

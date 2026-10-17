@@ -45,7 +45,7 @@ body.drawer-open .scene-scrim { background: rgba(0, 0, 0, 0.35); }
 /* «Solo fondo» y «Negro», junto a lo que está al aire. */
 .scene-modes { display: flex; gap: 6px; flex-shrink: 0; }
 .mode-chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; font-weight: 600; }
-html.touch .mode-chip { height: 40px; padding: 0 14px; }
+html.touch .mode-chip { height: var(--tap); padding: 0 14px; }
 .mode-chip kbd { font-size: 10px; }
 .live-pill { flex-shrink: 0; padding: 3px 10px; border-radius: var(--r-pill); background: var(--s3); color: var(--ink-2); font: 700 11px var(--mono); letter-spacing: 0.04em; white-space: nowrap; }
 .live-pill[data-state='live'] { background: var(--live); color: #fff; }
@@ -54,7 +54,7 @@ html.touch .mode-chip { height: 40px; padding: 0 14px; }
 .role-chip:hover { border-color: var(--line-2); }
 .role-dot { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); box-shadow: inset 0 0 0 8px var(--glass-1), inset 0 0 0 14px var(--accent); }
 .role-text { display: flex; flex-direction: column; line-height: 1.2; }
-.role-text strong { font-size: 12px; font-weight: 600; }
+.role-text strong { font-size: 12px; font-weight: 600; white-space: nowrap; }
 .role-version { color: var(--ink-3); font: 500 11px var(--mono); }
 
 /* ---- Dock de módulos ---- */
@@ -143,7 +143,7 @@ body.has-prep .queue { max-height: calc(100dvh - 84px - var(--tb-space) - var(--
 .step-cell { min-width: 30px; height: 30px; padding: 0 8px; border-radius: var(--r-sm); background: var(--s2); border: 1px solid var(--line); font: 600 12px var(--mono); }
 .step-cell.done { color: var(--accent); border-radius: var(--r-pill); }
 .step-cell.on { background: var(--live); border-color: var(--live); color: #fff; }
-html.touch .step-cell { min-width: 40px; height: 40px; }
+html.touch .step-cell { min-width: var(--tap); height: var(--tap); }
 
 /* ---- Preparado ---- */
 .prep { position: fixed; right: 18px; bottom: var(--tb-space); z-index: 4; width: 340px; padding: 12px; border-radius: 24px; background: var(--glass-3); border-color: rgba(92, 232, 255, 0.4); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; gap: 10px; }
@@ -187,7 +187,7 @@ body { --tb-space: calc(var(--tb-h, 68px) + 44px); }
 .scene-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .scene-tools[hidden] { display: none; }
 .tool-chip { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; font-weight: 600; }
-html.touch .tool-chip { height: 44px; padding: 0 14px; }
+html.touch .tool-chip { height: var(--control); padding: 0 14px; }
 .tool-chip[hidden] { display: none; }
 .scene-bg[data-tool] { touch-action: none; user-select: none; -webkit-user-select: none; }
 .scene-bg[data-tool='point'] { cursor: crosshair; }
@@ -221,7 +221,7 @@ html.touch .tool-chip { height: 44px; padding: 0 14px; }
 .controls-pop .live-controls .transport { flex-wrap: wrap; }
 
 /* ---- Buscar en todo (capa que se cierra al tocar fuera) ---- */
-.finder-chip { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: var(--r-pill); background: var(--glass-1); color: var(--ink-2); font-weight: 600; }
+.finder-chip { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; white-space: nowrap; border-radius: var(--r-pill); background: var(--glass-1); color: var(--ink-2); font-weight: 600; }
 .finder-chip:hover { border-color: var(--line-2); color: var(--ink); }
 .finder-layer { position: fixed; inset: 0; z-index: var(--z-sheet); background: rgba(3, 4, 6, 0.45); }
 .finder { position: absolute; left: 50%; top: 84px; transform: translateX(-50%); width: min(640px, calc(100vw - 32px)); max-height: calc(100dvh - 108px); display: flex; flex-direction: column; overflow: hidden; border-radius: var(--r-xl); background: var(--glass-3); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); }
@@ -439,6 +439,27 @@ body.full .shell { height: 100dvh; display: flex; flex-direction: column; }
   .drawer.wide, body.queue-closed .drawer.wide { left: 80px; }
   .prep { left: auto; right: 10px; width: min(420px, calc(100vw - 100px)); bottom: 10px; }
   .escena #toast { bottom: 16px; }
+}
+
+/* Tableta baja en horizontal (860 px o más de ancho y 640 o menos de alto): las barras se arriman a los bordes y la
+   cabecera del módulo va en una fila, sin repetir su nombre (lo dice el cajón), para que quede sitio al contenido. */
+@media (min-width: 860px) and (max-height: 640px) {
+  .topbar { top: 8px; }
+  .drawer, .queue { top: 60px; }
+  .queue { max-height: calc(100dvh - 60px - var(--tb-space)); }
+  body.has-prep .queue { max-height: calc(100dvh - 60px - var(--tb-space) - var(--prep-h, 0px) - 12px); }
+  body { --tb-space: calc(var(--tb-h, 60px) + 24px); }
+  .transport-bar { bottom: 12px; padding: 8px; }
+  .tb-main .btn { height: 40px; }
+  .tb-main .btn.round { width: 40px; }
+  .drawer-head { padding-top: 6px; padding-bottom: 6px; }
+  .ws-head { flex-wrap: nowrap; padding: 6px 12px; }
+  .ws-head h1 { display: none; }
+  .ws-head .search { flex: 1; order: 0; }
+  /* El aviso de un programa que falta, en una sola fila: el texto se parte, los botones no. */
+  .ws-notice { flex-wrap: nowrap; padding-top: 4px; padding-bottom: 4px; font-size: 13px; }
+  .ws-notice p { flex: 1 1 0; }
+  .ws-notice .btn { flex-shrink: 0; }
 }
 
 /* Con ratón y en pantalla ancha, la barra de abajo se aparta sin uso (escenario.js, «bar-idle»), como en un

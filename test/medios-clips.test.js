@@ -325,6 +325,61 @@ test('lo copiado a la carpeta Contenido/Medios aparece solo, con sus subtítulos
   }
 });
 
+test('categorías de los videos: con el nombre que se quiera, un video en varias, y sin borrar nada al quitarlas', async () => {
+  const s = await start('categorias', { MANNA_FALTA: 'ffmpeg' });
+  const categories = async () => (await s.state()).media.categories;
+  try {
+    const welcome = await s.put('/api/media/clips?name=Bienvenida&ext=.mp4&duration=5', Buffer.alloc(2000, 1));
+    const kids = await s.put('/api/media/clips?name=Cantos+infantiles&ext=.mp4&duration=5', Buffer.alloc(2000, 1));
+    const track = await s.put('/api/media/clips?name=Pista&ext=.mp3', Buffer.alloc(500, 1));
+    fs.writeFileSync(path.join(s.mediaDir, 'Testimonio.mp4'), Buffer.alloc(2000, 1));
+    await s.app.services.media.rescan();
+    const folder = (await s.state()).media.videos.find((v) => v.source === 'folder');
+
+    const sunday = (await s.send('media.categoryAdd', { name: '  Domingo   de   mañana ' })).result.id;
+    const children = (await s.send('media.categoryAdd', { name: 'Niños' })).result.id;
+    assert.equal((await s.send('media.categoryAdd', { name: 'niños' })).http, 409, 'no dos con el mismo nombre');
+    assert.equal((await s.send('media.categoryAdd', { name: '   ' })).http, 400);
+    await s.send('media.categoryToggle', { id: sunday, video: welcome.id });
+    await s.send('media.categoryToggle', { id: sunday, video: folder.id });
+    await s.send('media.categoryToggle', { id: children, video: welcome.id, on: true });
+    await s.send('media.categoryToggle', { id: children, video: welcome.id, on: true });
+    await s.send('media.categoryToggle', { id: children, video: kids.id });
+    assert.equal((await s.send('media.categoryToggle', { id: children, video: track.id })).http, 404, 'un audio no va en una categoría de videos');
+    assert.deepEqual(await categories(), [
+      { id: sunday, name: 'Domingo de mañana', videos: [welcome.id, folder.id] },
+      { id: children, name: 'Niños', videos: [welcome.id, kids.id] },
+    ]);
+    await s.send('media.categoryToggle', { id: children, video: kids.id });
+    assert.equal((await s.send('media.categoryRename', { id: children, name: 'Domingo de mañana' })).http, 409);
+    await s.send('media.categoryRename', { id: children, name: 'Jóvenes' });
+    assert.deepEqual((await categories())[1], { id: children, name: 'Jóvenes', videos: [welcome.id] });
+
+    // Al eliminar un video sale de sus categorías; el de la carpeta, mientras no esté.
+    await s.send('media.remove', { id: welcome.id });
+    fs.rmSync(path.join(s.mediaDir, 'Testimonio.mp4'));
+    await s.app.services.media.rescan();
+    assert.deepEqual((await categories()).map((c) => c.videos), [[], []]);
+    fs.writeFileSync(path.join(s.mediaDir, 'Testimonio.mp4'), Buffer.alloc(2000, 1));
+    await s.app.services.media.rescan();
+    assert.deepEqual((await categories())[0].videos, [folder.id], 'si vuelve a la carpeta, vuelve a su categoría');
+
+    // Quitar una categoría no quita sus videos.
+    assert.equal((await s.send('media.categoryRemove', { id: sunday })).http, 200);
+    assert.deepEqual([(await categories()).map((c) => c.name), (await s.state()).media.videos.length], [['Jóvenes'], 2]);
+    assert.equal((await s.send('media.categoryRemove', { id: sunday })).http, 404);
+  } finally {
+    await s.stop();
+  }
+  // Se guardan en el equipo principal.
+  const again = await start('categorias', { MANNA_FALTA: 'ffmpeg' });
+  try {
+    assert.deepEqual((await again.state()).media.categories.map((c) => c.name), ['Jóvenes']);
+  } finally {
+    await again.stop();
+  }
+});
+
 test('sin ffmpeg: lo habitual funciona, lo demás espera, y la duración la dice quien lo sube o quien lo reproduce', async () => {
   const s = await start('sin-ffmpeg', { MANNA_FALTA: 'ffmpeg' });
   try {

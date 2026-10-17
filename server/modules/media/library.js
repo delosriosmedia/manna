@@ -457,6 +457,7 @@ export function registerClips(app, { saved, commit }) {
   return {
     views: (kind) => clips().filter((c) => c.kind === kind).sort((a, b) => b.added - a.added).map(view),
     has: (id) => clips().some((c) => c.id === id),
+    kindOf: (id) => clips().find((c) => c.id === id)?.kind ?? null,
     addYoutube,
     rename(id, name) {
       const clip = find(id);

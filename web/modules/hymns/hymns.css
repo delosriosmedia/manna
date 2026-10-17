@@ -113,3 +113,8 @@
 .hymn-slide { display: grid; gap: 4px; padding: 0; text-align: center; color: var(--ink-3); font-size: 11px; }
 .hymn-slide img { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #000; border: 1px solid var(--line); border-radius: var(--r-sm); }
 .hymn-slide:hover img { border-color: var(--accent); }
+
+/* Tableta baja en horizontal: las vistas se deslizan de lado y los avisos van con ellas, en una sola fila. */
+@media (min-width: 860px) and (max-height: 640px) {
+  .hymn-views { flex: 1 1 0; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+}

@@ -59,7 +59,7 @@ paths:
 - Lo que una función puede hacer lo decide el servidor (`server/roles.js`). Un botón cuya orden esa función no tiene permitida no se le muestra: la respuesta 403 devuelve a la pantalla de inicio (`guard()`).
 - Las tareas en curso se muestran con `createJobsList()` o `jobRow()` de `web/core/jobs.js`.
 - Dos tipos que se dibujan igual comparten su definición: `youtube` es el objeto de `video` con otro icono y otro nombre (`web/modules/media/clip.js`). Los subtítulos de un video son una pista (`<track>`) por cada entrada de `item.subtitles`, y se muestra la del idioma que diga el mando.
-- Una pestaña de Medios puede poner en la cabecera algo propio en lugar del botón de subir (`entry`, en la pieza que devuelve `createClipsPanel`): YouTube pone el campo del enlace.
+- La lista de videos (`createClipsPanel(ctx, 'video', { categories })`) pone en la cabecera de Videos, junto al botón de subir, el campo del enlace de YouTube (`entry`), y se filtra con las categorías (`media/categories.js`). Una pantalla que recibe archivos arrastrados usa `acceptDrops` de `media/drop.js`.
 
 ## Pantallas táctiles y tamaños
 
@@ -68,7 +68,7 @@ paths:
 - **El cajón reducido se redimensiona** arrastrando su borde libre (`.drawer-grip`, en `shell.js`): el ancho en el escritorio (`--drawer-w`), el borde de arriba en el celular (`--drawer-top`) y el izquierdo en el celular en horizontal (`--drawer-left`); el CSS los limita con `clamp()` para que no tape barras, dock ni cola, y se guardan en `prefs` (`cajon.medida`, en px; `cajon.alto` y `cajon.lado`, en fracción de la pantalla).
 - **Versión reducida**: el cajón reducido del celular lleva la clase `compact`. Cada módulo, en su `.css`, esconde con `.compact .ws[data-module=…]` lo que no es vital para la tarea (editar, subir, vistas, opciones); lo demás sale al ampliarlo.
 - **Nada se desplaza de lado sin tener nada al lado**: una fila de botones que no cabe baja a otra (`flex-wrap`). Lo comprueba la auditoría en cada panel; una tira que se desliza a propósito se añade a su lista `SIDEWAYS_OK`.
-- Lo táctil se detecta con la clase `touch` en `<html>` (la pone un script mínimo en la cabecera de cada página). Los controles usan `var(--control)`, que vale 34 px con ratón y 44 px con dedo. Nada pulsable por debajo de 40 px en táctil.
+- Lo táctil se detecta con la clase `touch` en `<html>` (la pone un script mínimo en la cabecera de cada página). Los controles usan `var(--control)`, que vale 34 px con ratón y 44 px con dedo (36 en la tableta en horizontal, 860 px o más). Nada pulsable por debajo de 40 px en táctil, salvo en esa disposición, donde el mínimo es 36 (`--tap`, en `web/core/app.css`).
 - Garantías en cualquier tamaño: ver qué está al aire, avanzar y retroceder, y llegar a la acción principal sin desplazarse.
 - **Al tocar cualquier disposición, ejecutar `node scripts/auditar-responsive.mjs`.**
 

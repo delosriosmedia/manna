@@ -158,7 +158,7 @@ const sample = (name, args) => {
   return file;
 };
 if (!HAS_FFMPEG) {
-  for (const name of ['media.retry', 'media.subtitlesRemove', 'POST /api/media/clips', 'POST /api/media/clips/:id/thumb', 'POST /api/media/clips/:id/subtitles']) {
+  for (const name of ['media.retry', 'media.subtitlesRemove', 'media.categoryAdd', 'media.categoryRename', 'media.categoryRemove', 'media.categoryToggle', 'POST /api/media/clips', 'POST /api/media/clips/:id/thumb', 'POST /api/media/clips/:id/subtitles']) {
     UNTOUCHED[name] = 'este equipo no tiene ffmpeg para fabricar los videos de la prueba';
   }
 }
@@ -346,7 +346,7 @@ async function reviewSection() {
     const mod = (id) => `document.querySelector('#modules .mod[data-id=${id}]')`;
     check('la revisión lista los seis programas y marca los que faltan', await run(`return document.querySelectorAll('.req').length === 6 && ${card}.classList.contains('missing') && document.querySelector('.req[data-id=navegador]').classList.contains('missing') && document.querySelector('.req[data-id=cloudflared]').classList.contains('missing') && !document.querySelector('.req[data-id=node]').classList.contains('missing')`));
     check('explica para qué sirve y cómo instalarlo a mano', await run(`return ${card}.textContent.includes('YouTube') && Boolean(${card}.querySelector('details code'))`));
-    check('dice qué módulos funcionarán completos y cuáles no', await run(`return ${mod('biblia')}.textContent.includes('Completo') && !${mod('biblia')}.classList.contains('limited') && ${mod('medios')}.classList.contains('limited') && ${mod('medios')}.textContent.includes('YouTube: falta yt-dlp') && ${mod('ajustes')}.textContent.includes('falta Google Chrome')`));
+    check('dice qué módulos funcionarán completos y cuáles no', await run(`return ${mod('biblia')}.textContent.includes('Completo') && !${mod('biblia')}.classList.contains('limited') && ${mod('videos')}.classList.contains('limited') && ${mod('videos')}.textContent.includes('YouTube: falta yt-dlp') && !${mod('medios')}.textContent.includes('yt-dlp') && ${mod('ajustes')}.textContent.includes('falta Google Chrome')`));
     check('no bloquea: Manna se puede abrir aunque falten programas', await run(`const a = document.querySelector('#footer a'); return a.textContent === 'Abrir Manna' && a.getAttribute('href') === '/control' && document.querySelector('#lead').textContent.startsWith('Manna funciona')`));
     const install = () => click(`[...${card}.querySelectorAll('button')].find(b => b.textContent.includes('Instalar por mí'))`);
     await install();
@@ -367,7 +367,7 @@ async function reviewSection() {
     }
     check('al terminar, el programa queda instalado y reconocido', installed && await run(`return ${card}.textContent.includes('Instalado por Manna') && ${card}.textContent.includes('versión 2026.01.01')`));
     check('el programa quedó en la carpeta de Manna, sin tocar el sistema', fs.existsSync(path.join(tmp, 'revision', 'herramientas', 'yt-dlp')) && fs.readdirSync(path.join(tmp, 'revision', 'herramientas')).length === 1);
-    check('y el módulo afectado deja de avisar por ese programa', await run(`return !${mod('medios')}.textContent.includes('yt-dlp')`));
+    check('y el módulo afectado deja de avisar por ese programa', await run(`return !${mod('videos')}.textContent.includes('yt-dlp')`));
     await click(`document.querySelector('#footer a')`);
     await sleep(2000);
     check('de ahí se pasa al control, aunque siga faltando el navegador', (await chrome.evaluate('location.pathname')) === '/control' && await run(`return document.body.classList.contains('app')`));
@@ -901,7 +901,7 @@ try {
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await sleep(500);
   const dockNames = `[...document.querySelectorAll('.dockbar .dock-item')].map(b => b.querySelector('.dock-name').textContent).join('|')`;
-  check('en el celular, el dock va abajo con todos los módulos y su nombre, sin «Más»', await run(`const r = document.querySelector('.dockbar').getBoundingClientRect(); return ${dockNames} === 'Orden|Biblia|Himnario|Medios|Diapositivas|Páginas web|Ajustes' && getComputedStyle(document.querySelector('.dock-name')).display !== 'none' && r.bottom > innerHeight - 30 && r.top > innerHeight / 2 && !document.querySelector('.tabbar') && ![...document.querySelectorAll('.dockbar button')].some(b => b.textContent === 'Más') && document.querySelector('.dock-item.on').dataset.id === 'medios'`), await run(`return ${dockNames}`));
+  check('en el celular, el dock va abajo con todos los módulos y su nombre, sin «Más»', await run(`const r = document.querySelector('.dockbar').getBoundingClientRect(); return ${dockNames} === 'Orden|Biblia|Himnario|Videos|Medios|Diapositivas|Páginas web|Ajustes' && getComputedStyle(document.querySelector('.dock-name')).display !== 'none' && r.bottom > innerHeight - 30 && r.top > innerHeight / 2 && !document.querySelector('.tabbar') && ![...document.querySelectorAll('.dockbar button')].some(b => b.textContent === 'Más') && document.querySelector('.dock-item.on').dataset.id === 'medios'`), await run(`return ${dockNames}`));
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(400);
 
@@ -924,10 +924,9 @@ try {
     const videosNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).media.videos)`).then(JSON.parse);
     const air = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ item: s.projection.item, live: s.live.state, volume: s.live.volume, sound: s.conexiones.sonido, order: s.order.items })`).then(JSON.parse);
 
-    await goTo('medios');
+    await goTo('videos');
     await sleep(400);
-    await tab('videos');
-    check('la pestaña Videos empieza vacía y dice de dónde salen los videos', await run(`return ${vids}.querySelector('.empty').textContent.includes('Contenido/Medios') && document.querySelector('.ws[data-module=medios] .ws-head .btn').textContent === 'Subir videos'`));
+    check('Videos es un módulo propio, con «Subir videos» y el enlace de YouTube; Medios ya no tiene Videos ni YouTube', await run(`return ${vids}.querySelector('.empty').textContent.includes('Contenido/Medios') && ${vids}.querySelector('.empty').textContent.includes('YouTube') && document.querySelector('.ws[data-module=videos] .ws-head > .btn').textContent === 'Subir videos' && Boolean(document.querySelector('.ws[data-module=videos] .ws-head .yt-add')) && [...document.querySelectorAll('.ws[data-module=medios] .media-tabs .chip')].map(c => c.textContent).join() === 'Imágenes,Audios'`));
     await chooseFiles('.media-body[data-panel=videos] input[type=file]', [notVideo]);
     await sleep(500);
     await modalButton('Subir');
@@ -944,6 +943,47 @@ try {
     const converted = videos.find((v) => v.name === 'testimonio');
     check('lo habitual se usa tal cual y lo demás queda convertido; los dos con su imagen y su duración', Boolean(main && converted) && !main.converted && converted.converted && converted.url.endsWith('.mp4')
       && Math.round(main.duration) === 8 && await run(`return [...${vids}.querySelectorAll('.media-card')].every(c => c.querySelector('.media-thumb img')?.naturalWidth > 0 && /^0:0\\d$/.test(c.querySelector('.media-duration').textContent))`));
+    // Categorías con el nombre que se quiera (fase 16): filtran la lista; quitarlas no borra videos.
+    const cats = `document.querySelector('.ws[data-module=videos] .video-cats')`;
+    const catChip = (label) => `[...${cats}.querySelectorAll('.chip')].find(c => c.textContent.startsWith(${JSON.stringify(label)}))`;
+    const catsNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).media.categories)`).then(JSON.parse);
+    await click(catChip('Nueva categoría'));
+    await sleep(300);
+    await run(`${modal}.querySelector('input').value = 'Niños';`);
+    await modalButton('Crear');
+    await sleep(600);
+    check('«Nueva categoría» la crea con el nombre que se escriba y la deja elegida, aún vacía', await run(`return ${catChip('Niños')}?.classList.contains('on') && ${vids}.querySelector('.empty')?.textContent.includes('«Niños» aún no tiene videos')`), await run(`return ${cats}.textContent`));
+    await click(catChip('Todos'));
+    await sleep(300);
+    await click(`${vids}.querySelector('.media-card[data-id="${main?.id}"] .media-more')`);
+    await sleep(300);
+    await menuItem('Categorías');
+    await sleep(300);
+    await menuItem('Niños');
+    await sleep(600);
+    await click(catChip('Niños'));
+    await sleep(400);
+    check('desde el menú del video se pone en una categoría, que filtra la lista', (await catsNow())[0]?.videos.join() === main?.id && await run(`return ${vids}.querySelectorAll('.media-card').length === 1 && ${catChip('Niños')}.textContent === 'Niños1'`));
+    await click(`${cats}.querySelector('.icon-btn')`);
+    await sleep(300);
+    await menuItem('Cambiar el nombre');
+    await sleep(300);
+    await run(`${modal}.querySelector('input').value = 'Niños y adolescentes';`);
+    await modalButton('Guardar');
+    await sleep(600);
+    check('la categoría elegida se renombra desde su menú', (await catsNow())[0]?.name === 'Niños y adolescentes' && await run(`return Boolean(${catChip('Niños y adolescentes')})`));
+    await click(`${vids}.querySelector('.media-card .media-more')`);
+    await sleep(300);
+    await menuItem('Quitar de');
+    await sleep(600);
+    check('el video se quita de ella sin salir de la biblioteca', (await catsNow())[0]?.videos.length === 0 && (await videosNow()).length === 2 && await run(`return Boolean(${vids}.querySelector('.empty'))`));
+    await click(`${cats}.querySelector('.icon-btn')`);
+    await sleep(300);
+    await menuItem('Eliminar la categoría');
+    await sleep(300);
+    await modalButton('Eliminar');
+    await sleep(600);
+    check('al eliminar la categoría se vuelve a «Todos», con todos los videos', (await catsNow()).length === 0 && await run(`return ${catChip('Todos')}.classList.contains('on') && ${vids}.querySelectorAll('.media-card').length === 2`));
     // Un video que hay que convertir (viene en otro envoltorio), pero que este equipo reproduce tal
     // cual: se usa al instante, con el original, mientras se le hace la copia para las demás pantallas.
     const wrapped = sample('recien llegado.mkv', ['-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=25:duration=8', ...quiet(262, 8), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest']);
@@ -1082,6 +1122,8 @@ try {
     videos = await videosNow();
     check('un video se renombra y se elimina', videos.length === 1 && videos[0].name === 'Bienvenida' && await run(`return (await fetch(${JSON.stringify(converted?.url || '/x')})).status === 404`));
 
+    await goTo('medios');
+    await sleep(400);
     await tab('audios');
     const auds = `document.querySelector('.media-body[data-panel=audios]')`;
     await chooseFiles('.media-body[data-panel=audios] input[type=file]', [track]);
@@ -1102,24 +1144,22 @@ try {
 
   // ---- Grupo «red» (1): YouTube e himnario (aquí para que los tres grupos tarden parecido) ----
   if (inGroup('red')) {
-  console.log('\n1. Interfaz · Medios (YouTube)');
+  console.log('\n1. Interfaz · Videos (YouTube)');
   if (!CAN_YOUTUBE) console.log('  (en este sistema no se puede usar el yt-dlp de mentira: esta parte se salta)');
   else {
-    await goTo('medios');
+    await goTo('videos');
     await sleep(500);
-    const tab = async (id) => { await click(`document.querySelector('.media-tabs [data-tab=${id}]')`); await sleep(400); };
     const controls = LIVE;
     const control = async (label) => { await openControls(); await click(`[...${controls}.querySelectorAll('button')].find(b => (b.textContent + ' ' + (b.getAttribute('aria-label') || '')).includes(${JSON.stringify(label)}))`); await sleep(700); };
     const air = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ item: s.projection.item, live: s.live.state, order: s.order.items })`).then(JSON.parse);
     const cardMenu = async (cardJs, label) => { await click(`${cardJs}.querySelector('.media-more')`); await sleep(300); await menuItem(label); await sleep(400); };
-    await tab('youtube');
-    const tube = `document.querySelector('.media-body[data-panel=youtube]')`;
-    const tubeBar = `document.querySelector('.media-bar[data-panel=youtube]')`;
+    const tube = `document.querySelector('.media-body[data-panel=videos]')`;
+    const tubeBar = `document.querySelector('.media-bar[data-panel=videos]')`;
     const linkBox = `document.querySelector('.yt-add input')`;
     const tubeCard = `${tube}.querySelector('.media-card[data-status=ready], .media-card[data-status=downloading]')`;
     const tubesNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).media.youtube)`).then(JSON.parse);
     const paste = async (value) => { await run(`const i = ${linkBox}; i.focus(); i.value = ${JSON.stringify(value)}; i.dispatchEvent(new Event('input'));`); await click(`document.querySelector('.yt-add .btn')`); await sleep(500); };
-    check('la pestaña YouTube pide el enlace en vez de un archivo, y explica para qué sirve', await run(`const head = document.querySelector('.ws[data-module=medios] .ws-head'); return ${tube}.querySelector('.empty').textContent.includes('Aún no hay videos de YouTube') && ${tube}.querySelector('.empty').textContent.includes('sin internet') && Boolean(${linkBox}) && ![...head.querySelectorAll('.btn')].some(b => b.textContent.includes('Subir') && getComputedStyle(b).display !== 'none') && document.querySelector('.ws-notice').hidden`));
+    check('Videos pide el enlace de YouTube en su cabecera, junto a «Subir videos», y explica para qué sirve', await run(`const head = document.querySelector('.ws[data-module=videos] .ws-head'); return ${tube}.querySelector('.empty').textContent.includes('Aún no hay videos') && ${tube}.querySelector('.empty').textContent.includes('sin anuncios') && head.contains(document.querySelector('.yt-add')) && [...head.querySelectorAll('.btn')].some(b => b.textContent.includes('Subir videos')) && document.querySelector('.ws-notice').hidden`));
     expectError('no es un enlace de un video de YouTube');
     await paste('https://vimeo.com/123456789');
     check('lo que no es un enlace de YouTube se rechaza, y lo dice', (await text('#toast')).includes('no es un enlace de un video de YouTube') && (await tubesNow()).length === 0, await text('#toast'));
@@ -1457,9 +1497,19 @@ try {
     await press('Enter');
     await sleep(800);
     await openControls();
-    check('con PowerPoint en vivo, la barra ofrece «Señalar» (el punto va encima del pase) pero no «Mover»', await run(`const c = (t) => document.querySelector('.tb-extra .tool-chip[data-tool=' + t + ']'); return !c('point').hidden && c('move').hidden`));
-    check('al proyectarla, PowerPoint empieza por esa diapositiva, y los mandos dicen que la pasa él (sin zoom)', pptSaid().filter((o) => o !== 'punto').at(-1) === 'ir 1' && (await onAir()).item.powerpoint === true
-      && await run(`const c = ${liveBox}; return !c.querySelector('.slide-ppt').hidden && c.querySelector('.slide-ppt').textContent.includes('PowerPoint') && c.querySelector('.live-part').hidden`), pptSaid().join(', '));
+    const pptChip = (t) => `document.querySelector('.tb-extra .tool-chip[data-tool=${t}]')`;
+    check('con PowerPoint en vivo, la barra ofrece «Señalar» (el punto va encima del pase) y «Mover»', await run(`return !${pptChip('point')}.hidden && !${pptChip('move')}.hidden`));
+    check('al proyectarla, PowerPoint empieza por esa diapositiva, y los mandos dicen que la pasa él', pptSaid().filter((o) => o !== 'punto').at(-1) === 'ir 1' && (await onAir()).item.powerpoint === true
+      && await run(`const c = ${liveBox}; return !c.querySelector('.slide-ppt').hidden && c.querySelector('.slide-ppt').textContent.includes('PowerPoint') && !c.querySelector('.live-part').hidden`), pptSaid().join(', '));
+    // «Mover» con la rueda sobre la proyección: PowerPoint se aparta mientras está acercada; «Vista completa» lo trae.
+    await tapEl(pptChip('move'));
+    await run(`document.querySelector('.scene-bg').dispatchEvent(new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true }))`);
+    await sleep(600);
+    check('al acercarla con «Mover», PowerPoint se aparta y se ve la imagen de Manna acercada', pptSaid().at(-1) === 'parar' && (await onAir()).live.zoom > 1, pptSaid().slice(-3).join(', '));
+    await tapEl(pptChip('move'));
+    await click(`[...${liveBox}.querySelectorAll('button')].find(b => b.textContent.includes('Vista completa'))`);
+    await sleep(600);
+    check('«Vista completa» la devuelve a PowerPoint, en la misma diapositiva', pptSaid().at(-1) === 'ir 1' && (await onAir()).live.zoom === 1, pptSaid().slice(-3).join(', '));
     await press('ArrowRight');
     await sleep(500);
     const passed = (await onAir()).item.number;
@@ -1467,7 +1517,7 @@ try {
     await sleep(500);
     check('«Siguiente» lo da PowerPoint: pasa la diapositiva y, si tiene, sus animaciones', passed === 2 && (await onAir()).item.number === 2 && pptSaid().filter((o) => o === 'siguiente').length === 2, `${passed} → ${(await onAir()).item.number}: ${pptSaid().join(', ')}`);
     await deckMenu(madeCard, 'Pasar como imágenes');
-    check('«Pasar como imágenes» la cierra en PowerPoint y vuelven el zoom y el encuadre', await until(`!${LIVE}.querySelector('.live-part').hidden`, 10) && pptSaid().at(-1) === 'cerrar' && (await decksNow()).find((d) => d.id === made.id)?.live === false
+    check('«Pasar como imágenes» la cierra en PowerPoint y los mandos dejan de decir que la pasa él', await until(`${LIVE}.querySelector('.slide-ppt').hidden`, 10) && pptSaid().at(-1) === 'cerrar' && (await decksNow()).find((d) => d.id === made.id)?.live === false
       && await run(`return !${madeCard}.querySelector('small').textContent.includes('en vivo')`), pptSaid().join(', '));
     await run(`return await ${post('projection.show', { kind: 'slides', data: { id: deck.id }, step: 2 })}`);
     await sleep(500);
@@ -2128,7 +2178,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await sleep(2200);
   const praise = `document.querySelector('.transport-bar .tb-volume')`;
   const praiseInView = () => run(`const r = ${praise}.getBoundingClientRect(); return r.height > 0 && r.top >= 0 && r.bottom <= innerHeight`);
-  check('"Servicio de alabanza" trae Himnario, Medios, Orden y Biblia, sin Ajustes', await run(`return [...document.querySelectorAll('.dock-item')].map(b => b.dataset.id).join() === 'himnario,medios,orden,biblia'`));
+  check('"Servicio de alabanza" trae Himnario, Videos, Orden y Biblia, sin Ajustes', await run(`return [...document.querySelectorAll('.dock-item')].map(b => b.dataset.id).join() === 'himnario,videos,orden,biblia'`));
   check('fuera del control, la barra de arriba no lleva el botón del proyector, solo su estado', await run(`return !document.querySelector('.scene-status > .btn') && Boolean(document.querySelector('.scene-status .live-pill'))`));
   check('lleva el volumen de Manna a la vista aunque no suene nada', (await live()).kind === 'verses' && await praiseInView());
   await run(`const s = ${praise}.querySelector('input[type=range]'); s.value = 35; s.dispatchEvent(new Event('input'));`);
@@ -2210,10 +2260,8 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     await sleep(300);
     check('su × la cierra y deja de sonar', !(await pv()).shown && (await pv()).src === null);
     // En Medios, un video ya convertido se puede escuchar aquí.
-    await goTo('medios');
+    await goTo('videos');
     await sleep(800);
-    await click(`document.querySelector('.media-tabs [data-tab=videos]')`);
-    await sleep(500);
     if (HAS_FFMPEG) {
     const clipUrl = await run(`const v = (await (await fetch('/api/state')).json()).media.videos.find((c) => c.url); if (!v) return ''; document.querySelector(\`.media-body[data-panel=videos] .media-card[data-id="\${v.id}"] .media-pick\`).click(); return v.url`);
     await sleep(400);
@@ -2320,6 +2368,13 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await sleep(400);
   await click(`[...${ord}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes('Añadir'))`);
   await sleep(300);
+  await menuItem('Video');
+  await sleep(500);
+  check('y a la de videos', (await chrome.evaluate('document.title')) === 'Manna · Videos');
+  await goTo('orden');
+  await sleep(400);
+  await click(`[...${ord}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes('Añadir'))`);
+  await sleep(300);
   await menuItem('Página web');
   await sleep(500);
   check('y a las páginas web', (await chrome.evaluate('document.title')) === 'Manna · Páginas web');
@@ -2348,10 +2403,8 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   check('"Vaciar el orden" lo deja vacío tras confirmar', (await orderRows()) === 0 && await run(`return ${ord}.querySelector('.empty').textContent.includes('está vacío') && (await (await fetch('/api/state')).json()).order.items.length === 0`));
 
   if (HAS_FFMPEG) {
-    console.log('\n5. Medios en un equipo sin ffmpeg');
-    await goTo('medios');
-    await sleep(400);
-    await click(`document.querySelector('.media-tabs [data-tab=videos]')`);
+    console.log('\n5. Videos en un equipo sin ffmpeg');
+    await goTo('videos');
     await sleep(400);
     const vids = `document.querySelector('.media-body[data-panel=videos]')`;
     const notice = `document.querySelector('.ws-notice')`;

@@ -13,10 +13,10 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Comparar** (en la Biblia): el mismo pasaje en dos versiones, lado a lado o una sobre otra, cada una con su sigla. Se elige igual que cualquier pasaje, se proyecta, se añade al orden como elemento propio, y la disposición se puede cambiar mientras está al aire.
 - **Orden del culto**: la lista ordenada de todo lo que se va a proyectar, con secciones (Apertura, Mensaje…). Cada elemento muestra su tipo y sus pasos; "Siguiente" recorre los pasos y luego pasa al elemento que sigue. A cualquier elemento se le puede poner un nombre propio ("Lectura bíblica"). Se comparte entre todos los dispositivos.
 - **Himnario**: los himnos en video de tu iglesia, en una rejilla por número o agrupados por categorías (bajo su sección, como en el índice del himnario). Se llega a uno por su número, por su título o por un trozo de su letra; se elige si suena **cantado o solo la pista**, y se gobierna como cualquier video. Con el cajón ancho, la letra del elegido se lee al lado. **Letras sin música**: los mismos himnos en diapositivas, que se pasan a mano mientras se canta; tras la última, «Siguiente» vuelve a la portada del mismo himno.
-- **Medios**: la biblioteca de la iglesia, en pestañas.
+- **Videos**: todos los videos de la iglesia en una lista. Se suben o se copian a `Contenido/Medios/`, y en la cabecera se **pega el enlace de un video de YouTube**: Manna lo descarga una vez, con su título, su imagen y sus subtítulos en español e inglés, y desde ahí se proyecta sin anuncios, sin cortes y sin internet. Lo habitual se usa tal cual y lo demás se convierte solo, en segundo plano. Al aire: pausa, saltos, barra de avance, subtítulos y el volumen de Manna; todas las pantallas van a la par y suena una sola. **Categorías** con el nombre que quieras («Niños», «Domingo»…): un video puede estar en varias.
+- **Medios**: imágenes y audios, en pestañas.
   - **Imágenes** (anuncios, carteles, fotos): se suben desde el equipo principal o desde la galería del celular, con el nombre que quieras; se elige si la imagen se ve completa o llenando la pantalla; y, mientras está al aire, se acerca y se desplaza desde la barra de abajo.
-  - **Videos y audios**: se suben o se copian a `Contenido/Medios/`. Lo habitual se usa tal cual y lo demás se convierte solo, en segundo plano. Al aire: pausa, saltos, barra de avance, subtítulos y el volumen de Manna. Todas las pantallas van a la par y suena una sola.
-  - **YouTube**: se pega el enlace de un video y Manna lo descarga una vez, con su título, su imagen y sus subtítulos en español e inglés. Queda en la biblioteca y se proyecta sin anuncios, sin cortes y sin internet, con los mismos mandos que cualquier video.
+  - **Audios**: se suben o se copian a `Contenido/Medios/`, y se gobiernan como un video.
 - **Diapositivas**: las presentaciones de la iglesia, en PDF o en PowerPoint, convertidas en imágenes. Se recorren con «Siguiente», la barra de abajo muestra la diapositiva que viene y cuántas quedan, y cada una se puede acercar como una imagen. En Windows, un PowerPoint lo puede pasar **el propio PowerPoint en el proyector**, con sus videos y animaciones, y se sigue pasando desde cualquier celular.
 - **Páginas web**: presentaciones y juegos de internet (Canva, Google Slides, Genially, Kahoot) o un archivo HTML propio, a pantalla completa. Una dirección necesita internet durante el culto; si la página no se deja mostrar dentro de Manna, el proyector la abre en su propia ventana. Un archivo HTML se pasa con «Anterior» y «Siguiente» desde cualquier dispositivo.
 - **Fondos**: seis colores y las imágenes que subas, que quedan guardadas junto a ellos en Ajustes.
@@ -29,11 +29,11 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Funciones por dispositivo**: cada dispositivo elige al entrar, en una tarjeta por función; desde otro dispositivo, el PIN (4 números) se escribe en un teclado grande en pantalla y entra solo.
   - **Control completo**: todos los módulos. Pide PIN.
   - **Presentador de diapositivas**: una sola pantalla para pasar una presentación (del orden, de la biblioteca o subida ahí mismo): la diapositiva al aire en grande (en el celular, se pasa tocándola), la siguiente y todas en cuadrícula, con **señalar con el dedo** en la proyección y mover o acercar con los dedos. Pide PIN. También presenta las **páginas web**, con el puntero.
-  - **Servicio de alabanza**: Himnario, Medios, Orden y Biblia, con el volumen de Manna siempre a la vista. Proyecta, prepara el orden y sube medios, pero no toca los ajustes. Pide PIN.
+  - **Servicio de alabanza**: Himnario, Videos, Orden y Biblia, con el volumen de Manna siempre a la vista. Proyecta, prepara el orden y sube medios, pero no toca los ajustes. Pide PIN.
   - **Control del orden**: solo pasa el orden del culto, sin editarlo. Pensado para el celular. Pide PIN.
   - **Pantalla de proyección**: espejo de la proyección principal. Sin PIN.
 - **Celular, tableta y escritorio**: en el celular, «Historias»: arriba lo que está en pantalla (tocar a la derecha avanza, a la izquierda vuelve), debajo los modos, el volumen y lo que sigue; los módulos, en el dock de abajo, suben en un cajón reducido con solo lo esencial, que se agranda arrastrando su borde o a pantalla completa con un toque, y se cierra tocando fuera. En el escritorio el cajón estrecho se ensancha arrastrando su borde derecho, y tocar el fondo lo cierra.
-- **Escuchar en el celular**: «Escuchar» en el Himnario (siempre cantado), en Medios y en el Orden lo oye antes de añadirlo, solo en ese dispositivo (con audífonos), sin que lo note lo que suena en la iglesia. (Oír en el celular lo que está al aire se quitó el 2026-10-16: en un celular de verdad se oía a saltos.)
+- **Escuchar en el celular**: «Escuchar» en el Himnario (siempre cantado), en Videos, en Medios y en el Orden lo oye antes de añadirlo, solo en ese dispositivo (con audífonos), sin que lo note lo que suena en la iglesia. (Oír en el celular lo que está al aire se quitó el 2026-10-16: en un celular de verdad se oía a saltos.)
 - **Barra de abajo** (escritorio, con ratón): se aparta sola tras unos segundos sin mover el ratón ni pulsar una tecla, como en un reproductor de video, para que la proyección se vea entera; cualquier movimiento la trae.
 - **Proyección automática**: al iniciar, detecta la segunda pantalla del equipo principal y abre ahí la proyección a pantalla completa. Si no hay segunda pantalla, lo avisa y no la abre.
 - **Apariencia de la proyección**: tipografía, colores, sombra, fondos e imagen propia, con ajuste automático del tamaño del texto para que siempre quepa.
@@ -54,7 +54,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 Manna corre con Node.js 18 o superior. Descargar de YouTube necesita Node.js 22 o superior: si el del equipo es más viejo, la revisión del equipo ofrece instalar «Node.js para YouTube» (el oficial, solo para eso, sin tocar el del equipo). Los guiones de pruebas en Chrome también necesitan Node.js 22.
 Solo Node.js se instala antes. Lo demás lo comprueba Manna cada vez que se abre: si falta algo, en vez del control muestra la **revisión del equipo**, que dice qué módulos funcionarán completos y cuáles no, para qué sirve cada programa, y ofrece **Abrir Manna** de todos modos e **Instalar por mí** (descarga ffmpeg, yt-dlp y cloudflared de sus sitios oficiales, comprobando su huella, a la carpeta `herramientas` de los datos de Manna, sin tocar el sistema) o los pasos para hacerlo a mano. La misma revisión está en **Ajustes → Programas del equipo principal**, y cada módulo avisa al abrirlo si le falta algo. Los demás dispositivos no instalan nada.
 
-ffmpeg lo usa Medios para convertir los videos y audios que el navegador no reproduce; sin él, los MP4 y MP3 habituales funcionan igual. yt-dlp (con ffmpeg) descarga los videos de YouTube; como YouTube cambia a menudo, Manna lo pone al día solo cuando sale una versión nueva (al abrirse con el icono y antes de reintentar una descarga), y en **Ajustes → Programas del equipo principal** hay un botón **Actualizar** para hacerlo a mano. PowerPoint lo usa Diapositivas para convertir una presentación `.pptx`; es opcional, porque un PDF se convierte en el propio navegador.
+ffmpeg lo usan Videos y Medios para convertir los videos y audios que el navegador no reproduce; sin él, los MP4 y MP3 habituales funcionan igual. yt-dlp (con ffmpeg) descarga los videos de YouTube; como YouTube cambia a menudo, Manna lo pone al día solo cuando sale una versión nueva (al abrirse con el icono y antes de reintentar una descarga), y en **Ajustes → Programas del equipo principal** hay un botón **Actualizar** para hacerlo a mano. PowerPoint lo usa Diapositivas para convertir una presentación `.pptx`; es opcional, porque un PDF se convierte en el propio navegador.
 
 ## Instalación
 
@@ -151,19 +151,20 @@ Las imágenes se guardan en la carpeta `data/media/imagenes/` del equipo princip
 
 ### Videos y audios
 
-1. En **Medios**, pestaña **Videos** o **Audios**, pulsa **Subir**. O copia los archivos a la carpeta `Contenido/Medios/` del equipo principal: aparecen solos.
+1. En **Videos**, pulsa **Subir videos** (un audio: en **Medios**, pestaña **Audios**). O copia los archivos a la carpeta `Contenido/Medios/` del equipo principal: aparecen solos. También puedes arrastrarlos hasta la pantalla.
 2. Si el formato no es de los habituales (un 4K en HEVC, un MKV, un AVI), Manna le hace una copia que reproduce cualquier pantalla. No hay que esperar: en unos segundos el equipo principal comprueba si puede con el archivo original y, si puede, la tarjeta dice **Ya se puede proyectar desde el equipo principal**. La copia sigue haciéndose de fondo para los celulares y las pantallas remotas, y se detiene sola mientras algo se reproduce. Si el equipo principal no puede con el original, la tarjeta muestra el avance de la conversión y queda listo al terminar.
 3. Elige uno y pulsa **Proyectar**: empieza a reproducirse en todas las pantallas a la vez.
 4. En la barra de abajo están sus mandos: volver al principio, pausar, −10 y +10 segundos, la barra de avance, el **volumen de Manna** y, si el video los tiene, **Subtítulos**.
 5. Para ponerle subtítulos a un video: en su menú (⋯), **Añadir subtítulos**, y elige un archivo `.srt` o `.vtt`. En la carpeta, basta un archivo con el mismo nombre que el video.
+6. **Categorías**: arriba de la lista, **Nueva categoría** crea una con el nombre que quieras. Para poner un video en ella, en su menú (⋯) elige **Categorías** y la categoría (o crea otra ahí mismo); un video puede estar en varias, también los de la carpeta. Al tocar una categoría se ven solo sus videos; con ella elegida, su menú (⋯) la renombra o la elimina (sus videos se quedan en la biblioteca). Se ven igual en todos los dispositivos.
 
 El sonido sale siempre por el equipo principal, por el dispositivo de audio que tenga elegido: por su ventana de proyección o, si no hay proyector conectado, por su página de control. Nunca se corta de golpe: al pausar, al poner «Negro» o «Solo fondo» y al cambiar lo que hay en pantalla, se desvanece en un instante. «Negro» y «Solo fondo» también pausan lo que suena, y al terminar un video la pantalla pasa sola a «Solo fondo».
 
 ### Videos de YouTube
 
-1. En **Medios**, pestaña **YouTube**, pega el enlace del video (el de «Compartir», en YouTube) y pulsa **Añadir**. Se puede hacer desde el equipo principal o desde un celular; quien descarga es el equipo principal, que necesita internet en ese momento.
-2. La tarjeta muestra el avance. Mientras tanto puedes seguir usando Manna. Al terminar queda con su título, su imagen y su duración.
-3. Desde ahí es un video más: **Proyectar**, **Añadir al orden**, cambiarle el nombre o eliminarlo. Ya no necesita internet.
+1. En **Videos**, pega el enlace del video en la casilla de arriba (el de «Compartir», en YouTube) y pulsa **Añadir**. Se puede hacer desde el equipo principal o desde un celular; quien descarga es el equipo principal, que necesita internet en ese momento.
+2. El video aparece en la lista, con el icono de YouTube, y su tarjeta muestra el avance. Mientras tanto puedes seguir usando Manna. Al terminar queda con su título, su imagen y su duración.
+3. Desde ahí es un video más: **Proyectar**, **Añadir al orden**, ponerlo en una categoría, cambiarle el nombre o eliminarlo. Ya no necesita internet.
 4. Si el video tiene subtítulos en español o en inglés (los del autor o los automáticos de YouTube), Manna los trae. Con el video al aire, **Subtítulos** los muestra y la lista de al lado elige el idioma.
 5. Si una descarga falla por algo que no es del video, Manna la **reintenta sola** dos veces en unos segundos, y antes pone al día yt-dlp si hay una versión nueva (también lo comprueba al abrirse con el icono). Si aun así falla, la tarjeta explica por qué (es privado, se quitó, no hay internet) y ofrece **Reintentar**. Si falla con todos los videos, actualiza yt-dlp en **Ajustes → Programas del equipo principal → Actualizar**: el nuevo se prueba antes de reemplazar al que había, así que si no arranca, el anterior sigue funcionando. El motivo exacto de cada fallo queda en el registro de Manna (`manna.log`).
 
@@ -199,7 +200,7 @@ Cada diapositiva queda como una imagen: las **animaciones, las transiciones y lo
 
 - **Siguiente** y **Anterior**, desde cualquier dispositivo, los da PowerPoint: pasan también las animaciones. Al terminar la presentación, Manna sigue con lo que venga en el orden del culto.
 - Si alguien la pasa en el propio equipo (con el teclado o un control de presentaciones), los celulares lo ven.
-- Los celulares, las tabletas y la propia proyección de Manna (debajo de PowerPoint) ven la foto de la diapositiva por la que va. En este modo no hay zoom; «Señalar» sí: el punto rojo se ve encima del pase. El sonido de sus videos no lo gobierna el volumen de Manna.
+- Los celulares, las tabletas y la propia proyección de Manna (debajo de PowerPoint) ven la foto de la diapositiva por la que va. «Señalar» se ve encima del pase con un punto rojo. Con **Mover** (o dos dedos, o la rueda) se acerca: mientras está acercada, PowerPoint se aparta y se ve la imagen de Manna; con **Vista completa**, o al pasar de diapositiva, PowerPoint vuelve. El sonido de sus videos no lo gobierna el volumen de Manna.
 - Hace falta la pantalla de proyección abierta (el proyector conectado). Si PowerPoint falla, la presentación se ve como imágenes y la cola del culto lo avisa.
 - El PowerPoint original se guarda en `data/presentaciones/` del equipo principal.
 
@@ -266,8 +267,9 @@ server/
                         imagen de prueba
     order/              orden del culto: elementos, secciones y pasos
     media/              biblioteca de imágenes, videos y audios: subir, reconocer, convertir con ffmpeg,
-                        subtítulos, descargar de YouTube con yt-dlp (youtube.js), y la reproducción
-                        a la par en todas las pantallas
+                        subtítulos, descargar de YouTube con yt-dlp (youtube.js), las categorías de los
+                        videos y la reproducción a la par en todas las pantallas. En la web, dos
+                        pantallas: Medios (workspace.js) y Videos (videos.js)
     hymns/              el himnario: videos, letras y diapositivas de la carpeta de la iglesia, búsqueda por
                         número, título y letra, la pista instrumental y las letras sin música
     slides/             presentaciones convertidas en diapositivas: recibir las páginas de un PDF, pedirle

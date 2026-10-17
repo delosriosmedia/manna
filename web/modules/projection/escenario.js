@@ -189,8 +189,8 @@ export function createEscenario(ctx) {
     const item = state.projection?.item;
     const live = state.live?.uid === item?.uid ? state.live?.state : null;
     const pointable = Boolean(item) && state.projection.mode === 'live' && stage.pointable();
-    // Lo que pasa PowerPoint no se acerca desde Manna (su punto, sí).
-    const movable = pointable && Boolean(live?.zoom) && !item.powerpoint;
+    // Lo que pasa PowerPoint también: al acercarlo, PowerPoint se aparta (server/modules/slides).
+    const movable = pointable && Boolean(live?.zoom);
     if ((tool === 'point' && !pointable) || (tool === 'move' && !movable)) tool = null;
     for (const set of toolSets) {
       set.el.hidden = !pointable;
