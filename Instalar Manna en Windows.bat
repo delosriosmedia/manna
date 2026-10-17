@@ -73,7 +73,8 @@ Write-Host '  Ordenando la carpeta de Manna...'
 # (Lo que Node diga por su cuenta, como un aviso, no debe cortar la instalacion.)
 $env:NODE_NO_WARNINGS = '1'
 $ErrorActionPreference = 'Continue'
-$salida = & node (Join-Path $origen 'instalacion\ordenar.mjs') --origen $origen --oculta $oculta --documentos $documentos --lanzador $lanzador
+# --aqui: si este archivo esta en la carpeta de Manna (junto a su Contenido), se ordena esa carpeta.
+$salida = & node (Join-Path $origen 'instalacion\ordenar.mjs') --origen $origen --oculta $oculta --documentos $documentos --aqui (Split-Path $env:MANNA_INSTALADOR) --lanzador $lanzador
 $ErrorActionPreference = 'Stop'
 $hecho = $null
 try { $hecho = ($salida | Select-Object -Last 1) | ConvertFrom-Json } catch { }

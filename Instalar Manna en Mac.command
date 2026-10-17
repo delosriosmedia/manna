@@ -60,7 +60,9 @@ ORIGEN="$(dirname "$(dirname "$ORIGEN")")"
 
 # Cierra el Manna abierto, mueve lo de antes y deja la carpeta ordenada (instalacion/ordenar.mjs).
 echo "  Ordenando la carpeta de Manna..."
-HECHO="$(NODE_NO_WARNINGS=1 node "$ORIGEN/instalacion/ordenar.mjs" --origen "$ORIGEN" --oculta "$OCULTA" --documentos "$DOCUMENTOS" ${LANZADO:+--lanzador "$LANZADO"} | tail -1)"
+# --aqui: si este archivo está en la carpeta de Manna (junto a su Contenido), se ordena esa carpeta.
+AQUI="$(cd "$(dirname "$0")" && pwd)"
+HECHO="$(NODE_NO_WARNINGS=1 node "$ORIGEN/instalacion/ordenar.mjs" --origen "$ORIGEN" --oculta "$OCULTA" --documentos "$DOCUMENTOS" --aqui "$AQUI" ${LANZADO:+--lanzador "$LANZADO"} | tail -1)"
 dato() { node -e "const d = JSON.parse(process.argv[1] || '{}'); const v = d[process.argv[2]]; process.stdout.write(Array.isArray(v) ? v.join('\n') : v == null ? '' : String(v))" "$HECHO" "$1"; }
 [ -n "$HECHO" ] || falla "No se pudo ordenar la carpeta de Manna. Vuelve a abrir este archivo."
 [ -z "$(dato error)" ] || falla "$(dato error)"

@@ -13,7 +13,8 @@
 //
 // Lo usan los dos instaladores, con el Manna que acaban de bajar (así el mismo código ordena en Windows y en Mac):
 //   node ordenar.mjs --origen <Manna recién bajado> --oculta <carpeta oculta> --documentos <Documentos>
-//                    [--lanzador <carpeta del programa a la que apunta el icono Manna>] [--nube 0|1]
+//                    [--aqui <carpeta del instalador que se abrió>] [--lanzador <carpeta del programa a la que
+//                    apunta el icono Manna>] [--nube 0|1]
 // La última línea que escribe es { programa, contenido, raiz, nube, antiguo, avisos } o { error }, en JSON.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -45,12 +46,18 @@ export function synced(dir, { home = os.homedir(), env = process.env } = {}) {
 }
 
 // Qué hay instalado y dónde va cada cosa. No cambia nada.
-export function plan({ origen, oculta, documentos, lanzador = null, nube = null, home, env }) {
+export function plan({ origen, oculta, documentos, aqui = null, lanzador = null, nube = null, home, env }) {
   let antes = null;   // carpeta con programa/ y carpetas.json
   let antigua = null; // instalación a la antigua: la carpeta entera del proyecto, con su data/ y su Contenido/
   // La pista de dónde quedó la última vez (por si se borró el icono): ver arrange().
   const last = readJson(path.join(oculta, 'donde.json'))?.programa;
-  if (lanzador && exists(path.join(path.dirname(lanzador), 'carpetas.json'))) antes = path.dirname(lanzador);
+  // Primero, la carpeta desde la que se abrió el instalador, si es la de Manna: la carpeta ordenada (con
+  // Programa), el programa de una (el acceso directo de Windows abre el de Programa/programa) o una copia que
+  // se actualizaba a mano (con su Contenido). Así sirve aunque el icono Manna no exista o apunte a otro sitio.
+  if (aqui && exists(path.join(aqui, 'Programa', 'carpetas.json'))) antes = path.join(aqui, 'Programa');
+  else if (aqui && exists(path.join(path.dirname(aqui), 'carpetas.json')) && exists(path.join(aqui, 'server', 'index.js'))) antes = path.dirname(aqui);
+  else if (aqui && (exists(path.join(aqui, 'Contenido')) || exists(path.join(aqui, 'server', 'index.js')))) antigua = aqui;
+  else if (lanzador && exists(path.join(path.dirname(lanzador), 'carpetas.json'))) antes = path.dirname(lanzador);
   else if (lanzador && exists(path.join(lanzador, 'server', 'index.js'))) antigua = lanzador;
   else if (last && exists(path.join(last, 'carpetas.json'))) antes = last;
   else if (exists(path.join(oculta, 'carpetas.json'))) antes = oculta;
@@ -149,6 +156,9 @@ export async function arrange(options) {
   fs.cpSync(path.join(p.origen, 'Contenido'), p.contenido, { recursive: true, force: false, errorOnExist: false });
 
   // 4. Lo de antes que ya no se usa: el programa de la carpeta oculta, y una copia vieja del programa en la carpeta.
+  // La carpeta oculta de un instalador anterior que apuntaba a estos mismos datos ya no sirve.
+  const hidden = readJson(path.join(options.oculta, 'carpetas.json'));
+  if (!p.antes && p.datos && hidden && path.resolve(hidden.datos || '') === path.resolve(p.datos) && path.resolve(options.oculta) !== path.resolve(p.base)) p.antes = options.oculta;
   if (p.antes && path.resolve(p.antes) !== path.resolve(p.base)) {
     fs.rmSync(path.join(p.antes, 'carpetas.json'), { force: true });
     try {
@@ -188,7 +198,7 @@ if (path.basename(process.argv[1] || '') === 'ordenar.mjs') {
   for (let i = 2; i < process.argv.length; i += 2) args[process.argv[i].replace(/^--/, '')] = process.argv[i + 1];
   try {
     const result = await arrange({
-      origen: args.origen, oculta: args.oculta, documentos: args.documentos, lanzador: args.lanzador || null,
+      origen: args.origen, oculta: args.oculta, documentos: args.documentos, aqui: args.aqui || null, lanzador: args.lanzador || null,
       nube: args.nube == null ? null : args.nube === '1',
     });
     console.log(ascii(result));

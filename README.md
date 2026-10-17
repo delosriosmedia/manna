@@ -76,6 +76,7 @@ La carpeta Manna tiene solo cuatro cosas:
 
 - **Para actualizar Manna**, abre el instalador de esa carpeta (o vuelve a bajarlo): si Manna está abierto lo cierra, reemplaza el programa y no toca los datos ni el contenido.
 - Si la carpeta Documentos se sincroniza con **OneDrive o iCloud**, `Programa` va a una carpeta del sistema (`%LOCALAPPDATA%\Manna` o `~/Library/Application Support/Manna`): sus datos cambian a cada rato y pueden pesar gigas. En la carpeta Manna quedan los instaladores y `Contenido`.
+- **Si actualizabas a mano** (borrando y pegando lo de GitHub), pon el instalador dentro de tu carpeta, junto a `Contenido`, y ábrelo desde ahí: ordena esa misma carpeta. Desde entonces, para actualizar basta con abrir el instalador de la carpeta.
 - Si Manna ya estaba instalado de antes, el instalador lo ordena así sin borrar nada: la carpeta Manna es **la que ya tiene tu `Contenido`** (también una instalación a la antigua, con la carpeta entera del proyecto), los datos pasan a `Programa/datos` y lo de la versión anterior que ya no se usa queda en `Programa/antiguo`. Cuando compruebes que todo funciona, puedes borrar `antiguo`.
 - Para desinstalar: borra el icono (en Mac, también la app Manna de Aplicaciones) y la carpeta `Programa`. El contenido de la iglesia queda en su carpeta.
 

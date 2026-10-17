@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.25.1 — 2026-10-17
+
+- El instalador ordena la carpeta desde la que se abre, si es la de Manna (tiene su `Contenido`): sirve para quien actualizaba a mano, borrando y pegando lo de GitHub, aunque su icono «Manna» no apunte a esa carpeta. Antes habría creado otra en Documentos.
+
 ## 1.25.0 — 2026-10-17
 
 - **La carpeta Manna, ordenada**: queda solo con los dos instaladores, `Contenido` (lo de la iglesia) y `Programa` (el programa y sus datos), para que nada se borre por error ni confunda al actualizar. Una instalación de antes se ordena sola al actualizar, sin borrar nada: los datos pasan a `Programa/datos` y lo que ya no se usa, a `Programa/antiguo`. Si Documentos está en OneDrive o iCloud, `Programa` va a una carpeta del sistema.

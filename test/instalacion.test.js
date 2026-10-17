@@ -98,6 +98,27 @@ test('a la antigua (la carpeta entera del proyecto): se ordena donde está; lo v
   }
 });
 
+test('una copia que se actualizaba a mano, con el instalador abierto desde ella: se ordena ahí aunque no haya icono', async () => {
+  const t = setup();
+  try {
+    const x = path.join(t.tmp, 'Escritorio', 'Manna');
+    for (const file of ['server/index.js', 'web/app.js', 'README.md', WINDOWS, MAC]) write(path.join(x, file), `viejo ${file}`);
+    write(path.join(x, 'data', 'tunel.json'), '{"on":true}');
+    write(path.join(x, 'Contenido', 'Himnario', 'letras', 'letras.md'), 'letras');
+    const res = await arrange({ ...t, aqui: x, nube: false });
+    assert.deepEqual(list(x), expected);
+    assert.equal(fs.readFileSync(path.join(x, 'Programa', 'datos', 'tunel.json'), 'utf8'), '{"on":true}');
+    assert.ok(fs.existsSync(path.join(x, 'Contenido', 'Himnario', 'letras', 'letras.md')));
+    assert.ok(!fs.existsSync(path.join(t.documentos, 'Manna')), 'no se crea otra carpeta en Documentos');
+    // Desde la carpeta ya ordenada, y desde Descargas con la pista de la carpeta oculta, sigue siendo la misma.
+    assert.equal((await arrange({ ...t, aqui: x, nube: false })).programa, res.programa);
+    assert.equal((await arrange({ ...t, aqui: path.join(x, 'Programa', 'programa'), nube: false })).programa, res.programa);
+    assert.equal((await arrange({ ...t, aqui: path.join(t.tmp, 'Descargas'), nube: false })).programa, res.programa);
+  } finally {
+    fs.rmSync(t.tmp, { recursive: true, force: true });
+  }
+});
+
 test('si la carpeta se sincroniza con la nube, Programa se queda en la carpeta oculta', async () => {
   const t = setup();
   try {
