@@ -192,7 +192,7 @@ const fakeTv = await startFakeTv();
 function startServer(host, extra = {}) {
   // MANNA_SIN_VENTANA: la prueba no abre su proyección en el proyector de verdad, si lo hay.
   // MANNA_CONVERSION_LENTA: cada conversión tarda en empezar, para poder ver qué pasa mientras tanto.
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), ...extra };
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', ...extra };
   if (host) env.MANNA_HOST = host;
   // killOnExit: si la prueba se corta a medias, el servidor no se queda abierto ocupando el puerto.
   return killOnExit(spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env }));
@@ -2099,6 +2099,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   if (CAN_TUNNEL) {
     console.log('\n1. Interfaz · Ajustes: conexión por internet');
     // Un túnel de mentira: la dirección y el «Registered tunnel connection» los escribe el guion de cloudflared-falso.
+    // La comprobación desde internet entra por MANNA_TUNEL_PRUEBA (el propio servidor): nada sale a internet.
     const net = `[...document.querySelectorAll('.settings .set')].find((s) => s.querySelector('h2').textContent === 'Conexión por internet')`;
     const netState = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).internet)`).then(JSON.parse);
     const netButtons = () => run(`return ${net}.querySelectorAll('.set-body .row .btn').length`);
@@ -2108,7 +2109,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     const quickUrl = 'https://manna-de-prueba.trycloudflare.com';
     check('empieza apagada, con sus dos botones', await netText() === 'Apagada.' && await netButtons() === 2 && await run(`return ${netBtn('Encender')}.disabled === false && Boolean(${netBtn('Usar un dominio propio')}) && ${net}.querySelector('.net-address').hidden`));
     await click(netBtn('Encender'));
-    check('«Encender» la pasa a encendida, con la dirección del túnel y su botón «Copiar»', await until(`${net}.querySelector('.set-body > p').textContent.startsWith('Encendida') && ${net}.querySelector('.net-address a').textContent === ${JSON.stringify(quickUrl)}`)
+    check('«Encender» la pasa a encendida y comprobada, con la dirección del túnel y su botón «Copiar»', await until(`${net}.querySelector('.set-body > p').textContent.startsWith('Encendida y comprobada') && ${net}.querySelector('.net-address a').textContent === ${JSON.stringify(quickUrl)}`)
       && await run(`const a = ${net}.querySelector('.net-address'); return !a.hidden && a.querySelector('a').href === ${JSON.stringify(`${quickUrl}/`)} && [...a.querySelectorAll('.btn')].map((b) => b.textContent.trim()).join() === 'Copiar' && ${netBtn('Apagar')} !== undefined`), await netText());
     check('el servidor la da por encendida y la recuerda', (await netState()).status === 'on' && (await netState()).on === true && fs.existsSync(path.join(tmp, 'data', 'tunel.json')));
     // El dominio propio: la clave y la dirección que se le dio en Cloudflare.

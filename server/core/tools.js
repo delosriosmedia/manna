@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFile, spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { HttpError } from './router.js';
 import { installTool, NOT_RUNNABLE, pickName } from './install.js';
 
@@ -16,6 +17,7 @@ import { installTool, NOT_RUNNABLE, pickName } from './install.js';
 //
 // Manna puede descargar ffmpeg y yt-dlp por su cuenta, a data/herramientas/, sin tocar el sistema.
 
+const VIGIA = fileURLToPath(new URL('./vigia.js', import.meta.url));
 const WIN = process.platform === 'win32';
 const MAC = process.platform === 'darwin';
 const PLATFORM = WIN ? 'win32' : MAC ? 'darwin' : 'other';
@@ -374,13 +376,19 @@ export function setupTools(app) {
     // revisión del equipo, que avisa de lo que no funcionará y deja continuar.
     entry: () => (store.get('tools').pending ? '/requisitos' : '/control'),
     // Lanza un programa externo. Siempre con lista de argumentos: nunca se arma una orden con texto.
-    spawn(id, args, { binary = id, ...options } = {}) {
+    // tied: el programa vive solo mientras viva Manna, aunque Manna se cierre de golpe (core/vigia.js).
+    spawn(id, args, { binary = id, tied = false, ...options } = {}) {
       const file = found.get(id)?.files[binary];
       if (!file) {
         const name = CATALOG.find((t) => t.id === id)?.name || id;
         throw new HttpError(409, `Falta ${name} en el equipo principal. Se instala desde Ajustes, en "Programas del equipo principal".`);
       }
-      return spawn(file, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], ...options });
+      if (!tied) return spawn(file, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], ...options });
+      const child = spawn(process.execPath, [VIGIA, file, ...args], { windowsHide: true, ...options, stdio: ['pipe', 'pipe', 'pipe'] });
+      child.stdin.on('error', () => {}); // el vigilante ya terminó
+      // Se cierra cortándole la entrada: en Windows, matar al vigilante dejaría suelto el programa.
+      child.kill = () => child.stdin.end();
+      return child;
     },
   };
 }

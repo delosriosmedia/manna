@@ -93,14 +93,18 @@ function mount(el, ctx) {
         toast(`Actualizando ${t.name}. El avance está en la cola del culto.`);
       }) }, icon('arrow-clockwise', 15), t.installing ? 'Actualizando…' : 'Actualizar'))));
   });
+  // «Encendida» solo cuando Manna entró por su dirección de internet y se contestó a sí mismo (lo comprueba cada minuto).
   const NET = {
     off: 'Apagada.',
     starting: 'Conectando con Cloudflare…',
-    on: 'Encendida. Desde internet se entra por esta dirección:',
+    checking: 'Conectada con Cloudflare. Comprobando que se llega a Manna desde internet…',
+    on: 'Encendida y comprobada desde internet. Se entra por esta dirección:',
+    unchecked: 'Conectada con Cloudflare, sin comprobar: falta la dirección del dominio propio («Cambiar el dominio propio»).',
   };
   subscribe('internet', (s) => {
-    net.textContent = s.status === 'error' ? s.error : NET[s.status] || '';
-    net.classList.toggle('warn', s.status === 'error');
+    // Mientras reintenta, el último problema sigue a la vista.
+    net.textContent = s.status === 'error' ? s.error : [NET[s.status], s.error && `Último intento: ${s.error}`].filter(Boolean).join(' ');
+    net.classList.toggle('warn', Boolean(s.error));
     netAddress.hidden = !(s.on && s.url);
     if (s.url) {
       netLink.href = s.url;

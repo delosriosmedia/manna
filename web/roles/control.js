@@ -19,7 +19,7 @@ createShell({
     // Encender o apagar la conexión por internet (Cloudflare) sin ir a Ajustes. No se ofrece a quien entra por
     // internet: apagarla le cortaría a él mismo.
     !me.internet && { id: 'internet', name: 'Conexión por internet', icon: 'globe',
-      note: () => ({ off: 'Apagada · tocar para encender', starting: 'Conectando… · tocar para apagar', on: 'Encendida · tocar para apagar' })[state.internet?.status] || 'Con un problema · tocar para apagar',
+      note: () => ({ off: 'Apagada · tocar para encender', starting: 'Conectando… · tocar para apagar', checking: 'Comprobando… · tocar para apagar', on: 'Encendida · tocar para apagar', unchecked: 'Encendida, sin comprobar · tocar para apagar' })[state.internet?.status] || 'Con un problema · tocar para apagar',
       onclick: guard(async () => {
         const on = !state.internet?.on;
         await action('internet.set', { on });

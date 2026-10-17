@@ -4,6 +4,11 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.24.0 — 2026-10-17
+
+- **Conexión por internet comprobada de verdad**: «Encendida» ya no quiere decir solo que Cloudflare aceptó la conexión. Cada minuto Manna entra por su propia dirección de internet, como un celular de fuera, y comprueba que contesta él mismo. Si no, Ajustes dice el problema concreto (Cloudflare no llega a Manna y qué puerto poner en su panel, el mismo túnel abierto en otro equipo, o sin internet) y, tras varios fallos seguidos, Manna rehace la conexión solo.
+- **El programa de Cloudflare se cierra con Manna**, aunque Manna se cierre de golpe (un cuelgue, el Administrador de tareas). En Windows, al abrirse, Manna cierra además cualquier cloudflared que se hubiera quedado abierto, que bloqueaba su archivo y dejaba el túnel conectado sin Manna detrás.
+
 ## 1.23.1 — 2026-10-17
 
 - Arreglado: con algo de la Biblia al aire, abrir la Biblia por primera vez tras cargar la página fallaba a medias. Un trozo suyo se quedaba encima del módulo abierto, otro más con cada toque, y la Biblia no volvía a abrirse hasta reiniciar la página.

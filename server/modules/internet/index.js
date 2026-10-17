@@ -1,3 +1,4 @@
+import { execFile } from 'node:child_process';
 import { HttpError } from '../../core/router.js';
 
 // Módulo Conexión por internet: un túnel de Cloudflare (cloudflared) trae a Manna lo que llega desde
@@ -7,9 +8,14 @@ import { HttpError } from '../../core/router.js';
 //   - Con la clave de un túnel propio (de un dominio de la iglesia en Cloudflare): `tunnel run`.
 //   - Sin ella, un túnel rápido de prueba (trycloudflare.com), con una dirección nueva cada vez.
 // La clave vive solo en data/tunel.json: nunca en el estado ni en el registro.
+// cloudflared vive solo mientras viva Manna (tools.spawn con `tied`), y Manna comprueba cada poco, entrando
+// por su dirección de internet como lo haría un celular de fuera, que quien contesta es él mismo.
 
 const RETRY_MS = [5_000, 15_000, 60_000];
 const QUICK = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/;
+const FAILS = 4; // comprobaciones fallidas seguidas antes de darla por caída y rehacerla
+// Cada cuánto se comprueba: cada 10 s hasta que funciona o mientras falla; funcionando, cada minuto.
+const every = () => Number(process.env.MANNA_TUNEL_COMPROBAR_MS) || 10_000;
 
 // Por qué se cerró, para quien usa Manna, a partir de lo último que escribió cloudflared.
 export function explain(log) {
@@ -17,6 +23,36 @@ export function explain(log) {
   if (/no such host|dial tcp|i\/o timeout|network is unreachable|failed to (dial|connect)|connection refused/i.test(log)) return 'No se pudo llegar a Cloudflare. Comprueba que el equipo principal tiene internet: Manna lo vuelve a intentar solo.';
   return 'La conexión por internet se cerró. Manna lo vuelve a intentar solo.';
 }
+
+// Qué dice la comprobación desde internet ({ ok, status, id } de GET <dirección>/api/ping, o { error }),
+// para quien usa Manna. null: contesta este mismo Manna.
+export function diagnose(reply, { me, own, port }) {
+  if (reply.error) return 'No se pudo abrir la dirección de internet desde este equipo. Comprueba que tiene internet: Manna lo vuelve a intentar solo.';
+  if (reply.ok && reply.id === me) return null;
+  if (reply.ok && reply.id) return 'Esa dirección la contesta otro equipo con Manna: el mismo túnel está abierto en otro equipo. Apaga allí la conexión por internet.';
+  return `Cloudflare está conectado, pero no llega a Manna (responde ${reply.status}). ${own
+    ? `En el panel de Cloudflare, el servicio de este túnel debe ser http://localhost:${port}.`
+    : 'Manna lo vuelve a intentar solo.'}`;
+}
+
+async function ask(base) {
+  try {
+    const res = await fetch(`${base}/api/ping?comprobar=${Date.now()}`, { signal: AbortSignal.timeout(15_000), headers: { 'User-Agent': 'Manna (comprobacion del tunel)' } });
+    const body = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, id: body?.id };
+  } catch {
+    return { error: true };
+  }
+}
+
+// Al abrirse, en Windows: cierra el cloudflared que quedara suelto (de un Manna que se cerró de golpe antes
+// de que existiera el vigilante, o al que también le cerraron el vigilante). Bloquea su archivo y deja
+// conectado a Cloudflare un túnel sin Manna detrás. Decisión del dueño (2026-10-17): el túnel es solo de Manna.
+const sweep = () => new Promise((resolve) => {
+  if (process.platform !== 'win32') return resolve();
+  execFile('taskkill', ['/F', '/T', '/IM', 'cloudflared.exe'], { windowsHide: true, timeout: 5000 }, () => resolve());
+  return undefined;
+});
 
 // La clave del túnel tal como se pega: sola o dentro de la orden que muestra Cloudflare
 // ("cloudflared service install eyJ…").
@@ -36,9 +72,12 @@ export default function setup(app) {
   let child = null;
   let tries = 0;
   let timer = null;
+  let checkTimer = null;
+  let fails = 0;
 
   function stop() {
     clearTimeout(timer);
+    clearTimeout(checkTimer);
     timer = null;
     const old = child;
     child = null;
@@ -52,9 +91,10 @@ export default function setup(app) {
     if (!on) return set({ status: 'off', url: null, error: null });
     if (!app.tools.has('cloudflared')) return set({ status: 'error', url: null, error: 'Falta cloudflared, el programa de Cloudflare. Instálalo en Ajustes → Revisar el equipo.' });
     const args = token ? ['tunnel', '--no-autoupdate', 'run'] : ['tunnel', '--no-autoupdate', '--url', `http://127.0.0.1:${app.port}`];
-    set({ status: 'starting', url: token ? address || null : null, error: null });
+    // Al reintentar, el último problema sigue a la vista hasta que funcione.
+    set({ status: 'starting', url: token ? address || null : null, error: tries ? store.get('internet').error : null });
     // La clave va por el entorno: en la orden la vería cualquier programa que liste los procesos.
-    const mine = app.tools.spawn('cloudflared', args, { env: { ...process.env, ...(token ? { TUNNEL_TOKEN: token } : {}) } });
+    const mine = app.tools.spawn('cloudflared', args, { tied: true, env: { ...process.env, ...(token ? { TUNNEL_TOKEN: token } : {}) } });
     child = mine;
     let log = '';
     const read = (chunk) => {
@@ -62,9 +102,16 @@ export default function setup(app) {
       log = (log + text).slice(-4000);
       const quick = !token && QUICK.exec(text)?.[0];
       if (quick) set({ url: quick });
-      if (/Registered tunnel connection/i.test(text)) {
-        tries = 0;
-        set({ status: 'on', error: null });
+      // Cloudflare la acepta (lo dice una vez por cada una de sus conexiones): falta ver que se llega a Manna.
+      if (/Registered tunnel connection/i.test(text) && store.get('internet').status === 'starting') {
+        fails = 0;
+        if (target()) {
+          set({ status: 'checking' });
+          watch(mine, every());
+        } else {
+          tries = 0;
+          set({ status: 'unchecked' }); // dominio propio guardado sin su dirección
+        }
       }
     };
     mine.stdout.on('data', read);
@@ -72,15 +119,48 @@ export default function setup(app) {
     mine.on('error', () => {});
     mine.on('exit', () => {
       if (child !== mine) return; // se cerró a propósito
+      clearTimeout(checkTimer);
       child = null;
       set({ status: 'error', url: null, error: explain(log) });
-      timer = setTimeout(start, RETRY_MS[Math.min(tries, RETRY_MS.length - 1)]);
-      timer.unref();
-      tries += 1;
+      retry();
     });
   }
 
-  store.on('listening', start);
+  function retry() {
+    timer = setTimeout(start, RETRY_MS[Math.min(tries, RETRY_MS.length - 1)]);
+    timer.unref();
+    tries += 1;
+  }
+
+  // Dónde se comprueba: la dirección del túnel (MANNA_TUNEL_PRUEBA, en las pruebas: nada sale a internet).
+  const target = () => process.env.MANNA_TUNEL_PRUEBA || store.get('internet').url;
+  function watch(mine, delay) {
+    clearTimeout(checkTimer);
+    checkTimer = setTimeout(() => check(mine), delay);
+    checkTimer.unref();
+  }
+  async function check(mine) {
+    const problem = diagnose(await ask(target()), { me: app.settings.data.id, own: Boolean(saved.data.token), port: app.port });
+    if (child !== mine) return; // se apagó o se rehízo mientras tanto
+    if (!problem) {
+      fails = 0;
+      tries = 0;
+      set({ status: 'on', error: null });
+      watch(mine, every() * 6);
+      return;
+    }
+    fails += 1;
+    if (fails < FAILS) {
+      watch(mine, every());
+      return;
+    }
+    // Caída de verdad, aunque cloudflared siga abierto: se rehace, y el motivo queda a la vista.
+    stop();
+    set({ status: 'error', error: problem });
+    retry();
+  }
+
+  store.on('listening', () => sweep().then(start));
   // Encendida pero sin cloudflared: en cuanto se instala («Instalar por mí»), se abre sola.
   store.on('change', (ns) => {
     if (ns === 'tools' && saved.data.on && !child && !timer && app.tools.has('cloudflared')) start();
