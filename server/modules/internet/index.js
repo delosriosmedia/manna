@@ -59,8 +59,9 @@ export function tokenFrom(text) {
 export default function setup(app) {
   const { store } = app;
   const saved = app.storage('tunel', { on: false, token: '', address: '' });
-  const set = (patch) => store.set('internet', patch);
-  store.register('internet', { on: Boolean(saved.data.on), status: 'off', url: null, own: Boolean(saved.data.token), error: null, busy: null });
+  // Al salir de «on», since se borra solo.
+  const set = (patch) => store.set('internet', patch.status && patch.status !== 'on' ? { ...patch, since: null } : patch);
+  store.register('internet', { on: Boolean(saved.data.on), status: 'off', url: null, own: Boolean(saved.data.token), error: null, busy: null, since: null }); // since: desde cuándo está en «on» (ms)
   let child = null;
   let tries = 0;
   let timer = null;
@@ -168,7 +169,7 @@ export default function setup(app) {
     if (!problem) {
       fails = 0;
       tries = 0;
-      set({ status: 'on', error: null });
+      set({ status: 'on', error: null, since: store.get('internet').since || Date.now() });
       watch(mine, every() * 6);
       return;
     }

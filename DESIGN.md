@@ -86,7 +86,7 @@ Reglas:
 
 - Una sola familia: **Phosphor**, trazo regular. Se usan con `icon('nombre')` de `web/core/icons.js`.
 - **Sin emojis** en la interfaz.
-- Para añadir uno: `scripts/actualizar-iconos.mjs`. No se dibujan iconos a mano.
+- Para añadir uno: `scripts/actualizar-iconos.mjs`. No se dibujan iconos a mano. **Excepciones propias (a petición del dueño):** `qr-mini` (un código QR de tres esquinas y tres módulos, que se lee desde 14 px; está en la constante `CUSTOM` del guion para que regenerar el sprite no lo borre) y el wifi de la barra de arriba (`web/modules/system/conexion.js`, fuera del sprite: sus tres ondas son elementos aparte para encenderlas una tras otra).
 - Un botón que solo tiene icono lleva `aria-label`.
 
 ## 7. Estructura
@@ -96,7 +96,7 @@ Reglas:
 | Pieza | Qué contiene |
 | --- | --- |
 | **Fondo** | La proyección en vivo, entera (16:9) y centrada, con lo que se ve en ella: el zoom de una imagen y el **punto rojo** del Presentador; lo que sobra alrededor, su propio fondo desenfocado, y la proyección se desvanece en sus bordes hacia él (a los lados o arriba y abajo, según la forma de la pantalla), sin corte. Con «Señalar» o «Mover» encendido, el dedo o el ratón sobre el fondo señalan o mueven. Fuera del equipo principal se dibuja ligera (un video muestra su imagen). Un velo oscuro arriba y abajo para que se lea lo de encima. |
-| **Barra de arriba** | A la izquierda, el logo (vuelve al inicio), el estado («● AL AIRE» en rojo, «SOLO FONDO», «NEGRO», «NADA») con lo que se ve, **«Solo fondo» (C) y «Negro» (B)** a su lado y, en el control del equipo principal, el botón del proyector. A la derecha, «Buscar en todo» (en el celular, solo la lupa) y la función con la versión; su menú tiene lo de esa función (Dispositivos) y «Cambiar de función». |
+| **Barra de arriba** | A la izquierda, el logo (vuelve al inicio), el estado («● AL AIRE» en rojo, «SOLO FONDO», «NEGRO», «NADA») con lo que se ve, **«Solo fondo» (C) y «Negro» (B)** a su lado y, en el control del equipo principal, el botón del proyector. A la derecha, «Buscar en todo» (en el celular, solo la lupa) y la función con la versión; su menú solo trae «Cambiar de función». Solo en Control completo, entre «Buscar en todo» y la función, va una **píldora de cristal** (`.topbar-tools`, alto 36, botones redondos de 30; con dedo, `--tap`) con el **wifi** (conexión por internet; no se ofrece a quien entra por internet) y el **QR** (Dispositivos). Estados del wifi (`data-state`): `off` tachado y tenue; `connecting` gris con las tres ondas encendiéndose una tras otra (1,2 s, en bucle); `on` cian; `unchecked` cian con la onda grande apagada; `error` rojo claro con un punto rojo (también cuando otro equipo usa el túnel, `data-why=busy`). Al tocarlo se abre una hoja con el estado, la dirección, «Comprobada desde…», el último error y Encender o Apagar. |
 | **Dock** (izquierda, centrado) | Un icono por módulo; Ajustes al final. Pulsar el del módulo abierto cierra su cajón. |
 | **Cajón** | El módulo abierto, con su nombre, ampliar o estrechar, y cerrar. Ancho por defecto (hasta la cola); estrecho, 440 px, que se **ensancha arrastrando su borde derecho** (una rayita que se vuelve cian) entre 360 px y la cola, sin moverse ni taparla, y se recuerda. Se cierra con su icono, con Esc o **tocando el fondo** (la proyección); la cola, «Preparado» y la barra de abajo funcionan con él abierto. Al abrir la función no hay ninguno abierto, salvo que la dirección lo diga (`#biblia`). El módulo se adapta al ancho del cajón, no al de la pantalla (ver «Módulos según su cajón», abajo). |
 | **Cola del culto** (derecha) | El orden del culto para operar: secciones, elementos, lo ya pasado atenuado, lo preparado en cian y lo que está al aire en rojo, con sus pasos debajo (el actual en rojo). Un toque prepara; doble toque proyecta. Arriba, el título (con el nombre del orden en uso debajo, si tiene), «2 de 10» y, a la derecha, el botón de plegar (flecha hacia arriba); plegada queda solo ese botón, en el mismo sitio, con la lista y una flecha hacia abajo. Debajo, las tareas en curso. |
@@ -179,7 +179,7 @@ Toda pantalla contempla, además del caso normal:
 
 - Solo transiciones de 120-200 ms en fondo, borde y opacidad, con la curva `--ease`.
 - Se anima `transform` y `opacity`; nunca tamaño ni posición.
-- Nada se mueve en bucle, salvo dos indicadores de espera: la silueta de carga y la barra de una tarea cuyo avance aún no se conoce. Con "reducir movimiento" activado en el sistema, no se anima nada.
+- Nada se mueve en bucle, salvo tres indicadores de espera: la silueta de carga, la barra de una tarea cuyo avance aún no se conoce y las ondas del wifi mientras conecta. Con "reducir movimiento" activado en el sistema, no se anima nada.
 
 ## 11. Texto de la interfaz
 

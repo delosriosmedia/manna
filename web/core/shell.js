@@ -23,7 +23,8 @@ import { prefs } from './prefs.js';
 //   setPart  un módulo con pestañas dice en cuál está, para avisar solo de lo que le falta a esa
 //
 // layout 'full' (Presentador): el único módulo ocupa la pantalla entera, sin escenario.
-export function createShell({ role, isLocal, modules, extras = [], createScene, layout = 'escena' }) {
+// topTools: [(ctx) => nodo]: lo que va en la barra de arriba, a la izquierda de la ficha de la función (el wifi y el QR del Control completo).
+export function createShell({ role, isLocal, modules, extras = [], topTools = [], createScene, layout = 'escena' }) {
   const canEdit = role === 'control' || role === 'alabanza';
   const usable = modules.filter((m) => !m.soon);
   const listed = usable.filter((m) => !m.hidden);
@@ -53,7 +54,7 @@ export function createShell({ role, isLocal, modules, extras = [], createScene, 
     { label: 'Cambiar de función', icon: 'arrows-left-right', onclick: () => go('/') },
   ].filter(Boolean)) }, h('span', { class: 'role-dot', 'aria-hidden': 'true' }), h('span', { class: 'role-text' }, h('strong', {}, ROLE_NAMES[role] || role), version));
   scene?.status.prepend(h('a', { class: 'brand-mark', href: '/', title: 'Cambiar la función de este dispositivo' }, h('img', { src: '/logo.svg', alt: 'Manna' })));
-  const top = h('header', { class: 'topbar' }, scene?.status, h('span', { class: 'spacer' }), scene?.search?.button, roleChip);
+  const top = h('header', { class: 'topbar' }, scene?.status, h('span', { class: 'spacer' }), scene?.search?.button, ...topTools.map((make) => make(ctx)), roleChip);
 
   // ---- Dock de módulos y cajón ----
   const dockbar = h('nav', { class: 'dockbar glass', 'aria-label': 'Módulos' });

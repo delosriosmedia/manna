@@ -108,7 +108,7 @@ Al actualizar Manna con el instalador, el contenido y los datos no se tocan. Nad
 2. Si cierras la pestaña del control por error, Manna sigue funcionando y la proyección no se interrumpe. Vuelve a pulsar el icono para recuperar el control.
 3. Para conectar otro dispositivo, con él en la misma red wifi:
    - escribe **`manna.local`** en su navegador, o
-   - escanea el código QR de **Dispositivos**, en el menú de la función (arriba) o en Ajustes (ahí está también el PIN).
+   - escanea el código QR de **Dispositivos**: el botón del código QR de la barra de arriba, a la izquierda de la función (o Ajustes; ahí está también el PIN).
 4. Para apagar Manna: **Ajustes → Apagar Manna** (solo aparece en el equipo principal).
 
 Al cerrar o recargar la pestaña del control, el navegador pide confirmación para evitar cierres por error.
@@ -121,7 +121,7 @@ Si el programa se actualiza con Manna abierto, las pantallas de control muestran
 
 ### Conexión por internet
 
-Para usar Manna desde fuera de la iglesia (un celular con datos, otra casa), en el equipo principal: **Ajustes → Conexión por internet → Encender**. Manna lo recuerda: desde entonces, el icono **Manna** abre también la conexión, y **Apagar Manna** la cierra. La primera vez hace falta cloudflared, el programa de Cloudflare: **Revisar el equipo → Instalar por mí**.
+Para usar Manna desde fuera de la iglesia (un celular con datos, otra casa), en el equipo principal: el **wifi de la barra de arriba** (a la izquierda de la función) o **Ajustes → Conexión por internet**, y **Encender**. El wifi cambia de aspecto según el estado (tachado si está apagada, ondas que se encienden mientras conecta, cian si está lista, punto rojo si falla) y, al tocarlo, dice el estado, la dirección y desde cuándo está comprobada. Manna lo recuerda: desde entonces, el icono **Manna** abre también la conexión, y **Apagar Manna** la cierra. La primera vez hace falta cloudflared, el programa de Cloudflare: **Revisar el equipo → Instalar por mí**.
 
 - **Desde internet todo pide el PIN**, también la pantalla de proyección: nadie de fuera ve las biblias, los himnos ni los medios de la iglesia sin él. En la red de la iglesia todo sigue igual.
 - Sin más, la dirección es de prueba (`…trycloudflare.com`) y cambia cada vez que se abre: Ajustes la muestra con un botón para copiarla.

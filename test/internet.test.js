@@ -114,6 +114,7 @@ test('la conexión por internet se enciende, se recuerda, usa la clave sin publi
     assert.equal((await until((s) => s.status === 'checking')).status, 'checking', 'Cloudflare la acepta: falta comprobarla');
     let now = await until((s) => s.status === 'on');
     assert.deepEqual([now.on, now.status, now.url, now.own], [true, 'on', 'https://manna-de-prueba.trycloudflare.com', false]);
+    assert.ok(Math.abs(now.since - Date.now()) < 30_000, 'since dice cuándo pasó a «on»');
     assert.ok(JSON.parse(fs.readFileSync(path.join(dataDir, 'tunel.json'), 'utf8')).on, 'se recuerda para el próximo arranque');
     await localWorks('con la conexión encendida');
 
@@ -122,6 +123,7 @@ test('la conexión por internet se enciende, se recuerda, usa la clave sin publi
     edge = 'roto';
     now = await until((s) => s.status === 'error');
     assert.match(now.error, /no llega a Manna \(responde 502\)/);
+    assert.equal(now.since, null, 'fuera de «on», since se borra');
     assert.ok(await gone(first), 'el cloudflared que no servía se cerró');
     now = await until((s) => s.status === 'checking', 8000);
     assert.ok(asked().at(-1).pid !== first && now.error, 'se volvió a abrir, con el último problema a la vista');
