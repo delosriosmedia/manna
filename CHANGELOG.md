@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.25.2 — 2026-10-17
+
+- Arreglado: desde la 1.24.0, en Windows, Manna cerraba al abrirse cualquier programa de Cloudflare del equipo, también el servicio de Cloudflare que lleva un dominio propio aparte de Manna. Ahora solo se cierra el que abre Manna, y solo cuando Manna se cierra.
+
 ## 1.25.1 — 2026-10-17
 
 - El instalador ordena la carpeta desde la que se abre, si es la de Manna (tiene su `Contenido`): sirve para quien actualizaba a mano, borrando y pegando lo de GitHub, aunque su icono «Manna» no apunte a esa carpeta. Antes habría creado otra en Documentos.

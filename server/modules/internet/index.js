@@ -1,4 +1,3 @@
-import { execFile } from 'node:child_process';
 import { HttpError } from '../../core/router.js';
 
 // Módulo Conexión por internet: un túnel de Cloudflare (cloudflared) trae a Manna lo que llega desde
@@ -44,15 +43,6 @@ async function ask(base) {
     return { error: true };
   }
 }
-
-// Al abrirse, en Windows: cierra el cloudflared que quedara suelto (de un Manna que se cerró de golpe antes
-// de que existiera el vigilante, o al que también le cerraron el vigilante). Bloquea su archivo y deja
-// conectado a Cloudflare un túnel sin Manna detrás. Decisión del dueño (2026-10-17): el túnel es solo de Manna.
-const sweep = () => new Promise((resolve) => {
-  if (process.platform !== 'win32') return resolve();
-  execFile('taskkill', ['/F', '/T', '/IM', 'cloudflared.exe'], { windowsHide: true, timeout: 5000 }, () => resolve());
-  return undefined;
-});
 
 // La clave del túnel tal como se pega: sola o dentro de la orden que muestra Cloudflare
 // ("cloudflared service install eyJ…").
@@ -160,7 +150,9 @@ export default function setup(app) {
     retry();
   }
 
-  store.on('listening', () => sweep().then(start));
+  // No se cierra al abrir ningún otro cloudflared del equipo: el servicio de Cloudflare de Windows, que puede llevar
+  // el dominio propio aparte de Manna, también se llama así (lo cerraba la 1.24.0). Lo de Manna ya lo cierra el vigilante.
+  store.on('listening', start);
   // Encendida pero sin cloudflared: en cuanto se instala («Instalar por mí»), se abre sola.
   store.on('change', (ns) => {
     if (ns === 'tools' && saved.data.on && !child && !timer && app.tools.has('cloudflared')) start();
