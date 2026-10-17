@@ -32,6 +32,8 @@ const ICONS = [
   'sliders-horizontal', 'arrows-in',
   // himnario: favoritos
   'star',
+  // textos (fase 18)
+  'text-aa', 'quotes',
 ];
 
 const base = `https://unpkg.com/@phosphor-icons/core@${VERSION}`;

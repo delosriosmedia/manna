@@ -18,6 +18,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
   - **Imágenes** (anuncios, carteles, fotos): se suben desde el equipo principal o desde la galería del celular, con el nombre que quieras; se elige si la imagen se ve completa o llenando la pantalla; y, mientras está al aire, se acerca y se desplaza desde la barra de abajo.
   - **Audios**: se suben o se copian a `Contenido/Medios/`, y se gobiernan como un video.
   - **Diapositivas**: las presentaciones de la iglesia, en PDF o en PowerPoint, convertidas en imágenes. Se recorren con «Siguiente», la barra de abajo muestra la diapositiva que viene y cuántas quedan, y cada una se puede acercar como una imagen. En Windows, un PowerPoint lo puede pasar **el propio PowerPoint en el proyector**, con sus videos y animaciones, y se sigue pasando desde cualquier celular.
+- **Textos**: mensajes (un anuncio, una bienvenida, un motivo de oración) y **citas con su autor**, para proyectarlos con el fondo y la letra de la Biblia. Se guardan para volver a usarlos y se añaden al orden del culto. Una línea en blanco parte un texto largo en pantallas, que se pasan con «Siguiente».
 - **Páginas web**: presentaciones y juegos de internet (Canva, Google Slides, Genially, Kahoot) o un archivo HTML propio, a pantalla completa. Una dirección necesita internet durante el culto; si la página no se deja mostrar dentro de Manna, el proyector la abre en su propia ventana. Un archivo HTML se pasa con «Anterior» y «Siguiente» desde cualquier dispositivo.
 - **Fondos**: seis colores y las imágenes que subas, que quedan guardadas junto a ellos en Ajustes.
 - **Espacio en disco** (Ajustes): cuánto ocupa lo subido o descargado desde Manna (YouTube, videos, imágenes, presentaciones…) y lo libre del disco. **Limpiar multimedia temporales** lo borra todo, también del orden del culto, tras confirmarlo; la carpeta Contenido (himnario, biblias y medios) y los fondos no se tocan.
@@ -204,6 +205,16 @@ Cada diapositiva queda como una imagen: las **animaciones, las transiciones y lo
 - Hace falta la pantalla de proyección abierta (el proyector conectado). Si PowerPoint falla, la presentación se ve como imágenes y la cola del culto lo avisa.
 - El PowerPoint original se guarda en `data/presentaciones/` del equipo principal.
 
+### Textos
+
+1. En **Textos**, pulsa **Nuevo texto** y elige **Texto** (un mensaje) o **Cita** (con su autor debajo).
+2. Escríbelo. Para que pase en varias pantallas, deja una línea en blanco entre una parte y otra: se pasan con **Siguiente**, como los versículos.
+3. **Guardar** lo deja en la lista de la izquierda (en el celular, «Textos» vuelve a ella). También se guarda solo al proyectarlo, al añadirlo al orden o al pasar a otro.
+4. **Proyectar** lo pone con el fondo, la letra y los colores de la proyección (Ajustes → Apariencia); la letra se reduce sola para que quepa. La cita va entre comillas y con «— Autor» debajo.
+5. Para quitar uno, en su menú (⋯), **Eliminar**.
+
+Solo «Control completo» crea y cambia textos; las demás funciones los proyectan desde el orden del culto.
+
 ### Páginas web
 
 1. En **Páginas web**, pulsa **Agregar página** y pega la dirección (por ejemplo, la de una presentación de Canva o la de un Kahoot). Manna la abre un momento para ver cómo se puede mostrar y te lo dice:
@@ -274,6 +285,7 @@ server/
                         número, título y letra, la pista instrumental y las letras sin música
     slides/             presentaciones convertidas en diapositivas (en la web, la pestaña de Medios, panel.js, y el Presentador): recibir las páginas de un PDF, pedirle
                         a PowerPoint que exporte las de una presentación o que la pase en vivo (powerpoint.js) y proyectarlas
+    texts/              textos y citas para proyectar: guardarlos, partirlos en pantallas (text.js)
     web/                páginas web y archivos HTML: comprobar si una dirección se deja mostrar
                         dentro de otra página y servir los archivos encerrados
     internet/           conexión por internet: abre el túnel de Cloudflare (cloudflared) mientras

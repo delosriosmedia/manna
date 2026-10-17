@@ -4,6 +4,9 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.21.0 — 2026-10-17
+
+- **Textos, un módulo nuevo** (fase 18): mensajes y **citas con su autor** para proyectar con el fondo y la letra de la Biblia. Se escriben y se guardan en una lista para volver a usarlos; una línea en blanco los parte en pantallas que se pasan con «Siguiente»; la cita va entre comillas, con «— Autor» debajo. Se añaden al orden del culto y aparecen en «Buscar en todo». Solo los crea «Control completo».
 ## 1.20.0 — 2026-10-17
 
 - **Diapositivas dentro de Medios** (fase 17): Medios queda con Imágenes, Audios y Diapositivas, y Diapositivas sale de la barra de módulos. La pestaña funciona igual que el módulo de antes (subir un PDF o un PowerPoint, elegir por cuál empezar, pasar con PowerPoint), y arrastrar un PDF o un PowerPoint a Medios lo lleva a ella. «Añadir → Diapositivas» del orden del culto abre esa pestaña. El Presentador no cambia.

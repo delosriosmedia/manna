@@ -52,6 +52,11 @@
   line-height: 0;
 }
 
+/* Un texto del módulo Textos respeta sus saltos de línea. */
+.stage-message {
+  white-space: pre-line;
+}
+
 .stage-ref {
   font-size: calc(var(--fs) * var(--fit) * 0.45cqh / 7.2);
   font-weight: 700;

@@ -14,10 +14,11 @@ import media from './modules/media/index.js';
 import slides from './modules/slides/index.js';
 import hymns from './modules/hymns/index.js';
 import web from './modules/web/index.js';
+import texts from './modules/texts/index.js';
 import internet from './modules/internet/index.js';
 
 // Para añadir un módulo nuevo: crea su carpeta en server/modules y agrégalo aquí.
-const MODULES = [system, bible, projection, order, media, slides, hymns, web, internet, tv];
+const MODULES = [system, bible, projection, order, media, slides, hymns, web, texts, internet, tv];
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Instalado con «Instalar Manna», el programa vive en <base>/programa y el instalador apunta en

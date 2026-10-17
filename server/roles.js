@@ -4,7 +4,7 @@ export const ROLES = [
   {
     id: 'control',
     name: 'Control completo',
-    description: 'Biblia, himnario, medios, diapositivas, páginas, el orden del culto y los ajustes.',
+    description: 'Biblia, himnario, videos, medios, textos, páginas, el orden del culto y los ajustes.',
     path: '/control',
     requiresPin: true,
     permissions: ['*'],
@@ -12,7 +12,7 @@ export const ROLES = [
   {
     id: 'alabanza',
     name: 'Servicio de alabanza',
-    description: 'Himnario, medios, orden y Biblia, con el volumen siempre a la vista.',
+    description: 'Himnario, videos, orden y Biblia, con el volumen siempre a la vista.',
     path: '/alabanza',
     requiresPin: true,
     permissions: ['projection.control', 'order.edit', 'media.edit', 'jobs.manage', 'hymns.favorite'],

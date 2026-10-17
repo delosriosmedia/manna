@@ -903,7 +903,7 @@ try {
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await sleep(500);
   const dockNames = `[...document.querySelectorAll('.dockbar .dock-item')].map(b => b.querySelector('.dock-name').textContent).join('|')`;
-  check('en el celular, el dock va abajo con todos los módulos y su nombre, sin «Más»', await run(`const r = document.querySelector('.dockbar').getBoundingClientRect(); return ${dockNames} === 'Orden|Biblia|Himnario|Videos|Medios|Páginas web|Ajustes' && getComputedStyle(document.querySelector('.dock-name')).display !== 'none' && r.bottom > innerHeight - 30 && r.top > innerHeight / 2 && !document.querySelector('.tabbar') && ![...document.querySelectorAll('.dockbar button')].some(b => b.textContent === 'Más') && document.querySelector('.dock-item.on').dataset.id === 'medios'`), await run(`return ${dockNames}`));
+  check('en el celular, el dock va abajo con todos los módulos y su nombre, sin «Más»', await run(`const r = document.querySelector('.dockbar').getBoundingClientRect(); return ${dockNames} === 'Orden|Biblia|Himnario|Videos|Medios|Textos|Páginas web|Ajustes' && getComputedStyle(document.querySelector('.dock-name')).display !== 'none' && r.bottom > innerHeight - 30 && r.top > innerHeight / 2 && !document.querySelector('.tabbar') && ![...document.querySelectorAll('.dockbar button')].some(b => b.textContent === 'Más') && document.querySelector('.dock-item.on').dataset.id === 'medios'`), await run(`return ${dockNames}`));
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(400);
 
@@ -928,7 +928,7 @@ try {
 
     await goTo('videos');
     await sleep(400);
-    check('Videos es un módulo propio, con «Subir videos» y el enlace de YouTube; Medios ya no tiene Videos ni YouTube', await run(`return ${vids}.querySelector('.empty').textContent.includes('Contenido/Medios') && ${vids}.querySelector('.empty').textContent.includes('YouTube') && document.querySelector('.ws[data-module=videos] .ws-head > .btn').textContent === 'Subir videos' && Boolean(document.querySelector('.ws[data-module=videos] .ws-head .yt-add')) && [...document.querySelectorAll('.ws[data-module=medios] .media-tabs .chip')].map(c => c.textContent).join() === 'Imágenes,Audios'`));
+    check('Videos es un módulo propio, con «Subir videos» y el enlace de YouTube; Medios ya no tiene Videos ni YouTube (sí Diapositivas)', await run(`return ${vids}.querySelector('.empty').textContent.includes('Contenido/Medios') && ${vids}.querySelector('.empty').textContent.includes('YouTube') && document.querySelector('.ws[data-module=videos] .ws-head > .btn').textContent === 'Subir videos' && Boolean(document.querySelector('.ws[data-module=videos] .ws-head .yt-add')) && [...document.querySelectorAll('.ws[data-module=medios] .media-tabs .chip')].map(c => c.textContent).join() === 'Imágenes,Audios,Diapositivas'`));
     await chooseFiles('.media-body[data-panel=videos] input[type=file]', [notVideo]);
     await sleep(500);
     await modalButton('Subir');
@@ -1362,6 +1362,56 @@ try {
     const wordsInOrder = (await onAir()).order.find((i) => i.kind === 'lyrics');
     check('se añade al orden del culto como letra sin música, con sus diapositivas', Boolean(wordsInOrder) && wordsInOrder.title === hymnTitle(9) && wordsInOrder.subtitle === 'N.º 9 · Letra sin música' && wordsInOrder.steps === 4, JSON.stringify(wordsInOrder || null));
     await click(`${ws}.querySelector('.hymn-views [data-view=grid]')`);
+  }
+
+  console.log('\n1. Interfaz · Textos');
+  {
+    const ws = `document.querySelector('.ws[data-module=textos]')`;
+    const tbar = `${ws}.querySelector('.text-bar')`;
+    const area = `${ws}.querySelector('.text-area')`;
+    const textsNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).texts.list)`).then(JSON.parse);
+    const air = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).projection.item)`).then(JSON.parse);
+    const type = (js, value) => run(`const e = ${js}; e.value = ${JSON.stringify(value)}; e.dispatchEvent(new Event('input'));`);
+    await goTo('textos');
+    await sleep(500);
+    check('Textos empieza vacío, dice para qué sirve y se escribe al lado', await run(`return document.title === 'Manna · Textos' && ${ws}.querySelector('.text-list .empty').textContent.includes('Aún no hay textos') && Boolean(${area}) && ${tbar}.hidden`));
+    await type(area, 'Bienvenidos al culto\n\nLos esperamos en el salón al terminar');
+    await sleep(300);
+    check('al escribir dice en cuántas partes se pasa, y «Preparado» muestra la primera', await run(`return ${ws}.querySelector('.text-info').textContent.startsWith('2 partes') && !${tbar}.hidden && document.querySelector('.prep-monitor .stage-message')?.textContent === 'Bienvenidos al culto'`));
+    await click(`[...${ws}.querySelectorAll('.text-foot .btn')].find(b => b.textContent.includes('Guardar'))`);
+    await sleep(600);
+    let list = await textsNow();
+    check('«Guardar» lo deja en la lista, elegido', list.length === 1 && list[0].text === 'Bienvenidos al culto\n\nLos esperamos en el salón al terminar' && await run(`return ${ws}.querySelectorAll('.text-card').length === 1 && ${ws}.querySelector('.text-card').classList.contains('selected')`));
+    await click(`${tbar}.querySelector('.btn.primary')`);
+    await sleep(800);
+    let item = await air();
+    check('«Proyectar» pone su primera parte', item?.kind === 'text' && item.part === 1 && item.text === 'Bienvenidos al culto', JSON.stringify(item));
+    await click(`document.querySelector('.tb-main .btn.next')`);
+    await sleep(700);
+    item = await air();
+    check('y «Siguiente», la segunda', item?.part === 2 && item.text === 'Los esperamos en el salón al terminar', JSON.stringify(item));
+    await click(`[...${ws}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes('Nuevo texto'))`);
+    await sleep(300);
+    await click(`${ws}.querySelector('.text-styles [data-style=quote]')`);
+    await sleep(200);
+    await type(area, 'Una frase inventada para la prueba');
+    await type(`${ws}.querySelector('.text-author input')`, 'Autor de prueba');
+    await click(`[...${tbar}.querySelectorAll('.btn')].find(b => b.textContent.includes('Añadir'))`);
+    await sleep(700);
+    list = await textsNow();
+    const inOrder = JSON.parse(await run(`return JSON.stringify((await (await fetch('/api/state')).json()).order.items.filter(i => i.kind === 'text'))`));
+    check('una cita lleva su autor; «Añadir al orden» la guarda y la añade', list.length === 2 && list[0].style === 'quote' && list[0].author === 'Autor de prueba' && inOrder.length === 1 && inOrder[0].subtitle === 'Cita · Autor de prueba', JSON.stringify(inOrder));
+    await click(`${tbar}.querySelector('.btn.primary')`);
+    await sleep(900);
+    check('en la proyección, la cita va entre comillas y con su autor debajo', await run(`const i = document.querySelector('.scene-bg .stage-inner'); return i?.querySelector('.stage-message')?.textContent === '«Una frase inventada para la prueba»' && i.querySelector('.stage-ref').textContent === '— Autor de prueba'`),
+      await run(`return document.querySelector('.scene-bg .stage-inner')?.textContent`));
+    await click(`${ws}.querySelector('.text-card[data-id="${list[1]?.id}"] .text-more')`);
+    await sleep(300);
+    await menuItem('Eliminar');
+    await sleep(300);
+    await modalButton('Eliminar');
+    await sleep(600);
+    check('un texto se elimina desde su menú', (await textsNow()).length === 1 && await run(`return ${ws}.querySelectorAll('.text-card').length === 1`));
   }
 
   console.log('\n1. Interfaz · Ajustes: espacio en disco y limpiar');

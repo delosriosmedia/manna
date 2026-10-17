@@ -133,6 +133,10 @@ const SCREENS = [
     prepare: `(() => { document.querySelector('.hymn-views [data-view=grid]').click(); const i = document.querySelector('.ws[data-module=himnario] .search input'); i.value = 'renglon inventado'; i.dispatchEvent(new Event('input')); })()` },
   { name: 'Al aire con un himno', url: '/control#himnario', show: 'song', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Orden con un himno al aire', url: '/control#orden', show: 'song', controls: '.odetail .live-controls' },
+  // Textos (fase 18): la lista de guardados y, con uno elegido, el editor con «Proyectar» a la vista.
+  { name: 'Textos', url: '/control#textos', content: '.text-list', inside: '.text-card', settle: 500 },
+  { name: 'Textos: una cita', url: '/control#textos', content: '.text-editor', primary: '.text-bar .btn.primary', inside: '.text-bar', settle: 600,
+    prepare: `document.querySelector('.text-card[data-id=ejemplo-cita] .text-pick').click()` },
   // Diapositivas es una pestaña de Medios (fase 17).
   { name: 'Medios: diapositivas', url: '/control#medios', content: '.decks', inside: '.deck', settle: 500,
     prepare: `document.querySelector('.media-tabs [data-tab=diapositivas]').click()` },

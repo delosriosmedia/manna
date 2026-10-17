@@ -1,0 +1,166 @@
+import { action, state, subscribe } from '../../core/api.js';
+import { h, dialog, guard, menu, toast } from '../../core/dom.js';
+import { icon } from '../../core/icons.js';
+import { whenLabel } from '../../core/time.js';
+
+const NARROW = 600; // por debajo de este ancho del cajón, una cosa cada vez (lo mismo dice texts.css)
+const MAX_TEXT = 4000;
+const MAX_AUTHOR = 80;
+// Como en el servidor (server/modules/texts/text.js): una línea en blanco pasa a otra pantalla.
+const partsOf = (text) => text.replace(/\r\n?/g, '\n').split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+const firstLine = (text) => text.trim().split('\n')[0].slice(0, 60);
+
+// Módulo Textos (fase 18 de docs/PLAN.md): mensajes y citas para proyectar. A un lado, los guardados; al otro,
+// el que se escribe. Lo escrito se guarda con «Guardar», y también al proyectarlo, al añadirlo al orden o al
+// pasar a otro, para no perderlo.
+function mount(el, ctx) {
+  let selected = null;  // id del texto abierto; null = uno nuevo
+  let style = 'normal';
+  let open = false;     // en el cajón estrecho: el editor (true) o la lista
+  let awaited = null;   // el recién guardado, hasta que llegue con el estado
+  let base = { text: '', style: 'normal', author: '' }; // lo guardado de lo que está en el editor
+  const texts = () => state.texts?.list || [];
+  const current = () => texts().find((t) => t.id === selected) || null;
+
+  const area = h('textarea', { class: 'input text-area', rows: 7, maxLength: MAX_TEXT, placeholder: 'Escribe aquí el mensaje', 'aria-label': 'Texto' });
+  const author = h('input', { class: 'input', maxLength: MAX_AUTHOR, placeholder: 'Autor de la cita', 'aria-label': 'Autor' });
+  const authorRow = h('label', { class: 'text-author' }, h('span', {}, '—'), author);
+  const styles = [['normal', 'text-aa', 'Texto'], ['quote', 'quotes', 'Cita']].map(([id, glyph, label]) =>
+    h('button', { class: 'chip', type: 'button', role: 'radio', dataset: { style: id }, onclick: () => { style = id; render(); } }, icon(glyph, 15), label));
+  const save = h('button', { class: 'btn', onclick: () => commit() }, icon('check', 16), 'Guardar');
+  const info = h('small', { class: 'text-info' });
+  const back = h('button', { class: 'btn text-back', onclick: () => leave(() => { open = false; }) }, icon('caret-left', 16), 'Textos');
+  const editor = h('div', { class: 'text-editor' },
+    back,
+    h('div', { class: 'text-styles', role: 'radiogroup', 'aria-label': 'Qué es' }, ...styles),
+    area, authorRow, h('div', { class: 'text-foot' }, info, save));
+  const list = h('div', { class: 'text-list' });
+  const body = h('div', { class: 'texts', dataset: { view: 'list' } }, list, editor);
+
+  const where = h('span', { class: 'sel-ref' });
+  const project = guard(async () => {
+    const id = await commit(true);
+    if (!id) return;
+    await action('projection.show', { kind: 'text', data: { id }, step: partsOf(area.value).length > 1 ? 0 : null });
+  });
+  const show = h('button', { class: 'btn primary', onclick: () => project() }, icon('play', 16), 'Proyectar', h('kbd', {}, '↵'));
+  const add = h('button', { class: 'btn', onclick: guard(async () => {
+    const id = await commit(true);
+    if (!id) return;
+    await action('order.add', { kind: 'text', data: { id } });
+    toast(`«${firstLine(area.value)}» añadido al orden del culto.`);
+  }) }, icon('plus', 16), 'Añadir al orden');
+  const bar = h('div', { class: 'abar text-bar' }, where, h('span', { class: 'hint' }, 'Una línea en blanco pasa a otra pantalla'), add, show);
+  const fresh = h('button', { class: 'btn', onclick: () => leave(() => { selected = null; open = true; fill(); }) }, icon('plus', 16), 'Nuevo texto');
+  el.replaceChildren(h('div', { class: 'ws-head' }, h('h1', {}, 'Textos'), h('span', { class: 'spacer' }), ctx.canEdit && fresh), body, bar);
+
+  // Lo que hay en el editor, y si difiere de lo guardado.
+  const draft = () => ({ text: area.value.trim(), style, author: style === 'quote' ? author.value.trim() : '' });
+  const differs = (a, b) => a.text !== b.text || a.style !== b.style || a.author !== b.author;
+  const dirty = () => differs(draft(), base);
+  // Guarda si hace falta y devuelve el id (null si no hay nada que guardar). quiet: sin aviso.
+  async function commit(quiet = false) {
+    if (!area.value.trim()) { area.focus(); return null; }
+    if (!dirty() && selected) return selected;
+    const { id } = await action('texts.save', { id: selected || undefined, style, text: area.value, author: author.value });
+    if (!selected) awaited = id;
+    selected = id;
+    base = draft();
+    if (!quiet) toast('Texto guardado.');
+    render();
+    return id;
+  }
+  // Antes de pasar a otro texto o a la lista, se guarda lo escrito (si se puede).
+  const leave = guard(async (then) => {
+    if (ctx.canEdit && dirty()) await commit(true);
+    then();
+    render();
+  });
+  function fill() {
+    const t = current();
+    base = { text: t?.text || '', style: t?.style || 'normal', author: t?.author || '' };
+    area.value = base.text;
+    author.value = base.author;
+    style = base.style;
+  }
+  const choose = (id) => leave(() => { selected = id; open = true; fill(); });
+  const confirmRemove = (t) => {
+    const box = dialog('Eliminar el texto',
+      h('p', {}, `«${firstLine(t.text)}» se quitará de la lista. Si está en el orden del culto, ese elemento dejará de poder proyectarse.`),
+      h('div', { class: 'row', style: 'justify-content: flex-end;' },
+        h('button', { class: 'btn', onclick: () => box.close() }, 'Cancelar'),
+        h('button', { class: 'btn danger', onclick: guard(async () => {
+          await action('texts.remove', { id: t.id });
+          box.close();
+        }) }, 'Eliminar')));
+  };
+
+  function renderList() {
+    const all = texts();
+    const air = state.projection?.mode === 'live' && state.projection.item?.kind === 'text' ? state.projection.item.id : null;
+    if (!all.length) {
+      list.replaceChildren(h('div', { class: 'empty' }, h('strong', {}, 'Aún no hay textos'),
+        'Escribe un mensaje (un anuncio, una bienvenida, un motivo de oración) o una cita con su autor para proyectarlo con el fondo y la letra de la Biblia.'));
+      return;
+    }
+    list.replaceChildren(...all.map((t) => {
+      const parts = partsOf(t.text).length;
+      const facts = [t.style === 'quote' ? (t.author || 'Cita') : 'Texto', parts > 1 && `${parts} partes`, whenLabel(t.updated)].filter(Boolean).join(' · ');
+      return h('div', { class: `text-card${t.id === selected ? ' selected' : ''}${t.id === air ? ' live' : ''}`, dataset: { id: t.id } },
+        h('button', { class: 'text-pick', 'aria-pressed': t.id === selected, onclick: () => choose(t.id), ondblclick: () => { choose(t.id); project(); } },
+          h('span', { class: 'text-kind' }, icon(t.style === 'quote' ? 'quotes' : 'text-aa', 16)),
+          h('span', { class: 'item-text' }, h('strong', {}, firstLine(t.text)), h('small', {}, facts)),
+          t.id === air && h('span', { class: 'badge live' }, 'Al aire')),
+        ctx.canEdit && h('button', { class: 'icon-btn sm text-more', 'aria-label': `Opciones de ${firstLine(t.text)}`, onclick: (e) => menu(e.currentTarget, [
+          { label: 'Eliminar', icon: 'trash', onclick: () => confirmRemove(t) },
+        ]) }, icon('dots-three', 16)));
+    }));
+  }
+
+  function render() {
+    if (awaited && current()) awaited = null;
+    else if (selected && !current() && selected !== awaited) { selected = null; fill(); } // lo borraron
+    const narrow = el.clientWidth > 0 && el.clientWidth < NARROW;
+    body.dataset.view = narrow && !open ? 'list' : 'edit';
+    back.hidden = !narrow;
+    renderList();
+    for (const b of styles) {
+      b.classList.toggle('on', b.dataset.style === style);
+      b.setAttribute('aria-checked', String(b.dataset.style === style));
+    }
+    authorRow.hidden = style !== 'quote';
+    for (const input of [area, author, ...styles]) input.disabled = !ctx.canEdit;
+    const parts = partsOf(area.value);
+    info.textContent = parts.length > 1 ? `${parts.length} partes: se pasan con «Siguiente»` : 'Una línea en blanco pasa a otra pantalla';
+    save.disabled = !dirty();
+    save.hidden = !ctx.canEdit;
+    const text = area.value.trim();
+    where.textContent = text ? firstLine(text) : 'Texto nuevo';
+    bar.hidden = !text || (narrow && !open);
+    show.disabled = add.disabled = !text || (!ctx.canEdit && dirty());
+    // «Preparado» muestra lo que se proyectaría: la primera parte (o todo, si es una).
+    if (el.isConnected && !el.hidden) {
+      ctx.setPreview(text ? { kind: 'text', id: selected || 'nuevo', style, author: author.value.trim(), title: firstLine(text), text: parts[0], part: parts.length > 1 ? 1 : null, parts: parts.length } : null);
+    }
+  }
+  area.addEventListener('input', render);
+  author.addEventListener('input', render);
+  subscribe('texts', () => {
+    // Si lo abierto cambió (en otro dispositivo, o el servidor lo limpió al guardar) y aquí no hay cambios, se ve lo nuevo.
+    const t = current();
+    if (t && !dirty() && differs(t, base)) fill();
+    render();
+  });
+  subscribe('projection', renderList);
+
+  return {
+    onShow: render,
+    keys(e) {
+      if (e.key !== 'Enter' || !area.value.trim()) return false;
+      project();
+      return true;
+    },
+  };
+}
+
+export default { id: 'textos', name: 'Textos', icon: 'text-aa', mount };
