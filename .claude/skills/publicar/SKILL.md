@@ -76,19 +76,14 @@ Solo tras un sí:
 git push
 ```
 
-Si hubo versión nueva, crea también la etiqueta y la **versión de GitHub con los dos instaladores**, que es de donde los descarga quien instala Manna (enlaces del README, «Instalación»). El de Mac va dentro de un `.zip` para que conserve el permiso de ejecutarse y su icono (el de Manna con un engranaje, que va en el «resource fork»: `ditto` lo guarda en el `.zip`; `zip`, no). Se hace desde el Mac:
+Si hubo versión nueva, crea también la **versión de GitHub** (con su etiqueta). Es de donde se descargan los instaladores de un solo archivo (enlaces del README, «Instalación»), y **los adjunta GitHub solo**: al publicarla, `.github/workflows/instaladores.yml` compila `Instalar-Manna-Windows.exe` en un Windows, arma `Instalar-Manna-Mac.pkg` en un Mac, los prueba y los sube a la versión (unos 5 minutos):
 
 ```bash
-git tag v<versión> && git push --tags
-dir=$(mktemp -d)
-cp "Instalar Manna en Windows.bat" "$dir/Instalar-Manna-Windows.bat"
-cp "Instalar Manna en Mac.command" "$dir/" && chmod +x "$dir/Instalar Manna en Mac.command"
-osascript -l JavaScript - instalacion/icono/instalar.icns "$dir/Instalar Manna en Mac.command" >/dev/null <<'ICONO'
-ObjC.import('AppKit');
-function run(argv) { $.NSWorkspace.sharedWorkspace.setIconForFileOptions($.NSImage.alloc.initWithContentsOfFile(argv[0]), argv[1], 0); }
-ICONO
-(cd "$dir" && ditto -c -k --sequesterRsrc "Instalar Manna en Mac.command" Instalar-Manna-Mac.zip)
-gh release create v<versión> --title "Manna <versión>" --notes "<lo de esta versión en CHANGELOG.md>" "$dir/Instalar-Manna-Windows.bat" "$dir/Instalar-Manna-Mac.zip"
+gh release create v<versión> --target main --title "Manna <versión>" --notes "<lo de esta versión en CHANGELOG.md>"
+gh run list --workflow instaladores.yml --limit 1   # y, al terminar, que la versión tenga los dos archivos
+gh release view v<versión> --json assets --jq '.assets[].name'
 ```
+
+Si la compilación falla, la versión queda sin instaladores: se arregla, se publica una versión de arreglo y se avisa al dueño. Para probar un cambio de los instaladores antes de publicar, se sube a una rama `fase-…`: el mismo flujo los compila y los prueba sin adjuntarlos.
 
 Confirma con el enlace al repositorio: https://github.com/delosriosmedia/manna
