@@ -76,7 +76,7 @@ Solo tras un sí:
 git push
 ```
 
-Si hubo versión nueva, crea también la **versión de GitHub** (con su etiqueta). Es de donde se descargan los instaladores de un solo archivo (enlaces del README, «Instalación»), y **los adjunta GitHub solo**: al publicarla, `.github/workflows/instaladores.yml` compila `Instalar-Manna-Windows.exe` en un Windows, arma `Instalar-Manna-Mac.pkg` en un Mac, los prueba y los sube a la versión, y a la vez corre `npm test` en el Windows (unos 5 minutos). Si las pruebas de Windows fallan, los instaladores se adjuntan igual: se dice al dueño qué falló:
+Si hubo versión nueva, crea también la **versión de GitHub** (con su etiqueta). Es de donde se descargan los instaladores de un solo archivo (enlaces del README, «Instalación»), y **los adjunta GitHub solo**: al publicarla, `.github/workflows/instaladores.yml` compila `Instalar-Manna-Windows.exe` en un Windows, arma `Instalar-Manna-Mac.pkg` en un Mac, los prueba y los sube a la versión, y a la vez corre `npm test` en el Windows (alrededor de 1 minuto; medido el 2026-10-18: 46 s el más largo). Si las pruebas de Windows fallan, los instaladores se adjuntan igual: se dice al dueño qué falló:
 
 ```bash
 gh release create v<versión> --target main --title "Manna <versión>" --notes "<lo de esta versión en CHANGELOG.md>"
