@@ -4,6 +4,12 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.35.0 — 2026-10-18
+
+- **Instalar Manna con un solo archivo**, con el icono de Manna: **Instalar-Manna-Windows.exe** en Windows e **Instalar-Manna-Mac.pkg** (el instalador de Apple) en Mac, en la página de cada versión de GitHub.
+- **No hay que instalar nada antes**: el instalador descarga Node.js, el motor de Manna, de su página oficial (comprobando que llegó entero) y lo deja en la carpeta de Manna. Una instalación de antes lo recibe en su próxima actualización.
+- **El instalador dice qué hace en cada paso**: en Windows, una consola con los pasos, sus marcas y una barra de avance; en Mac, una página con los pasos y otra con lo que sigue. Al terminar abre Manna, y desde Manna se hace lo demás (elegir la carpeta de contenido, reiniciar, actualizar).
+- Al actualizar, la carpeta Manna se queda donde estaba aunque la carpeta de contenido elegida en Ajustes esté en otro sitio, y se recuerda que se eligió.
 ## 1.34.0 — 2026-10-18
 
 - **Elegir la carpeta de contenido desde Manna**: en **Ajustes → Carpeta de contenido** se ve dónde está y qué tiene (versiones de la Biblia, himnos, videos y audios), se abre con **Abrir la carpeta** y se elige otra con **Cambiar…**, en la ventana del sistema. **Manna la usa al momento, sin reiniciar**, y le añade lo que le falte (sus carpetas, las instrucciones y la Reina-Valera 1909) sin tocar lo que ya tiene. Puede estar en cualquier sitio, también en otro disco.
