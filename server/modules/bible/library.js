@@ -25,6 +25,13 @@ export class BibleLibrary {
     this.#dir = dir;
   }
 
+  // Otra carpeta (la de contenido cambió con Manna abierto): lo leído de la anterior se olvida; luego, scan().
+  setDir(dir) {
+    this.#dir = dir;
+    this.#versions = new Map();
+    this.#parsed.clear();
+  }
+
   scan() {
     const found = new Map();
     const names = new Map();

@@ -33,11 +33,16 @@ export default function setup(app) {
   store.register('hymns', { ready: false, version: 0, count: 0, issues: 0, favorites: [] });
   if (!app.hymnsDir) return;
 
-  const videosDir = path.join(app.hymnsDir, 'videos');
-  const lyricsDir = path.join(app.hymnsDir, 'letras');
-  const slidesDir = path.join(app.hymnsDir, 'diapositivas');
+  // Las carpetas del himnario: cambian si cambia la carpeta de contenido con Manna abierto (fase 29).
+  let videosDir, lyricsDir, slidesDir;
+  const point = () => {
+    videosDir = path.join(app.hymnsDir, 'videos');
+    lyricsDir = path.join(app.hymnsDir, 'letras');
+    slidesDir = path.join(app.hymnsDir, 'diapositivas');
+    for (const dir of [videosDir, lyricsDir]) fs.mkdirSync(dir, { recursive: true });
+  };
+  point();
   const tracksDir = path.join(app.tmpDir, 'himnos');
-  for (const dir of [videosDir, lyricsDir]) fs.mkdirSync(dir, { recursive: true });
   // Lo que se sabe de cada archivo de video (cuánto dura, cuántas pistas de sonido trae), para no
   // mirarlo con ffprobe cada vez: { [nombre]: { size, modified, duration, tracks } }.
   // Y los favoritos: números de himno, los mismos para todos los dispositivos.
@@ -221,9 +226,17 @@ export default function setup(app) {
   }
 
   // ---- Arranque y vigilancia ----
-  app.mount('/himnos/', videosDir);
-  app.mount('/himnos-letras/', slidesDir);
-  const stops = [watchFolder(videosDir, load), watchFolder(lyricsDir, load), watchFolder(slidesDir, load)];
+  app.mount('/himnos/', () => videosDir);
+  app.mount('/himnos-letras/', () => slidesDir);
+  const watch = () => [watchFolder(videosDir, load), watchFolder(lyricsDir, load), watchFolder(slidesDir, load)];
+  let stops = watch();
+  app.onContent(() => {
+    for (const stop of stops) stop();
+    point();
+    fs.rmSync(tracksDir, { recursive: true, force: true }); // las pistas sacadas de los videos de la carpeta anterior
+    stops = watch();
+    load();
+  });
   store.on('listening', load);
   // Al instalarse ffmpeg ya se puede mirar cuánto dura cada himno y ofrecer la pista.
   let hadFfmpeg = app.tools.has('ffmpeg');

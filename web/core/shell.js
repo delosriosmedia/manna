@@ -5,6 +5,7 @@ import { h, allowLeaving, confirmBeforeClose, dialog, go, guard, pageZoom, toast
 import { icon } from './icons.js';
 import { joinNames, missingFor, toolsOf } from './needs.js';
 import { prefs } from './prefs.js';
+import { chooseContent, contentMissing } from './contenido.js';
 
 // Estructura de las funciones de control: el «Escenario» (fase 13 de docs/PLAN.md).
 // Lo que está al aire ocupa el fondo; encima flotan la barra de arriba, el dock de módulos, el cajón
@@ -300,6 +301,30 @@ export function createShell({ role, isLocal, modules, topTools = [], createScene
       } }, icon('x', 14)),
     ].filter(Boolean));
   });
+  // ---- Carpeta de contenido sin elegir (fase 29) ----
+  // Donde se puede elegir (la función con Ajustes): si no se encuentra, o solo tiene lo que trae el instalador. La ×
+  // lo esconde hasta volver a abrir la página.
+  const content = h('div', { class: 'update-bar glass', role: 'status', hidden: true });
+  let contentShown = null;
+  let contentClosed = false;
+  const TEXTS = {
+    lost: ['No se encuentra la carpeta de contenido. ', 'Puede estar en un disco desconectado.'],
+    unchosen: ['Falta elegir la carpeta de contenido: ', 'ahí están el himnario y las demás versiones de la Biblia.'],
+    empty: ['La carpeta de contenido está vacía: ', 'no tiene himnario ni más versiones de la Biblia que la Reina-Valera 1909.'],
+  };
+  const showContent = () => {
+    const missing = usable.some((m) => m.id === 'ajustes') && !contentClosed ? contentMissing() : null;
+    content.hidden = !missing;
+    if (!missing || contentShown === missing) return;
+    contentShown = missing;
+    content.replaceChildren(...[
+      icon('folder-simple', 18),
+      h('p', {}, h('strong', {}, TEXTS[missing][0]), TEXTS[missing][1], isLocal ? '' : ' Se elige en el equipo principal, en Ajustes.'),
+      isLocal && h('button', { class: 'btn primary', onclick: () => chooseContent() }, icon('folder-simple', 15), 'Elegir la carpeta'),
+      h('button', { class: 'icon-btn sm', 'aria-label': 'Cerrar el aviso', onclick: () => { contentClosed = true; content.hidden = true; } }, icon('x', 14)),
+    ].filter(Boolean));
+  };
+  for (const ns of ['system', 'hymns', 'bible']) subscribe(ns, showContent);
   onServerUpdate(() => {
     allowLeaving();
     location.reload();
@@ -393,7 +418,7 @@ export function createShell({ role, isLocal, modules, topTools = [], createScene
     // de abajo siguen funcionando con el cajón abierto (decisión del dueño, 2026-10-15).
     // Con un cajón abierto, el toque solo lo cierra; con él cerrado, esconde (o trae) la barra de abajo.
     scene.bg.addEventListener('click', (e) => { if (isOpen()) closeDrawer(); else scene.tapBackground(e); });
-    document.body.append(...[scene.bg, h('div', { class: 'scene-scrim', 'aria-hidden': 'true' }), top, update, fresh, scene.story,
+    document.body.append(...[scene.bg, h('div', { class: 'scene-scrim', 'aria-hidden': 'true' }), top, update, fresh, content, scene.story,
       dockbar, scene.queue, backdrop, drawer, scene.transport, controlsLayer, scene.search?.layer, scene.preview?.bar].filter(Boolean));
     place();
   }

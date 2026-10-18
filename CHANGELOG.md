@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.34.0 — 2026-10-18
+
+- **Elegir la carpeta de contenido desde Manna**: en **Ajustes → Carpeta de contenido** se ve dónde está y qué tiene (versiones de la Biblia, himnos, videos y audios), se abre con **Abrir la carpeta** y se elige otra con **Cambiar…**, en la ventana del sistema. **Manna la usa al momento, sin reiniciar**, y le añade lo que le falte (sus carpetas, las instrucciones y la Reina-Valera 1909) sin tocar lo que ya tiene. Puede estar en cualquier sitio, también en otro disco.
+- **Aviso si falta la carpeta de contenido**: si no se encuentra (un disco desconectado), o solo tiene lo que trae el instalador (la Reina-Valera 1909 y ningún himno), un aviso arriba lo dice, con **Elegir la carpeta**.
 - **Citas de un PDF hecho de imágenes**: un PDF exportado desde una web o escaneado, que no trae su texto, ya no se rechaza. El equipo principal lee el texto de cada página, con lo que trae el sistema (en Mac, el «Texto en vivo»; en Windows, su lectura de texto), y se ve el avance página a página. En Windows hace falta tener el español instalado como idioma (Manna lo dice si falta).
 ## 1.33.0 — 2026-10-18
 

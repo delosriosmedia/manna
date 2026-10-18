@@ -2,6 +2,7 @@ import { action, api, disconnect, state, subscribe } from '../../core/api.js';
 import { h, allowLeaving, dialog, go, guard, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { prefs } from '../../core/prefs.js';
+import { chooseContent } from '../../core/contenido.js';
 import { createDisplayToggle, createStylePanel, createTestCardButton, describeDisplay } from '../projection/controls.js';
 import { netText } from '../system/conexion.js';
 import { openDevicesDialog } from '../system/devices.js';
@@ -40,6 +41,20 @@ function mount(el, ctx) {
       else document.documentElement.style.removeProperty('--zoom');
     } });
 
+  // Carpeta de contenido (fase 29): dónde está y qué tiene; se abre o se cambia en el equipo principal, sin reiniciar.
+  const contentPath = h('p', { class: 'content-path' });
+  const contentHas = h('p', { class: 'muted' });
+  const showContent = () => {
+    const content = state.system?.content;
+    if (!content) return;
+    contentPath.textContent = content.dir || '—';
+    const folderMedia = ['videos', 'audios'].reduce((n, kind) => n + (state.media?.[kind] || []).filter((c) => c.source === 'folder').length, 0);
+    const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+    contentHas.textContent = !content.exists ? 'No se encuentra esa carpeta: puede estar en un disco desconectado.'
+      : `${count(state.bible?.versions?.length || 0, 'versión de la Biblia', 'versiones de la Biblia')} · ${count(state.hymns?.count || 0, 'himno', 'himnos')} · ${count(folderMedia, 'video o audio', 'videos y audios')} de la carpeta Medios`;
+  };
+  for (const ns of ['system', 'bible', 'hymns', 'media']) subscribe(ns, showContent);
+
   const nav = h('nav', { class: 'set-nav', 'aria-label': 'Secciones de Ajustes' });
   // short: el nombre corto en la fila de secciones.
   const section = (short, title, hint, ...content) => {
@@ -63,6 +78,12 @@ function mount(el, ctx) {
         net, netAddress, ctx.isLocal && h('div', { class: 'row', style: 'flex-wrap: wrap;' }, netToggle, netOwn)),
       section('Programas', 'Programas del equipo principal', 'Lo que Manna usa para convertir videos, descargar de YouTube y abrir presentaciones. Ninguno que falte impide abrir Manna.',
         tools, h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => go('/requisitos') }, icon('check-circle', 16), 'Revisar el equipo'))),
+      section('Contenido', 'Carpeta de contenido', 'Las biblias, el himnario y los videos y audios de la iglesia. Al cambiarla, Manna usa la nueva al momento, sin reiniciar; la anterior queda como estaba.',
+        contentPath, contentHas,
+        ctx.isLocal ? h('div', { class: 'row', style: 'flex-wrap: wrap;' },
+          h('button', { class: 'btn', onclick: guard(() => action('system.contentOpen')) }, icon('folder-simple', 16), 'Abrir la carpeta'),
+          h('button', { class: 'btn', onclick: () => chooseContent() }, icon('arrows-left-right', 16), 'Cambiar…'))
+          : h('p', { class: 'muted' }, 'Se abre y se cambia desde el equipo principal.')),
       section('Disco', 'Espacio en disco', 'Lo que ocupa lo subido o descargado desde Manna. Lo de la carpeta Contenido (himnario, biblias y medios) no cuenta y nunca se borra.',
         diskList, diskFree),
       section('Este dispositivo', 'Este dispositivo', 'Solo cambia aquí: cada celular, tableta o equipo tiene lo suyo.',

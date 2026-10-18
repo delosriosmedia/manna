@@ -61,3 +61,6 @@ html.touch .disk-gap { width: var(--tap); }
 .ui-size input { flex: 1; min-width: 0; }
 .ui-a { width: 18px; text-align: center; color: var(--ink-2); font-size: 12px; font-weight: 600; line-height: 1; }
 .ui-a.big { font-size: 20px; }
+
+/* Carpeta de contenido: la ruta entera, aunque sea larga. */
+.content-path { font-family: var(--mono); font-size: 13px; color: var(--ink); overflow-wrap: anywhere; }

@@ -29,8 +29,18 @@ export default function setup(app) {
     prepareSearch();
   };
 
-  // Si se copia o borra una biblia en la carpeta, la lista se actualiza sola.
-  app.onClose(watchFolder(app.biblesDir, rescan));
+  // Si se copia o borra una biblia en la carpeta, la lista se actualiza sola. Si cambia la carpeta de contenido, se
+  // vigila la nueva y se leen sus biblias (fase 29).
+  let stopWatching = watchFolder(app.biblesDir, rescan);
+  app.onClose(() => stopWatching());
+  app.onContent(() => {
+    stopWatching();
+    library.setDir(app.biblesDir);
+    stopWatching = watchFolder(app.biblesDir, rescan);
+    rescan();
+    review = null; // el buscador de citas se arma con las biblias de la carpeta
+    app.services.projection?.refresh();
+  });
   app.onClose(() => { closed = true; });
   app.store.on('listening', prepareSearch);
 

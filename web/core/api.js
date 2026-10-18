@@ -22,10 +22,11 @@ export async function api(path, { timeout = 10_000, ...options } = {}) {
   return body;
 }
 
-const postJson = (path, data) => api(path, {
+const postJson = (path, data, options = {}) => api(path, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(data),
+  ...options,
 });
 
 // Sube un archivo mostrando el avance. body: un File o Blob; onProgress(0..1).
@@ -50,8 +51,9 @@ export function upload(path, body, { headers = {}, onProgress } = {}) {
 }
 
 // Ejecuta una acción de un módulo, p. ej. action('projection.show', { versionId, ref }).
-export async function action(type, payload = {}) {
-  return (await postJson('/api/action', { type, payload })).result;
+// options.timeout: lo que puede tardar en contestar (como en api()); 0, sin límite (una ventana en el equipo principal).
+export async function action(type, payload = {}, options = {}) {
+  return (await postJson('/api/action', { type, payload }, options)).result;
 }
 
 export const session = {

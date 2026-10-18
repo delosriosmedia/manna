@@ -197,9 +197,10 @@ export function createRouter({ webDir, sessions, refuse = () => null }) {
     routes.push({ method, rx, keys, handler });
   }
 
-  // mount('/himnario/', carpeta): sirve los archivos de esa carpeta bajo ese prefijo.
+  // mount('/himnario/', carpeta): sirve los archivos de esa carpeta bajo ese prefijo. La carpeta puede ser una función
+  // que la dice en cada petición: la de contenido se puede cambiar con Manna abierto (fase 29).
   function mount(prefix, dir) {
-    mounts.push({ prefix, dir: path.resolve(dir) });
+    mounts.push({ prefix, dir });
   }
 
   function sendJson(res, status, body) {
@@ -218,7 +219,7 @@ export function createRouter({ webDir, sessions, refuse = () => null }) {
     try { rel = decodeURIComponent(pathname); } catch { return false; }
     const mounted = mounts.find((m) => rel.startsWith(m.prefix));
     if (mounted && locked) throw new HttpError(401, LOGIN);
-    if (mounted) return serveFrom(req, res, mounted.dir, rel.slice(mounted.prefix.length));
+    if (mounted) return serveFrom(req, res, path.resolve(typeof mounted.dir === 'function' ? mounted.dir() : mounted.dir), rel.slice(mounted.prefix.length));
     if (rel === '/') rel = '/index.html';
     else if (!path.extname(rel)) rel += '.html';
     return serveFrom(req, res, webDir, rel.slice(1));

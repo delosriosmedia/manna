@@ -92,7 +92,7 @@ Quien desarrolla Manna lo abre desde su copia del proyecto con `node server/inde
 
 ## La carpeta de tu iglesia
 
-Todo lo que pone cada iglesia va en una sola carpeta, `Contenido` (en Documentos/Manna; ver «Instalación»). Manna lee lo que encuentra y lo muestra solo, sin importar nada ni reiniciar. Cada subcarpeta trae un `LEEME.txt` con el formato exacto.
+Todo lo que pone cada iglesia va en una sola carpeta, `Contenido` (en Documentos/Manna; ver «Instalación»). Puede estar en cualquier sitio, también en otro disco: en **Ajustes → Carpeta de contenido** se ve dónde está y qué tiene, se abre con **Abrir la carpeta** y se elige otra con **Cambiar…** (en el equipo principal). Manna la usa al momento, sin reiniciar, y le añade lo que le falte (sus carpetas, las instrucciones y la Reina-Valera 1909) sin tocar lo que ya tiene. Si no se encuentra, o solo tiene la Reina-Valera 1909 y ningún himno (lo que trae el instalador), un aviso arriba lo dice, con **Elegir la carpeta**. Manna lee lo que encuentra y lo muestra solo, sin importar nada ni reiniciar. Cada subcarpeta trae un `LEEME.txt` con el formato exacto.
 
 | Carpeta | Qué va |
 | --- | --- |

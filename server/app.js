@@ -29,8 +29,12 @@ function installedFolders() {
 }
 const placed = installedFolders();
 const DATA = process.env.MANNA_DATA || placed.datos || path.join(ROOT, 'data');
-// Lo que pone cada iglesia (biblias, himnos, letras) vive en una sola carpeta: ver Contenido/LEEME.txt.
-const CONTENT = placed.contenido || path.join(ROOT, 'Contenido');
+// Lo que pone cada iglesia (biblias, himnos, letras) vive en una sola carpeta: ver Contenido/LEEME.txt. Se elige en
+// Ajustes (fase 29): instalado, queda en carpetas.json; en una copia sin instalar, en data/ajustes.json.
+function chosenContent() {
+  try { return JSON.parse(fs.readFileSync(path.join(DATA, 'ajustes.json'), 'utf8')).contenido || null; } catch { return null; }
+}
+const CONTENT = placed.contenido || chosenContent() || path.join(ROOT, 'Contenido');
 
 // Así arranca el icono "Manna": sin ventana, con los mensajes guardados en data/manna.log.
 const BACKGROUND = process.argv.includes('--segundo-plano');
@@ -88,6 +92,7 @@ async function run() {
     biblesDir: process.env.MANNA_BIBLIAS || path.join(CONTENT, 'Biblias'),
     mediaDir: process.env.MANNA_MEDIOS || path.join(CONTENT, 'Medios'),
     hymnsDir: process.env.MANNA_HIMNARIO || path.join(CONTENT, 'Himnario'),
+    contentDir: CONTENT,
   };
   let app = createApp(options);
 

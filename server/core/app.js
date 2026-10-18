@@ -35,7 +35,7 @@ export const networkName = () => (process.env.MANNA_NAME || 'manna').toLowerCase
 const MAX_ARRIVALS = 200;
 
 // El "app" es lo que recibe cada módulo: estado compartido, rutas, acciones y almacenamiento.
-export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsDir = null }) {
+export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsDir = null, contentDir = null }) {
   fs.mkdirSync(dataDir, { recursive: true });
   fs.mkdirSync(biblesDir, { recursive: true });
 
@@ -57,6 +57,7 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
   const actions = new Map();
   const kinds = new Map();
   const closers = [];
+  const contentListeners = [];
 
   // Lo que se sube desde la app (fondos, imágenes, medios) se guarda aquí y se sirve por /media/.
   const uploadsDir = path.join(dataDir, 'media');
@@ -70,6 +71,15 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
     // mediaDir: carpeta donde la iglesia copia a mano sus videos y audios (Contenido/Medios), o null.
     // hymnsDir: carpeta del himnario (Contenido/Himnario, con videos/ y letras/), o null.
     rootDir, dataDir, biblesDir, mediaDir, hymnsDir, uploadsDir, tmpDir,
+    // La carpeta de contenido de la iglesia (con Biblias, Himnario y Medios), o null. Se cambia con Manna abierto
+    // (fase 29): setContent apunta las tres a la nueva y avisa a los módulos que lo pidieron con onContent.
+    contentDir,
+    onContent(fn) { contentListeners.push(fn); },
+    setContent(dir) {
+      Object.assign(app, { contentDir: dir, biblesDir: path.join(dir, 'Biblias'), mediaDir: path.join(dir, 'Medios'), hymnsDir: path.join(dir, 'Himnario') });
+      fs.mkdirSync(app.biblesDir, { recursive: true });
+      for (const fn of contentListeners) fn();
+    },
     store, storage, settings, sessions, realtime, jobs,
     services: {},
     // Huella del código con el que arrancó este servidor (ver core/build.js).

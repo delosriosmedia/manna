@@ -215,7 +215,7 @@ fs.writeFileSync(fakeInstaller, `import fs from 'node:fs'; fs.writeFileSync(${JS
 function startServer(host, extra = {}) {
   // MANNA_SIN_VENTANA: la prueba no abre su proyección en el proyector de verdad, si lo hay.
   // MANNA_CONVERSION_LENTA: cada conversión tarda en empezar, para poder ver qué pasa mientras tanto.
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', MANNA_VERSIONES_URL: `http://127.0.0.1:${fakeGithub.address().port}/package.json`, MANNA_VERSIONES_MS: '500', MANNA_ACTUALIZADOR_PRUEBA: fakeInstaller, ...extra };
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, MANNA_CARPETA_PRUEBA: path.join(tmp, 'otra-iglesia'), PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', MANNA_VERSIONES_URL: `http://127.0.0.1:${fakeGithub.address().port}/package.json`, MANNA_VERSIONES_MS: '500', MANNA_ACTUALIZADOR_PRUEBA: fakeInstaller, ...extra };
   if (host) env.MANNA_HOST = host;
   // killOnExit: si la prueba se corta a medias, el servidor no se queda abierto ocupando el puerto.
   return killOnExit(spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env }));
@@ -2537,6 +2537,30 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await tapEl(`[...document.querySelectorAll('.set-nav .btn')].find(b => b.textContent === 'Programas')`);
   await sleep(800);
   check('la fila de secciones de Ajustes tiene una por sección y lleva a la elegida', await run(`const s = [...document.querySelectorAll('.settings .set')].find(x => x.querySelector('h2').textContent === 'Programas del equipo principal'); const c = document.querySelector('.settings').getBoundingClientRect(); const r = s.getBoundingClientRect(); return document.querySelectorAll('.set-nav .btn').length === document.querySelectorAll('.settings .set').length && Math.abs(r.top - c.top) < 30`));
+
+  console.log('\n1. Interfaz · Ajustes: carpeta de contenido');
+  {
+    // La ventana del sistema la sustituye MANNA_CARPETA_PRUEBA: «elige» siempre la misma carpeta, al principio vacía.
+    const other = path.join(tmp, 'otra-iglesia');
+    fs.mkdirSync(other, { recursive: true });
+    const sec = `[...document.querySelectorAll('.settings .set')].find(s => s.querySelector('h2').textContent === 'Carpeta de contenido')`;
+    const notice = `[...document.querySelectorAll('.update-bar')].find(b => !b.hidden && b.textContent.includes('carpeta de contenido'))`;
+    const counts = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify([s.bible.versions.length, s.hymns.count, s.system.content.dir])`).then(JSON.parse);
+    const before = await counts();
+    check('Ajustes dice dónde está la carpeta de contenido y qué tiene', await run(`return ${sec}.querySelector('.content-path').textContent === ${JSON.stringify(before[2])} && ${sec}.textContent.includes('${before[0]} versiones de la Biblia · ${before[1]} himnos')`), await run(`return ${sec}.textContent`));
+    await click(`[...${sec}.querySelectorAll('.btn')].find(b => b.textContent.includes('Abrir la carpeta'))`);
+    await click(`[...${sec}.querySelectorAll('.btn')].find(b => b.textContent.includes('Cambiar'))`);
+    check('«Cambiar…»: si la carpeta elegida no lo parece, pregunta antes de usarla', await until(`${modal}?.textContent.includes('no tiene las carpetas Biblias')`, 10));
+    await modalButton('Usar esta carpeta');
+    check('la usa al momento, sin reiniciar: le añade la 1909 y avisa de que está vacía', await until(`${notice}?.textContent.includes('está vacía') && ${sec}.textContent.includes('1 versión de la Biblia · 0 himnos')`, 30)
+      && JSON.stringify(await counts()) === JSON.stringify([1, 0, other]) && fs.existsSync(path.join(other, 'Biblias', 'Reina Valera 1909.xmm')), JSON.stringify(await counts()));
+    await click(`${notice}.querySelector('.btn')`);
+    check('«Elegir la carpeta» del aviso hace lo mismo (la elegida ya lo parece: no pregunta)', await until(`document.querySelector('#toast').textContent.includes('Manna ya usa la carpeta de contenido «otra-iglesia»')`, 20) && await run(`return !${modal}`));
+    // Se copian en ella las biblias y el himnario de la prueba: Manna los ve solo y el aviso se va.
+    fs.cpSync(bibles, path.join(other, 'Biblias'), { recursive: true });
+    fs.cpSync(hymnal.dir, path.join(other, 'Himnario'), { recursive: true });
+    check('al copiar en ella las biblias y el himnario, Manna los ve solo y el aviso se va', await until(`!${notice} && ${sec}.textContent.includes('${before[0]} versiones de la Biblia · ${before[1]} himnos')`, 60), JSON.stringify(await counts()));
+  }
 
   if (CAN_TUNNEL) {
     console.log('\n1. Interfaz · Ajustes: conexión por internet');

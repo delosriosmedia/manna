@@ -7,6 +7,7 @@ import { lanInterfaces, origin } from './network.js';
 import { createResponder } from './mdns.js';
 import { diskUsage } from './disk.js';
 import { watchVersions } from './versions.js';
+import { contentState, looksLikeContent, openFolder, pickFolder, useContent } from './contenido.js';
 
 const REFRESH_MS = 10_000;
 const CODE_CHECK_MS = 20_000;
@@ -27,7 +28,8 @@ export default function setup(app) {
   // actualizó estando abierto) y hay que reiniciarlo para que interfaz y servidor vuelvan a coincidir.
   // blocked: otro Manna ya funciona en este equipo o en esta red (fase 21): { where, version, here } o null.
   // update: hay una versión nueva en GitHub ({ version }) o null (versions.js).
-  store.register('system', { name: 'Manna', version, build: app.build, stale: false, addresses: [], port: null, altPort: null, secure: false, securePort: null, hostname: null, nameUrl: null, blocked: null, update: null });
+  store.register('system', { name: 'Manna', version, build: app.build, stale: false, addresses: [], port: null, altPort: null, secure: false, securePort: null, hostname: null, nameUrl: null, blocked: null, update: null, content: contentState(app) });
+  app.onContent(() => store.set('system', { content: contentState(app) }));
   watchVersions(app, version);
 
   const responder = createResponder({ base: networkName() });
@@ -246,6 +248,27 @@ export default function setup(app) {
   });
 
   // Botón "Apagar Manna" del control. Solo desde el propio equipo principal.
+  // La carpeta de contenido (fase 29), solo desde el equipo principal: elegirla en la ventana del sistema, usarla y
+  // abrirla. Si la elegida no lo parece pero tiene una «Contenido» dentro, se propone esa; si no, se pregunta antes.
+  const local = (ctx, what) => { if (!ctx?.isLocal) throw new HttpError(403, `${what} solo se puede desde el equipo principal.`); };
+  app.action('system.contentPick', { permission: 'system.admin' }, async (_payload, ctx) => {
+    local(ctx, 'Elegir la carpeta de contenido');
+    let dir = await pickFolder(app.contentDir);
+    if (!dir) return { dir: null };
+    if (!looksLikeContent(dir) && looksLikeContent(path.join(dir, 'Contenido'))) dir = path.join(dir, 'Contenido');
+    return { dir, looks: looksLikeContent(dir) };
+  });
+  app.action('system.contentSet', { permission: 'system.admin' }, ({ dir } = {}, ctx) => {
+    local(ctx, 'Cambiar la carpeta de contenido');
+    useContent(app, dir);
+    return contentState(app);
+  });
+  app.action('system.contentOpen', { permission: 'system.admin' }, (_payload, ctx) => {
+    local(ctx, 'Abrir la carpeta de contenido');
+    if (!contentState(app).exists) throw new HttpError(404, 'No se encuentra la carpeta de contenido.');
+    openFolder(app.contentDir);
+  });
+
   app.action('system.shutdown', { permission: 'system.admin' }, (_payload, ctx) => {
     if (!ctx?.isLocal) throw new HttpError(403, 'Manna solo se puede apagar desde el equipo principal.');
     // Se espera un instante para que la respuesta llegue al navegador antes de cerrar.

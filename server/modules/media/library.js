@@ -51,7 +51,7 @@ const nameFromFile = (name) => cleanName(stripExtension(name).replace(/[_]+/g, '
 export function registerClips(app, { saved, commit }) {
   const { store } = app;
   const base = app.uploadsDir;
-  const folder = app.mediaDir || null;
+  let folder = app.mediaDir || null; // cambia si cambia la carpeta de contenido con Manna abierto (fase 29)
   // MANNA_CONVERSION_LENTA (solo para pruebas): milisegundos que espera cada conversión antes de empezar.
   const converter = createConverter(app, { delay: Number(process.env.MANNA_CONVERSION_LENTA) || 0 });
   const downloader = createDownloader(app);
@@ -244,11 +244,22 @@ export function registerClips(app, { saved, commit }) {
   store.on('change', (ns) => { if (ns === 'live' || ns === 'projection') converter.hold(playingNow()); });
 
   let stopWatching = () => {};
-  if (folder) {
+  const watch = () => {
     fs.mkdirSync(folder, { recursive: true });
-    app.mount('/medios/', folder);
     stopWatching = watchFolder(folder, () => scan().catch(() => {}));
+  };
+  if (folder) {
+    app.mount('/medios/', () => folder);
+    watch();
   }
+  // Otra carpeta de contenido: lo de la anterior sale de la biblioteca y entra lo de la nueva.
+  app.onContent(() => {
+    if (!folder) return;
+    stopWatching();
+    folder = app.mediaDir;
+    watch();
+    scan().catch((err) => console.error('Medios:', err?.message || err));
+  });
   store.on('listening', () => resume().catch((err) => console.error('Medios:', err?.message || err)));
   // Al instalarse ffmpeg, lo que esperaba por él se pone en marcha.
   let hadFfmpeg = app.tools.has('ffmpeg');
