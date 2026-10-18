@@ -34,7 +34,7 @@ test('una instalación nueva: la carpeta Manna con los instaladores, Contenido y
     assert.deepEqual([res.raiz, res.programa], [raiz, path.join(raiz, 'Programa', 'programa')]);
     assert.deepEqual(list(raiz), expected);
     assert.equal(fs.readFileSync(path.join(raiz, 'Programa', 'programa', 'server', 'index.js'), 'utf8'), 'nuevo server/index.js');
-    assert.deepEqual(json(path.join(raiz, 'Programa', 'carpetas.json')), { datos: path.join(raiz, 'Programa', 'datos'), contenido: path.join(raiz, 'Contenido') });
+    assert.deepEqual(json(path.join(raiz, 'Programa', 'carpetas.json')), { datos: path.join(raiz, 'Programa', 'datos'), contenido: path.join(raiz, 'Contenido'), raiz });
     assert.ok(fs.existsSync(path.join(raiz, 'Contenido', 'Biblias', 'rv1909.xmm')), 'el contenido recibe lo que trae Manna');
     if (process.platform !== 'win32') assert.ok(fs.statSync(path.join(raiz, MAC)).mode & 0o100, 'el instalador de Mac se puede abrir');
 
@@ -186,6 +186,25 @@ test('una copia de desarrollo (con .git) no se reordena, ni abriendo el instalad
   }
 });
 
+test('con la carpeta de contenido elegida en otro sitio (Ajustes, fase 29), al actualizar todo sigue donde estaba', async () => {
+  const t = setup();
+  try {
+    await arrange({ ...t, nube: false });
+    const raiz = path.join(t.documentos, 'Manna');
+    const otra = path.join(t.tmp, 'Disco', 'Iglesia');
+    write(path.join(otra, 'Himnario', 'videos', '001 Himno.mp4'), 'mío');
+    const places = path.join(raiz, 'Programa', 'carpetas.json');
+    fs.writeFileSync(places, JSON.stringify({ ...json(places), contenido: otra, elegida: true }));
+    const res = await arrange({ ...t, nube: false });
+    assert.deepEqual([res.raiz, res.programa, res.contenido], [raiz, path.join(raiz, 'Programa', 'programa'), otra]);
+    assert.deepEqual(json(places), { datos: path.join(raiz, 'Programa', 'datos'), contenido: otra, raiz, elegida: true }, 'se recuerda que se eligió');
+    assert.deepEqual(list(path.join(t.tmp, 'Disco')), ['Iglesia'], 'junto a la elegida no se pone nada');
+    assert.equal(fs.readFileSync(path.join(otra, 'Himnario', 'videos', '001 Himno.mp4'), 'utf8'), 'mío');
+  } finally {
+    fs.rmSync(t.tmp, { recursive: true, force: true });
+  }
+});
+
 test('si la carpeta se sincroniza con la nube, Programa se queda en la carpeta oculta', async () => {
   const t = setup();
   try {
@@ -228,5 +247,45 @@ test('el Manna abierto con esos datos se apaga antes de moverlos; otro Manna del
   } finally {
     fake.close();
     fs.rmSync(t.tmp, { recursive: true, force: true });
+  }
+});
+
+// El instalador de Mac entero, como lo abre una persona o el .pkg, en carpetas temporales: con el Manna de esta copia
+// (en un .zip) y un Node.js de mentira de dos líneas que llama al del equipo (liviano; su huella sí se comprueba).
+test('el instalador de Mac entero: baja Node.js, lo comprueba, ordena la carpeta y crea la app; al actualizar, reutiliza su Node.js', { skip: process.platform !== 'darwin' && 'solo en Mac' }, async () => {
+  const { execFileSync, spawnSync } = await import('node:child_process');
+  const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+  const t = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-instalador-'));
+  try {
+    const name = 'node-v24.0.0-darwin-' + (process.arch === 'arm64' ? 'arm64' : 'x64');
+    write(path.join(t, 'nodo', name, 'bin', 'node'), `#!/bin/bash\nexec ${JSON.stringify(process.execPath)} "$@"\n`);
+    fs.chmodSync(path.join(t, 'nodo', name, 'bin', 'node'), 0o755);
+    execFileSync('tar', ['-czf', `${name}.tar.gz`, name], { cwd: path.join(t, 'nodo') });
+    const sha = execFileSync('shasum', ['-a', '256', `${name}.tar.gz`], { cwd: path.join(t, 'nodo'), encoding: 'utf8' }).split(' ')[0];
+    fs.writeFileSync(path.join(t, 'nodo', 'SHASUMS256.txt'), `${'0'.repeat(64)}  node-v24.0.0-linux-x64.tar.gz\n${sha}  ${name}.tar.gz\n`);
+    const files = execFileSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter((f) => f && fs.existsSync(path.join(ROOT, f)));
+    for (const f of files) { fs.mkdirSync(path.dirname(path.join(t, 'zip', 'manna-main', f)), { recursive: true }); fs.copyFileSync(path.join(ROOT, f), path.join(t, 'zip', 'manna-main', f)); }
+    execFileSync('zip', ['-qr', 'manna.zip', 'manna-main'], { cwd: path.join(t, 'zip') });
+    const env = { ...process.env, HOME: t, MANNA_DESCARGA: `file://${t}/zip/manna.zip`, MANNA_NODE_DESCARGA: `file://${t}/nodo`, MANNA_BASE: path.join(t, 'oculta'), MANNA_DOCUMENTOS: path.join(t, 'Documentos'), MANNA_DESTINO: path.join(t, 'Apps') };
+    const first = spawnSync('bash', [path.join(ROOT, MAC)], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    assert.equal(first.status, 0, first.stdout + first.stderr);
+    const raiz = path.join(t, 'Documentos', 'Manna');
+    assert.deepEqual(list(path.join(raiz, 'Programa')), ['carpetas.json', 'datos', 'node', 'programa']);
+    const app = fs.readFileSync(path.join(t, 'Apps', 'Manna.app', 'Contents', 'MacOS', 'Manna'), 'utf8');
+    assert.match(app, /PROYECTO\/\.\.\/node\/bin\/node/, 'la app abre Manna con su Node.js');
+    // Actualizar desde la copia del programa (lo que abre Manna): sin bajar Node.js otra vez (no hay de dónde).
+    const second = spawnSync('bash', [path.join(raiz, 'Programa', 'programa', MAC)], { env: { ...env, MANNA_NODE_DESCARGA: `file://${t}/no-existe` }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    assert.equal(second.status, 0, second.stdout + second.stderr);
+    assert.match(second.stdout, /Ya está el de Manna/);
+    // Una descarga de Node.js con otra huella no se usa.
+    fs.writeFileSync(path.join(t, 'nodo', 'SHASUMS256.txt'), `${'1'.repeat(64)}  ${name}.tar.gz\n`);
+    // Como lo ejecuta el .pkg (MANNA_PKG): el motivo queda en un archivo, para la ventana que lo dice.
+    const reason = path.join(t, 'motivo');
+    const bad = spawnSync('bash', [path.join(ROOT, MAC)], { env: { ...env, MANNA_PKG: '1', MANNA_PKG_ERROR: reason, MANNA_DOCUMENTOS: path.join(t, 'Otros'), MANNA_BASE: path.join(t, 'oculta2'), MANNA_DESTINO: path.join(t, 'Apps2') }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    assert.equal(bad.status, 1);
+    assert.match(fs.readFileSync(reason, 'utf8'), /huella no coincide/);
+    assert.doesNotMatch(bad.stdout, /\u001b\[/, 'sin colores fuera de la Terminal');
+  } finally {
+    fs.rmSync(t, { recursive: true, force: true });
   }
 });

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Instalar-Manna-Mac.pkg: el instalador de Apple con las páginas de recursos/ y el paquete sin archivos cuyo guion
+     (postinstall) instala Manna. Lo arma scripts/instalador-mac.mjs. -->
+<installer-gui-script minSpecVersion="2">
+  <title>Manna</title>
+  <welcome file="bienvenida.html" mime-type="text/html"/>
+  <conclusion file="final.html" mime-type="text/html"/>
+  <background file="fondo.png" mime-type="image/png" alignment="bottomleft" scaling="none"/>
+  <background-darkAqua file="fondo.png" mime-type="image/png" alignment="bottomleft" scaling="none"/>
+  <options customize="never" require-scripts="true" hostArchitectures="x86_64,arm64"/>
+  <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
+  <choices-outline>
+    <line choice="manna"/>
+  </choices-outline>
+  <choice id="manna" visible="false">
+    <pkg-ref id="app.manna.instalador"/>
+  </choice>
+  <pkg-ref id="app.manna.instalador" version="VERSION" onConclusion="none">manna.pkg</pkg-ref>
+</installer-gui-script>

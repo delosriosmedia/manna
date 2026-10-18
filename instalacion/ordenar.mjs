@@ -76,8 +76,15 @@ export function plan({ origen, oculta, documentos, aqui: from = null, lanzador =
   else if (exists(path.join(documentos, 'Manna', 'Programa', 'carpetas.json'))) antes = path.join(documentos, 'Manna', 'Programa');
   const saved = (antes && readJson(path.join(antes, 'carpetas.json'))) || {};
   const datos = saved.datos || (antigua ? path.join(antigua, 'data') : null);
-  const contenido = saved.contenido || (antigua ? path.join(antigua, 'Contenido') : path.join(documentos, 'Manna', 'Contenido'));
-  const raiz = path.dirname(contenido);
+  // La carpeta Manna (los instaladores y Programa): la apuntada la última vez; si no, la que tiene Programa, la
+  // antigua o la del Contenido de siempre. Desde la fase 29 el Contenido se elige en Ajustes y puede estar en
+  // cualquier otro sitio (`elegida`): entonces no dice dónde está la carpeta Manna.
+  const raiz = saved.raiz
+    || (antes && path.basename(antes) === 'Programa' ? path.dirname(antes) : null)
+    || antigua
+    || (saved.contenido && !saved.elegida ? path.dirname(saved.contenido) : null)
+    || path.join(documentos, 'Manna');
+  const contenido = saved.contenido || path.join(raiz, 'Contenido');
   // Una copia de desarrollo (con su .git) nunca se reordena: pasó el 2026-10-17 en el Mac del dueño, cuya app
   // Manna apuntaba a la carpeta del proyecto. Se actualiza con git.
   for (const dir of [antigua, raiz]) {
@@ -90,7 +97,7 @@ export function plan({ origen, oculta, documentos, aqui: from = null, lanzador =
   const other = known.find((dir) => !same(dir, antes) && !same(dir, programa) && same(readJson(path.join(dir, 'carpetas.json'))?.contenido, contenido));
   const otherData = other && readJson(path.join(other, 'carpetas.json'))?.datos;
   const rescue = otherData && exists(otherData) && !same(otherData, datos) ? { base: other, datos: otherData } : null;
-  return { origen, antes, antigua, datos, contenido, raiz, nube: enNube, base: programa, rescue };
+  return { origen, antes, antigua, datos, contenido, elegida: saved.elegida === true, raiz, nube: enNube, base: programa, rescue };
 }
 
 // Cierra el Manna que esté abierto con esos datos, como su botón «Apagar» (desde este equipo no pide PIN).
@@ -177,7 +184,7 @@ export async function arrange(options) {
   // 2. El programa, entero y al día; y dónde está cada cosa.
   fs.mkdirSync(programa, { recursive: true });
   mirror(p.origen, programa);
-  fs.writeFileSync(path.join(p.base, 'carpetas.json'), JSON.stringify({ datos, contenido: p.contenido }, null, 2));
+  fs.writeFileSync(path.join(p.base, 'carpetas.json'), JSON.stringify({ datos, contenido: p.contenido, raiz: p.raiz, ...(p.elegida ? { elegida: true } : {}) }, null, 2));
 
   // 3. Al contenido solo se le añade lo que falte (las instrucciones y la Reina-Valera 1909).
   fs.mkdirSync(p.contenido, { recursive: true });

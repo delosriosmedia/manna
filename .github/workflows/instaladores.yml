@@ -1,0 +1,126 @@
+# Los instaladores de un solo archivo (fase 30): en un Windows y un Mac de verdad, compila Instalar-Manna-Windows.exe
+# (con el compilador de C# que trae Windows) y arma Instalar-Manna-Mac.pkg (con lo que trae macOS), los prueba en
+# carpetas temporales con el Manna de este commit y el Node.js de nodejs.org, y, al publicar una versión en GitHub,
+# los adjunta a ella. Nada pesado viaja con el repositorio: lo que se baja, se baja como lo haría quien instala.
+name: Instaladores
+
+on:
+  release:
+    types: [published]
+  push:
+    branches: ['fase-*']
+    paths: ['instalacion/**', 'Instalar Manna en *', 'scripts/instalador-mac.mjs', '.github/workflows/instaladores.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compilar el .exe con el compilador de C# de Windows
+        shell: pwsh
+        run: |
+          $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+          & $csc /nologo /target:exe /out:Instalar-Manna-Windows.exe /win32icon:instalacion\icono\instalar.ico "/resource:instalacion\windows\instalar.ps1,instalar.ps1" instalacion\windows\Instalar.cs
+          if ($LASTEXITCODE) { exit 1 }
+          Get-Item Instalar-Manna-Windows.exe | Select-Object Name, Length
+
+      - name: Instalar con el .exe (carpetas temporales)
+        shell: pwsh
+        run: |
+          git archive --format=zip --prefix=manna-main/ -o "$env:RUNNER_TEMP\manna.zip" HEAD
+          $env:MANNA_DESCARGA = 'file:///' + ("$env:RUNNER_TEMP\manna.zip" -replace '\\', '/')
+          $env:MANNA_BASE = "$env:RUNNER_TEMP\oculta"
+          $env:MANNA_DOCUMENTOS = "$env:RUNNER_TEMP\Documentos"
+          $env:MANNA_DESTINO = "$env:RUNNER_TEMP\Iconos"
+          $proceso = Start-Process -FilePath .\Instalar-Manna-Windows.exe -NoNewWindow -Wait -PassThru
+          if ($proceso.ExitCode) { throw "El instalador terminó con $($proceso.ExitCode)" }
+          $raiz = "$env:RUNNER_TEMP\Documentos\Manna"
+          foreach ($ruta in "$raiz\Programa\node\node.exe", "$raiz\Programa\programa\server\index.js", "$raiz\Programa\carpetas.json", "$raiz\Contenido\Biblias\Reina Valera 1909.xmm", "$raiz\Instalar Manna en Windows.lnk", "$env:RUNNER_TEMP\Iconos\Manna.lnk") {
+            if (-not (Test-Path -LiteralPath $ruta)) { throw "Falta $ruta" }
+          }
+          & "$raiz\Programa\node\node.exe" --version
+
+      - name: Actualizar con el .bat de la carpeta del programa (reutiliza su Node.js)
+        shell: pwsh
+        run: |
+          $env:MANNA_DESCARGA = 'file:///' + ("$env:RUNNER_TEMP\manna.zip" -replace '\\', '/')
+          $env:MANNA_BASE = "$env:RUNNER_TEMP\oculta"
+          $env:MANNA_DOCUMENTOS = "$env:RUNNER_TEMP\Documentos"
+          $env:MANNA_DESTINO = "$env:RUNNER_TEMP\Iconos"
+          $salida = cmd /c "`"$env:RUNNER_TEMP\Documentos\Manna\Programa\programa\Instalar Manna en Windows.bat`"" 2>&1 | Out-String
+          Write-Output $salida
+          if ($LASTEXITCODE) { throw "La actualización terminó con $LASTEXITCODE" }
+          if ($salida -notmatch 'Ya está el de Manna') { throw 'No reutilizó el Node.js de Manna' }
+
+      - name: Manna arranca con su Node.js
+        shell: pwsh
+        run: |
+          $programa = "$env:RUNNER_TEMP\Documentos\Manna\Programa"
+          $env:MANNA_NO_OPEN = '1'; $env:MANNA_SIN_VENTANA = '1'; $env:MANNA_NAME = 'manna-ci'; $env:PORT = '8099'; $env:MANNA_DATA = "$env:RUNNER_TEMP\datos-ci"
+          $manna = Start-Process -FilePath "$programa\node\node.exe" -ArgumentList 'server\index.js' -WorkingDirectory "$programa\programa" -PassThru -NoNewWindow
+          $ping = $null
+          for ($i = 0; $i -lt 60 -and -not $ping; $i++) { Start-Sleep -Milliseconds 500; try { $ping = Invoke-RestMethod http://127.0.0.1:8099/api/ping } catch { } }
+          Stop-Process -Id $manna.Id -Force
+          if (-not $ping) { throw 'Manna no contestó' }
+          $ping | ConvertTo-Json -Compress
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Instalar-Manna-Windows
+          path: Instalar-Manna-Windows.exe
+
+      - name: Adjuntar a la versión
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" Instalar-Manna-Windows.exe --clobber
+
+  mac:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Armar el .pkg
+        run: node scripts/instalador-mac.mjs Instalar-Manna-Mac.pkg
+
+      - name: Instalar con el .command (carpetas temporales)
+        run: |
+          git archive --format=zip --prefix=manna-main/ -o "$RUNNER_TEMP/manna.zip" HEAD
+          MANNA_DESCARGA="file://$RUNNER_TEMP/manna.zip" MANNA_BASE="$RUNNER_TEMP/oculta" MANNA_DOCUMENTOS="$RUNNER_TEMP/Documentos" MANNA_DESTINO="$RUNNER_TEMP/Apps" \
+            bash "Instalar Manna en Mac.command" < /dev/null
+          RAIZ="$RUNNER_TEMP/Documentos/Manna"
+          for RUTA in "$RAIZ/Programa/node/bin/node" "$RAIZ/Programa/programa/server/index.js" "$RAIZ/Programa/carpetas.json" "$RAIZ/Instalar Manna en Mac.command" "$RUNNER_TEMP/Apps/Manna.app/Contents/MacOS/Manna"; do
+            [ -e "$RUTA" ] || { echo "Falta $RUTA"; exit 1; }
+          done
+          "$RAIZ/Programa/node/bin/node" --version
+
+      - name: Instalar con el .pkg, como el instalador de Apple (su guion, como administrador)
+        run: |
+          rm -rf "$RUNNER_TEMP/pkg" && pkgutil --expand Instalar-Manna-Mac.pkg "$RUNNER_TEMP/pkg"
+          cd "$RUNNER_TEMP/pkg/manna.pkg/Scripts"
+          sudo MANNA_PKG_USUARIO="$USER" /bin/bash ./postinstall
+          for RUTA in "$HOME/Documents/Manna/Programa/node/bin/node" /Applications/Manna.app/Contents/MacOS/Manna "$HOME/Desktop/Manna"; do
+            [ -e "$RUTA" ] || { echo "Falta $RUTA"; exit 1; }
+          done
+          tail -n 25 /var/log/install.log || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Instalar-Manna-Mac
+          path: Instalar-Manna-Mac.pkg
+
+      - name: Adjuntar a la versión
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" Instalar-Manna-Mac.pkg --clobber

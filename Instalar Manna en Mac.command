@@ -1,44 +1,55 @@
 #!/bin/bash
-# Instalar o actualizar Manna en Mac. Es lo único que hay que descargar: baja Manna de GitHub, lo deja
-# en la carpeta Manna (en Documentos, o donde ya estuviera su Contenido) y crea la app "Manna" en
-# Aplicaciones, con un acceso en el Escritorio. Volver a abrirlo pone Manna al día.
+# Instalar o actualizar Manna en Mac. Baja Manna de GitHub y el Node.js oficial (el motor de Manna, de
+# nodejs.org, comprobando su huella), lo deja en la carpeta Manna (en Documentos, o donde ya estuviera) y crea
+# la app "Manna" en Aplicaciones, con un acceso en el Escritorio. Volver a abrirlo pone Manna al día.
+#
+# Para instalar se descarga "Instalar-Manna-Mac.pkg" de GitHub: el instalador de Apple, que lleva este mismo
+# archivo y lo ejecuta (MANNA_PKG=1: sin Terminal; la app la abre el .pkg). Para actualizar, Manna abre la
+# copia de este archivo que hay en la carpeta Manna (Ajustes o el aviso de versión nueva).
 #
 # La carpeta queda con solo esto: los dos instaladores (con su icono), Contenido (lo de la iglesia, que
-# nunca se pisa) y Programa (el programa y sus datos; si la carpeta está en iCloud, Programa va a
-# ~/Library/Application Support/Manna). Lo ordena instalacion/ordenar.mjs, del Manna recién bajado:
-# mueve lo de antes, sin borrar nada.
+# nunca se pisa; puede estar en otro sitio si se eligió en Ajustes) y Programa (el programa, Node.js y los
+# datos; si la carpeta está en iCloud, Programa va a ~/Library/Application Support/Manna). Lo ordena
+# instalacion/ordenar.mjs, del Manna recién bajado: mueve lo de antes, sin borrar nada.
 #
 # Todo va dentro de main(): bash lo lee entero antes de empezar, y este archivo puede cambiar mientras tanto.
 #
-# Para pruebas: MANNA_DESCARGA (de dónde bajar el .zip, también file://), MANNA_BASE (la carpeta oculta),
-# MANNA_DOCUMENTOS (dónde va la carpeta Manna) y MANNA_DESTINO (dónde crear la app; con él no se
-# toca el Escritorio ni se abre Manna).
+# Para pruebas: MANNA_DESCARGA (de dónde bajar el .zip, también file://), MANNA_NODE_DESCARGA (la carpeta con
+# SHASUMS256.txt y el Node.js, también file://), MANNA_BASE (la carpeta oculta), MANNA_DOCUMENTOS (dónde va
+# la carpeta Manna) y MANNA_DESTINO (dónde crear la app; con él no se toca el Escritorio ni se abre Manna).
 main() {
-export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH"
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 DESCARGA="${MANNA_DESCARGA:-https://github.com/delosriosmedia/manna/archive/refs/heads/main.zip}"
+NODE_MAYOR=24
+NODE_DESCARGA="${MANNA_NODE_DESCARGA:-https://nodejs.org/dist/latest-v$NODE_MAYOR.x}"
 OCULTA="${MANNA_BASE:-$HOME/Library/Application Support/Manna}"
 DOCUMENTOS="${MANNA_DOCUMENTOS:-$HOME/Documents}"
+PASOS=5
 
-pausa() { [ -t 0 ] && read -n 1 -s -r -p "Pulsa cualquier tecla para cerrar..."; echo; }
-falla() { echo ""; echo "  $1"; echo ""; pausa; exit 1; }
-
-echo ""
-echo "=========================================================="
-echo "  Manna - Church projection app"
-echo "  Instalando..."
-echo "=========================================================="
-echo ""
-
-if ! command -v node >/dev/null 2>&1 || ! node -e "process.exit(Number(process.versions.node.split('.')[0]) >= 18 ? 0 : 1)"; then
-  echo "  NO SE PUEDE INSTALAR MANNA TODAVÍA"
-  echo "  Falta Node.js 18 o superior, el programa que hace funcionar Manna."
-  echo "  Se abrió su página: descarga la versión LTS para macOS e instálala."
-  echo "  Cuando termines, vuelve a abrir este archivo."
-  open "https://nodejs.org/es/download"
+# ---- La consola: un título, los pasos con su marca y una barra de avance (en el .pkg, solo texto) ----
+if [ -t 1 ] && [ -z "$MANNA_PKG" ]; then
+  V=$'\e[32m'; C=$'\e[36m'; R=$'\e[31m'; G=$'\e[2m'; N=$'\e[0m'
+else
+  V=''; C=''; R=''; G=''; N=''
+fi
+pausa() { [ -t 0 ] && [ -z "$MANNA_PKG" ] && [ -z "$MANNA_DESTINO" ] && read -n 1 -s -r -p "  Pulsa cualquier tecla para cerrar..."; echo; }
+falla() {
+  echo ""
+  echo "  ${R}✗ No se pudo terminar.${N} $1"
+  [ -n "$MANNA_PKG_ERROR" ] && printf '%s' "$1" > "$MANNA_PKG_ERROR"
+  echo ""
   pausa
   exit 1
-fi
-echo "  [OK] Node.js está instalado."
+}
+paso() { echo ""; echo "  ${C}$1/$PASOS${N}  $2"; }
+hecho() { echo "        ${V}✓${N} $1"; }
+
+echo ""
+echo "  ${C}╭──────────────────────────────────────────────────╮${N}"
+echo "  ${C}│${N}   MANNA  ·  Instalar o actualizar                ${C}│${N}"
+echo "  ${C}│${N}   ${G}Proyección para la iglesia, en la red local${N}    ${C}│${N}"
+echo "  ${C}╰──────────────────────────────────────────────────╯${N}"
+echo "  Hace falta internet. Tarda unos minutos; no cierres esta ventana."
 
 # A dónde apunta la app Manna: la carpeta del programa que hay instalado (o, a la antigua, la del proyecto).
 LANZADO=""
@@ -48,28 +59,69 @@ for APP in "${MANNA_DESTINO:-/Applications}/Manna.app" "$HOME/Applications/Manna
     [ -n "$LANZADO" ] && break
   fi
 done
-
-echo "  Descargando Manna..."
+# --aqui: si este archivo está en la carpeta de Manna (junto a su Contenido, o en Programa/programa), se ordena esa.
+AQUI="$(cd "$(dirname "$0")" && pwd)"
 TEMPORAL="$(mktemp -d)"
 trap 'rm -rf "$TEMPORAL"' EXIT
-curl -fsSL "$DESCARGA" -o "$TEMPORAL/manna.zip" || falla "No se pudo descargar Manna. Comprueba que este equipo tiene internet y vuelve a abrir este archivo."
-ditto -x -k "$TEMPORAL/manna.zip" "$TEMPORAL/abierto" || falla "La descarga llegó dañada. Vuelve a abrir este archivo."
-ORIGEN="$(find "$TEMPORAL/abierto" -mindepth 2 -maxdepth 3 -path '*/server/index.js' | head -1)"
-[ -n "$ORIGEN" ] || falla "La descarga no contiene Manna. Vuelve a abrir este archivo."
-ORIGEN="$(dirname "$(dirname "$ORIGEN")")"
 
-# Cierra el Manna abierto, mueve lo de antes y deja la carpeta ordenada (instalacion/ordenar.mjs).
-echo "  Ordenando la carpeta de Manna..."
-# --aqui: si este archivo está en la carpeta de Manna (junto a su Contenido), se ordena esa carpeta.
-AQUI="$(cd "$(dirname "$0")" && pwd)"
-HECHO="$(NODE_NO_WARNINGS=1 node "$ORIGEN/instalacion/ordenar.mjs" --origen "$ORIGEN" --oculta "$OCULTA" --documentos "$DOCUMENTOS" --aqui "$AQUI" ${LANZADO:+--lanzador "$LANZADO"} | tail -1)"
-dato() { node -e "const d = JSON.parse(process.argv[1] || '{}'); const v = d[process.argv[2]]; process.stdout.write(Array.isArray(v) ? v.join('\n') : v == null ? '' : String(v))" "$HECHO" "$1"; }
-[ -n "$HECHO" ] || falla "No se pudo ordenar la carpeta de Manna. Vuelve a abrir este archivo."
+# ---- 1. El equipo ----
+paso 1 "Comprobando el equipo"
+case "$(uname -m)" in arm64) ARQ=arm64 ;; x86_64) ARQ=x64 ;; *) falla "Este Mac no es compatible (procesador $(uname -m))." ;; esac
+LIBRE=$(df -Pk "$HOME" | awk 'NR==2 { print int($4 / 1024) }')
+[ "${LIBRE:-0}" -ge 500 ] || falla "Hace falta al menos 500 MB libres en el disco."
+hecho "macOS $(sw_vers -productVersion 2>/dev/null), procesador $ARQ, ${LIBRE} MB libres"
+
+# ---- 2. Node.js: el de Manna si ya está; si no, el oficial (se instala en Programa/node en el paso 4) ----
+paso 2 "Node.js, el motor de Manna"
+node_ok() { [ -x "$1" ] && "$1" -e "process.exit(Number(process.versions.node.split('.')[0]) >= $NODE_MAYOR ? 0 : 1)" 2>/dev/null; }
+NODE=""
+for CANDIDATO in "$AQUI/../node/bin/node" "$AQUI/Programa/node/bin/node" "${LANZADO:+$LANZADO/../node/bin/node}"; do
+  if [ -n "$CANDIDATO" ] && node_ok "$CANDIDATO"; then NODE="$CANDIDATO"; break; fi
+done
+NUEVO=""
+if [ -n "$NODE" ]; then
+  hecho "Ya está el de Manna ($("$NODE" --version))."
+else
+  HUELLAS="$(curl -fsSL "$NODE_DESCARGA/SHASUMS256.txt")" || falla "No se pudo descargar Node.js. Comprueba que este equipo tiene internet y vuelve a intentarlo."
+  LINEA="$(printf '%s\n' "$HUELLAS" | grep -E " node-v[0-9.]+-darwin-$ARQ\.tar\.gz$" | head -1)"
+  [ -n "$LINEA" ] || falla "No se encontró Node.js para este Mac en nodejs.org."
+  HUELLA="${LINEA%% *}"; ARCHIVO="${LINEA##* }"
+  echo "        Descargando ${ARCHIVO%.tar.gz}…"
+  if [ -t 1 ] && [ -z "$MANNA_PKG" ]; then BARRA=(--progress-bar); else BARRA=(-sS); fi
+  curl -fL "${BARRA[@]}" "$NODE_DESCARGA/$ARCHIVO" -o "$TEMPORAL/$ARCHIVO" || falla "No se pudo descargar Node.js. Comprueba que este equipo tiene internet y vuelve a intentarlo."
+  [ "$(shasum -a 256 "$TEMPORAL/$ARCHIVO" | awk '{ print $1 }')" = "$HUELLA" ] || falla "La descarga de Node.js llegó dañada (su huella no coincide). Vuelve a intentarlo."
+  mkdir -p "$TEMPORAL/node" && tar -xzf "$TEMPORAL/$ARCHIVO" -C "$TEMPORAL/node" --strip-components 1 || falla "No se pudo abrir la descarga de Node.js."
+  NODE="$TEMPORAL/node/bin/node"; NUEVO="$TEMPORAL/node"
+  node_ok "$NODE" || falla "El Node.js descargado no arranca en este Mac."
+  hecho "Node.js $("$NODE" --version), comprobado."
+fi
+
+# ---- 3. Manna ----
+paso 3 "Descargando Manna"
+if [ -t 1 ] && [ -z "$MANNA_PKG" ]; then BARRA=(--progress-bar); else BARRA=(-sS); fi
+curl -fL "${BARRA[@]}" "$DESCARGA" -o "$TEMPORAL/manna.zip" || falla "No se pudo descargar Manna. Comprueba que este equipo tiene internet y vuelve a intentarlo."
+ditto -x -k "$TEMPORAL/manna.zip" "$TEMPORAL/abierto" || falla "La descarga llegó dañada. Vuelve a intentarlo."
+ORIGEN="$(find "$TEMPORAL/abierto" -mindepth 2 -maxdepth 3 -path '*/server/index.js' | head -1)"
+[ -n "$ORIGEN" ] || falla "La descarga no contiene Manna. Vuelve a intentarlo."
+ORIGEN="$(dirname "$(dirname "$ORIGEN")")"
+hecho "Manna $("$NODE" -p "require('$ORIGEN/package.json').version" 2>/dev/null)"
+
+# ---- 4. La carpeta Manna: cierra el Manna abierto, mueve lo de antes y la ordena (instalacion/ordenar.mjs) ----
+paso 4 "Ordenando la carpeta Manna"
+HECHO="$(NODE_NO_WARNINGS=1 "$NODE" "$ORIGEN/instalacion/ordenar.mjs" --origen "$ORIGEN" --oculta "$OCULTA" --documentos "$DOCUMENTOS" --aqui "$AQUI" ${LANZADO:+--lanzador "$LANZADO"} | tail -1)"
+dato() { "$NODE" -e "const d = JSON.parse(process.argv[1] || '{}'); const v = d[process.argv[2]]; process.stdout.write(Array.isArray(v) ? v.join('\n') : v == null ? '' : String(v))" "$HECHO" "$1"; }
+[ -n "$HECHO" ] || falla "No se pudo ordenar la carpeta de Manna. Vuelve a intentarlo."
 [ -z "$(dato error)" ] || falla "$(dato error)"
 PROGRAMA="$(dato programa)"; CONTENIDO="$(dato contenido)"; RAIZ="$(dato raiz)"
-echo "  [OK] Manna está en su carpeta, al día."
-echo "  [OK] Carpeta de contenido: $CONTENIDO"
-[ -z "$(dato dominio)" ] || echo "  [OK] Conexión por internet con tu dominio: $(dato dominio)"
+# Node.js va junto al programa, en Programa/node; si se acaba de bajar, reemplaza al de antes.
+MOTOR="$(dirname "$PROGRAMA")/node"
+if [ -n "$NUEVO" ]; then
+  rm -rf "$MOTOR" && mv "$NUEVO" "$MOTOR" || falla "No se pudo dejar Node.js en $MOTOR."
+  NODE="$MOTOR/bin/node"
+fi
+hecho "Manna está en $RAIZ"
+hecho "Carpeta de contenido: $CONTENIDO"
+[ -z "$(dato dominio)" ] || hecho "Conexión por internet con tu dominio: $(dato dominio)"
 
 # Los dos instaladores de la carpeta, con el icono de Manna y su engranaje.
 osascript -l JavaScript - "$PROGRAMA/instalacion/icono/instalar.icns" "$RAIZ/Instalar Manna en Mac.command" "$RAIZ/Instalar Manna en Windows.bat" >/dev/null 2>&1 <<'ICONO'
@@ -80,6 +132,8 @@ function run(argv) {
 }
 ICONO
 
+# ---- 5. La app Manna ----
+paso 5 "Creando la app «Manna»"
 DESTINO="${MANNA_DESTINO:-/Applications}"
 if [ -z "$MANNA_DESTINO" ] && [ ! -w "$DESTINO" ]; then DESTINO="$HOME/Applications"; fi
 mkdir -p "$DESTINO"
@@ -87,7 +141,7 @@ APP="$DESTINO/Manna.app"
 
 # Solo se reemplaza una app creada por Manna.
 if [ -e "$APP" ] && [ ! -f "$APP/Contents/Resources/creada-por-manna" ]; then
-  falla "Ya existe otra app llamada Manna en $DESTINO y no es de este programa. Muévela o cámbiale el nombre y vuelve a abrir este archivo."
+  falla "Ya existe otra app llamada Manna en $DESTINO y no es de este programa. Muévela o cámbiale el nombre y vuelve a intentarlo."
 fi
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
@@ -111,9 +165,9 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
-# La app es un lanzador mínimo: arranca el servidor sin ventana y termina. Si Manna ya está abierto,
-# el propio servidor lo detecta y solo vuelve a mostrar el control. La conexión por internet, si está
-# encendida en Ajustes, la abre el propio Manna.
+# La app es un lanzador mínimo: arranca el servidor sin ventana, con el Node.js de Manna (o el del equipo, en
+# una instalación de antes de la 1.35), y termina. Si Manna ya está abierto, el propio servidor lo detecta y
+# solo vuelve a mostrar el control. La conexión por internet, si está encendida en Ajustes, la abre Manna.
 {
   echo '#!/bin/bash'
   echo 'export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH"'
@@ -121,44 +175,43 @@ PLIST
   cat <<'LANZADOR'
 aviso() { osascript -e "display alert \"Manna\" message \"$1\"" >/dev/null 2>&1; }
 if ! cd "$PROYECTO" 2>/dev/null || [ ! -f server/index.js ]; then
-  aviso "No se encuentra Manna. Vuelve a abrir el archivo Instalar Manna en Mac."
+  aviso "No se encuentra Manna. Vuelve a instalarlo con Instalar-Manna-Mac.pkg, de GitHub."
   exit 1
 fi
-if ! command -v node >/dev/null 2>&1; then
+NODE="$PROYECTO/../node/bin/node"
+[ -x "$NODE" ] || NODE="$(command -v node)"
+if [ -z "$NODE" ]; then
   open "instalacion/requisitos.html"
   exit 1
 fi
-nohup node server/index.js --segundo-plano >/dev/null 2>&1 &
+nohup "$NODE" server/index.js --segundo-plano >/dev/null 2>&1 &
 LANZADOR
 } > "$APP/Contents/MacOS/Manna"
 chmod +x "$APP/Contents/MacOS/Manna"
 touch "$APP"
-echo "  [OK] App \"Manna\" en $DESTINO."
+hecho "App «Manna» en $DESTINO"
 
 if [ -z "$MANNA_DESTINO" ]; then
   ln -sfn "$APP" "$HOME/Desktop/Manna"
-  echo "  [OK] Acceso \"Manna\" en el Escritorio."
-  echo ""
-  echo "  Abriendo Manna..."
-  open "$APP"
+  hecho "Acceso «Manna» en el Escritorio"
+  [ -z "$MANNA_PKG" ] && open "$APP"
 fi
 
 echo ""
-echo "=========================================================="
-echo "  LISTO. Abre Manna con el icono \"Manna\" del Escritorio"
-echo "  o de Aplicaciones. Para tenerlo a mano, arrástralo al Dock."
-echo ""
-echo "  - Las biblias, los himnos y los medios de la iglesia van en:"
+echo "  ${V}╭──────────────────────────────────────────────────╮${N}"
+echo "  ${V}│${N}   ✓ LISTO. Manna se está abriendo.               ${V}│${N}"
+echo "  ${V}╰──────────────────────────────────────────────────╯${N}"
+echo "  - La próxima vez, ábrelo con el icono «Manna» del Escritorio o de"
+echo "    Aplicaciones (para tenerlo a mano, arrástralo al Dock)."
+echo "  - Dentro de Manna, en Ajustes → «Carpeta de contenido», elige la carpeta"
+echo "    de tu iglesia (biblias, himnario y medios). Ahora es:"
 echo "    $CONTENIDO"
-echo "  - Todo Manna está en $RAIZ. No borres su carpeta Programa."
+echo "  - Desde Manna también se reinicia, se apaga y se actualiza."
 if [ -n "$(dato antiguo)" ]; then
   echo "  - Lo de la versión anterior que ya no se usa quedó en:"
   echo "    $(dato antiguo)"
 fi
 dato avisos | while IFS= read -r AVISO; do [ -n "$AVISO" ] && echo "  - $AVISO"; done
-echo "  - Para actualizar Manna, abre \"Instalar Manna en Mac\" de esa carpeta."
-echo "  - Para apagar Manna usa el botón \"Apagar\" del control."
-echo "=========================================================="
 echo ""
 pausa
 }
