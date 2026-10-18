@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- Las pruebas automáticas de Manna también pasan en Windows (cambio interno, sin efecto en la app).
+
 ## 1.35.0 — 2026-10-18
 
 - **Instalar Manna con un solo archivo**, con el icono de Manna: **Instalar-Manna-Windows.exe** en Windows e **Instalar-Manna-Mac.pkg** (el instalador de Apple) en Mac, en la página de cada versión de GitHub.

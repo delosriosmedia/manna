@@ -205,7 +205,7 @@ export function checkModules(files, { root, webRoot = null }) {
   };
   for (const file of files) {
     const source = read(file);
-    const where = path.relative(root, file);
+    const where = path.relative(root, file).split(path.sep).join('/'); // con «/» también en Windows
     const imported = new Map(); // nombre local -> de dónde viene
     for (const entry of importsOf(source)) {
       if (!/^[./]/.test(entry.from)) continue; // módulos de Node
@@ -250,7 +250,7 @@ export function checkContract(webFiles, serverFiles, { root }) {
   const problems = [];
   for (const file of webFiles) {
     const kept = strip(fs.readFileSync(file, 'utf8'), { keepStrings: true });
-    const where = path.relative(root, file);
+    const where = path.relative(root, file).split(path.sep).join('/');
     const lineOf = (index) => kept.slice(0, index).split('\n').length;
     // Una orden es un texto "modulo.verbo" que se pasa a una función: a action(), o a una propia
     // que la envuelve (run('order.clear')). Se reconocen por el módulo, que es uno de los del servidor.

@@ -90,7 +90,7 @@ test('a la antigua (la carpeta entera del proyecto): se ordena donde está; lo v
     assert.equal(json(path.join(x, 'Programa', 'datos', 'ajustes.json')).id, 'no-esta-abierto');
     assert.ok(fs.existsSync(path.join(x, 'Contenido', 'Biblias', 'NVI.xmm')));
     assert.ok(res.antiguo?.startsWith(path.join(x, 'Programa', 'antiguo')));
-    assert.deepEqual(list(res.antiguo), process.platform === 'win32' ? ['README.md', WINDOWS, 'server', 'web'] : ['README.md', 'server', 'web']);
+    assert.deepEqual(list(res.antiguo), process.platform === 'win32' ? [WINDOWS, 'README.md', 'server', 'web'] : ['README.md', 'server', 'web']);
     assert.equal(fs.readFileSync(path.join(x, MAC), 'utf8'), `nuevo ${MAC}`, 'el instalador, al día');
     assert.deepEqual(json(path.join(x, 'Programa', 'carpetas.json')).contenido, path.join(x, 'Contenido'));
   } finally {

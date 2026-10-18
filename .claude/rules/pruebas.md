@@ -2,7 +2,7 @@
 
 ## Automáticas
 
-- `npm test` (usa `node --test`, sin librerías). Deben pasar antes de cualquier commit.
+- `npm test` (usa `node --test "test/*.test.js"`, sin librerías: con el patrón, porque en Windows `node --test` no acepta una carpeta). Deben pasar antes de cualquier commit. Pasan también en Windows (comprobado en GitHub el 2026-10-18; sin ffmpeg ni guiones de mentira, 12 se saltan).
 - Toda lógica pura del servidor lleva prueba en `test/<tema>.test.js`: lectura de formatos, citas, búsquedas, validaciones, cálculos.
 - Lo que pasa por HTTP (rutas, acciones, permisos, archivos) se prueba contra el servidor de verdad en `test/servidor.test.js`: crea la app con datos temporales y la atiende con `app.handle`, sin llamar a `listen()`, así que no abre ventanas ni se anuncia en la red.
 - Las pruebas crean sus datos en carpetas temporales. No dependen de `Contenido/` ni de `data/`, ni de internet (las descargas se prueban contra un servidor en el propio equipo).
