@@ -47,7 +47,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 
 | Programa | Para qué | Si falta |
 | --- | --- | --- |
-| Node.js 18 o superior | Hace funcionar el servidor | Manna no arranca. Se descarga de https://nodejs.org/es/download |
+| Node.js | Hace funcionar el servidor | **Lo instala el instalador**: el oficial (de nodejs.org, la versión 24, comprobando su huella), en la carpeta `Programa/node` de Manna, sin tocar el sistema. Una instalación anterior a la 1.35 usa el del equipo hasta su próxima actualización |
 | Google Chrome (o Edge en Windows) | Ventana de proyección a pantalla completa | Manna se abre; la proyección no se abre sola en la segunda pantalla |
 | ffmpeg | Convertir videos y audios, unir imagen y sonido de YouTube, sacar la pista instrumental de los himnos | Manna se abre; las funciones que lo usan no estarán disponibles |
 | yt-dlp | Descargar videos de YouTube | Igual |
@@ -55,27 +55,29 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 | Microsoft PowerPoint (opcional) | Convertir las presentaciones de PowerPoint en diapositivas y, en Windows, pasarlas en vivo | Se sube el PDF de la presentación, que no necesita ningún programa |
 | cloudflared (opcional) | La conexión por internet (Ajustes) | Manna funciona igual en la red de la iglesia; la conexión por internet avisa de que falta |
 
-Manna corre con Node.js 18 o superior. Descargar de YouTube necesita Node.js 22 o superior: si el del equipo es más viejo, la revisión del equipo ofrece instalar «Node.js para YouTube» (el oficial, solo para eso, sin tocar el del equipo). Los guiones de pruebas en Chrome también necesitan Node.js 22.
-Solo Node.js se instala antes. Lo demás lo comprueba Manna cada vez que se abre: si falta algo, en vez del control muestra la **revisión del equipo**, que dice qué módulos funcionarán completos y cuáles no, para qué sirve cada programa, y ofrece **Abrir Manna** de todos modos e **Instalar por mí** (descarga ffmpeg, yt-dlp y cloudflared de sus sitios oficiales, comprobando su huella, a la carpeta `herramientas` de los datos de Manna, sin tocar el sistema) o los pasos para hacerlo a mano. La misma revisión está en **Ajustes → Programas del equipo principal**, y cada módulo avisa al abrirlo si le falta algo. Los demás dispositivos no instalan nada.
+Manna corre con Node.js 18 o superior; el que instala el instalador (24) sirve también para YouTube. Si Manna corre con uno anterior al 22, la revisión del equipo ofrece instalar «Node.js para YouTube» (el oficial, solo para eso). Los guiones de pruebas en Chrome también necesitan Node.js 22.
+No hay que instalar nada antes. Lo demás lo comprueba Manna cada vez que se abre: si falta algo, en vez del control muestra la **revisión del equipo**, que dice qué módulos funcionarán completos y cuáles no, para qué sirve cada programa, y ofrece **Abrir Manna** de todos modos e **Instalar por mí** (descarga ffmpeg, yt-dlp y cloudflared de sus sitios oficiales, comprobando su huella, a la carpeta `herramientas` de los datos de Manna, sin tocar el sistema) o los pasos para hacerlo a mano. La misma revisión está en **Ajustes → Programas del equipo principal**, y cada módulo avisa al abrirlo si le falta algo. Los demás dispositivos no instalan nada.
 
 ffmpeg lo usa Medios para convertir los videos y audios que el navegador no reproduce; sin él, los MP4 y MP3 habituales funcionan igual. yt-dlp (con ffmpeg) descarga los videos de YouTube; como YouTube cambia a menudo, Manna lo pone al día solo cuando sale una versión nueva (al abrirse con el icono y antes de reintentar una descarga), y en **Ajustes → Programas del equipo principal** hay un botón **Actualizar** para hacerlo a mano. PowerPoint lo usa Medios para convertir una presentación `.pptx`; es opcional, porque un PDF se convierte en el propio navegador.
 
 ## Instalación
 
-Solo hay que descargar **un archivo** (y tener Node.js; ver arriba):
+Solo hay que descargar **un archivo**, el del sistema del equipo principal, y abrirlo:
 
-- **Windows**: [Instalar-Manna-Windows.bat](https://github.com/delosriosmedia/manna/releases/latest/download/Instalar-Manna-Windows.bat)
-- **Mac**: [Instalar-Manna-Mac.zip](https://github.com/delosriosmedia/manna/releases/latest/download/Instalar-Manna-Mac.zip) (al abrirlo queda `Instalar Manna en Mac.command`)
+- **Windows**: [Instalar-Manna-Windows.exe](https://github.com/delosriosmedia/manna/releases/latest/download/Instalar-Manna-Windows.exe), con el icono de Manna y su engranaje.
+- **Mac**: [Instalar-Manna-Mac.pkg](https://github.com/delosriosmedia/manna/releases/latest/download/Instalar-Manna-Mac.pkg), el instalador de Apple (el archivo lleva el icono de paquete de Apple: macOS no conserva un icono propio en lo que se descarga).
 
-Ábrelo con doble clic. El instalador comprueba que está Node.js, **baja Manna** de GitHub a la carpeta **Manna** de Documentos y crea el icono **Manna** en el Escritorio (y en el menú Inicio o en Aplicaciones). Al terminar abre Manna, que revisa el resto del equipo.
+El instalador lo hace todo, con internet y en unos minutos, diciendo en cada paso qué hace: comprueba el equipo, **descarga Node.js** (el motor de Manna, de su página oficial, comprobando que llegó entero), **descarga Manna** de GitHub, lo deja en la carpeta **Manna** de Documentos y crea el icono **Manna** en el Escritorio (y en el menú Inicio o en Aplicaciones). Al terminar abre Manna. En Windows es una ventana de consola con los pasos y una barra de avance; en Mac, el instalador de Apple con una página que explica los pasos y otra con lo que sigue.
+
+Después **todo se hace desde Manna**: elegir la carpeta de contenido (Ajustes → «Carpeta de contenido»; mientras falte, un aviso lo recuerda), revisar el equipo, reiniciar, apagar y actualizar (el aviso de versión nueva, o Ajustes → «Buscar versión nueva»).
 
 La carpeta Manna tiene solo cuatro cosas:
 
 | | Qué es |
 | --- | --- |
 | **Instalar Manna en Windows** / **Instalar Manna en Mac** | Para actualizar Manna: ábrelo y lo pone al día. Llevan el icono de Manna con un engranaje (en Windows es un acceso directo; el archivo que se baja de GitHub la primera vez tiene el icono normal de Windows) |
-| **Contenido** | Lo de la iglesia: biblias, himnos y medios (ver «La carpeta de tu iglesia»). **Nunca se reemplaza ni se mueve**: el instalador solo le añade lo que falte (sus instrucciones y la Reina-Valera 1909) |
-| **Programa** | El programa y sus datos (PIN, orden del culto, lo subido, `datos/manna.log`). No hace falta abrirla. **No la borres** |
+| **Contenido** | Lo de la iglesia: biblias, himnos y medios (ver «La carpeta de tu iglesia»). **Nunca se reemplaza ni se mueve**: el instalador solo le añade lo que falte (sus instrucciones y la Reina-Valera 1909). Si se eligió otra en Ajustes, esa puede estar en cualquier sitio y la carpeta Manna sigue aquí |
+| **Programa** | El programa, su Node.js (`node`) y sus datos (PIN, orden del culto, lo subido, `datos/manna.log`). No hace falta abrirla. **No la borres** |
 
 - **Para actualizar Manna**, abre el instalador de esa carpeta (o vuelve a bajarlo): si Manna está abierto lo cierra, reemplaza el programa y no toca los datos ni el contenido.
 - Si la carpeta Documentos se sincroniza con **OneDrive o iCloud**, `Programa` va a una carpeta del sistema (`%LOCALAPPDATA%\Manna` o `~/Library/Application Support/Manna`): sus datos cambian a cada rato y pueden pesar gigas. En la carpeta Manna quedan los instaladores y `Contenido`.
@@ -85,8 +87,8 @@ La carpeta Manna tiene solo cuatro cosas:
 
 Avisos que pueden salir la primera vez (el archivo no está firmado, porque firmarlo cuesta dinero):
 
-- **Windows**: «Windows protegió su PC» → *Más información* → *Ejecutar de todas formas*. Luego el Firewall pregunta por Node.js: elige *Permitir acceso* en redes privadas; sin eso los celulares no pueden conectarse.
-- **Mac**: si macOS no deja abrir el instalador, ve a Ajustes del Sistema → Privacidad y seguridad → *Abrir igualmente*. Si pide permiso para leer una carpeta o para la red local, elige *Permitir*.
+- **Windows**: «Windows protegió su PC» → *Más información* → *Ejecutar de todas formas*. Algún antivirus puede desconfiar de un instalador sin firmar que abre PowerShell: si lo bloquea, permítelo. Luego el Firewall pregunta por Node.js: elige *Permitir acceso* en redes privadas; sin eso los celulares no pueden conectarse.
+- **Mac**: «no se puede abrir porque Apple no puede comprobarlo» → *Aceptar*, y en Ajustes del Sistema → Privacidad y seguridad → *Abrir igualmente* (desde macOS 15 ya no basta con el clic derecho → Abrir). El instalador pide la contraseña de un administrador. Si Manna pide permiso para leer una carpeta o para la red local, elige *Permitir*.
 
 Quien desarrolla Manna lo abre desde su copia del proyecto con `node server/index.js`: así usa `data/` y `Contenido/` de esa copia.
 

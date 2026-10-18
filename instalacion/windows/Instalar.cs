@@ -29,6 +29,8 @@ static class Instalar
         inicio.UseShellExecute = false;
         // El instalador sabe así qué se abrió y desde dónde (ver MANNA_INSTALADOR en instalar.ps1).
         inicio.EnvironmentVariables["MANNA_INSTALADOR"] = yo.Location;
+        // Las rutas de módulos de otro PowerShell (el 7, si lo abre él) confunden al 5.1 del sistema: se usan las suyas.
+        inicio.EnvironmentVariables.Remove("PSModulePath");
         int codigo = 1;
         try
         {

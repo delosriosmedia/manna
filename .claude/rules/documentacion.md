@@ -14,7 +14,7 @@
 | El número de versión | Solo `package.json`; la interfaz lo lee de ahí. `CHANGELOG.md` y `docs/ESTADO.md` al publicar |
 | Una convención o forma de programar | La regla correspondiente en `.claude/rules/` |
 | Comandos, stack o límites del proyecto | `CLAUDE.md` |
-| Requisitos del equipo principal o forma de abrir Manna | `README.md`, el catálogo de `server/core/tools.js`, `web/requisitos.html` (revisión del equipo), `instalacion/requisitos.html` (solo si falta Node.js), los instaladores de la raíz e `instalacion/abrir-windows.bat` |
+| Requisitos del equipo principal o forma de abrir Manna | `README.md`, el catálogo de `server/core/tools.js`, `web/requisitos.html` (revisión del equipo), `instalacion/requisitos.html` (solo si falta Node.js), los instaladores (`instalacion/windows/instalar.ps1` con su `Instalar.cs`, `Instalar Manna en Mac.command` con `instalacion/mac/`, y el `.bat` de la raíz), `instalacion/abrir-windows.bat` y `.github/workflows/instaladores.yml` |
 | Lo que un módulo necesita del equipo principal | Su `needs` (en su `workspace.js`, o en `web/modules/registry.js` si aún es "próximamente") y la tabla de requisitos de `README.md` |
 | Una fase de `docs/PLAN.md` se cierra, o el plan cambia | `docs/PLAN.md`: seguimiento (9), cambios hechos (10) y cambios sugeridos (11) |
 | Formatos o limpieza de biblias | `.claude/rules/biblias.md` y `Contenido/Biblias/LEEME.txt` |

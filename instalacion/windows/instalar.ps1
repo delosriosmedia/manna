@@ -15,6 +15,10 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch { }
+# La huella y los .zip, con .NET y no con Get-FileHash o Expand-Archive: no dependen de que PowerShell encuentre sus módulos.
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+function Huella($archivo) { $flujo = [IO.File]::OpenRead($archivo); try { ([BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash($flujo))).Replace('-', '') } finally { $flujo.Close() } }
+function Abrir($zip, $destino) { if (Test-Path -LiteralPath $destino) { Remove-Item -LiteralPath $destino -Recurse -Force }; [IO.Compression.ZipFile]::ExtractToDirectory($zip, $destino) }
 try { $Host.UI.RawUI.WindowTitle = 'Instalar Manna' } catch { }
 
 $descarga = if ($env:MANNA_DESCARGA) { $env:MANNA_DESCARGA } else { 'https://github.com/delosriosmedia/manna/archive/refs/heads/main.zip' }
@@ -122,8 +126,8 @@ if ($node) {
   $huella, $archivo = ($linea.Trim() -split '\s+')[0, 1]
   Write-Host "        Descargando $($archivo -replace '\.zip$', '')…"
   try { Bajar "$nodeDescarga/$archivo" (Join-Path $temporal $archivo) } catch { Falla 'No se pudo descargar Node.js. Comprueba que este equipo tiene internet y vuelve a intentarlo.' }
-  if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $temporal $archivo)).Hash -ne $huella.ToUpper()) { Falla 'La descarga de Node.js llegó dañada (su huella no coincide). Vuelve a intentarlo.' }
-  try { Expand-Archive -LiteralPath (Join-Path $temporal $archivo) -DestinationPath (Join-Path $temporal 'node') -Force } catch { Falla 'No se pudo abrir la descarga de Node.js.' }
+  if ((Huella (Join-Path $temporal $archivo)) -ne $huella.ToUpper()) { Falla 'La descarga de Node.js llegó dañada (su huella no coincide). Vuelve a intentarlo.' }
+  try { Abrir (Join-Path $temporal $archivo) (Join-Path $temporal 'node') } catch { Falla 'No se pudo abrir la descarga de Node.js.' }
   $nuevo = Get-ChildItem -LiteralPath (Join-Path $temporal 'node') -Directory | Select-Object -First 1 -ExpandProperty FullName
   $node = Join-Path $nuevo 'node.exe'
   if (-not (NodeSirve $node)) { Falla 'El Node.js descargado no arranca en este equipo.' }
@@ -134,7 +138,7 @@ if ($node) {
 Paso 3 'Descargando Manna'
 $zip = Join-Path $temporal 'manna.zip'
 try { Bajar $descarga $zip } catch { Falla 'No se pudo descargar Manna. Comprueba que este equipo tiene internet y vuelve a intentarlo.' }
-try { Expand-Archive -LiteralPath $zip -DestinationPath (Join-Path $temporal 'abierto') -Force } catch { Falla 'La descarga llegó dañada. Vuelve a intentarlo.' }
+try { Abrir $zip (Join-Path $temporal 'abierto') } catch { Falla 'La descarga llegó dañada. Vuelve a intentarlo.' }
 $indice = Get-ChildItem -LiteralPath (Join-Path $temporal 'abierto') -Directory | ForEach-Object { Join-Path $_.FullName 'server\index.js' } | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 if (-not $indice) { Falla 'La descarga no contiene Manna. Vuelve a intentarlo.' }
 $origen = Split-Path (Split-Path $indice)
