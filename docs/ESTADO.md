@@ -301,6 +301,10 @@ En `docs/PLAN.md`, sección 11.
 
 **Aplazada** por el dueño el 2026-10-17 (decisión 43). La propuesta está en `docs/funciones-celular.md`. Hacen falta las catorce decisiones de su sección 10: qué funciones, Sonido aparte o no, qué pasa con «Control completo» en el celular, el PIN, Atril sin PIN, qué entra primero de lo nuevo, y el orden de construcción. La simulación (`docs/funciones-celular.html`) se rehízo el 2026-10-17 con más capacidades por función. Con ellas se añaden las fases que construyan lo aprobado.
 
+### 0 ter. Bandeja de ideas (`docs/ideas.md`)
+
+Ideas del dueño aún sin compromiso. **I1 e I2** (añadir al orden las citas de un texto pegado o de un documento Word o PDF): investigadas el 2026-10-18. Son viables sin dependencias ni modelos de lenguaje, con una lista para revisar antes de añadir. Hay un prototipo en `scripts/prototipos/citas/`, calibrado con once documentos reales de la iglesia, que se usaron solo en local. Faltan las decisiones de su apartado «Por decidir» y medirlo con documentos nuevos que no haya visto; luego, proponerla como fase.
+
 ### 1. Instaladores compilados (aplazada)
 
 Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron**. Los dispositivos remotos seguirían entrando por navegador. Aplazada el 2026-10-03: se revisará más adelante si es momento de crear compilaciones.

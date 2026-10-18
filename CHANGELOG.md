@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- Investigación para añadir al orden del culto las citas de un texto pegado o de un documento Word o PDF (todavía no está en Manna): ver `docs/ideas.md`.
+
 ## 1.31.0 — 2026-10-18
 
 - **Arriba, más claro**: a la izquierda, el logo de Manna más grande, con la versión y un botón aparte para **cambiar de función**. **Tocar el logo abre Ajustes**, que ya no está en la barra de módulos. Sale la ficha «Control completo».

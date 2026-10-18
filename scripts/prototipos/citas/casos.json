@@ -1,0 +1,372 @@
+[
+ {
+  "text": "Juan 3:16",
+  "expect": [
+   "Juan 3:16"
+  ]
+ },
+ {
+  "text": "Jn 3.16",
+  "expect": [
+   "Juan 3:16"
+  ]
+ },
+ {
+  "text": "1 Co 13:4-7",
+  "expect": [
+   "1 Corintios 13:4-7"
+  ]
+ },
+ {
+  "text": "I Corintios 13",
+  "expect": [
+   "1 Corintios 13"
+  ]
+ },
+ {
+  "text": "1ra de Corintios 13:4",
+  "expect": [
+   "1 Corintios 13:4"
+  ]
+ },
+ {
+  "text": "Primera de Juan 4:8",
+  "expect": [
+   "1 Juan 4:8"
+  ]
+ },
+ {
+  "text": "Lectura: Sal 23",
+  "expect": [
+   "Salmos 23"
+  ]
+ },
+ {
+  "text": "Salmo 23:1-3",
+  "expect": [
+   "Salmos 23:1-3"
+  ]
+ },
+ {
+  "text": "Romanos 8:28, 31",
+  "expect": [
+   "Romanos 8:28 + Romanos 8:31"
+  ]
+ },
+ {
+  "text": "Ro 8:1,28,31-39",
+  "expect": [
+   "Romanos 8:1 + Romanos 8:28 + Romanos 8:31-39"
+  ]
+ },
+ {
+  "text": "Leer Mt 5–7.",
+  "expect": [
+   "Mateo 5–7"
+  ]
+ },
+ {
+  "text": "Gén. 1:1",
+  "expect": [
+   "Génesis 1:1"
+  ]
+ },
+ {
+  "text": "Gn 1.1-3",
+  "expect": [
+   "Génesis 1:1-3"
+  ]
+ },
+ {
+  "text": "Efesios 2:8-9 (RVR1960)",
+  "expect": [
+   "Efesios 2:8-9"
+  ]
+ },
+ {
+  "text": "Hch 2:38; 3:19",
+  "expect": [
+   "Hechos 2:38 + Hechos 3:19"
+  ]
+ },
+ {
+  "text": "Lucas 15:11 al 32",
+  "expect": [
+   "Lucas 15:11-32"
+  ]
+ },
+ {
+  "text": "Juan capítulo 3 versículo 16",
+  "expect": [
+   "Juan 3:16"
+  ]
+ },
+ {
+  "text": "Juan 3, 16",
+  "expect": [
+   "Juan 3:16 (revisar)"
+  ]
+ },
+ {
+  "text": "Todos pecaron (Ro 3.23).",
+  "expect": [
+   "Romanos 3:23"
+  ]
+ },
+ {
+  "text": "cf. Gá 5:22-23",
+  "expect": [
+   "Gálatas 5:22-23"
+  ]
+ },
+ {
+  "text": "Heb 11:1ss",
+  "expect": [
+   "Hebreos 11:1 y siguientes (revisar)"
+  ]
+ },
+ {
+  "text": "2 Tim. 3:16-17",
+  "expect": [
+   "2 Timoteo 3:16-17"
+  ]
+ },
+ {
+  "text": "Fil 4:13 y Stg 1:22",
+  "expect": [
+   "Filipenses 4:13",
+   "Santiago 1:22"
+  ]
+ },
+ {
+  "text": "Mateo 5:1–7:29",
+  "expect": [
+   "Mateo 5:1–7:29"
+  ]
+ },
+ {
+  "text": "Lean 1 Juan 1:9. En el v. 10 dice",
+  "expect": [
+   "1 Juan 1:9",
+   "1 Juan 1:10 (revisar)"
+  ]
+ },
+ {
+  "text": "Juan 3 hermanos vinieron",
+  "expect": []
+ },
+ {
+  "text": "el culto es a las 10:30",
+  "expect": []
+ },
+ {
+  "text": "Hechos 2023: informe anual",
+  "expect": []
+ },
+ {
+  "text": "Rut 5 años",
+  "expect": []
+ },
+ {
+  "text": "Job 2.0",
+  "expect": []
+ },
+ {
+  "text": "Marcos 3 goles",
+  "expect": []
+ },
+ {
+  "text": "Es 1 de los 12",
+  "expect": []
+ },
+ {
+  "text": "Am 9:00 reunión",
+  "expect": []
+ },
+ {
+  "text": "Ester 15 de agosto",
+  "expect": []
+ },
+ {
+  "text": "Lucas, 33 años",
+  "expect": []
+ },
+ {
+  "text": "Daniel 7 de la mañana",
+  "expect": []
+ },
+ {
+  "text": "Romanos 12 personas",
+  "expect": []
+ },
+ {
+  "text": "Himno 23",
+  "expect": []
+ },
+ {
+  "text": "página 316",
+  "expect": []
+ },
+ {
+  "text": "Corintios 13",
+  "expect": []
+ },
+ {
+  "text": "2 Romanos 3:4",
+  "expect": []
+ },
+ {
+  "text": "Juan 3:99",
+  "expect": []
+ },
+ {
+  "text": "Salmo 151",
+  "expect": []
+ },
+ {
+  "text": "Abdías 2",
+  "expect": [
+   "Abdías 1:2"
+  ]
+ },
+ {
+  "text": "Judas 24-25",
+  "expect": [
+   "Judas 1:24-25"
+  ]
+ },
+ {
+  "text": "Lectura: Marcos 5:33, 34.",
+  "expect": [
+   "Marcos 5:33-34"
+  ]
+ },
+ {
+  "text": "PROFETA:\n1 REYES 19:4,5:\n4 Y se marchó al desierto",
+  "expect": [
+   "1 Reyes 19:4-5"
+  ]
+ },
+ {
+  "text": "Mateo 13:31 y 32 nos habla de la semilla",
+  "expect": [
+   "Mateo 13:31-32"
+  ]
+ },
+ {
+  "text": "Ya leímos Hechos 3:1-5.\n1 Pedro y Juan iban al templo",
+  "expect": [
+   "Hechos 3:1-5"
+  ]
+ },
+ {
+  "text": "Él nos oye. -- 1 S. Juan 5:14.",
+  "expect": [
+   "1 Juan 5:14"
+  ]
+ },
+ {
+  "text": "Pidan y se les dará. -- S. Lucas 11:9.",
+  "expect": [
+   "Lucas 11:9"
+  ]
+ },
+ {
+  "text": "Gratitud.\nHeb: 13:5-6 Contentos con lo que hay",
+  "expect": [
+   "Hebreos 13:5-6"
+  ]
+ },
+ {
+  "text": "Lo narran Mateo (26:51-52) y Marcos (14:47) en breve",
+  "expect": [
+   "Mateo 26:51-52",
+   "Marcos 14:47"
+  ]
+ },
+ {
+  "text": "Abran el libro de Mateo, Capitulo 5, versículos 14 y 15.",
+  "expect": [
+   "Mateo 5:14-15"
+  ]
+ },
+ {
+  "text": "Mira el versículo 29 de Marcos 7: ahí se resuelve",
+  "expect": [
+   "Marcos 7:29"
+  ]
+ },
+ {
+  "text": "Según el versículo 46 del capítulo 8 de Lucas, alguien lo tocó",
+  "expect": [
+   "Lucas 8:46"
+  ]
+ },
+ {
+  "text": "1. Texto: Juan 3:16 Leamos el versículo\n2. Aquí vemos",
+  "expect": [
+   "Juan 3:16"
+  ]
+ },
+ {
+  "text": "En Mateo 9 encontramos tres milagros",
+  "expect": [
+   "Mateo 9 (revisar)"
+  ]
+ },
+ {
+  "text": "Se cita Isaías 14. Ezequiel 28 son otros versos famosos",
+  "expect": [
+   "Isaías 14",
+   "Ezequiel 28 (revisar)"
+  ]
+ },
+ {
+  "text": "Texto: 1ª de Corin\u0000os Cap. 13: 1 - 3",
+  "expect": [
+   "1 Corintios 13:1-3"
+  ]
+ },
+ {
+  "text": "(Marcos 8:36; Ecle. 1:3; Mateo 6:25-28)",
+  "expect": [
+   "Marcos 8:36",
+   "Eclesiastés 1:3",
+   "Mateo 6:25-28"
+  ]
+ },
+ {
+  "text": "Lean Deu. 8:11-20 y subrayen los versículos 19 y 20.",
+  "expect": [
+   "Deuteronomio 8:11-20",
+   "Deuteronomio 8:19-20 (revisar)"
+  ]
+ },
+ {
+  "text": "Texto: Génesis 25:29-34. Antes de nacer ya peleaban (25:22) y Jacob salió agarrado al talón (25:26).",
+  "expect": [
+   "Génesis 25:29-34",
+   "Génesis 25:22 (revisar)",
+   "Génesis 25:26 (revisar)"
+  ]
+ },
+ {
+  "text": "Una torta sin voltear (Ose 7:8); un fuego que consume (Hebr. 12:29).",
+  "expect": [
+   "Oseas 7:8",
+   "Hebreos 12:29"
+  ]
+ },
+ {
+  "text": "1 Corintios 8 2 y 3\n2 El que cree saber",
+  "expect": [
+   "1 Corintios 8:2-3 (revisar)"
+  ]
+ },
+ {
+  "text": "Proverbios 11:2; 16:18 “El orgulloso termina mal”",
+  "expect": [
+   "Proverbios 11:2 + Proverbios 16:18"
+  ]
+ }
+]
