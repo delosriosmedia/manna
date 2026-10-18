@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- Propuestas, todavía sin hacer: añadir varios videos de YouTube de una vez, elegir la carpeta de contenido desde Ajustes y al instalar, e instaladores con ventana que explican cada paso y no piden instalar Node.js antes (`docs/PLAN.md`, fases 28 a 30).
+
 ## 1.32.0 — 2026-10-18
 
 - **Citas de un texto o documento al orden del culto**: en el Orden, «Añadir» → «Citas de un texto o documento». Se pega el bosquejo o se elige un **Word (.docx) o un PDF** con texto, y Manna encuentra las citas bíblicas, escritas como las escriba cada predicador («Jn 3.16», «Romanos 8:28, 31», «1 Co. 13:4-7», «Salmo 23», «v. 18»…), y distingue lo que solo lo parece («Juan 3 hermanos», «Rut 5 años»).

@@ -301,6 +301,10 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 En `docs/PLAN.md`, sección 11.
 
+### 0 a. Fases 28 a 30 (propuestas el 2026-10-18)
+
+Varios videos de YouTube de una vez, elegir la carpeta de contenido (en Ajustes y al instalar) e instaladores con ventana, paso a paso y Node.js incluido. La propuesta y lo que hay que decidir están en `docs/PLAN.md` (fases 28, 29 y 30): las listas de reproducción de YouTube, incluir Node.js en el instalador, el formato de los instaladores y si se firman (cuesta dinero cada año).
+
 ### 0 bis. Funciones especializadas para el celular (fase 19)
 
 **Aplazada** por el dueño el 2026-10-17 (decisión 43). La propuesta está en `docs/funciones-celular.md`. Hacen falta las catorce decisiones de su sección 10: qué funciones, Sonido aparte o no, qué pasa con «Control completo» en el celular, el PIN, Atril sin PIN, qué entra primero de lo nuevo, y el orden de construcción. La simulación (`docs/funciones-celular.html`) se rehízo el 2026-10-17 con más capacidades por función. Con ellas se añaden las fases que construyan lo aprobado.
@@ -331,6 +335,7 @@ Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron*
 - **Fase 24 (Biblia al aire)**: hecha el 2026-10-17 (1.29.0).
 - **Fase 25 (Escenario más compacto)**: hecha el 2026-10-17 (con la 24, en la 1.29.0).
 - **Fase 27** (citas de un texto o documento al orden): hecha el 2026-10-18 (1.32.0). Falta medirla con 3 o 4 sermones nuevos del dueño (ver «Problemas conocidos»).
+- **Fases 28 a 30** (YouTube en lote, carpeta de contenido, instaladores): propuestas el 2026-10-18, por aprobar.
 - **Lo que sigue**: las pruebas del dueño en la iglesia (fase 9, para la 2.0); la fase 19 (funciones para el celular) sigue aplazada y la 3 (televisores), en pausa hasta el final.
 - **Fase 19** (funciones especializadas para el celular): aplazada. La propuesta sigue en `docs/funciones-celular.md`.
 - **Fase 9** (auditoría, sección 8 de `docs/PLAN.md`): hecha la parte de código (1.18.0); la del equipo real son las pruebas del dueño, y al pasarlas se publica la 2.0.
