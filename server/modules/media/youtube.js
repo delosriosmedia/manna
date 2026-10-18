@@ -28,6 +28,30 @@ export function youtubeId(link) {
 
 export const watchUrl = (id) => `https://www.youtube.com/watch?v=${id}`;
 
+// Los enlaces de YouTube de un texto pegado (fase 28): vengan separados por espacios, comas, saltos de línea o
+// dentro de un mensaje («Canto de GM: https://youtu.be/… (no poner video)»). Cada video una vez, en el orden del
+// texto, con lo demás de su línea («Canto de GM (no poner video)») para saber cuál es; y lo que no se añade, con su porqué.
+//   -> { found: [{ videoId, link, label, times }], skipped: [{ link, why }] }
+const LINK = /(?<![\w.@/-])(?:https?:\/\/)?(?:[a-z-]+\.)?(?:youtube(?:-nocookie)?\.com|youtu\.be)\/[^\s<>"'()[\]*,;\p{Cf}]*/giu;
+const SLOT = new RegExp(`:?\\s*(?:${LINK.source})[,;]?`, 'giu');
+export function youtubeLinks(text) {
+  const found = new Map();
+  const skipped = [];
+  for (const line of String(text ?? '').split(/\r?\n/)) {
+    const links = [...line.matchAll(LINK)].map((m) => m[0].replace(/[.:!?]+$/, ''));
+    if (!links.length) continue;
+    // Sin los enlaces ni lo que los acompaña: los dos puntos de antes y la coma o el punto y coma de después.
+    const label = line.replace(SLOT, ' ').replace(/[\p{Cf}*_]/gu, '').replace(/\s*[:,;](?=\s*(?:[:,;(]|$))/g, '').replace(/^[\s\-–—•·>]+/, '').replace(/[\s:–—-]+$/, '').replace(/\s+/g, ' ').trim().slice(0, 100);
+    for (const link of links) {
+      const videoId = youtubeId(link);
+      if (videoId && found.has(videoId)) found.get(videoId).times += 1;
+      else if (videoId) found.set(videoId, { videoId, link, label, times: 1 });
+      else skipped.push({ link, why: /[?&]list=/.test(link) ? 'es una lista de reproducción (pega el enlace de cada video)' : 'no es el enlace de un video' });
+    }
+  }
+  return { found: [...found.values()], skipped };
+}
+
 // Imagen H.264 y sonido AAC hasta 1080p: es lo que reproduce cualquier navegador y solo hay que
 // unirlo. Si el video no lo ofrece así, lo mejor que haya hasta 1080p (Manna lo convertirá después).
 const FORMAT = 'bv*[height<=1080][vcodec^=avc1]+ba[acodec^=mp4a]/b[height<=1080][vcodec^=avc1]/bv*[height<=1080]+ba/b[height<=1080]/b';
@@ -46,6 +70,8 @@ export function downloadArgs({ id, dir, ffmpegDir = null, js = null }) {
   return [
     // Con avisos: si una descarga va lenta, lo que dijo yt-dlp va al registro (ver SLOW).
     '--ignore-config', '--no-playlist', '--newline', '--no-simulate', '--socket-timeout', '20', '--retries', '3',
+    // Lo que escribe, en UTF-8: en Windows, sin esto, usa la codificación de la consola y las tildes del título llegan rotas.
+    '--encoding', 'utf-8',
     ...(js ? ['--js-runtimes', js] : []),
     // YouTube a veces frena una descarga a unos 50 KB/s (1 minuto pasaba a 30, visto el 2026-10-17): por debajo
     // de esto, yt-dlp le pide otro enlace y sigue.
@@ -182,6 +208,8 @@ export function createDownloader(app) {
       if (running) running.child = child;
       let err = '';
       let pending = '';
+      // Como texto UTF-8: una letra con tilde partida entre dos trozos se junta bien.
+      child.stdout.setEncoding('utf8');
       child.stdout.on('data', (chunk) => {
         const lines = (pending + chunk).split('\n');
         pending = lines.pop();

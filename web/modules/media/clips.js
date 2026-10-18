@@ -7,6 +7,7 @@ import { formatTime } from '../../core/playback.js';
 import { whenLabel } from '../../core/time.js';
 import { askName, confirmRemove } from './dialogs.js';
 import { CLIP_TYPES, extensionOf, megabytes, openClipUpload } from './upload-clips.js';
+import { openYoutubeMany } from './youtube-many.js';
 
 const WORDS = {
   video: { id: 'videos', label: 'Videos', one: 'el video', icon: 'video' },
@@ -29,10 +30,19 @@ export function createClipsPanel(ctx, kind, lib) {
   const startUpload = (files) => openClipUpload(files, kind, { onDone: (ids) => { lib.added(ids); select(ids.at(-1)); } });
 
   // YouTube: en vez de subir, se pega el enlace.
-  const link = h('input', { class: 'input', type: 'url', inputMode: 'url', placeholder: 'Pega aquí el enlace de YouTube', 'aria-label': 'Enlace de YouTube', autocomplete: 'off' });
+  const link = h('input', { class: 'input', type: 'url', inputMode: 'url', placeholder: 'Pega aquí el enlace de YouTube', 'aria-label': 'Enlace de YouTube', autocomplete: 'off',
+    // Varios enlaces (o uno con su nombre, de un mensaje) se revisan en «Varios videos de YouTube» (fase 28).
+    onpaste: (e) => {
+      const text = e.clipboardData?.getData('text') || '';
+      if (!/[\s,;]/.test(text.trim())) return;
+      e.preventDefault();
+      openYoutubeMany({ text, onDone: addedMany });
+    } });
+  const addedMany = (ids) => { if (ids.length) { lib.added(ids); select(ids[0]); } };
   const addLink = guard(async () => {
     const value = link.value.trim();
-    if (!value) { link.focus(); return; }
+    // Vacío: la ventana para pegar uno o varios (en el celular pequeño no cabe el botón «Varios»).
+    if (!value) { openYoutubeMany({ onDone: addedMany }); return; }
     const { id, already } = await action('media.youtube', { link: value });
     link.value = '';
     if (!already) lib.added([id]);
@@ -41,7 +51,8 @@ export function createClipsPanel(ctx, kind, lib) {
   });
   const entry = visual && ctx.canEdit ? h('form', { class: 'yt-add', onsubmit: (e) => { e.preventDefault(); addLink(); } },
     h('label', { class: 'search' }, icon('link-simple', 16), link),
-    h('button', { class: 'btn', type: 'submit', 'aria-label': 'Añadir el video de YouTube', title: 'Añadir el video de YouTube' }, icon('download-simple', 16), h('span', {}, 'Añadir'))) : null;
+    h('button', { class: 'btn', type: 'submit', 'aria-label': 'Añadir el video de YouTube', title: 'Añadir el video de YouTube' }, icon('download-simple', 16), h('span', {}, 'Añadir')),
+    h('button', { class: 'btn yt-many', type: 'button', 'aria-label': 'Añadir varios videos de YouTube', title: 'Añadir varios videos de YouTube', onclick: () => openYoutubeMany({ onDone: addedMany }) }, icon('list-plus', 16), h('span', {}, 'Varios'))) : null;
   // Subtítulos de un video: un archivo .srt o .vtt.
   let captionsFor = null;
   const captions = h('input', { type: 'file', accept: '.srt,.vtt,text/vtt', hidden: true });

@@ -32,7 +32,21 @@ if (args.includes('--skip-download')) {
   fs.writeFileSync(path.join(dir, 'video.en-orig.vtt'), auto('test text', 'in English'));
   process.exit(0);
 }
-say(${JSON.stringify(`MANNA\ttitle\t${title}`)});
+// El título, como lo escribe el de verdad: en Windows, sin «--encoding utf-8», en la codificación de la consola
+// (aquí, latin1: las tildes llegan como «rombos»); con ella, en UTF-8, y partido en dos escrituras justo en medio
+// de una letra con tilde, como puede llegar a Manna en dos trozos.
+{
+  const line = ${JSON.stringify(`MANNA	title	${title}
+`)};
+  if (args[args.indexOf('--encoding') + 1] !== 'utf-8') fs.writeSync(1, Buffer.from(line, 'latin1'));
+  else {
+    const bytes = Buffer.from(line);
+    const cut = bytes.findIndex((b) => b >= 0xc0) + 1 || 1;
+    fs.writeSync(1, bytes.subarray(0, cut));
+    wait(60);
+    fs.writeSync(1, bytes.subarray(cut));
+  }
+}
 say('MANNA\\tduration\\t${seconds}');
 for (const [done, total] of [[0, 1000], [400, 1000], [1000, 1000], [0, 100], [100, 100]]) { say('MANNA\\tprogress\\t' + done + '\\t' + total + '\\tNA\\t2500000'); wait(${Number(pause)}); }
 const made = spawnSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=25:duration=${seconds}', '-f', 'lavfi', '-i', 'sine=frequency=392:duration=${seconds}', '-af', 'volume=0.05', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', path.join(dir, 'video.mp4')]);

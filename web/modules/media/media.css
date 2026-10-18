@@ -101,6 +101,10 @@ html.touch .media-more { width: var(--tap); height: var(--tap); right: 2px; bott
   .media-bar .fit { flex: 1; grid-auto-flow: column; justify-content: center; align-items: center; gap: 8px; font-size: 12px; }
   .media-bar .sel-ref { display: none; }
 }
+/* Celular pequeño: sin sitio para «Varios»; «Añadir» con el campo vacío abre la misma ventana. */
+@container cajon (max-width: 369px) {
+  .yt-many { display: none; }
+}
 /* Pantallas bajas (celular o tableta en horizontal): la cabecera en una sola fila, con el enlace, las
    categorías (se deslizan) y «Subir» con su icono. */
 @media (max-width: 859px) and (max-height: 480px), (min-width: 860px) and (max-height: 640px) {

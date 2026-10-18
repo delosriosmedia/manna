@@ -14,19 +14,19 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const sameRef = (a, b) => a.book === b.book && a.chapter === b.chapter && a.verseStart === b.verseStart && a.verseEnd === b.verseEnd;
 
 export function openCitas({ text = '' } = {}) {
-  const area = h('textarea', { class: 'input citas-text', rows: 6, placeholder: 'Pega aquí el bosquejo, el sermón o una lista de citas…', 'aria-label': 'Texto con citas' });
+  const area = h('textarea', { class: 'input review-text', rows: 6, placeholder: 'Pega aquí el bosquejo, el sermón o una lista de citas…', 'aria-label': 'Texto con citas' });
   area.value = text;
   const picker = h('input', { type: 'file', accept: ACCEPT, hidden: true, onchange: () => { const file = picker.files[0]; picker.value = ''; if (file) fromFile(file); } });
-  const status = h('p', { class: 'muted citas-status', role: 'status' });
+  const status = h('p', { class: 'muted review-status', role: 'status' });
   const find = h('button', { class: 'btn primary', onclick: () => search(area.value, 'Citas') }, icon('magnifying-glass', 16), 'Buscar las citas');
-  const start = h('div', { class: 'citas-start' },
+  const start = h('div', { class: 'review-start' },
     h('p', { class: 'muted' }, 'Pega un texto o elige un documento (Word, PDF o texto). Manna busca las citas bíblicas y te las muestra para revisarlas antes de añadirlas.'),
     area, status,
-    h('div', { class: 'row citas-actions' },
+    h('div', { class: 'row review-actions' },
       h('button', { class: 'btn', onclick: () => picker.click() }, icon('upload-simple', 16), 'Elegir documento'), picker, find));
-  const body = h('div', { class: 'citas' }, start);
+  const body = h('div', { class: 'review' }, start);
   const box = dialog('Citas de un texto o documento', body);
-  box.el.querySelector('.modal').classList.add('citas-box');
+  box.el.querySelector('.modal').classList.add('review-box');
   const busy = (on, message = '') => {
     find.disabled = on;
     status.textContent = message;
@@ -76,10 +76,10 @@ export function openCitas({ text = '' } = {}) {
         item.version && `dice ${item.version}${item.versionId ? '' : ' (no está instalada)'}`,
         pages > 1 && `página ${item.page}`,
       ].filter(Boolean);
-      const el = h('label', { class: `citas-row${item.confidence === 'revisar' ? ' doubt' : ''}` }, check,
-        h('span', { class: 'citas-main' }, pick,
-          item.reasons.length > 0 && h('small', { class: 'citas-why' }, icon('warning', 13), item.reasons.join(' · ')),
-          h('small', { class: 'citas-ctx' }, item.context.before, h('mark', {}, item.context.match), item.context.after),
+      const el = h('label', { class: `review-row${item.confidence === 'revisar' ? ' doubt' : ''}` }, check,
+        h('span', { class: 'review-main' }, pick,
+          item.reasons.length > 0 && h('small', { class: 'review-why' }, icon('warning', 13), item.reasons.join(' · ')),
+          h('small', { class: 'review-ctx' }, item.context.before, h('mark', {}, item.context.match), item.context.after),
           notes.length > 0 && h('small', { class: 'muted' }, notes.join(' · '))));
       return { item, check, pick, el };
     });
@@ -112,7 +112,7 @@ export function openCitas({ text = '' } = {}) {
     const chosen = prefs.get('version');
     const version = h('select', { class: 'input', 'aria-label': 'Versión' },
       ...versions.map((v) => h('option', { value: v.id, selected: v.id === chosen }, v.name)));
-    const summary = h('p', { class: 'citas-summary' });
+    const summary = h('p', { class: 'review-summary' });
     const add = h('button', { class: 'btn primary', onclick: guard(async () => {
       const picked = rows.filter((r) => r.check.checked);
       const list = picked.flatMap((r) => {
@@ -145,18 +145,18 @@ export function openCitas({ text = '' } = {}) {
     const all = (on) => { for (const r of rows) r.check.checked = on; update(); };
     // La lista se desplaza; dónde, la versión y «Añadir» quedan siempre a la vista.
     body.replaceChildren(
-      h('div', { class: 'citas-scroll' },
-        h('div', { class: 'citas-top' }, summary,
+      h('div', { class: 'review-scroll' },
+        h('div', { class: 'review-top' }, summary,
           h('button', { class: 'link', onclick: () => all(true) }, 'Marcar todas'),
           h('button', { class: 'link', onclick: () => all(false) }, 'Ninguna')),
-        h('div', { class: 'citas-list' }, ...(groups.length ? groups.map((g) => g.el) : rows.map((r) => r.el))),
-        dropped.length > 0 && h('details', { class: 'citas-dropped' },
+        h('div', { class: 'review-list' }, ...(groups.length ? groups.map((g) => g.el) : rows.map((r) => r.el))),
+        dropped.length > 0 && h('details', { class: 'review-dropped' },
           h('summary', {}, `${plural(dropped.length, 'descartada', 'descartadas')}: no parecen citas`),
-          ...dropped.map((d) => h('p', { class: 'muted' }, h('small', { class: 'citas-ctx' }, d.context.before, h('mark', {}, d.context.match), d.context.after), ` · ${d.why}`)))),
+          ...dropped.map((d) => h('p', { class: 'muted' }, h('small', { class: 'review-ctx' }, d.context.before, h('mark', {}, d.context.match), d.context.after), ` · ${d.why}`)))),
       h('div', { class: 'citas-where' },
         h('div', { class: 'field' }, h('div', { class: 'label' }, 'Dónde'), where, title),
         h('div', { class: 'field' }, h('div', { class: 'label' }, 'Versión'), version)),
-      h('div', { class: 'row citas-actions' }, h('button', { class: 'btn', onclick: () => box.close() }, 'Cancelar'), add));
+      h('div', { class: 'row review-actions' }, h('button', { class: 'btn', onclick: () => box.close() }, 'Cancelar'), add));
     update();
   }
 }

@@ -150,6 +150,12 @@ export default function setup(app) {
 
   // Añade un video de YouTube a la biblioteca: lo descarga en segundo plano. Devuelve su id.
   app.action('media.youtube', { permission: 'media.edit' }, ({ link }) => library.addYoutube(link));
+  // Varios de una vez (fase 28): primero los enlaces de un texto pegado, para revisarlos; después, los elegidos.
+  app.route('POST', '/api/media/youtube/enlaces', async (ctx) => {
+    ctx.require('media.edit');
+    return library.findLinks((await ctx.raw(256 * 1024)).toString('utf8'));
+  });
+  app.action('media.youtubeMany', { permission: 'media.edit' }, ({ videoIds } = {}) => library.addYoutubeMany(videoIds));
 
   app.action('media.retry', { permission: 'media.edit' }, ({ id }) => library.retry(id));
   app.action('media.subtitlesRemove', { permission: 'media.edit' }, ({ id }) => library.removeSubtitles(id));

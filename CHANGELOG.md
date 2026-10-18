@@ -4,7 +4,11 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
-- Planeado (todavía sin hacer): añadir varios videos de YouTube de una vez, elegir la carpeta de contenido desde Ajustes sin reiniciar, y un instalador de un solo archivo con el icono de Manna que no pide instalar Node.js antes (`docs/PLAN.md`, fases 28 a 30).
+## 1.33.0 — 2026-10-18
+
+- **Varios videos de YouTube de una vez**: en Medios, el botón **Varios** junto al enlace (o pegar en el campo un mensaje con enlaces). Se pegan como vengan —en líneas, con comas, dentro de un mensaje con viñetas, nombres y notas—, y una lista los muestra para revisar: cada video una vez, con el nombre que traía en el mensaje («Canto de GM», «(opción 2)»), cuántas veces aparecía y, sin marcar, **lo que ya está en la biblioteca aunque se le haya cambiado el nombre**. «Descargar» los pone en cola y bajan de uno en uno mientras se sigue usando Manna. Hasta 50 cada vez; las listas de reproducción no se aceptan (se dice).
+- **El nombre de un video de YouTube llega con sus tildes**: en Windows salían como «�». Los videos que ya tenían el nombre roto se pueden renombrar desde su menú.
+- Planeado (todavía sin hacer): elegir la carpeta de contenido desde Ajustes sin reiniciar, y un instalador de un solo archivo con el icono de Manna que no pide instalar Node.js antes (`docs/PLAN.md`, fases 29 y 30).
 
 ## 1.32.0 — 2026-10-18
 

@@ -258,6 +258,29 @@ html.touch .seg .icon-btn { width: var(--tap); height: var(--tap); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 14px 12px 20px; border-bottom: 1px solid var(--line); }
 .modal-body { padding: 18px 20px 20px; }
 .modal-body p { margin-bottom: 12px; }
+/* Una lista para revisar antes de añadir (citas de un documento, varios videos de YouTube): la lista se desplaza y
+   las acciones quedan abajo, a la vista. */
+.modal.review-box { width: min(100%, 720px); display: flex; flex-direction: column; }
+.review-box .modal-body, .review { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.review-scroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.review-start { display: grid; gap: 10px; }
+.review-text { min-height: 140px; padding: 10px; resize: vertical; font: inherit; line-height: 1.45; }
+.review-actions { justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.review-status:empty { display: none; }
+.review-top { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 8px; }
+.modal-body .review-summary { flex: 1 1 200px; margin: 0; font-weight: 600; }
+.review-list { display: grid; gap: 4px; }
+.review-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r); cursor: pointer; }
+.review-row:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.review-row input[type='checkbox'] { flex-shrink: 0; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent); }
+.review-main { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.review-why { display: flex; align-items: center; gap: 4px; color: var(--live-ink); }
+.review-ctx { color: var(--ink-3); overflow-wrap: anywhere; }
+.review-ctx mark { background: none; color: var(--ink); font-weight: 600; }
+.review-dropped { margin-top: 10px; color: var(--ink-3); }
+.review-dropped summary { cursor: pointer; }
+html.touch .review-dropped summary { padding: 11px 0; }
+.modal-body .review-dropped p { margin: 6px 0; }
 
 .menu {
   position: fixed; z-index: var(--z-pop); min-width: 220px; padding: 6px;

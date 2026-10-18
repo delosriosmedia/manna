@@ -488,6 +488,7 @@ try {
   const rows = () => run(`return JSON.stringify([...${pop}.querySelectorAll('.search-item')].map(r => ({ ref: r.querySelector('strong')?.textContent, marks: [...r.querySelectorAll('mark')].map(m => m.textContent), level: r.dataset.level, active: r.classList.contains('active') })))`).then(JSON.parse);
   const levels = () => run(`return JSON.stringify([...${pop}.querySelectorAll('.search-level span')].map(s => s.textContent))`).then(JSON.parse);
   await write('de tal manera amo');
+  await until(`!${pop}.hidden && ${pop}.querySelector('.search-item strong')?.textContent === 'Juan 3:16'`, 20);
   let found = await rows();
   check('busca mientras se escribe, sin tildes, y resalta la frase', await run(`return !${pop}.hidden`) && found[0]?.ref === 'Juan 3:16' && found[0].marks.join() === 'de tal manera amó' && (await levels())[0] === 'Frase exacta');
   await write('amor');
@@ -1201,7 +1202,7 @@ try {
     await run(`${modal}.querySelector('input').value = 'Niños';`);
     await modalButton('Crear');
     await sleep(600);
-    check('«Nueva categoría» la crea con el nombre que se escriba y la deja elegida, aún vacía', await run(`return ${catChip('Niños')}?.classList.contains('on') && ${emptyText}.includes('«Niños» aún no tiene nada') && [...${med}.querySelectorAll('.media-group')].every((g) => g.hidden)`), await run(`return ${cats}.textContent`));
+    check('«Nueva categoría» la crea con el nombre que se escriba y la deja elegida, aún vacía', await until(`${catChip('Niños')}?.classList.contains('on') && ${emptyText}.includes('«Niños» aún no tiene nada') && [...${med}.querySelectorAll('.media-group')].every((g) => g.hidden)`, 20), await run(`return ${cats}.textContent`));
     await click(catChip('Principal'));
     await sleep(300);
     await moveFromMenu('Niños');
@@ -1504,6 +1505,28 @@ try {
     await modalButton('Eliminar');
     await sleep(700);
     check('y al eliminarlo no queda ningún aviso suyo', (await tubesNow()).length === 1 && await run(`return !document.querySelector('.queue .scene-jobs .job.error')`));
+
+    // Varios de una vez (fase 28): se pegan como vienen en un mensaje y se revisan antes de descargar.
+    const many = `document.querySelector('.review-box')`;
+    const manyRows = `[...${many}.querySelectorAll('.review-row')]`;
+    await click(`document.querySelector('.yt-many')`);
+    await sleep(300);
+    await run(`${many}.querySelector('.review-text').value = ${JSON.stringify('*Culto de prueba*\n* Saludo: https://youtu.be/pruebaManna?si=x\n* Segundo: https://youtu.be/pruebaMann2?feature=shared (opción 2)\nTercero https://youtu.be/pruebaMann3, y otra vez https://youtu.be/pruebaMann2\nLista: https://www.youtube.com/playlist?list=PLprueba')};`);
+    await click(`[...${many}.querySelectorAll('.btn')].find(b => b.textContent.includes('Buscar los videos'))`);
+    check('«Varios» saca los enlaces de un mensaje, cada video una vez y con su nombre del mensaje; lo que ya está (aunque tenga otro nombre) sale sin marcar', await until(`${manyRows}.length === 3`, 20)
+      && await run(`const r = ${manyRows}; const already = r[0].querySelector('input'); return r.map(x => x.querySelector('strong').textContent).join('|') === 'Saludo|Segundo (opción 2)|Tercero y otra vez' && already.disabled && !already.checked && r[0].textContent.includes('ya está en la biblioteca como «Saludo de la iglesia hermana»') && r[1].textContent.includes('aparece 2 veces') && ${many}.querySelector('.review-summary').textContent === '3 videos encontrados; 2 marcados.' && ${many}.textContent.includes('lista de reproducción')`),
+      await run(`return ${many}?.textContent`));
+    await click(`[...${many}.querySelectorAll('.review-actions .btn')].at(-1)`);
+    check('«Descargar 2 videos» los pone en cola y bajan de uno en uno, sin parar la app', await until(`!${many} && ${tube}.querySelectorAll('.media-card[data-status=downloading]').length === 2`, 10) && (await text('#toast')).includes('Descargando 2 videos, de uno en uno'), await text('#toast'));
+    check('y terminan los dos', await until(`${tube}.querySelectorAll('.media-card[data-status=ready]').length === 3`, 80));
+    await run(`const i = ${linkBox}; i.focus(); const d = new DataTransfer(); d.setData('text/plain', ${JSON.stringify('Canto: https://youtu.be/pruebaMann3')}); i.dispatchEvent(new ClipboardEvent('paste', { clipboardData: d, bubbles: true, cancelable: true }));`);
+    check('pegar un enlace con su nombre en el campo abre la misma lista; si ya está, no hay nada que descargar', await until(`${manyRows}?.length === 1`, 20) && await run(`return ${manyRows}[0].querySelector('input').disabled && [...${many}.querySelectorAll('.review-actions .btn')].at(-1).disabled`));
+    await press('Escape');
+    await run(`${linkBox}.value = '';`);
+    await click(`document.querySelector('.yt-add .btn')`);
+    check('«Añadir» con el campo vacío abre la ventana para pegar uno o varios (en el celular pequeño no cabe «Varios»)', await until(`${many}?.querySelector('.review-text')`, 10));
+    await press('Escape');
+    for (const clip of (await tubesNow()).filter((c) => c.id !== saved.id)) await run(`await ${post('media.remove', { id: clip.id })}`);
   }
 
   console.log('\n1. Interfaz · Himnario');
@@ -1705,29 +1728,29 @@ try {
     // Fase 27: se pega un texto o se elige un Word o un PDF (hechos aquí mismo), se revisan las citas y se añaden de
     // una vez. Los textos son inventados.
     const ow = `document.querySelector('.ws[data-module=orden]')`;
-    const box = `document.querySelector('.citas-box')`;
-    const rows = `[...${box}.querySelectorAll('.citas-row')]`;
+    const box = `document.querySelector('.review-box')`;
+    const rows = `[...${box}.querySelectorAll('.review-row')]`;
     const row = (label) => `${rows}.find(r => r.textContent.includes(${JSON.stringify(label)}))`;
-    const summary = () => run(`return ${box}.querySelector('.citas-summary').textContent`);
-    const addButton = `[...${box}.querySelectorAll('.citas-actions .btn')].at(-1)`;
+    const summary = () => run(`return ${box}.querySelector('.review-summary').textContent`);
+    const addButton = `[...${box}.querySelectorAll('.review-actions .btn')].at(-1)`;
     const tail = async (n) => (await run(`return JSON.stringify((await (await fetch('/api/state')).json()).order.items.map(i => (i.kind === 'section' ? '§ ' : '') + i.title))`).then(JSON.parse)).slice(-n);
     const open = async () => { await click(`${ow}.querySelector('.order-add')`); await sleep(250); await menuItem('Citas de un texto'); await sleep(300); };
     const where = (label) => run(`const s = ${box}.querySelector('.citas-where select'); s.value = [...s.options].find(o => o.textContent.includes(${JSON.stringify(label)})).value; s.dispatchEvent(new Event('change'));`);
     await goTo('orden');
     await sleep(500);
     await open();
-    check('«Añadir» → «Citas de un texto o documento» abre una ventana para pegar un texto o elegir un documento', await run(`return Boolean(${box}?.querySelector('.citas-text')) && ${box}.querySelector('input[type=file]').accept.includes('.docx') && [...${box}.querySelectorAll('.btn')].some(b => b.textContent.includes('Elegir documento'))`));
-    await run(`${box}.querySelector('.citas-text').value = ${JSON.stringify('Lectura: Efesios 2:8-9 y Romanos 8:28.\nTodos pecaron (Ro 3.23). Fíjense en el v. 18.\nJuan 3 hermanos vinieron. Rut 5 años.')};`);
+    check('«Añadir» → «Citas de un texto o documento» abre una ventana para pegar un texto o elegir un documento', await run(`return Boolean(${box}?.querySelector('.review-text')) && ${box}.querySelector('input[type=file]').accept.includes('.docx') && [...${box}.querySelectorAll('.btn')].some(b => b.textContent.includes('Elegir documento'))`));
+    await run(`${box}.querySelector('.review-text').value = ${JSON.stringify('Lectura: Efesios 2:8-9 y Romanos 8:28.\nTodos pecaron (Ro 3.23). Fíjense en el v. 18.\nJuan 3 hermanos vinieron. Rut 5 años.')};`);
     await click(`[...${box}.querySelectorAll('.btn')].find(b => b.textContent.includes('Buscar las citas'))`);
     check('encuentra las citas (no «Juan 3 hermanos» ni «Rut 5 años»): las seguras, marcadas; la dudosa, sin marcar, con su porqué y otra opción', await until(`${rows}.length === 4`, 30)
-      && await run(`const d = ${box}.querySelector('.citas-row.doubt'); return ${rows}.filter(r => r.querySelector('input').checked).length === 3 && !d.querySelector('input').checked && d.querySelector('.citas-why') && d.querySelectorAll('select option').length === 2 && ${row('Romanos 3:23')}.querySelector('.citas-ctx mark').textContent === 'Ro 3.23'`)
+      && await run(`const d = ${box}.querySelector('.review-row.doubt'); return ${rows}.filter(r => r.querySelector('input').checked).length === 3 && !d.querySelector('input').checked && d.querySelector('.review-why') && d.querySelectorAll('select option').length === 2 && ${row('Romanos 3:23')}.querySelector('.review-ctx mark').textContent === 'Ro 3.23'`)
       && (await summary()) === '4 citas encontradas; 3 marcadas.', await run(`return ${box}.textContent`));
-    await run(`const s = ${box}.querySelector('.citas-row.doubt select'); s.value = '1'; s.dispatchEvent(new Event('change'));`);
+    await run(`const s = ${box}.querySelector('.review-row.doubt select'); s.value = '1'; s.dispatchEvent(new Event('change'));`);
     check('elegir la otra opción de una dudosa la marca', (await summary()) === '4 citas encontradas; 4 marcadas.');
-    await click(`[...${box}.querySelectorAll('.citas-top .link')].find(b => b.textContent === 'Ninguna')`);
+    await click(`[...${box}.querySelectorAll('.review-top .link')].find(b => b.textContent === 'Ninguna')`);
     check('«Ninguna» desmarca todas y apaga «Añadir»', (await summary()).endsWith('0 marcadas.') && await run(`return ${addButton}.disabled`));
-    await click(`[...${box}.querySelectorAll('.citas-top .link')].find(b => b.textContent === 'Marcar todas')`);
-    await click(`${box}.querySelector('.citas-row.doubt input')`);
+    await click(`[...${box}.querySelectorAll('.review-top .link')].find(b => b.textContent === 'Marcar todas')`);
+    await click(`${box}.querySelector('.review-row.doubt input')`);
     check('«Marcar todas» las marca, y cada una se desmarca sola', (await summary()).endsWith('3 marcadas.') && await run(`return ${addButton}.textContent === 'Añadir 3 al orden'`));
     await run(`const t = ${box}.querySelector('.citas-where input'); t.value = 'Sermón de prueba';`);
     await click(addButton);
@@ -1737,7 +1760,7 @@ try {
     const word = path.join(tmp, 'Bosquejo del domingo.docx');
     fs.writeFileSync(word, makeDocx(['Texto: Juan 3:16', 'Repaso: Romanos 8:28']));
     await open();
-    await chooseFiles('.citas-box input[type=file]', [word]);
+    await chooseFiles('.review-box input[type=file]', [word]);
     check('un Word se lee en el navegador: lo que ya está en el orden sale sin marcar, y la sección nueva lleva el nombre del documento', await until(`${rows}.length === 2`, 30)
       && await run(`return ${row('Juan 3:16')}.querySelector('input').checked && !${row('Romanos 8:28')}.querySelector('input').checked && ${row('Romanos 8:28')}.textContent.includes('ya está en el orden') && ${box}.querySelector('.citas-where input').value === 'Bosquejo del domingo'`), await run(`return ${box}?.textContent`));
     await where('Al final de «Sermón de prueba»');
@@ -1748,7 +1771,7 @@ try {
     const notes = path.join(tmp, 'notas.pdf');
     fs.writeFileSync(notes, makePdf([{ text: 'Lectura Juan 3:16' }, { text: 'Luego Salmos 23:1-3' }]));
     await open();
-    await chooseFiles('.citas-box input[type=file]', [notes]);
+    await chooseFiles('.review-box input[type=file]', [notes]);
     check('un PDF también, página a página: cada cita dice en qué página está', await until(`${rows}.length === 2`, 40)
       && await run(`return ${row('Salmos 23:1-3')}.querySelector('input').checked && ${row('Salmos 23:1-3')}.textContent.includes('página 2') && !${row('Juan 3:16')}.querySelector('input').checked`), await run(`return ${box}?.textContent`));
     await where('Al final del orden');
@@ -1759,15 +1782,15 @@ try {
     fs.writeFileSync(old, 'no es un docx');
     expectError('Word antiguo');
     await open();
-    await chooseFiles('.citas-box input[type=file]', [old]);
-    check('un Word antiguo (.doc) se rechaza diciendo cómo guardarlo, sin cerrar la ventana', await until(`document.querySelector('#toast').textContent.includes('.docx')`, 10) && await run(`return Boolean(${box}?.querySelector('.citas-text'))`));
+    await chooseFiles('.review-box input[type=file]', [old]);
+    check('un Word antiguo (.doc) se rechaza diciendo cómo guardarlo, sin cerrar la ventana', await until(`document.querySelector('#toast').textContent.includes('.docx')`, 10) && await run(`return Boolean(${box}?.querySelector('.review-text'))`));
     await press('Escape');
-    check('Esc cierra la ventana', await until(`!${box}`, 10), await run(`return document.querySelectorAll('.citas-box').length + ' ventanas; foco en ' + document.activeElement.className`));
+    check('Esc cierra la ventana', await until(`!${box}`, 10), await run(`return document.querySelectorAll('.review-box').length + ' ventanas; foco en ' + document.activeElement.className`));
 
     const quick = `${ow}.querySelector('.search input')`;
     await run(`const i = ${quick}; i.focus(); const d = new DataTransfer(); d.setData('text/plain', ${JSON.stringify('Juan 3:16\nSalmos 23:1')}); i.dispatchEvent(new ClipboardEvent('paste', { clipboardData: d, bubbles: true, cancelable: true }));`);
     check('pegar varias citas en la cita rápida abre la lista para revisarlas', await until(`${box} && ${rows}.length === 2`, 30) && await run(`return !${quick}.value`),
-      await run(`return document.querySelectorAll('.citas-box').length + ' ventanas, ' + document.querySelectorAll('.citas-row').length + ' filas; ' + (document.querySelector('.citas-status')?.textContent || '')`));
+      await run(`return document.querySelectorAll('.review-box').length + ' ventanas, ' + document.querySelectorAll('.review-row').length + ' filas; ' + (document.querySelector('.review-status')?.textContent || '')`));
     await press('Escape');
     check('Esc cierra la ventana sin añadir nada', await until(`!${box}`, 10) && (await tail(1))[0] === 'Salmos 23:1-3');
     await type('.ws[data-module=orden] .search input', 'Juan 3:16; Romanos 8:28');

@@ -8,7 +8,7 @@ import { applyClock, createClock, freezeClock } from '../../core/playback.js';
 import { AUDIO_EXTENSIONS, SUBTITLE_EXTENSIONS, VIDEO_EXTENSIONS, clipKind, clock, originalMayPlay, planFor, playsAsIs, toVtt } from './clips.js';
 import { createConverter } from './convert.js';
 import { cleanName } from '../../core/names.js';
-import { cleanVtt, createDownloader, findSubtitles, youtubeId } from './youtube.js';
+import { cleanVtt, createDownloader, findSubtitles, youtubeId, youtubeLinks } from './youtube.js';
 
 // Videos y audios de Medios. Llegan de tres sitios:
 //   - subidos desde la app: el archivo queda en data/media/videos o data/media/audios;
@@ -421,14 +421,15 @@ export function registerClips(app, { saved, commit }) {
     });
   }
 
-  function addYoutube(link) {
-    const videoId = youtubeId(link);
-    if (!videoId) throw new HttpError(400, 'Eso no es un enlace de un video de YouTube. Cópialo desde «Compartir», en YouTube.');
-    const already = clips().find((c) => c.videoId === videoId);
-    if (already) return { id: already.id, already: true };
+  // Lo que ya está se reconoce por el identificador del video, aunque se le haya cambiado el nombre.
+  const byVideo = (videoId) => clips().find((c) => c.videoId === videoId);
+  const needTools = () => {
     for (const tool of ['yt-dlp', 'ffmpeg']) {
       if (!app.tools.has(tool)) throw new HttpError(409, `Falta ${tool} en el equipo principal: hace falta para descargar de YouTube. Se instala desde Ajustes, en «Programas del equipo principal».`);
     }
+  };
+  // Lo pone en la biblioteca y en la cola de descargas (de una en una).
+  function queueVideo(videoId) {
     const id = crypto.randomBytes(6).toString('hex');
     const clip = {
       id, kind: 'youtube', name: 'Video de YouTube', source: 'youtube', videoId, file: `${FOLDERS.youtube}/${id}.mp4`, bytes: 0, added: Date.now(),
@@ -436,8 +437,42 @@ export function registerClips(app, { saved, commit }) {
     };
     clips().push(clip);
     startDownload(clip);
+    return id;
+  }
+
+  function addYoutube(link) {
+    const videoId = youtubeId(link);
+    if (!videoId) throw new HttpError(400, 'Eso no es un enlace de un video de YouTube. Cópialo desde «Compartir», en YouTube.');
+    const already = byVideo(videoId);
+    if (already) return { id: already.id, already: true };
+    needTools();
+    const id = queueVideo(videoId);
     commit();
     return { id, already: false };
+  }
+
+  // Varios de una vez (fase 28): los enlaces de un texto, para revisarlos, y después los elegidos, en cola.
+  const MANY = 50;
+  function findLinks(text) {
+    const { found, skipped } = youtubeLinks(text);
+    return {
+      items: found.slice(0, MANY).map((f) => {
+        const clip = byVideo(f.videoId);
+        return { ...f, already: clip ? { id: clip.id, name: clip.name } : null };
+      }),
+      more: Math.max(0, found.length - MANY),
+      skipped,
+    };
+  }
+  function addYoutubeMany(videoIds) {
+    if (!Array.isArray(videoIds) || !videoIds.length || videoIds.length > MANY || !videoIds.every((v) => typeof v === 'string' && /^[A-Za-z0-9_-]{11}$/.test(v))) {
+      throw new HttpError(400, `Elige de 1 a ${MANY} videos de YouTube.`);
+    }
+    needTools();
+    const ids = [];
+    for (const videoId of new Set(videoIds)) if (!byVideo(videoId)) ids.push(queueVideo(videoId));
+    commit();
+    return { ids };
   }
 
   // El equipo principal dice si su navegador reproduce el archivo original tal cual. Lo comprueba
@@ -459,6 +494,8 @@ export function registerClips(app, { saved, commit }) {
     has: (id) => clips().some((c) => c.id === id),
     kindOf: (id) => clips().find((c) => c.id === id)?.kind ?? null,
     addYoutube,
+    findLinks,
+    addYoutubeMany,
     rename(id, name) {
       const clip = find(id);
       clip.name = name;

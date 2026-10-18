@@ -11,7 +11,7 @@ import system from '../server/modules/system/index.js';
 import projection from '../server/modules/projection/index.js';
 import order from '../server/modules/order/index.js';
 import media from '../server/modules/media/index.js';
-import { cleanVtt, createProgress, definitive, downloadArgs, explain, jsRuntime, readLine, subtitleArgs, watchUrl, youtubeId } from '../server/modules/media/youtube.js';
+import { cleanVtt, createProgress, definitive, downloadArgs, explain, jsRuntime, readLine, subtitleArgs, watchUrl, youtubeId, youtubeLinks } from '../server/modules/media/youtube.js';
 import { writeFakeYtDlp } from '../scripts/lib/yt-dlp-falso.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -75,6 +75,30 @@ test('readLine y createProgress entienden lo que yt-dlp va diciendo', () => {
   const progress = createProgress();
   const seen = [[0, 100], [50, 100], [100, 100], [0, 10], [5, 10], [10, 10]].map(([downloaded, total]) => progress({ downloaded, total }));
   assert.deepEqual(seen.map((p) => Math.round(p * 100)), [0, 45, 90, 90, 95, 99]);
+});
+
+test('youtubeLinks saca los enlaces de un texto pegado, cada video una vez, con lo demás de su línea', () => {
+  // Como llegan por un mensaje: con viñetas, nombres, notas, «?si=», comas, invisibles y repetidos (inventados).
+  const text = [
+    '*Culto de prueba*',
+    '* Primer canto: https://youtu.be/AAAAAAAAAA1?si=compartido',
+    '* \u2060https://youtu.be/AAAAAAAAAA2?feature=shared (opción 2)',
+    'Canto final: https://youtu.be/-AAAAAAAAA3?si=x (no poner video)',
+    'Dos: youtube.com/watch?v=AAAAAAAAAA4, www.youtube.com/shorts/AAAAAAAAAA5; m.youtube.com/watch?v=AAAAAAAAAA1&t=3',
+    'Seis https://youtu.be/AAAAAAAAAA6, y otra vez https://youtu.be/AAAAAAAAAA4',
+    'Otros: https://www.youtube.com/playlist?list=PLprueba https://vimeo.com/123 noyoutube.com/watch?v=AAAAAAAAAA6',
+  ].join('\n');
+  const { found, skipped } = youtubeLinks(text);
+  assert.deepEqual(found.map((f) => [f.videoId, f.label, f.times]), [
+    ['AAAAAAAAAA1', 'Primer canto', 2],
+    ['AAAAAAAAAA2', '(opción 2)', 1],
+    ['-AAAAAAAAA3', 'Canto final (no poner video)', 1],
+    ['AAAAAAAAAA4', 'Dos', 2],
+    ['AAAAAAAAAA5', 'Dos', 1],
+    ['AAAAAAAAAA6', 'Seis y otra vez', 1],
+  ]);
+  assert.deepEqual(skipped.map((s) => s.why), ['es una lista de reproducción (pega el enlace de cada video)']);
+  assert.deepEqual(youtubeLinks('nada que ver'), { found: [], skipped: [] });
 });
 
 test('explain dice por qué falló una descarga, con palabras de quien usa Manna', () => {
@@ -206,6 +230,22 @@ test('un enlace de YouTube se descarga a la biblioteca con su título, su imagen
     assert.deepEqual(await library(), []);
     assert.deepEqual(fs.readdirSync(path.join(dataDir, 'media', 'youtube')), []);
     assert.deepEqual(fs.readdirSync(path.join(dataDir, 'media', 'subtitulos')), []);
+
+    // Varios de una vez (fase 28): primero se miran los enlaces de un texto; lo que ya está se reconoce por el video,
+    // aunque tenga otro nombre; después se ponen en cola los elegidos y bajan de uno en uno.
+    const first = (await send('media.youtube', { link: 'https://youtu.be/AAAAAAAAAA1' })).result.id;
+    await settle(first, 'ready');
+    await send('media.rename', { id: first, name: 'Otro nombre' });
+    const look = await (await request('/api/media/youtube/enlaces', { method: 'POST', headers: { 'Content-Type': 'text/plain; charset=utf-8' }, body: 'Uno: https://youtu.be/AAAAAAAAAA1?si=x\nDos: https://youtu.be/AAAAAAAAAA2\nTres https://youtu.be/AAAAAAAAAA3' })).json();
+    assert.deepEqual(look.items.map((i) => [i.videoId, i.label, i.already?.name ?? null]), [['AAAAAAAAAA1', 'Uno', 'Otro nombre'], ['AAAAAAAAAA2', 'Dos', null], ['AAAAAAAAAA3', 'Tres', null]]);
+    assert.equal((await send('media.youtubeMany', { videoIds: ['no-vale'] })).http, 400);
+    const many = await send('media.youtubeMany', { videoIds: ['AAAAAAAAAA1', 'AAAAAAAAAA2', 'AAAAAAAAAA3'] });
+    assert.equal(many.result.ids.length, 2, 'lo que ya estaba no se vuelve a bajar');
+    const queued = (await library()).filter((c) => many.result.ids.includes(c.id));
+    assert.deepEqual(queued.map((c) => c.status), ['downloading', 'downloading']);
+    assert.equal((app.store.get('jobs').list || []).filter((j) => many.result.ids.includes(j.ref) && j.detail === 'En cola').length >= 1, true, 'uno baja y el otro espera en cola');
+    for (const each of many.result.ids) assert.ok(await settle(each, 'ready'), 'bajan todos, de uno en uno');
+    for (const each of [first, ...many.result.ids]) await send('media.remove', { id: each });
 
     // Un video que YouTube no deja bajar: se dice por qué, y se puede reintentar.
     const gone = await send('media.youtube', { link: 'https://youtu.be/privado0000' });
