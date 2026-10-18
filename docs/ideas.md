@@ -6,7 +6,7 @@ Estados: **cruda** (recién anotada), **en desarrollo** (con preguntas en curso)
 
 ## I1 · Varias citas de una vez al orden del culto
 
-**Estado**: en desarrollo · 2026-10-18 (investigada junto con I2: viable; ver «Investigación», abajo)
+**Estado**: al plan · 2026-10-18: **fase 27** de `docs/PLAN.md` (decisión 47), junto con I2
 
 **Qué**: pegar de una vez muchas citas bíblicas (una por línea, o separadas por comas o punto y coma, como vengan) y que Manna las añada todas al orden del culto, en ese orden.
 
@@ -16,7 +16,7 @@ Estados: **cruda** (recién anotada), **en desarrollo** (con preguntas en curso)
 
 ## I2 · Sacar las citas de un documento Word o PDF
 
-**Estado**: en desarrollo · 2026-10-18 · comparte con I1 el detector y la lista para revisar
+**Estado**: al plan · 2026-10-18: **fase 27** de `docs/PLAN.md` (decisión 47), junto con I1, con quien comparte el detector y la lista para revisar
 
 **Qué**: entregar a Manna un documento Word (`.docx`) o PDF, como el bosquejo del sermón, y que encuentre las citas bíblicas que menciona y las añada al orden del culto.
 
@@ -94,19 +94,21 @@ Lo que se aprendió, ya en el prototipo:
 - una cita en palabras («Juan tres dieciséis»);
 - un PDF a dos columnas.
 
-**Cómo se vería** (propuesta):
-- En el Orden, «Añadir» → **«Citas de un texto o documento»**: un recuadro para pegar y «Elegir documento».
-- La lista para revisar: cada cita ya escrita bien («1 Corintios 13:4-7»), el trozo del documento donde aparece, su casilla, y se puede corregir a mano con la cita rápida.
-- Abajo, «Añadir 12 al orden», con la versión elegida y, opcional, una sección con un nombre (el del documento).
+**Decidido por el dueño (2026-10-18, decisión 47)**: aprobó todas las recomendaciones.
+- **Dónde**: en el Orden, «Añadir» → «Citas de un texto o documento», con un recuadro para pegar y «Elegir documento». Si en la cita rápida se pegan varias citas, la lista se abre sola.
+- **La lista para revisar**: cada cita ya escrita bien («1 Corintios 13:4-7»), el trozo del documento donde aparece, su casilla y el motivo si hay duda; se puede corregir a mano con la cita rápida. Abajo, «Añadir 12 al orden».
+- **Qué sale marcado**:
+  - las seguras;
+  - las de revisar no, con la propuesta lista para marcar de un toque, salvo las que confirma el texto copiado;
+  - las citas de paso («(Ro 3.23)») también.
+- **Sección**: por defecto, una nueva con el nombre del documento, que se puede cambiar, o una del orden que ya exista.
+- **Cita sin versículo** («Salmo 23»): el capítulo entero. Si el texto copiado debajo dice cuáles, se proponen esos versículos; se avisa si el capítulo pasa de 40 versículos.
+- **Repetidas**: una vez, con «aparece 10 veces». Si ya está en el orden: sin marcar, con «ya está».
+- **Versión**: la elegida en la Biblia. Si el documento dice otra instalada («NVI»), esa; si no está instalada, se avisa y se usa la elegida.
+- **Orden**: el del documento.
+- **«Hebreos 11:1ss»**: hasta el final del capítulo, sin marcar y con el final para cambiarlo.
+- **Documentos largos** (más de 40 citas): la lista se agrupa por página o por título del sermón, y cada grupo se marca o desmarca de una vez.
+- **Word antiguo (.doc)**: un aviso para guardarlo como .docx o PDF. **Sin texto** (escaneado): se descarta con un aviso.
+- **Dispositivos**: todos los que pueden editar el orden, también el celular.
 
-**Más adelante, si se quiere (sin modelos de lenguaje)**:
-- Si el documento copia el texto del versículo, compararlo con la Biblia: si coincide, confirmada; si es de otro versículo, avisar.
-- Un párrafo citado sin su referencia puede encontrarse con el buscador de la Biblia, como sugerencia.
-
-**Por decidir** (con lo que se recomienda):
-- Una cita sin versículo («Salmo 23»): el capítulo entero (recomendado).
-- Repetidas: una sola vez, diciendo «aparece 3 veces» (recomendado).
-- La versión: la elegida en la Biblia; si el documento dice una que está instalada, esa (recomendado).
-- El orden: el del documento (recomendado).
-- «Hebreos 11:1ss»: preguntar en la lista hasta dónde, con el final del capítulo propuesto.
-- Desde qué dispositivos: todos los que pueden editar el orden; el texto se saca en el navegador, también en el celular.
+**Más adelante, si se quiere**: un párrafo citado sin su referencia podría encontrarse con el buscador de la Biblia, como sugerencia (sin modelos de lenguaje).

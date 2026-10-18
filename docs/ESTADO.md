@@ -231,6 +231,7 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 ## Decisiones tomadas
 
+- **2026-10-18 · Citas de un texto o documento** (decisión 47): sí a la fase 27 (I1 e I2 de `docs/ideas.md`), con todas las recomendaciones del asistente. Las decisiones están en la bandeja de ideas y la fase, en `docs/PLAN.md`.
 - **2026-10-18 · Barra de arriba y Ajustes** (decisión 46, fase 26): la marca con la versión a la izquierda (el logo abre Ajustes, que sale del dock; cambiar de función, en un botón aparte), «Al aire» al centro en su burbuja, «Solo fondo» y «Negro» como iconos junto a la marca, el wifi y el QR que se abren en su sitio, fundidos cortos en lo que se abre, el tamaño de la interfaz por dispositivo (de como estaba a un 8 % más, sin números) y borrar lo subido por categoría con doble confirmación. La versión nueva se busca cada hora, y a mano desde Ajustes. **Regla nueva**: las pruebas largas tienen tiempo máximo y quien las lanza las vigila (en `CLAUDE.md`).
 - **2026-10-17 · Aviso de versión nueva** (decisión 45): Manna mira cada 20 minutos (cada hora desde la 1.31) en GitHub si hay una versión nueva y, solo entonces, lo avisa con un botón que abre el instalador. Es una excepción más a «nada de internet» (en `CLAUDE.md`).
 - **2026-10-17 · Medios en un solo cajón y órdenes guardados** (decisión 43): se aplaza la fase 19. Con prioridad, la fase 22 (Videos vuelve a Medios, todo en un mismo cajón con categorías a las que se arrastra) y la 23 (varios órdenes del culto guardados); después, la 21.
@@ -303,7 +304,7 @@ En `docs/PLAN.md`, sección 11.
 
 ### 0 ter. Bandeja de ideas (`docs/ideas.md`)
 
-Ideas del dueño aún sin compromiso. **I1 e I2** (añadir al orden las citas de un texto pegado o de un documento Word o PDF): investigadas el 2026-10-18. Son viables sin dependencias ni modelos de lenguaje, con una lista para revisar antes de añadir. Hay un prototipo en `scripts/prototipos/citas/`, calibrado con once documentos reales de la iglesia, que se usaron solo en local. Faltan las decisiones de su apartado «Por decidir» y medirlo con documentos nuevos que no haya visto; luego, proponerla como fase.
+Ideas del dueño aún sin compromiso. **I1 e I2** (añadir al orden las citas de un texto pegado o de un documento Word o PDF): investigadas, calibradas con once documentos reales de la iglesia (solo en local) y decididas el 2026-10-18. Son ya la **fase 27** de `docs/PLAN.md` (decisión 47), propuesta y por empezar. Para empezarla hacen falta 3 o 4 sermones nuevos, con los que se mide el detector antes de construir.
 
 ### 1. Instaladores compilados (aplazada)
 
@@ -326,6 +327,7 @@ Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron*
 - **Fase 21** (un solo Manna a la vez): hecha el 2026-10-17 (1.28.0).
 - **Fase 24 (Biblia al aire)**: hecha el 2026-10-17 (1.29.0).
 - **Fase 25 (Escenario más compacto)**: hecha el 2026-10-17 (con la 24, en la 1.29.0).
+- **Fase 27** (citas de un texto o documento al orden): propuesta el 2026-10-18 y por empezar. Su primera parte es medir el detector con 3 o 4 sermones nuevos que entregue el dueño.
 - **Lo que sigue**: las pruebas del dueño en la iglesia (fase 9, para la 2.0); la fase 19 (funciones para el celular) sigue aplazada y la 3 (televisores), en pausa hasta el final.
 - **Fase 19** (funciones especializadas para el celular): aplazada. La propuesta sigue en `docs/funciones-celular.md`.
 - **Fase 9** (auditoría, sección 8 de `docs/PLAN.md`): hecha la parte de código (1.18.0); la del equipo real son las pruebas del dueño, y al pasarlas se publica la 2.0.

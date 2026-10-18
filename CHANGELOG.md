@@ -4,7 +4,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
-- Investigación para añadir al orden del culto las citas de un texto pegado o de un documento Word o PDF (todavía no está en Manna): ver `docs/ideas.md`.
+- Investigación para añadir al orden del culto las citas de un texto pegado o de un documento Word o PDF (todavía no está en Manna): ver `docs/ideas.md`. Propuesta como fase 27 (`docs/PLAN.md`).
 
 ## 1.31.0 — 2026-10-18
 
