@@ -3,12 +3,13 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { HttpError } from '../../core/router.js';
 
-// Versiones nuevas de Manna (pedido del dueño, 2026-10-17): cada 20 minutos el equipo principal pregunta a GitHub qué
+// Versiones nuevas de Manna (pedido del dueño, 2026-10-17): cada hora (cada 20 minutos hasta la 1.31) el equipo
+// principal pregunta a GitHub qué
 // versión tiene la rama que descarga el instalador. Sin internet, o sin nada nuevo, no dice nada; con una nueva, la
 // publica en `system.update` y la interfaz la avisa, con un botón que abre el instalador de siempre (que cierra Manna,
 // lo pone al día sin tocar el contenido ni los datos y lo vuelve a abrir).
 const SOURCE = 'https://raw.githubusercontent.com/delosriosmedia/manna/main/package.json';
-const EVERY_MS = 20 * 60_000;
+const EVERY_MS = 60 * 60_000;
 const FIRST_MS = 60_000; // la primera, un minuto después de abrirse: no estorba el arranque
 const INSTALLERS = { win32: 'Instalar Manna en Windows.bat', darwin: 'Instalar Manna en Mac.command' };
 
@@ -30,16 +31,23 @@ export function watchVersions(app, version) {
   // La copia con git de quien programa Manna se pone al día con git: ahí no se pregunta.
   const dev = !process.env.MANNA_VERSIONES_URL && fs.existsSync(path.join(app.rootDir, '.git'));
 
+  // La versión publicada en GitHub; falla sin internet o si GitHub no contesta como debe.
+  async function latestVersion() {
+    const res = await fetch(source, { signal: AbortSignal.timeout(15_000), headers: { 'User-Agent': 'Manna' } });
+    const latest = res.ok ? String((await res.json())?.version || '') : '';
+    if (!/^\d+\.\d+\.\d+$/.test(latest)) throw new Error(`GitHub respondió ${res.status}`);
+    return latest;
+  }
+  // Una versión más nueva se publica en system.update (force: aunque ya estuviera, para que el aviso vuelva a salir).
+  function publish(latest, force = false) {
+    if (!newer(latest, version) || (!force && store.get('system').update?.version === latest)) return;
+    if (!force) console.log(`Hay una versión nueva de Manna: ${latest} (esta es la ${version}).`);
+    store.set('system', { update: { version: latest } });
+  }
   async function check() {
     if (app.blocked) return;
     try {
-      const res = await fetch(source, { signal: AbortSignal.timeout(15_000), headers: { 'User-Agent': 'Manna' } });
-      if (!res.ok) return;
-      const latest = String((await res.json())?.version || '');
-      if (/^\d+\.\d+\.\d+$/.test(latest) && newer(latest, version) && store.get('system').update?.version !== latest) {
-        console.log(`Hay una versión nueva de Manna: ${latest} (esta es la ${version}).`);
-        store.set('system', { update: { version: latest } });
-      }
+      publish(await latestVersion());
     } catch {
       // Sin internet, o GitHub no contesta: no se dice nada y se vuelve a mirar en el próximo turno.
     }
@@ -50,6 +58,19 @@ export function watchVersions(app, version) {
       setInterval(check, every || EVERY_MS).unref();
     });
   }
+
+  // «Buscar versión nueva» (Ajustes, pedido del dueño 2026-10-18): pregunta ya, sin esperar al turno. Aquí sí se dice
+  // si no se pudo. En la copia con git no se avisa arriba: esa se pone al día con git.
+  app.action('system.checkUpdate', { permission: 'system.admin' }, async () => {
+    let latest;
+    try {
+      latest = await latestVersion();
+    } catch {
+      throw new HttpError(503, 'No se pudo comprobar: el equipo principal no llega a GitHub (¿hay internet?).');
+    }
+    if (!dev) publish(latest, true);
+    return { version, latest, newer: newer(latest, version) };
+  });
 
   // «Actualizar ahora»: abre el instalador como lo haría un doble clic. Solo desde el equipo principal, que es donde
   // está y donde se actualiza. Pruebas: MANNA_ACTUALIZADOR_PRUEBA, un guion de node que hace de instalador.

@@ -25,6 +25,17 @@ export function killOnExit(child) {
   return child;
 }
 
+// Tiempo máximo de un guion de pruebas (regla del dueño, 2026-10-18: una auditoría se quedó más de una hora en un
+// bucle y nadie lo miró). Si se pasa, se corta con un error que dice dónde estaba (where()), y killOnExit cierra lo
+// que lanzó, en vez de quedarse esperando sin que nadie lo note.
+export function deadline(minutes, name, where = () => '') {
+  setTimeout(() => {
+    const at = where();
+    console.error(`\n✖ ${name} pasó de ${minutes} min sin terminar: se corta.${at ? ` Iba por: ${at}` : ''}`);
+    process.exit(3);
+  }, minutes * 60_000).unref();
+}
+
 // Un puerto que nadie usa ahora mismo.
 const freePort = () => new Promise((resolve, reject) => {
   const probe = net.createServer();

@@ -107,8 +107,9 @@ span.order-switch { color: var(--ink-3); }
   .orow { padding: 10px 4px 10px 6px; gap: 8px; }
   .orow .grip, .orow > .icon-btn[aria-label='Opciones'] { display: none; }
   .odetail.inline .odetail-tools { display: flex; }
-  /* En celular el ancho es escaso: el título puede ocupar cinco líneas y la línea secundaria, dos. */
-  .orow .item-text strong { -webkit-line-clamp: 5; }
+  /* En celular el ancho es escaso: el título puede ocupar seis líneas (con la interfaz agrandada, en el cajón más
+     pequeño, cinco no bastaban) y la línea secundaria, dos. */
+  .orow .item-text strong { -webkit-line-clamp: 6; }
   .orow .item-text small { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .slides { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
 }

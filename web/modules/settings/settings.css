@@ -25,7 +25,7 @@
 .tool .item-text { flex: 1; min-width: 0; }
 .tool .btn { color: var(--ink-2); }
 
-.goodbye { margin: auto; padding: 24px; text-align: center; min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: 8px; }
+.goodbye { margin: auto; padding: 24px; text-align: center; min-height: calc(100dvh / var(--zoom)); display: grid; place-content: center; justify-items: center; gap: 8px; }
 .about { align-items: flex-start; text-align: left; }
 .about img { width: 84px; margin-left: -8px; }
 .goodbye h1 { font-size: 22px; }
@@ -45,10 +45,19 @@
 .set .muted.warn { color: var(--live-ink); }
 .net-own { display: grid; gap: 8px; }
 
-/* Espacio en disco: una fila por lo que ocupa, con la cifra a la derecha, y el total. */
+/* Espacio en disco: una fila por lo que ocupa, con la cifra y su botón de borrar a la derecha, y el total. */
 .disk-list { display: grid; margin-bottom: 10px; }
-.disk-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
-.disk-row span { min-width: 0; color: var(--ink-2); }
+.disk-row { display: flex; align-items: center; gap: 12px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.disk-row > span:first-child { flex: 1; min-width: 0; color: var(--ink-2); }
+.disk-row .icon-btn:not(:disabled):hover { color: var(--live-ink); }
+.disk-gap { width: 26px; flex-shrink: 0; }
+html.touch .disk-gap { width: var(--tap); }
 .disk-row strong { font: 600 13px var(--mono); white-space: nowrap; }
 .disk-row.total { border-bottom: 0; }
 .disk-row.total span { color: var(--ink); font-weight: 600; }
+
+/* Tamaño de la interfaz: una A pequeña a la izquierda del deslizador y una grande a la derecha, sin números. */
+.ui-size { display: flex; align-items: center; gap: 12px; max-width: 360px; margin-bottom: 14px; }
+.ui-size input { flex: 1; min-width: 0; }
+.ui-a { width: 18px; text-align: center; color: var(--ink-2); font-size: 12px; font-weight: 600; line-height: 1; }
+.ui-a.big { font-size: 20px; }

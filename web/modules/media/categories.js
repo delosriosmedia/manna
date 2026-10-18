@@ -1,5 +1,5 @@
 import { action, state } from '../../core/api.js';
-import { h, dialog, guard, menu, toast } from '../../core/dom.js';
+import { h, dialog, guard, menu, pageZoom, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { prefs } from '../../core/prefs.js';
 import { askText } from './dialogs.js';
@@ -60,8 +60,9 @@ export function createCategories(ctx, onChange) {
     const row = el.getBoundingClientRect();
     const right = end.getBoundingClientRect().right - row.right;
     const left = row.left - on.getBoundingClientRect().left;
-    if (right > 0) el.scrollLeft += right;
-    else if (left > 0) el.scrollLeft -= left;
+    // scrollLeft va en píxeles de la página; lo medido, en los de pantalla (tamaño de la interfaz).
+    if (right > 0) el.scrollLeft += right / pageZoom();
+    else if (left > 0) el.scrollLeft -= left / pageZoom();
   };
   function render() {
     // La borraron (aquí o en otro dispositivo). Antes de que llegue el estado no se sabe.

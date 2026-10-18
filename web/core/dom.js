@@ -100,6 +100,11 @@ export function dialog(title, ...content) {
   return { el: backdrop, close };
 }
 
+// El tamaño de la interfaz de este dispositivo (Ajustes, 1.31: zoom de la página, de 1 a 1,08). Lo que se mide con
+// getBoundingClientRect, innerWidth o el puntero sale en píxeles de pantalla; un estilo en px se multiplica por el
+// zoom: para colocar algo con lo medido, se divide entre esto.
+export const pageZoom = () => document.documentElement.currentCSSZoom || parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+
 // Menú desplegable junto a un botón. items: [{ label, icon?, note?, disabled?, onclick }] o '-' (separador).
 // Con el teclado: el foco entra en el primero, ↑ ↓ lo mueven, Esc cierra y el foco vuelve al botón.
 export function menu(anchor, items) {
@@ -132,8 +137,9 @@ export function menu(anchor, items) {
   // Se abre bajo el botón, sin salirse de la pantalla.
   const a = anchor.getBoundingClientRect();
   const m = el.getBoundingClientRect();
-  el.style.left = `${Math.max(8, Math.min(a.right - m.width, innerWidth - m.width - 8))}px`;
-  el.style.top = `${a.bottom + m.height + 8 > innerHeight ? Math.max(8, a.top - m.height - 4) : a.bottom + 4}px`;
+  const z = pageZoom();
+  el.style.left = `${Math.max(8, Math.min(a.right - m.width, innerWidth - m.width - 8)) / z}px`;
+  el.style.top = `${(a.bottom + m.height + 8 > innerHeight ? Math.max(8, a.top - m.height - 4) : a.bottom + 4) / z}px`;
   setTimeout(() => {
     document.addEventListener('pointerdown', outside, true);
     document.addEventListener('keydown', onKey);

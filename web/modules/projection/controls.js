@@ -52,7 +52,7 @@ export function createDisplayToggle({ compact = false } = {}) {
   subscribe('projection', ({ display }) => {
     const full = !display.hasSecond ? 'Sin segunda pantalla' : display.on ? 'Apagar proyector' : 'Encender proyector';
     if (compact) {
-      button.replaceChildren(icon('monitor', 16), !display.hasSecond ? 'Sin pantalla' : display.on ? 'Apagar' : 'Encender');
+      button.replaceChildren(icon('monitor', 16), h('span', { class: 'lbl' }, !display.hasSecond ? 'Sin pantalla' : display.on ? 'Apagar' : 'Encender'));
       button.title = full;
       button.setAttribute('aria-label', full);
     } else button.textContent = full;

@@ -63,6 +63,10 @@
   --mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --control: 30px;
+  /* Tamaño de la interfaz de este dispositivo (Ajustes, 1.31): de 1 (el de siempre, el mínimo) a 1,08. Lo pone el
+     guion de la cabecera de cada página; la proyección no lo usa. Lo que se mide por la pantalla (vw, dvh) se divide
+     entre él, porque el zoom también lo agrandaría. */
+  --zoom: 1;
 
   /* Capas */
   --z-nav: 20;
@@ -88,6 +92,7 @@ html.touch { --control: 38px; --tap: 35px; }
 }
 
 * { box-sizing: border-box; }
+html { zoom: var(--zoom); }
 html, body { height: 100%; }
 
 body {
@@ -239,7 +244,7 @@ html.touch .seg .icon-btn { width: var(--tap); height: var(--tap); }
 /* ---- Aviso flotante ---- */
 #toast {
   position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 12px); z-index: var(--z-toast);
-  max-width: min(92vw, 460px); padding: 11px 18px; border-radius: var(--r-lg);
+  max-width: min(calc(92vw / var(--zoom)), 460px); padding: 11px 18px; border-radius: var(--r-lg);
   background: var(--glass-3); border: 1px solid var(--glass-line); backdrop-filter: blur(var(--blur-1)); -webkit-backdrop-filter: blur(var(--blur-1));
   opacity: 0; pointer-events: none; transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
 }
@@ -249,7 +254,7 @@ html.touch .seg .icon-btn { width: var(--tap); height: var(--tap); }
 
 /* ---- Ventana modal y menú ---- */
 .modal-backdrop { position: fixed; inset: 0; z-index: var(--z-modal); display: grid; place-items: center; padding: 16px; background: rgba(3, 4, 6, 0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-.modal { width: min(100%, 460px); max-height: 90dvh; overflow: auto; background: var(--glass-3); border: 1px solid var(--glass-line); border-radius: var(--r-xl); box-shadow: 0 30px 80px var(--shadow-color); }
+.modal { width: min(100%, 460px); max-height: calc(90dvh / var(--zoom)); overflow: auto; background: var(--glass-3); border: 1px solid var(--glass-line); border-radius: var(--r-xl); box-shadow: 0 30px 80px var(--shadow-color); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 14px 12px 20px; border-bottom: 1px solid var(--line); }
 .modal-body { padding: 18px 20px 20px; }
 .modal-body p { margin-bottom: 12px; }
@@ -260,6 +265,19 @@ html.touch .seg .icon-btn { width: var(--tap); height: var(--tap); }
   backdrop-filter: blur(var(--blur-1)); -webkit-backdrop-filter: blur(var(--blur-1));
   box-shadow: 0 20px 50px var(--shadow-color);
 }
+
+/* Lo que se abre aparece con un fundido corto (pedido del dueño, 2026-10-18): solo opacidad y un desplazamiento
+   pequeño, que el navegador mueve sin recalcular la página, y en menos de 0,2 s para no hacer esperar. Al cerrarse,
+   desaparece al instante. Con «reducir movimiento» del equipo, nada (abajo). `translate` y `scale` se suman al
+   `transform` con que algunas piezas se colocan. */
+@keyframes appear { from { opacity: 0; translate: 0 -4px; } }
+@keyframes appear-up { from { opacity: 0; translate: 0 10px; } }
+@keyframes appear-side { from { opacity: 0; translate: -10px 0; } }
+@keyframes rise { from { opacity: 0; scale: 0.97; } }
+@keyframes fade { from { opacity: 0; } }
+.menu { animation: appear 0.14s var(--ease); }
+.modal-backdrop { animation: fade 0.14s ease; }
+.modal { animation: rise 0.18s var(--ease); }
 .menu button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: var(--control); padding: 0 12px; border-radius: var(--r); text-align: left; }
 .menu button:hover:not(:disabled) { background: var(--s3); }
 .menu button:disabled { color: var(--ink-4); cursor: default; }

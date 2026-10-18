@@ -8,6 +8,8 @@
   <link rel="alternate icon" type="image/png" href="/icono.png">
   <title>Manna · Revisión del equipo</title>
   <script>if (matchMedia('(pointer: coarse)').matches || /[?&]tactil/.test(location.search)) document.documentElement.classList.add('touch');</script>
+  <!-- Tamaño de la interfaz de este dispositivo (Ajustes, 1.31), antes de dibujar nada; ?escala=1.08 lo fuerza (pruebas). -->
+  <script>try { const z = Number(new URLSearchParams(location.search).get('escala')) || JSON.parse(localStorage.getItem('manna.interfaz.tamano')); if (z > 1 && z <= 1.08) document.documentElement.style.setProperty('--zoom', z); } catch {}</script>
   <link rel="stylesheet" href="/core/app.css">
   <style>
     main { max-width: 620px; margin: 0 auto; padding: 32px 16px 48px; }

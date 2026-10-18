@@ -34,10 +34,14 @@ const ICONS = [
   'star',
   // textos (fase 18)
   'text-aa', 'quotes',
+  // «Solo fondo» en la barra de arriba (1.31): el texto se va
+  'text-t-slash',
 ];
 
-// Iconos propios (a petición del dueño, no son de Phosphor): un QR que se lee desde 14 px. Ver DESIGN.md.
+// Iconos propios (a petición del dueño, no son de Phosphor): un QR que se lee desde 14 px y, para «Negro», una
+// diapositiva negra de verdad, sin el pie del monitor del proyector (1.31). Ver DESIGN.md.
 const CUSTOM = [
+  `<symbol id="pantalla-negra" viewBox="0 0 24 24"><rect x="2.75" y="5.25" width="18.5" height="13.5" rx="2.5" fill="#000" stroke="currentColor" stroke-width="1.75"/></symbol>`,
   `<symbol id="qr-mini" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.75" y="3.75" width="6.5" height="6.5" rx="1.5"/><rect x="13.75" y="3.75" width="6.5" height="6.5" rx="1.5"/><rect x="3.75" y="13.75" width="6.5" height="6.5" rx="1.5"/></g><g fill="currentColor"><rect x="13.75" y="13.75" width="3.25" height="3.25" rx="0.7"/><rect x="17.25" y="17.25" width="3" height="3" rx="0.7"/><rect x="17.25" y="13.75" width="3" height="1.5" rx="0.5"/></g></symbol>`,
 ];
 

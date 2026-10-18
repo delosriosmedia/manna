@@ -1,7 +1,7 @@
 import { action, connect, onServerUpdate, state, subscribe } from './api.js';
 import { watchBlocked } from './blocked.js';
 import { mountConnectionBar } from './connection.js';
-import { h, allowLeaving, confirmBeforeClose, dialog, go, guard, menu, toast } from './dom.js';
+import { h, allowLeaving, confirmBeforeClose, dialog, go, guard, pageZoom, toast } from './dom.js';
 import { icon } from './icons.js';
 import { joinNames, missingFor, toolsOf } from './needs.js';
 import { prefs } from './prefs.js';
@@ -13,7 +13,7 @@ import { prefs } from './prefs.js';
 // (< 860 px) es «Historias»: la proyección en un recuadro arriba, y los módulos en cajones que suben.
 //
 // Un módulo es { id, name, icon, place?, soon?, needs?, mount(el, ctx) }:
-//   place   'bottom' lo coloca al final del dock (ajustes)
+//   place   'bottom' lo coloca al final del dock (Ajustes no sale en el dock: lo abre el logo, arriba)
 //   soon    previsto pero aún no construido: no sale
 //   hidden  en pausa: existe y se abre por su dirección (#id), pero no sale en el dock
 //   needs   programas del equipo principal que necesita (ver core/needs.js)
@@ -22,8 +22,8 @@ import { prefs } from './prefs.js';
 //   setPart  un módulo con pestañas dice en cuál está, para avisar solo de lo que le falta a esa
 //
 // layout 'full' (Presentador): el único módulo ocupa la pantalla entera, sin escenario.
-// topTools: [(ctx) => nodo]: lo que va en la barra de arriba, a la izquierda de la ficha de la función (el wifi y el QR del Control completo).
-export function createShell({ role, isLocal, modules, extras = [], topTools = [], createScene, layout = 'escena' }) {
+// topTools: [(ctx) => nodo]: lo que va al final de la barra de arriba (el wifi y el QR del Control completo).
+export function createShell({ role, isLocal, modules, topTools = [], createScene, layout = 'escena' }) {
   const canEdit = role === 'control' || role === 'alabanza';
   const usable = modules.filter((m) => !m.soon);
   const listed = usable.filter((m) => !m.hidden);
@@ -41,23 +41,33 @@ export function createShell({ role, isLocal, modules, extras = [], topTools = []
   // Escuchar algo solo en este dispositivo antes de añadirlo ({ url, title }); null en el equipo principal.
   ctx.listen = scene?.preview ? (what) => scene.preview.play(what) : null;
 
-  // ---- Barra de arriba: estado, «Buscar en todo», función y versión ----
-  const version = h('small', { class: 'role-version' });
-  subscribe('system', (s) => { version.textContent = s.version ? `Manna ${s.version}` : ''; });
+  // ---- Barra de arriba: la marca, el estado y «Buscar en todo» ----
+  // La marca (pedido del dueño, 2026-10-18): el logo abre Ajustes (que ya no está en el dock), la versión al lado y
+  // un botón aparte para cambiar la función de este dispositivo. Sin Ajustes (las demás funciones), el logo no es botón.
   const ROLE_NAMES = { control: 'Control completo', alabanza: 'Servicio de alabanza', orden: 'Control del orden', presentador: 'Presentador' };
-  const roleChip = h('button', { class: 'role-chip glass', 'aria-haspopup': 'menu', title: ROLE_NAMES[role] || role, onclick: (e) => menu(e.currentTarget, [
-    ...extras.map((x) => ({ label: x.name, icon: x.icon, note: typeof x.note === 'function' ? x.note() : x.note, onclick: x.onclick })),
-    extras.length && '-',
-    { label: 'Cambiar de función', icon: 'arrows-left-right', onclick: () => go('/') },
-  ].filter(Boolean)) }, h('span', { class: 'role-dot', 'aria-hidden': 'true' }), h('span', { class: 'role-text' }, h('strong', {}, ROLE_NAMES[role] || role), version));
-  scene?.status.prepend(h('a', { class: 'brand-mark', href: '/', title: 'Cambiar la función de este dispositivo' }, h('img', { src: '/logo.svg', alt: 'Manna' })));
-  const top = h('header', { class: 'topbar' }, scene?.status, h('span', { class: 'spacer' }), scene?.search?.button, ...topTools.map((make) => make(ctx)), roleChip);
+  const settings = usable.find((m) => m.id === 'ajustes');
+  const version = h('small', { class: 'brand-version' });
+  subscribe('system', (s) => { version.textContent = s.version || ''; });
+  const logo = h('img', { src: '/logo.svg', alt: settings ? '' : 'Manna' });
+  const brandMark = settings
+    ? h('button', { class: 'brand-mark', dataset: { id: settings.id }, title: 'Ajustes', 'aria-label': 'Ajustes', 'aria-pressed': 'false', onclick: () => (current?.id === settings.id && isOpen() ? closeDrawer() : show(settings.id)) }, logo)
+    : h('span', { class: 'brand-mark' }, logo);
+  const brand = h('div', { class: 'brand glass' }, brandMark,
+    h('span', { class: 'brand-text', 'aria-hidden': 'true' }, h('strong', {}, 'Manna'), version),
+    h('button', { class: 'brand-switch', title: `Cambiar de función (ahora, ${ROLE_NAMES[role] || role})`, 'aria-label': 'Cambiar de función', onclick: () => go('/') }, icon('arrows-left-right', 16)));
+  // Tres columnas: a la izquierda la marca y «Solo fondo» y «Negro»; al centro, «Al aire» en su burbuja; a la derecha
+  // el proyector, «Buscar en todo» y lo de cada función (wifi y QR).
+  const top = h('header', { class: 'topbar' },
+    h('div', { class: 'tb-side' }, brand, scene?.modes),
+    scene?.status,
+    h('div', { class: 'tb-side end' }, scene?.power, scene?.search?.button, ...topTools.map((make) => make(ctx))));
 
   // ---- Dock de módulos y cajón ----
   const dockbar = h('nav', { class: 'dockbar glass', 'aria-label': 'Módulos' });
   const dockButton = (m) => h('button', { class: 'dock-item', dataset: { id: m.id }, title: m.name, 'aria-label': m.name, 'aria-pressed': 'false', onclick: () => (current?.id === m.id && isOpen() ? closeDrawer() : show(m.id)) },
     icon(m.icon, 20), h('span', { class: 'dock-name' }, m.name));
-  dockbar.append(...listed.filter((m) => m.place !== 'bottom').map(dockButton), h('span', { class: 'dock-fill' }), ...listed.filter((m) => m.place === 'bottom').map(dockButton));
+  // Ajustes se abre con el logo (arriba), no desde el dock.
+  dockbar.append(...listed.filter((m) => m !== settings && m.place !== 'bottom').map(dockButton), h('span', { class: 'dock-fill' }), ...listed.filter((m) => m !== settings && m.place === 'bottom').map(dockButton));
   if (listed.length < 2 && !full) dockbar.classList.add('single');
 
   const drawerTitle = h('h2', {});
@@ -136,20 +146,22 @@ export function createShell({ role, isLocal, modules, extras = [], topTools = []
     const saved = prefs.get(sizeKey(), null);
     if (typeof saved !== 'number') return;
     if (!narrow.matches) drawer.style.setProperty('--drawer-w', `${saved}px`);
-    else if (landscape.matches) drawer.style.setProperty('--drawer-left', `${Math.round(saved * innerWidth)}px`);
-    else drawer.style.setProperty('--drawer-top', `${Math.round(saved * innerHeight)}px`);
+    else if (landscape.matches) drawer.style.setProperty('--drawer-left', `${Math.round(saved * innerWidth / pageZoom())}px`);
+    else drawer.style.setProperty('--drawer-top', `${Math.round(saved * innerHeight / pageZoom())}px`);
   }
   // `grab`: dónde se cogió el borde, para que siga al dedo sin saltar hasta él.
   let grab = { dx: 0, dy: 0 };
+  // Lo medido (el puntero, getBoundingClientRect) va en píxeles de pantalla; las medidas del CSS, en los de la página.
   function sizeTo(x, y) {
-    if (!narrow.matches) drawer.style.setProperty('--drawer-w', `${Math.round(x + grab.dx - drawer.getBoundingClientRect().left)}px`);
-    else if (landscape.matches) drawer.style.setProperty('--drawer-left', `${Math.round(x - grab.dx)}px`);
-    else drawer.style.setProperty('--drawer-top', `${Math.round(y - grab.dy)}px`);
+    const z = pageZoom();
+    if (!narrow.matches) drawer.style.setProperty('--drawer-w', `${Math.round((x + grab.dx - drawer.getBoundingClientRect().left) / z)}px`);
+    else if (landscape.matches) drawer.style.setProperty('--drawer-left', `${Math.round((x - grab.dx) / z)}px`);
+    else drawer.style.setProperty('--drawer-top', `${Math.round((y - grab.dy) / z)}px`);
   }
   // Se guarda lo que de verdad mide (ya limitado por el CSS), y se vuelve a poner así.
   function saveSize() {
     const r = drawer.getBoundingClientRect();
-    prefs.set(sizeKey(), !narrow.matches ? Math.round(r.width) : landscape.matches ? r.left / innerWidth : r.top / innerHeight);
+    prefs.set(sizeKey(), !narrow.matches ? Math.round(r.width / pageZoom()) : landscape.matches ? r.left / innerWidth : r.top / innerHeight);
     applySize();
   }
   grip.addEventListener('pointerdown', (e) => {
@@ -182,7 +194,8 @@ export function createShell({ role, isLocal, modules, extras = [], topTools = []
   });
 
   function paintDock() {
-    dockbar.querySelectorAll('.dock-item').forEach((b) => {
+    [...dockbar.querySelectorAll('.dock-item'), brandMark].forEach((b) => {
+      if (!b.dataset.id) return;
       const on = isOpen() && b.dataset.id === current?.id;
       b.classList.toggle('on', on);
       b.setAttribute('aria-pressed', String(on));
@@ -307,6 +320,8 @@ export function createShell({ role, isLocal, modules, extras = [], topTools = []
         el.remove(); // a medio dibujar se quedaría encima del módulo abierto, y otro más en cada intento
         throw err;
       }
+      // Sin escenario (Presentador) no hay barra de arriba: la marca va al principio de la cabecera del módulo.
+      if (full) el.querySelector('.ws-head')?.prepend(brand);
     }
     for (const [mid, m] of mounted) m.el.hidden = mid !== module.id;
     current = { id: module.id, api: mounted.get(module.id).api };

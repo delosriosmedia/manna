@@ -17,7 +17,9 @@ const BAR_IDLE_MS = 2500; // sin mover el ratón ni pulsar una tecla, la barra d
 // «Escenario» (fase 13 de docs/PLAN.md): lo que está al aire ocupa el fondo y, encima, en cristal,
 // lo que lo gobierna. Lo coloca core/shell.js; aquí solo se hacen las piezas y se mantienen al día.
 //   bg         la proyección de fondo (en el celular, solo su color desenfocado: la imagen va en story)
-//   status     estado al aire: qué se ve, «Solo fondo» y «Negro» y, en el control del equipo principal, el botón del proyector
+//   status     estado al aire: su etiqueta y qué se ve, en su burbuja, al centro de la barra de arriba
+//   modes      «Solo fondo» y «Negro», como iconos (van junto a cambiar de función; en el celular, en «Historias»)
+//   power      en el control del equipo principal, el botón del proyector (null en las demás)
 //   queue      cola del culto: el orden para operar, con los pasos de lo que está al aire
 //   transport  barra de abajo: los mandos de lo que está al aire (siempre a la vista) y, debajo, Anterior,
 //              Siguiente, qué sigue y el volumen
@@ -47,11 +49,13 @@ export function createEscenario(ctx) {
   };
   const caption = h('strong', { class: 'scene-caption' });
   const power = ctx.role === 'control' && ctx.isLocal ? createDisplayToggle({ compact: true }) : null;
-  // «Solo fondo» y «Negro», junto a lo que está al aire (en el celular van en «Historias»).
-  const clear = h('button', { class: 'chip mode-chip', title: 'Ocultar el texto y dejar el fondo', onclick: () => toggleMode('clear') }, 'Solo fondo', h('kbd', {}, 'C'));
-  const black = h('button', { class: 'chip mode-chip', title: 'Pantalla en negro', onclick: () => toggleMode('black') }, 'Negro', h('kbd', {}, 'B'));
-  const status = h('div', { class: 'scene-status glass' }, livePill(), caption,
-    h('div', { class: 'scene-modes', role: 'group', 'aria-label': 'Qué se ve en la proyección' }, clear, black), power);
+  power?.classList.add('scene-power', 'glass');
+  // «Solo fondo» y «Negro», como iconos aparte de lo que está al aire, que se confundía con ellos (pedido del dueño,
+  // 2026-10-18). En el celular van en «Historias».
+  const clear = h('button', { class: 'mode-btn', 'aria-label': 'Solo fondo', title: 'Solo fondo (C): oculta el texto y deja el fondo', onclick: () => toggleMode('clear') }, icon('text-t-slash', 18));
+  const black = h('button', { class: 'mode-btn', 'aria-label': 'Negro', title: 'Negro (B): la pantalla en negro', onclick: () => toggleMode('black') }, icon('pantalla-negra', 18));
+  const modeBar = h('div', { class: 'scene-modes glass', role: 'group', 'aria-label': 'Qué se ve en la proyección' }, clear, black);
+  const status = h('div', { class: 'scene-status glass' }, livePill(), caption);
   // En el celular, la cabecera del cajón dice lo que está al aire (el cajón tapa el recuadro).
   const miniCaption = h('strong', { class: 'scene-caption' });
   const mini = h('div', { class: 'scene-mini' }, livePill(), miniCaption);
@@ -326,7 +330,7 @@ export function createEscenario(ctx) {
   });
 
   return {
-    bg, status, mini, queue, transport, story, controls, search, preview,
+    bg, status, modes: modeBar, power, mini, queue, transport, story, controls, search, preview,
     // En el celular la proyección va en el recuadro de «Historias»; en el escritorio, de fondo.
     place(narrow) {
       (narrow ? frame : bg).prepend(screen);

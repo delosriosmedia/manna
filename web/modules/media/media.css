@@ -77,7 +77,7 @@ html.touch .media-more { width: var(--tap); height: var(--tap); right: 2px; bott
 .fit-thumb.cover img { object-fit: cover; }
 
 /* Ventana de subida */
-.up-list { display: grid; gap: 10px; max-height: 50dvh; overflow-y: auto; }
+.up-list { display: grid; gap: 10px; max-height: calc(50dvh / var(--zoom)); overflow-y: auto; }
 .up-row { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 10px; align-items: start; }
 .up-thumb { aspect-ratio: 16 / 9; background: var(--media-bg); border-radius: var(--r-sm); overflow: hidden; }
 .up-thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }

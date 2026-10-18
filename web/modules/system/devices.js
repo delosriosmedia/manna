@@ -14,12 +14,13 @@ function qr(text) {
 // Lo que se escribe a mano en el navegador: sin "http://", que el navegador pone solo.
 const typed = (url) => url.replace(/^http:\/\//, '');
 
-// Ventana "Dispositivos": cómo conectar celulares y otros equipos, y el PIN.
+// "Conectar dispositivos": cómo conectar celulares y otros equipos, y el PIN. Lo que dice (devicesBody) va en la
+// tarjeta del QR de la barra de arriba (conexion.js) y, desde Ajustes, en una ventana.
 // - Un solo código QR, con la dirección numérica recomendada (funciona en cualquier dispositivo;
 //   al abrirla, la página pasa sola a la dirección con nombre si el dispositivo la entiende).
 // - Para escribir a mano se ofrece la dirección con nombre ("manna.local"), más corta y estable.
 // - Si el equipo tiene más de una red, las demás direcciones quedan como alternativa, plegadas.
-export async function openDevicesDialog(isLocal) {
+export async function devicesBody(isLocal) {
   const { addresses, nameUrl, altPort, secure } = state.system;
   const body = [];
 
@@ -76,5 +77,9 @@ export async function openDevicesDialog(isLocal) {
   } else {
     body.push(h('p', { class: 'muted' }, 'El PIN solo se puede ver y cambiar desde el equipo principal.'));
   }
-  dialog('Conectar dispositivos', ...body);
+  return body;
+}
+
+export async function openDevicesDialog(isLocal) {
+  dialog('Conectar dispositivos', ...await devicesBody(isLocal));
 }

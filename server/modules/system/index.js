@@ -213,18 +213,27 @@ export default function setup(app) {
     ctx.require('system.admin');
     return diskUsage(app);
   });
-  // «Limpiar multimedia temporales» (decisión 36): borra todo lo subido o descargado (YouTube, videos, audios,
-  // imágenes, presentaciones y páginas web hechas con un archivo), también lo que esté en el orden del culto, que
-  // los pierde. Cada cosa con la orden de borrar de su módulo. Nunca toca la carpeta Contenido (lo que viene de
-  // ella lleva source 'folder') ni las imágenes de fondo de Ajustes.
-  app.action('system.clean', { permission: 'system.admin' }, () => {
-    const before = diskUsage(app).total;
+  // Borrar lo subido o descargado, una categoría a la vez (decisión 36; por categoría desde la 1.31): YouTube, videos
+  // y audios, imágenes, presentaciones o páginas web hechas con un archivo. También lo que esté en el orden del culto,
+  // que los pierde. Cada cosa con la orden de borrar de su módulo. Nunca toca la carpeta Contenido (lo que viene de
+  // ella lleva source 'folder') ni las imágenes de fondo de Ajustes. Las copias para celulares, miniaturas y
+  // subtítulos no se borran solas: sin ellas los videos dejarían de verse; se van con su video.
+  const subido = (lists) => {
     const media = store.get('media') || {};
-    const removals = [
-      ...['images', 'videos', 'audios', 'youtube'].flatMap((list) => (media[list] || []).filter((m) => m.source !== 'folder').map((m) => ['media.remove', m.id])),
-      ...(store.get('slides')?.decks || []).map((d) => ['slides.remove', d.id]),
-      ...(store.get('web')?.pages || []).filter((p) => p.source === 'file').map((p) => ['web.remove', p.id]),
-    ];
+    return lists.flatMap((list) => (media[list] || []).filter((m) => m.source !== 'folder').map((m) => ['media.remove', m.id]));
+  };
+  const CLEAN = {
+    youtube: () => subido(['youtube']),
+    clips: () => subido(['videos', 'audios']),
+    images: () => subido(['images']),
+    slides: () => (store.get('slides')?.decks || []).map((d) => ['slides.remove', d.id]),
+    pages: () => (store.get('web')?.pages || []).filter((p) => p.source === 'file').map((p) => ['web.remove', p.id]),
+  };
+  app.action('system.clean', { permission: 'system.admin' }, (payload) => {
+    const group = payload?.group;
+    if (!Object.hasOwn(CLEAN, String(group))) throw new HttpError(400, 'Elige qué borrar: YouTube, videos y audios, imágenes, presentaciones o páginas web.');
+    const before = diskUsage(app).total;
+    const removals = CLEAN[group]();
     let failed = 0;
     for (const [type, id] of removals) {
       try { app.run(type, { id }); } catch (err) { failed += 1; console.error(`Limpiar: no se pudo borrar ${id} (${type}): ${err.message}`); }

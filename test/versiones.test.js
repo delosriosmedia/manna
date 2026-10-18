@@ -23,7 +23,7 @@ test('newer compara versiones por sus números', () => {
   assert.equal(newer('1.28.5', '1.29.0'), false);
 });
 
-test('avisa solo de una versión más nueva, calla sin internet, y «Actualizar ahora» abre el instalador desde el equipo principal', async () => {
+test('avisa solo de una versión más nueva, calla sin internet, se puede buscar a mano, y «Actualizar ahora» abre el instalador desde el equipo principal', async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-versiones-'));
   let latest = version;
   let up = true;
@@ -46,18 +46,25 @@ test('avisa solo de una versión más nueva, calla sin internet, y «Actualizar 
   const base = `http://127.0.0.1:${app.port}`;
   const login = await fetch(`${base}/api/session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'control' }) });
   const cookie = login.headers.get('set-cookie').split(';')[0];
-  const send = async (type, headers = {}) => (await fetch(`${base}/api/action`, { method: 'POST', headers: { 'Content-Type': 'application/json', cookie, ...headers }, body: JSON.stringify({ type }) })).status;
+  const call = async (type, headers = {}) => {
+    const res = await fetch(`${base}/api/action`, { method: 'POST', headers: { 'Content-Type': 'application/json', cookie, ...headers }, body: JSON.stringify({ type }) });
+    return { status: res.status, ...(await res.json()) };
+  };
+  const send = async (type, headers) => (await call(type, headers)).status;
   const update = () => app.store.get('system').update;
   try {
     await sleep(400);
     assert.equal(update(), null, 'la misma versión: nada');
+    assert.deepEqual((await call('system.checkUpdate')).result, { version, latest: version, newer: false }, '«Buscar versión nueva» dice que no hay');
     up = false;
     latest = '99.0.0';
     await sleep(400);
     assert.equal(update(), null, 'sin respuesta de GitHub: nada');
+    assert.equal(await send('system.checkUpdate'), 503, 'buscar a mano sí dice que no se pudo');
     up = true;
     for (let i = 0; i < 40 && !update(); i += 1) await sleep(50);
     assert.deepEqual(update(), { version: '99.0.0' }, 'una versión más nueva: se avisa');
+    assert.equal((await call('system.checkUpdate')).result.newer, true);
 
     assert.equal(await send('system.update', { 'X-Forwarded-For': '203.0.113.9', 'Cf-Connecting-Ip': '203.0.113.9' }), 403, 'desde fuera del equipo principal, no');
     assert.equal(await send('system.update'), 200);

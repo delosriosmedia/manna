@@ -41,6 +41,8 @@
 //       node scripts/auditar-responsive.mjs biblia 360x640 844x390 1280x720
 //                                                       solo las pantallas y los tamaños cuyo nombre lleva
 //                                                       alguna de esas palabras (sin contar tildes)
+//       node scripts/auditar-responsive.mjs grande      con la interfaz al tamaño máximo de Ajustes (1,08)
+// Si pasa de 12 min, se corta y dice por dónde iba cada Chrome (regla del dueño, 2026-10-18).
 // Reparte los tamaños entre tres Chrome a la vez, cada uno con su servidor (puertos 8124, 8126 y 8128)
 // y sus datos temporales. Necesita Node 22 o superior y Chrome o Edge.
 import { spawn } from 'node:child_process';
@@ -48,7 +50,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { killOnExit, sleep, startChrome } from './lib/chrome.mjs';
+import { deadline, killOnExit, sleep, startChrome } from './lib/chrome.mjs';
 import { seedExample } from './lib/ejemplo.mjs';
 import { startFakeTv } from './lib/tv-falso.mjs';
 
@@ -56,6 +58,11 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Separados de dos en dos: si un puerto está ocupado, el servidor prueba el siguiente.
 const PORTS = [8124, 8126, 8128];
 const SHOTS = process.argv.includes('capturas');
+// «grande»: cada página se abre con la interfaz al tamaño máximo (?escala=1.08, como el deslizador de Ajustes al tope).
+const BIG = process.argv.includes('grande');
+// Por dónde va cada Chrome, para decirlo si se pasa del tiempo máximo.
+const progress = [];
+deadline(12, 'La auditoría', () => progress.filter(Boolean).join(' · '));
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-responsive-'));
 
 const DEVICES = [
@@ -88,6 +95,10 @@ const SCREENS = [
   // closes: la capa abierta y su recuadro; tras medir, un toque fuera del recuadro debe cerrarla.
   { name: 'Buscar en todo', url: '/control', inside: '.finder', closes: ['.finder-layer', '.finder'], settle: 1100, prepare: `(() => { document.querySelector('.finder-chip').click(); const i = document.querySelector('.finder-input input'); i.value = 'luz'; i.dispatchEvent(new Event('input')); })()` },
   { name: 'Buscar en todo, con una fila marcada', url: '/control#biblia', inside: '.finder', marcada: true, settle: 1400, prepare: `(() => { document.querySelector('.finder-chip').click(); const i = document.querySelector('.finder-input input'); i.value = 'luz'; i.dispatchEvent(new Event('input')); setTimeout(() => document.querySelectorAll('.finder-row')[1]?.click(), 800); })()` },
+  // El wifi y el QR de la barra de arriba se abren en su sitio como una tarjeta (1.31): cabe en la pantalla y se cierra
+  // al tocar fuera.
+  { name: 'Tarjeta del QR', url: '/control#orden', inside: '.tools-card', closesOutside: '.tools-card.open', settle: 900, prepare: `document.querySelector('.tool-qr').click()` },
+  { name: 'Tarjeta del wifi', url: '/control#orden', inside: '.tools-card', closesOutside: '.tools-card.open', settle: 900, prepare: `document.querySelector('.tool-wifi').click()` },
   // prefs: preferencias de este dispositivo con las que se abre la pantalla (se quitan al terminar).
   { name: 'Biblia: comparar', url: '/control#biblia', prefs: { 'biblia.comparar': true }, primary: '.abar .btn.primary', content: '.col-verses', inside: '.cmp-bar' },
   // wideOnly: solo donde hay escenario (860 px o más); ahí, el módulo en el cajón estrecho de 440 px.
@@ -185,6 +196,9 @@ const MEASURE = (screen, touch, narrow) => {
   const shown = (el) => { if (!el) return false; const r = box(el); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
   const inView = (el) => { if (!shown(el)) return false; const r = box(el); return r.top >= -1 && r.left >= -1 && r.bottom <= vh + 1 && r.right <= vw + 1; };
   const q = (s) => document.querySelector(s);
+  // Con la interfaz agrandada (grande), lo medido sale en píxeles de pantalla: las medidas de diseño (una fila de 60 px,
+  // un cajón de 420) se multiplican por el zoom para seguir diciendo lo mismo.
+  const zoom = document.documentElement.currentCSSZoom || 1;
   const out = {};
   out.sinDesborde = document.documentElement.scrollWidth <= vw + 1 && document.body.scrollWidth <= vw + 1;
   // Nada se desplaza de lado si no tiene nada al lado (lo vio el dueño en el Orden del celular): ningún panel con
@@ -255,8 +269,9 @@ const MEASURE = (screen, touch, narrow) => {
   // La función "Control del orden" (un solo módulo) no lo lleva; el Presentador, tampoco (sin escenario).
   const items = [...document.querySelectorAll('.dockbar .dock-item')];
   const bar = q('.dockbar');
-  // Con una capa abierta (los mandos, una ventana) lo de debajo queda tapado a propósito: ahí solo cuenta la geometría.
-  const covered = Boolean(q('.controls-layer:not([hidden])') || q('.finder-layer:not([hidden])') || q('.modal-backdrop'));
+  // Con una capa abierta (los mandos, una ventana, la tarjeta del wifi o del QR) lo de debajo queda tapado a propósito:
+  // ahí solo cuenta la geometría.
+  const covered = Boolean(q('.controls-layer:not([hidden])') || q('.finder-layer:not([hidden])') || q('.modal-backdrop') || q('.tools-card.open'));
   const topmost = (el) => { if (covered) return true; const r = box(el); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return Boolean(t) && el.contains(t); };
   if (!${JSON.stringify(Boolean(screen.noDock))}) {
     const seen = items.filter((b) => inView(b) && topmost(b)).length;
@@ -271,10 +286,10 @@ const MEASURE = (screen, touch, narrow) => {
     if (!${JSON.stringify(narrow)}) {
       // Escritorio y tableta horizontal: la barra de estado y los botones de transporte, a la vista y fuera del cajón.
       // Anterior y Siguiente abajo; «Solo fondo» y «Negro» arriba, junto al estado (fase 14).
-      const buttons = [...document.querySelectorAll('.tb-main .btn, .scene-modes .mode-chip')].filter(shown);
+      const buttons = [...document.querySelectorAll('.tb-main .btn, .scene-modes .mode-btn')].filter(shown);
       out.alAire = inView(q('.scene-status')) && buttons.length >= 4 && buttons.every((b) => inView(b) && topmost(b));
-      // Las piezas flotantes (barra de estado, función, dock, cajón, cola y transporte) no se pisan.
-      const names = ['.scene-status', '.role-chip', '.dockbar', '.drawer', '.queue', '.transport-bar'].filter((n) => shown(q(n)));
+      // Las piezas flotantes (marca, modos, «Al aire», wifi y QR, dock, cajón, cola y transporte) no se pisan.
+      const names = ['.topbar .brand', '.scene-modes', '.scene-status', '.topbar-tools', '.dockbar', '.drawer', '.queue', '.transport-bar'].filter((n) => shown(q(n)));
       const hits = [];
       names.forEach((a, i) => names.slice(i + 1).forEach((b) => { const x = box(q(a)), y = box(q(b)); if (x.left < y.right - 1 && y.left < x.right - 1 && x.top < y.bottom - 1 && y.top < x.bottom - 1) hits.push(a + ' con ' + b + ' (' + Math.round(Math.min(x.right, y.right) - Math.max(x.left, y.left)) + ' × ' + Math.round(Math.min(x.bottom, y.bottom) - Math.max(x.top, y.top)) + ' px)'); }));
       out.solape = names.length >= 5 && hits.length === 0;
@@ -296,7 +311,7 @@ const MEASURE = (screen, touch, narrow) => {
       const r = box(tb);
       const fits = (e) => box(e).right <= r.right + 1 && box(e).left >= r.left - 1 && box(e).top >= r.top - 1 && box(e).bottom <= r.bottom + 1;
       const inner = [...tb.querySelectorAll('.tb-main > *, .tb-extra :is(button, input, select, .clip-time, .nav-zoom, .slide-next, .slide-count)')].filter(shown);
-      out.barraUnaFila = r.height <= 60 && inner.every(fits) && (!shown(ex) || inner.filter((e) => ex.contains(e)).every((e) => box(e).right <= box(ex).right + 1));
+      out.barraUnaFila = r.height <= 60 * zoom && inner.every(fits) && (!shown(ex) || inner.filter((e) => ex.contains(e)).every((e) => box(e).right <= box(ex).right + 1));
       out.masMandos = shown(ex) ? shown(q('.tb-more')) : !shown(q('.tb-more'));
     }
   }
@@ -304,11 +319,11 @@ const MEASURE = (screen, touch, narrow) => {
     const d = q('.drawer'), dh = q('.drawer > .drawer-head'), acts = q('.drawer-actions'), ws = [...document.querySelectorAll('.ws')].find((e) => !e.hidden), head = ws?.querySelector(':scope > .ws-head');
     if (shown(d) && ws) {
       const compact = d.classList.contains('compact'), mod = ws.dataset.module;
-      const hh = head && shown(head) ? box(head).height : 0, wide = box(d).width >= 640;
+      const hh = head && shown(head) ? box(head).height / zoom : 0, dw = box(d).width / zoom, wide = dw >= 640;
       // Reducido (celular): la fila del cajón lleva ampliar y cerrar. Si no, la cabecera del módulo: una fila (60 px) con el cajón ancho,
       // dos (130) con el estrecho, tres (150, menos que antes con la fila del cajón aparte) en un cajón de menos de 420 px, y más
       // (Medios, por sus categorías) sin tope fijo.
-      const most = wide ? 60 : box(d).width < 420 ? 150 : 130;
+      const most = wide ? 60 : dw < 420 ? 150 : 130;
       out.cajonUnaFila = inView(acts) && (compact ? dh.contains(acts) && shown(dh) : !shown(dh) && (mod === 'ajustes' || mod === 'medios' || hh <= most) && (mod === 'ajustes' || head.contains(acts)));
       out.cajonDetalle = JSON.stringify({ reducido: compact, alto: Math.round(hh), ancho: Math.round(box(d).width), filaDelCajon: shown(dh), enLaCabecera: Boolean(head?.contains(acts)), aLaVista: inView(acts) });
     }
@@ -345,7 +360,7 @@ const MIN_CONTENT = 150;
 
 // Qué revisar: las palabras que se le pasan eligen tamaños (por su nombre o «360x640») y pantallas.
 const fold = (text) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
-const words = process.argv.slice(2).filter((a) => a !== 'capturas').map(fold);
+const words = process.argv.slice(2).filter((a) => a !== 'capturas' && a !== 'grande').map(fold);
 const sizeName = (d) => fold(`${d.name} ${d.w}x${d.h}`);
 const sizeWords = words.filter((w) => DEVICES.some((d) => sizeName(d).includes(w)));
 const screenWords = words.filter((w) => SCREENS.some((s) => fold(s.name).includes(w)));
@@ -413,7 +428,8 @@ async function worker(list, n) {
         if (screen.page) await chrome.evaluate(`fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'projection.show',payload:{kind:'web',data:{id:${JSON.stringify(screen.page)}}}})}).then((r) => r.status)`);
         // La dirección cambia en cada visita para forzar una carga limpia de la página.
         const [pathname, hash = ''] = screen.url.split('#');
-        await chrome.send('Page.navigate', { url: `${base}${pathname}?t=${Date.now()}${hash ? `#${hash}` : ''}` });
+        progress[n] = `${device.w}x${device.h} «${screen.name}»`;
+        await chrome.send('Page.navigate', { url: `${base}${pathname}?t=${Date.now()}${BIG ? '&escala=1.08' : ''}${hash ? `#${hash}` : ''}` });
         await ready(chrome, screen);
         if (screen.prepare) { await chrome.evaluate(screen.prepare); await sleep(screen.settle || 500); }
         const result = await chrome.evaluate(`JSON.stringify(${MEASURE(screen, device.touch, narrow)})`);
@@ -463,5 +479,5 @@ const crash = results.find((r) => r.status === 'rejected');
 if (crash) throw crash.reason;
 
 if (SHOTS) console.log(`\nCapturas en: ${tmp}`);
-console.log(problems ? `\n${problems} problema(s) encontrados.` : '\nSin problemas en ninguna pantalla.');
+console.log(`${problems ? `\n${problems} problema(s) encontrados` : '\nSin problemas en ninguna pantalla'}${BIG ? ', con la interfaz al tamaño máximo' : ''}.`);
 process.exit(problems ? 1 : 0);

@@ -4,6 +4,16 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.31.0 — 2026-10-18
+
+- **Arriba, más claro**: a la izquierda, el logo de Manna más grande, con la versión y un botón aparte para **cambiar de función**. **Tocar el logo abre Ajustes**, que ya no está en la barra de módulos. Sale la ficha «Control completo».
+- **«Al aire», al centro y en su propia burbuja**, aparte de los botones. **«Solo fondo» y «Negro» pasan a ser iconos** junto a cambiar de función (la T tachada y una pantalla negra); su nombre y su tecla salen al apoyar el ratón. El botón del proyector va a la derecha.
+- **El wifi y el QR se abren ahí mismo**: el botón crece hasta ser una tarjeta con toda su información, y lo que está a su lado se corre para hacerle sitio. Se cierra pulsándolo otra vez, tocando fuera, con Esc o si el ratón se aleja más de 2 segundos.
+- **Lo que se abre aparece con un fundido corto** (menús, ventanas, cajones, mandos, «Buscar en todo»), sin hacer esperar.
+- **Tamaño de la interfaz** (Ajustes → Este dispositivo): un deslizador entre una A pequeña y una grande agranda un poco toda la interfaz, en ese dispositivo.
+- **Borrar lo subido, por categoría** (Ajustes → Espacio en disco): cada categoría tiene su papelera, que pregunta dos veces. Ya no hay un botón que lo borre todo.
+- **Versión nueva**: Manna la busca cada hora, y al momento con **Buscar versión nueva** (Ajustes → Acerca de).
+
 ## 1.30.0 — 2026-10-17
 
 - **Aviso de versión nueva**: cada 20 minutos Manna mira en GitHub si hay una versión nueva y, solo si la hay, lo avisa arriba. En el equipo principal, «Actualizar ahora» abre el instalador, que cierra Manna, lo pone al día sin tocar el contenido ni los datos y lo vuelve a abrir. Sin internet no avisa de nada.

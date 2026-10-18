@@ -1,6 +1,7 @@
 import { action, api, disconnect, state, subscribe } from '../../core/api.js';
 import { h, allowLeaving, dialog, go, guard, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
+import { prefs } from '../../core/prefs.js';
 import { createDisplayToggle, createStylePanel, createTestCardButton, describeDisplay } from '../projection/controls.js';
 import { netText } from '../system/conexion.js';
 import { openDevicesDialog } from '../system/devices.js';
@@ -24,11 +25,20 @@ function mount(el, ctx) {
   const netToggle = h('button', { class: 'btn', onclick: guard(() => action('internet.set', { on: !state.internet?.on })) });
   const netOwn = h('button', { class: 'btn', onclick: () => openOwnTunnel() });
 
-  // Espacio en disco: lo subido o descargado desde Manna, y el botón que lo borra todo.
+  // Espacio en disco: lo subido o descargado desde Manna, con un botón de borrar en cada categoría.
   const diskList = h('div', { class: 'disk-list' });
   const diskFree = h('p', { class: 'muted' });
-  const cleanButton = h('button', { class: 'btn danger', onclick: () => askClean() }, icon('trash', 16), 'Limpiar multimedia temporales');
   let disk = null;
+
+  // Tamaño de la interfaz (pedido del dueño, 2026-10-18): de como está (el mínimo) a un 8 % más, en este dispositivo.
+  // Lo aplica el guion de la cabecera de cada página al abrirla (--zoom en app.css); aquí, además, al instante.
+  const sizeSlider = h('input', { type: 'range', min: 1, max: 1.08, step: 0.01, value: prefs.get('interfaz.tamano', 1), 'aria-label': 'Tamaño de la interfaz',
+    oninput: () => {
+      const z = Number(sizeSlider.value);
+      prefs.set('interfaz.tamano', z);
+      if (z > 1) document.documentElement.style.setProperty('--zoom', z);
+      else document.documentElement.style.removeProperty('--zoom');
+    } });
 
   const nav = h('nav', { class: 'set-nav', 'aria-label': 'Secciones de Ajustes' });
   // short: el nombre corto en la fila de secciones.
@@ -54,8 +64,10 @@ function mount(el, ctx) {
       section('Programas', 'Programas del equipo principal', 'Lo que Manna usa para convertir videos, descargar de YouTube y abrir presentaciones. Ninguno que falte impide abrir Manna.',
         tools, h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => go('/requisitos') }, icon('check-circle', 16), 'Revisar el equipo'))),
       section('Disco', 'Espacio en disco', 'Lo que ocupa lo subido o descargado desde Manna. Lo de la carpeta Contenido (himnario, biblias y medios) no cuenta y nunca se borra.',
-        diskList, diskFree, h('div', { class: 'row' }, cleanButton)),
-      section('Este dispositivo', 'Este dispositivo', null,
+        diskList, diskFree),
+      section('Este dispositivo', 'Este dispositivo', 'Solo cambia aquí: cada celular, tableta o equipo tiene lo suyo.',
+        h('div', { class: 'label' }, 'Tamaño de la interfaz'),
+        h('div', { class: 'ui-size' }, h('span', { class: 'ui-a', 'aria-hidden': 'true' }, 'A'), sizeSlider, h('span', { class: 'ui-a big', 'aria-hidden': 'true' }, 'A')),
         h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => go('/') }, icon('arrows-left-right', 16), 'Cambiar de función'))),
       ctx.isLocal && section('Apagar', 'Apagar o reiniciar', 'Manna funciona sin ventana propia. Al apagarlo se cierra la proyección y los demás dispositivos se desconectan. Reiniciarlo sirve para terminar una actualización: vuelve a abrirse solo.',
         h('div', { class: 'row', style: 'flex-wrap: wrap;' },
@@ -67,7 +79,9 @@ function mount(el, ctx) {
           h('p', { class: 'wordmark' }, 'MANNA'),
           h('p', { class: 'tagline' }, 'Church projection app'),
           version,
-          h('a', { class: 'btn', style: 'margin-top: 14px;', href: 'https://github.com/delosriosmedia/manna', target: '_blank', rel: 'noopener' }, 'Sitio del proyecto')))));
+          h('div', { class: 'row', style: 'flex-wrap: wrap; justify-content: center; margin-top: 14px;' },
+            h('button', { class: 'btn', onclick: () => checkUpdate() }, icon('arrow-clockwise', 16), 'Buscar versión nueva'),
+            h('a', { class: 'btn', href: 'https://github.com/delosriosmedia/manna', target: '_blank', rel: 'noopener' }, 'Sitio del proyecto'))))));
 
   createStylePanel(styles);
   subscribe('system', (s) => { version.textContent = s.version ? `Versión ${s.version}` : ''; });
@@ -143,27 +157,54 @@ function mount(el, ctx) {
 
   // ---- Espacio en disco ----
   const sizeOf = (bytes) => (bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(1).replace('.', ',')} GB` : `${Math.max(bytes ? 1 : 0, Math.round(bytes / 1024 ** 2))} MB`);
+  // Qué borra el botón de cada categoría. Las copias para celulares no tienen: se van con su video (system.clean).
+  const WHAT = {
+    youtube: 'los videos descargados de YouTube',
+    clips: 'los videos y audios subidos',
+    images: 'las imágenes subidas',
+    slides: 'las presentaciones (PDF y PowerPoint)',
+    pages: 'las páginas web hechas con un archivo',
+  };
   async function loadDisk() {
     if (!disk) diskList.replaceChildren(h('p', { class: 'muted' }, 'Calculando lo que ocupa…'));
     disk = await api('/api/system/disk');
-    diskList.replaceChildren(...disk.groups.map((g) => h('div', { class: 'disk-row', dataset: { id: g.id } }, h('span', {}, g.label), h('strong', {}, sizeOf(g.bytes)))),
-      h('div', { class: 'disk-row total' }, h('span', {}, 'En total'), h('strong', {}, sizeOf(disk.total))));
+    diskList.replaceChildren(...disk.groups.map((g) => h('div', { class: 'disk-row', dataset: { id: g.id } },
+      h('span', {}, g.label, !WHAT[g.id] && h('small', { class: 'muted' }, ' · se borran con su video')),
+      h('strong', {}, sizeOf(g.bytes)),
+      WHAT[g.id] ? h('button', { class: 'icon-btn sm', 'aria-label': `Borrar: ${g.label}`, title: `Borrar ${WHAT[g.id]}`, disabled: !g.bytes, onclick: () => askClean(g) }, icon('trash', 15)) : h('span', { class: 'disk-gap' }))),
+    h('div', { class: 'disk-row total' }, h('span', {}, 'En total'), h('strong', {}, sizeOf(disk.total)), h('span', { class: 'disk-gap' })));
     diskFree.textContent = disk.free == null ? '' : `Libre en el disco del equipo principal: ${sizeOf(disk.free)}${disk.size ? ` de ${sizeOf(disk.size)}` : ''}.`;
-    cleanButton.disabled = !disk.total;
   }
-  function askClean() {
-    const box = dialog('Limpiar multimedia temporales',
-      h('p', {}, `Se borrará todo lo subido o descargado desde Manna${disk ? ` (${sizeOf(disk.total)})` : ''}: videos de YouTube, videos, audios e imágenes subidos, presentaciones y páginas web hechas con un archivo. Lo que esté en el orden del culto también se quita de él.`),
-      h('p', { class: 'muted' }, 'No se toca la carpeta Contenido (himnario, biblias y medios) ni las imágenes de fondo. No se puede deshacer.'),
+  // Borrar pide confirmarlo dos veces: qué se borra y, luego, si está seguro.
+  function askClean(g) {
+    const size = sizeOf(g.bytes);
+    const first = dialog(`Borrar: ${g.label}`,
+      h('p', {}, `Se borrarán ${WHAT[g.id]} desde Manna (${size}). Lo que esté en el orden del culto también se quita de él.`),
+      h('p', { class: 'muted' }, 'No se toca la carpeta Contenido (himnario, biblias y medios) ni las imágenes de fondo.'),
       h('div', { class: 'row', style: 'justify-content: flex-end;' },
-        h('button', { class: 'btn', onclick: () => box.close() }, 'Cancelar'),
-        h('button', { class: 'btn danger', onclick: guard(async () => {
-          const done = await action('system.clean');
-          box.close();
-          toast(done.failed ? `Se liberaron ${sizeOf(done.freed)}; ${done.failed} no se pudieron borrar.` : `Listo: se liberaron ${sizeOf(done.freed)}.`, done.failed ? 'error' : 'info');
-          await loadDisk();
-        }) }, 'Limpiar')));
+        h('button', { class: 'btn', onclick: () => first.close() }, 'Cancelar'),
+        h('button', { class: 'btn danger', onclick: () => { first.close(); askAgain(); } }, 'Borrar')));
+    function askAgain() {
+      const box = dialog('¿Seguro?',
+        h('p', {}, `Vas a borrar ${WHAT[g.id]} (${size}). No se puede deshacer.`),
+        h('div', { class: 'row', style: 'justify-content: flex-end;' },
+          h('button', { class: 'btn', onclick: () => box.close() }, 'No, cancelar'),
+          h('button', { class: 'btn danger', onclick: guard(async () => {
+            const done = await action('system.clean', { group: g.id });
+            box.close();
+            toast(done.failed ? `Se liberaron ${sizeOf(done.freed)}; ${done.failed} no se pudieron borrar.` : `Listo: se liberaron ${sizeOf(done.freed)}.`, done.failed ? 'error' : 'info');
+            await loadDisk();
+          }) }, 'Sí, borrar')));
+    }
   }
+
+  // Pregunta ya a GitHub (el equipo principal lo hace solo cada hora). Si hay una nueva, sale el aviso de arriba, aunque
+  // en este dispositivo se hubiera cerrado antes con su ×.
+  const checkUpdate = guard(async () => {
+    prefs.set('version.descartada', null);
+    const { latest, newer } = await action('system.checkUpdate');
+    toast(newer ? `Hay una versión nueva de Manna: ${latest}.` : `Tienes la versión más reciente (${latest}).`);
+  });
 
   function askShutdown() {
     const box = dialog('Apagar Manna',

@@ -1,4 +1,4 @@
-import { h } from '../../core/dom.js';
+import { h, pageZoom } from '../../core/dom.js';
 import { keyOf, kindOf } from '../../core/kinds.js';
 import '../kinds.js';
 
@@ -35,7 +35,8 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
     pointer.hidden = !at;
     if (!at) return;
     const r = container.getBoundingClientRect();
-    pointer.style.transform = `translate(${at.x - r.left}px, ${at.y - r.top}px)`;
+    const z = pageZoom(); // de píxeles de pantalla a los de la página (tamaño de la interfaz)
+    pointer.style.transform = `translate(${(at.x - r.left) / z}px, ${(at.y - r.top) / z}px)`;
   }
 
   function applyLive() {

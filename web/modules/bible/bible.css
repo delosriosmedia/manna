@@ -106,6 +106,12 @@ html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
   /* El título, la versión y los dos botones en una fila; el buscador, en la de abajo. */
   .ws[data-module='biblia'] .ws-head h1 { flex: 0 0 auto; }
   .ws[data-module='biblia'] .ws-head .select { flex: 1 1 110px; min-width: 100px; max-width: none; }
+  /* En el más estrecho (el celular pequeño, o la interfaz agrandada), sin el título: ya lo dice el dock, y así los dos
+     botones caben con el buscador en la segunda fila en vez de ocupar una propia. */
+  @container cajon (max-width: 380px) {
+    .ws[data-module='biblia'] .ws-head h1 { display: none; }
+    .ws[data-module='biblia'] .ws-head .select { flex-basis: 72px; min-width: 72px; }
+  }
   .verse-heads { display: none; }
   .verse.two { grid-template-columns: 22px minmax(0, 1fr); gap: 4px 10px; }
   .verse.two > span:nth-child(3) { grid-column: 2; color: var(--ink-3); }

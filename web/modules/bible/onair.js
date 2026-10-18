@@ -1,5 +1,5 @@
 import { action, api, state } from '../../core/api.js';
-import { guard, h, menu } from '../../core/dom.js';
+import { guard, h, menu, pageZoom } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { prefs } from '../../core/prefs.js';
 
@@ -167,12 +167,13 @@ export function createBibleBar() {
     // Sobre el botón si está en la mitad de abajo de la pantalla (la barra de mandos), y si no, debajo.
     const a = versesBtn.getBoundingClientRect();
     const m = popup.getBoundingClientRect();
-    popup.style.left = `${Math.max(8, Math.min(a.left, innerWidth - m.width - 8))}px`;
+    const z = pageZoom(); // lo medido va en píxeles de pantalla; los estilos, en los de la página (tamaño de la interfaz)
+    popup.style.left = `${Math.max(8, Math.min(a.left, innerWidth - m.width - 8)) / z}px`;
     const above = a.top > innerHeight / 2;
-    if (above) popup.style.bottom = `${innerHeight - a.top + 4}px`;
-    else popup.style.top = `${a.bottom + 4}px`;
+    if (above) popup.style.bottom = `${(innerHeight - a.top + 4) / z}px`;
+    else popup.style.top = `${(a.bottom + 4) / z}px`;
     // Con poca altura (el celular de lado), la rejilla se desplaza en vez de salirse de la pantalla.
-    popup.style.maxHeight = `${Math.max(160, above ? a.top - 12 : innerHeight - a.bottom - 12)}px`;
+    popup.style.maxHeight = `${Math.max(160, above ? a.top - 12 : innerHeight - a.bottom - 12) / z}px`;
 
     const onKey = (e) => { if (e.key === 'Escape') close(true); };
     // Tocar fuera cierra solo esta capa: el toque no sigue hacia lo que haya debajo (la hoja de mandos, el cajón),
