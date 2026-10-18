@@ -14,6 +14,8 @@ import { BibleLibrary } from '../server/modules/bible/library.js';
 import { createDetector, createReview, citeLabel } from '../server/modules/bible/citas.js';
 import { docxText, pdfText } from '../web/core/documentos.js';
 import { makeDocx } from '../scripts/lib/docx.mjs';
+import { makePng } from '../scripts/lib/png.mjs';
+import { ocrPlan, WIN_OCR_SCRIPT } from '../server/modules/bible/ocr.js';
 
 // Citas de un texto o documento (fase 27). El detector necesita la Biblia entera para saber qué capítulos y
 // versículos existen: la Reina-Valera 1909 del repositorio (dominio público), copiada a una carpeta temporal. Los
@@ -89,6 +91,17 @@ test('el texto de un Word: un párrafo por línea', async () => {
   assert.deepEqual(labels(detect(text).found), ['Juan 3:16', 'Romanos 8:28']);
 });
 
+test('leer el texto de una imagen: con lo que trae Mac o Windows, y en ningún otro sistema', () => {
+  const mac = ocrPlan('/t/pagina.jpg', 'darwin');
+  assert.deepEqual([mac.file, mac.args[0], mac.args[1], mac.args.at(-1)], ['osascript', '-l', 'JavaScript', '/t/pagina.jpg']);
+  const win = ocrPlan('C:\\t\\pagina.jpg', 'win32');
+  assert.equal(win.file, 'powershell.exe');
+  assert.equal(win.env.MANNA_OCR_IMAGEN, 'C:\\t\\pagina.jpg', 'la ruta va por el entorno, nunca dentro de la orden');
+  assert.equal(Buffer.from(win.args.at(-1), 'base64').toString('utf16le'), WIN_OCR_SCRIPT);
+  assert.match(WIN_OCR_SCRIPT, /LanguageTag -like 'es\*'/, 'en español si está instalado');
+  assert.equal(ocrPlan('/t/pagina.jpg', 'linux'), null);
+});
+
 test('por el servidor: buscar las citas de un texto y añadirlas al orden, con su sección', async () => {
   const app = createApp({ rootDir: ROOT, dataDir: path.join(tmp, 'datos'), biblesDir: bibles });
   for (const setup of [system, bible, projection, order]) await setup(app);
@@ -115,6 +128,13 @@ test('por el servidor: buscar las citas de un texto y añadirlas al orden, con s
     assert.deepEqual(titles(), ['Sermón de prueba', 'Juan 3:16-18', 'Mateo 5:1-48', 'Mateo 6:1-34', 'Mateo 7:1-29', 'Salmos 23:1-6', 'Después']);
     assert.equal((await add([{ book: 19, chapter: 23, verseStart: 1, verseEnd: 1 }, { book: 99, chapter: 1, verseStart: 1, verseEnd: 1 }])).status, 404);
     assert.equal(titles().length, 7, 'si uno no existe, no se añade ninguno');
+    // La imagen de una página (un PDF de imágenes): solo una imagen de verdad; una sin letras no tiene texto.
+    const ocr = (body, type) => fetch(`${base}/api/bible/ocr`, { method: 'POST', headers: { 'Content-Type': type, cookie }, body });
+    assert.equal((await ocr('no es una imagen', 'image/jpeg')).status, 400);
+    const blank = await ocr(makePng(64, 64, () => [255, 255, 255]), 'image/png');
+    if (['darwin', 'win32'].includes(process.platform)) assert.deepEqual(await blank.json(), { text: '' });
+    else assert.equal(blank.status, 501);
+    assert.deepEqual(fs.readdirSync(app.tmpDir).filter((f) => f.startsWith('ocr-')), [], 'la imagen de paso se borra');
   } finally {
     await app.close();
     server.close();

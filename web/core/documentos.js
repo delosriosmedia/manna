@@ -2,19 +2,24 @@
 // texto. Al servidor solo va el texto, y solo al buscar las citas. Un PDF devuelve sus páginas separadas por «\f».
 // Lanza un Error con un mensaje para quien lo usa.
 
-export async function documentText(file) {
+// onStatus(mensaje): lo que va haciendo, cuando tarda (leer el texto de las imágenes de un PDF).
+export async function documentText(file, { onStatus } = {}) {
   const ext = (file.name || '').toLowerCase().split('.').pop();
   if (ext === 'doc') throw new Error('Ese es un Word antiguo (.doc). Ábrelo en Word y guárdalo como .docx o como PDF.');
   let text;
   if (ext === 'txt' || /^text\//.test(file.type)) text = await file.text();
   else if (ext === 'docx') text = await docxText(await file.arrayBuffer());
   else if (ext === 'pdf' || file.type === 'application/pdf') {
-    const { openPdfDocument } = await import('/core/pdf.js');
-    const { doc, close } = await openPdfDocument(new Uint8Array(await file.arrayBuffer()));
-    try { text = await pdfText(doc); } finally { close(); }
+    const pdf = await import('/core/pdf.js');
+    const { doc, close } = await pdf.openPdfDocument(new Uint8Array(await file.arrayBuffer()));
+    try {
+      text = await pdfText(doc);
+      // Sin texto: un PDF hecho de imágenes (desde una web, o escaneado). El equipo principal lee su texto (1.33.1).
+      if (!text.replace(/\f/g, '').trim()) text = await imageText(doc, pdf, onStatus);
+    } finally { close(); }
   } else throw new Error('Ese archivo no se puede leer. Elige un Word (.docx), un PDF o un texto.');
   if (!text.replace(/\f/g, '').trim()) {
-    throw new Error(ext === 'pdf' ? 'Ese PDF no tiene texto que leer: parece escaneado (una foto del papel).' : 'Ese documento no tiene texto.');
+    throw new Error(ext === 'pdf' ? 'En ese PDF no hay texto que leer, ni en sus imágenes.' : 'Ese documento no tiene texto.');
   }
   return text;
 }
@@ -47,6 +52,21 @@ export async function docxText(buffer) {
       .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
   }
   throw new Error('Ese documento de Word no tiene texto.');
+}
+
+// El texto de las páginas de un PDF que son imágenes: cada una se dibuja aquí y el equipo principal la lee
+// (POST /api/bible/ocr), de una en una. Páginas separadas por «\f», como pdfText.
+async function imageText(doc, pdf, onStatus) {
+  const { api } = await import('/core/api.js');
+  const pages = [];
+  for (let n = 1; n <= doc.numPages; n += 1) {
+    onStatus?.(`El PDF es de imágenes: leyendo su texto, página ${n} de ${doc.numPages}…`);
+    const canvas = await pdf.renderPage(doc, n, 2400);
+    const body = await pdf.canvasBlob(canvas, 0.9);
+    canvas.width = 0;
+    pages.push((await api('/api/bible/ocr', { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body, timeout: 120_000 })).text);
+  }
+  return pages.join('\f');
 }
 
 // El texto de un PDF ya abierto con pdf.js: los trozos de cada página juntados por líneas.

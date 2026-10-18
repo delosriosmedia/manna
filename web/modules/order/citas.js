@@ -37,7 +37,7 @@ export function openCitas({ text = '' } = {}) {
   async function fromFile(file) {
     busy(true, `Leyendo «${file.name}»…`);
     try {
-      const content = await documentText(file);
+      const content = await documentText(file, { onStatus: (message) => { status.textContent = message; } });
       await search(content, file.name.replace(/\.[^.]+$/, ''));
     } catch (err) {
       busy(false);

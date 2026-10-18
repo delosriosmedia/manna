@@ -4,6 +4,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Citas de un PDF hecho de imágenes**: un PDF exportado desde una web o escaneado, que no trae su texto, ya no se rechaza. El equipo principal lee el texto de cada página, con lo que trae el sistema (en Mac, el «Texto en vivo»; en Windows, su lectura de texto), y se ve el avance página a página. En Windows hace falta tener el español instalado como idioma (Manna lo dice si falta).
 ## 1.33.0 — 2026-10-18
 
 - **Varios videos de YouTube de una vez**: en Medios, el botón **Varios** junto al enlace (o pegar en el campo un mensaje con enlaces). Se pegan como vengan —en líneas, con comas, dentro de un mensaje con viñetas, nombres y notas—, y una lista los muestra para revisar: cada video una vez, con el nombre que traía en el mensaje («Canto de GM», «(opción 2)»), cuántas veces aparecía y, sin marcar, **lo que ya está en la biblioteca aunque se le haya cambiado el nombre**. «Descargar» los pone en cola y bajan de uno en uno mientras se sigue usando Manna. Hasta 50 cada vez; las listas de reproducción no se aceptan (se dice).

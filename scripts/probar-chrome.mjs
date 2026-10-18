@@ -45,7 +45,7 @@ import { startFakeTv } from './lib/tv-falso.mjs';
 import { writeFakeYtDlp } from './lib/yt-dlp-falso.mjs';
 import { writeFakeCloudflared } from './lib/cloudflared-falso.mjs';
 import { fakePresentation, writeFakePowerPoint } from './lib/powerpoint-falso.mjs';
-import { makePdf } from './lib/pdf.mjs';
+import { makeImagePdf, makePdf } from './lib/pdf.mjs';
 import { makeDocx } from './lib/docx.mjs';
 import { HYMN_FACTS, hymnTitle, seedHymnal } from './lib/himnario-falso.mjs';
 import { examplePoster } from './lib/png.mjs';
@@ -188,6 +188,9 @@ else for (const name of ['internet.set', 'internet.own']) UNTOUCHED[name] = 'el 
 // El himnario de la prueba es inventado (videos de colores con dos tonos, letras escritas aquí):
 // no se usa el de Contenido/Himnario.
 const hymnal = seedHymnal(path.join(tmp, 'himnario'), { count: 14, seconds: 14 });
+// Leer el texto de un PDF de imágenes usa lo que trae el sistema: solo en Mac y en Windows.
+const CAN_OCR = ['darwin', 'win32'].includes(process.platform);
+if (!CAN_OCR) UNTOUCHED['POST /api/bible/ocr'] = 'leer el texto de una imagen solo se puede en Mac y en Windows';
 if (!HAS_FFMPEG) UNTOUCHED['GET /api/hymns/:number/pista.mp4'] = 'este equipo no tiene ffmpeg para fabricar los himnos de la prueba ni para sacarles la pista';
 
 // PowerPoint, igual: uno de mentira (un guion que deja tres imágenes), para no abrir el de verdad.
@@ -1777,6 +1780,17 @@ try {
     await where('Al final del orden');
     await click(addButton);
     check('«Al final del orden» las pone al final', await until(`!${box}`, 20) && (await tail(1))[0] === 'Salmos 23:1-3', JSON.stringify(await tail(2)));
+
+    // Un PDF de imágenes, sin texto (lo hace una web o un escáner): el equipo principal lee su texto (1.33.1).
+    if (CAN_OCR) {
+      const jpeg = Buffer.from(await run(`const c = document.createElement('canvas'); c.width = 1400; c.height = 800; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.fillStyle = '#111'; x.font = 'bold 60px sans-serif'; x.fillText('Lectura: Juan 3:16', 80, 280); x.fillText('Luego Salmos 23:1-3', 80, 460); return c.toDataURL('image/jpeg', 0.92).split(',')[1];`), 'base64');
+      const scanned = path.join(tmp, 'escaneado.pdf');
+      fs.writeFileSync(scanned, makeImagePdf([{ jpeg, width: 1400, height: 800 }]));
+      await open();
+      await chooseFiles('.review-box input[type=file]', [scanned]);
+      check('un PDF de imágenes, sin texto: el equipo principal lee su texto y salen sus citas', await until(`${rows}.length === 2`, 60) && await run(`return Boolean(${row('Juan 3:16')} && ${row('Salmos 23:1-3')})`), await run(`return ${box}?.textContent`));
+      await press('Escape');
+    }
 
     const old = path.join(tmp, 'viejo.doc');
     fs.writeFileSync(old, 'no es un docx');

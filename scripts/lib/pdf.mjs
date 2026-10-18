@@ -33,3 +33,29 @@ export function makePdf(pages) {
   file += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
   return Buffer.from(file, 'latin1');
 }
+
+// Un PDF hecho solo de imágenes, como los que exporta una web o un escáner: cada página es una foto JPEG y no
+// trae ninguna letra como texto. Para probar que Manna lee su texto en el equipo principal.
+//
+//   makeImagePdf([{ jpeg: Buffer, width, height }, …])  -> Buffer
+export function makeImagePdf(pages) {
+  const objects = ['<< /Type /Catalog /Pages 2 0 R >>', ''];
+  const kids = [];
+  for (const { jpeg, width, height } of pages) {
+    const image = objects.push(`<< /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n${jpeg.toString('latin1')}\nendstream`);
+    const draw = `q ${width} 0 0 ${height} 0 0 cm /Im1 Do Q`;
+    const content = objects.push(`<< /Length ${draw.length} >>\nstream\n${draw}\nendstream`);
+    kids.push(objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${width} ${height}] /Resources << /XObject << /Im1 ${image} 0 R >> >> /Contents ${content} 0 R >>`));
+  }
+  objects[1] = `<< /Type /Pages /Kids [${kids.map((id) => `${id} 0 R`).join(' ')}] /Count ${kids.length} >>`;
+  let file = '%PDF-1.4\n';
+  const offsets = objects.map((body, i) => {
+    const at = Buffer.byteLength(file, 'latin1');
+    file += `${i + 1} 0 obj\n${body}\nendobj\n`;
+    return at;
+  });
+  const xref = Buffer.byteLength(file, 'latin1');
+  file += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map((at) => `${String(at).padStart(10, '0')} 00000 n \n`).join('')}`;
+  file += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(file, 'latin1');
+}

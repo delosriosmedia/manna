@@ -1,8 +1,13 @@
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import { HttpError } from '../../core/router.js';
+import { imageInfo } from '../../core/images.js';
 import { watchFolder } from '../../core/folders.js';
 import { BibleLibrary } from './library.js';
 import { registerCompare } from './compare.js';
 import { createReview } from './citas.js';
+import { readImageText } from './ocr.js';
 
 // Módulo Biblia: versiones disponibles, lectura por capítulo y búsqueda. Aporta dos tipos de
 // contenido: el pasaje en una versión ('verses') y en dos a la vez ('compare', en compare.js).
@@ -59,6 +64,23 @@ export default function setup(app) {
     if (!text.trim()) throw new HttpError(400, 'No hay texto en el que buscar citas.');
     review ||= createReview({ structure: (b) => library.shape(b), verses: (b, c) => library.verseTexts(b, c), versionOf });
     return review(text);
+  });
+
+  // Un PDF que es solo imágenes (hecho desde una web o escaneado): el navegador manda cada página como imagen y el
+  // equipo principal lee su texto (ocr.js). Una página cada vez, hasta 12 MB, JPEG o PNG.
+  app.route('POST', '/api/bible/ocr', async (ctx) => {
+    ctx.require('order.edit');
+    const body = await ctx.raw(12 * 1024 * 1024);
+    const info = imageInfo(body);
+    if (!info || !['jpeg', 'png'].includes(info.type)) throw new HttpError(400, 'Eso no es la imagen de una página.');
+    fs.mkdirSync(app.tmpDir, { recursive: true });
+    const file = path.join(app.tmpDir, `ocr-${crypto.randomBytes(6).toString('hex')}.${info.type === 'png' ? 'png' : 'jpg'}`);
+    fs.writeFileSync(file, body);
+    try {
+      return { text: await readImageText(file) };
+    } finally {
+      fs.rmSync(file, { force: true });
+    }
   });
 
   // Tipo de contenido "pasaje bíblico". data: { versionId, ref }. Cada versículo es un paso.
