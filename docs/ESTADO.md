@@ -241,6 +241,7 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 ## Decisiones tomadas
 
+- **2026-10-18 · Pruebas en Windows en cada versión** (decisión 50): sí, tras medirlas (unos 40 s, a la vez que los instaladores).
 - **2026-10-18 · Instalador** (fase 30): el `.exe` de Windows se compila en un Windows de GitHub, con archivos de prueba livianos; en Mac, un `.pkg`.
 - **2026-10-18 · PDF hechos de imágenes** (decisión 49): sí se leen, con el reconocimiento de texto del propio sistema (Mac y Windows), en vez de descartarlos como se decidió para la fase 27.
 - **2026-10-18 · YouTube en lote, carpeta de contenido e instalador** (decisión 48): sí a las fases 28, 29 y 30, con las observaciones del dueño (en `docs/PLAN.md`).

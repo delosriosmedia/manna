@@ -2,7 +2,10 @@
 # (con el compilador de C# que trae Windows) y arma Instalar-Manna-Mac.pkg (con lo que trae macOS), los prueba en
 # carpetas temporales con el Manna de este commit y el Node.js de nodejs.org, y, al publicar una versión en GitHub,
 # los adjunta a ella. Nada pesado viaja con el repositorio: lo que se baja, se baja como lo haría quien instala.
-name: Instaladores
+# Además (S47, 2026-10-18), las pruebas automáticas de Manna en Windows, el sistema del equipo principal de la
+# iglesia: unos 40 s, a la vez que los instaladores. Si fallan, la ejecución sale en rojo; los instaladores se
+# adjuntan igual (la versión ya está publicada) y quien publica lo dice.
+name: Instaladores y pruebas en Windows
 
 on:
   release:
@@ -16,6 +19,20 @@ permissions:
   contents: write
 
 jobs:
+  pruebas-windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        timeout-minutes: 3
+      - uses: actions/setup-node@v4
+        timeout-minutes: 3
+        with:
+          node-version: 24
+      - name: Pruebas automáticas (npm test)
+        timeout-minutes: 10
+        run: npm test
+
   windows:
     runs-on: windows-latest
     timeout-minutes: 20

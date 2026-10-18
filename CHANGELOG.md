@@ -4,7 +4,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
-- Las pruebas automáticas de Manna también pasan en Windows (cambio interno, sin efecto en la app).
+- Las pruebas automáticas de Manna también pasan en Windows, y desde ahora corren allí en cada versión (cambio interno, sin efecto en la app).
 
 ## 1.35.0 — 2026-10-18
 
