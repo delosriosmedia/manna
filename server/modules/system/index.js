@@ -6,6 +6,7 @@ import { codeSignature } from '../../core/build.js';
 import { lanInterfaces, origin } from './network.js';
 import { createResponder } from './mdns.js';
 import { diskUsage } from './disk.js';
+import { watchVersions } from './versions.js';
 
 const REFRESH_MS = 10_000;
 const CODE_CHECK_MS = 20_000;
@@ -25,7 +26,9 @@ export default function setup(app) {
   // build: huella del código con el que arrancó. stale: el código del disco ya es otro (Manna se
   // actualizó estando abierto) y hay que reiniciarlo para que interfaz y servidor vuelvan a coincidir.
   // blocked: otro Manna ya funciona en este equipo o en esta red (fase 21): { where, version, here } o null.
-  store.register('system', { name: 'Manna', version, build: app.build, stale: false, addresses: [], port: null, altPort: null, secure: false, securePort: null, hostname: null, nameUrl: null, blocked: null });
+  // update: hay una versión nueva en GitHub ({ version }) o null (versions.js).
+  store.register('system', { name: 'Manna', version, build: app.build, stale: false, addresses: [], port: null, altPort: null, secure: false, securePort: null, hostname: null, nameUrl: null, blocked: null, update: null });
+  watchVersions(app, version);
 
   const responder = createResponder({ base: networkName() });
   let announced = null;

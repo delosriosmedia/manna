@@ -189,10 +189,23 @@ const fakePpt = writeFakePowerPoint(path.join(tmp, 'powerpoint'), { slides: 3, p
 // ---- Servidor de prueba ----
 // Los televisores de la prueba son uno de mentira en este equipo: nada sale a la red.
 const fakeTv = await startFakeTv();
+// Las versiones de GitHub: un servidor de este equipo que dice la versión que se le pida (al principio, la de este
+// Manna: no hay aviso), y un instalador de mentira que solo apunta que se abrió. Nada sale a internet.
+const ownVersion = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+let githubVersion = ownVersion;
+const fakeGithub = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ name: 'manna', version: githubVersion }));
+});
+await new Promise((resolve) => fakeGithub.listen(0, '127.0.0.1', resolve));
+fakeGithub.unref();
+const installerOpened = path.join(tmp, 'instalador-abierto');
+const fakeInstaller = path.join(tmp, 'instalador-falso.mjs');
+fs.writeFileSync(fakeInstaller, `import fs from 'node:fs'; fs.writeFileSync(${JSON.stringify(installerOpened)}, 'abierto');\n`);
 function startServer(host, extra = {}) {
   // MANNA_SIN_VENTANA: la prueba no abre su proyección en el proyector de verdad, si lo hay.
   // MANNA_CONVERSION_LENTA: cada conversión tarda en empezar, para poder ver qué pasa mientras tanto.
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', ...extra };
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', MANNA_VERSIONES_URL: `http://127.0.0.1:${fakeGithub.address().port}/package.json`, MANNA_VERSIONES_MS: '500', MANNA_ACTUALIZADOR_PRUEBA: fakeInstaller, ...extra };
   if (host) env.MANNA_HOST = host;
   // killOnExit: si la prueba se corta a medias, el servidor no se queda abierto ocupando el puerto.
   return killOnExit(spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env }));
@@ -2578,6 +2591,36 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   check('en el celular el volumen, grande, sigue a la vista bajo la proyección, sin abrir nada', await storyVolume() && await run(`return !document.querySelector('.scene-bg > .stage') && Boolean(document.querySelector('.story-frame > .stage')) && !document.body.classList.contains('drawer-open')`));
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
   await run(`await ${post('projection.volume', { volume: 1 })}`);
+
+  // ---- Versión nueva en GitHub ----
+  console.log('\n1. Interfaz · Versión nueva');
+  {
+    await chrome.send('Page.navigate', { url: `${local}/control` });
+    await sleep(1500);
+    const fresh = `[...document.querySelectorAll('.update-bar')].find((b) => b.dataset.version)`;
+    check('con la misma versión en GitHub no hay aviso', await run(`return !${fresh} || ${fresh}.hidden`));
+    githubVersion = '99.0.0';
+    let shown = false;
+    for (let i = 0; i < 20 && !shown; i += 1) {
+      await sleep(300);
+      shown = await run(`return Boolean(${fresh}) && !${fresh}.hidden`);
+    }
+    check('con una más nueva, sale el aviso con su versión y «Actualizar ahora»', shown && await run(`return ${fresh}.textContent.includes('Hay una versión nueva de Manna (99.0.0)') && [...${fresh}.querySelectorAll('.btn')].some((b) => b.textContent.includes('Actualizar ahora'))`));
+    await click(`[...${fresh}.querySelectorAll('.btn')].find((b) => b.textContent.includes('Actualizar ahora'))`);
+    await sleep(300);
+    check('pide confirmación antes de abrir el instalador', await run(`return [...document.querySelectorAll('.modal')].some((m) => m.getAttribute('aria-label') === 'Actualizar Manna') && !${JSON.stringify(fs.existsSync(installerOpened))}`));
+    await click(`[...document.querySelectorAll('.modal .btn.primary')].find((b) => b.textContent.includes('Actualizar ahora'))`);
+    let opened = false;
+    for (let i = 0; i < 20 && !opened; i += 1) {
+      await sleep(200);
+      opened = fs.existsSync(installerOpened);
+    }
+    check('«Actualizar ahora» abre el instalador', opened);
+    await click(`${fresh}.querySelector('.icon-btn')`);
+    await sleep(200);
+    check('la × cierra el aviso (hasta la próxima versión)', await run(`return ${fresh}.hidden`));
+    githubVersion = ownVersion;
+  }
   }
 
   if (!QUICK && inGroup('control')) {

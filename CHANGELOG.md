@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.30.0 — 2026-10-17
+
+- **Aviso de versión nueva**: cada 20 minutos Manna mira en GitHub si hay una versión nueva y, solo si la hay, lo avisa arriba. En el equipo principal, «Actualizar ahora» abre el instalador, que cierra Manna, lo pone al día sin tocar el contenido ni los datos y lo vuelve a abrir. Sin internet no avisa de nada.
+
 ## 1.29.0 — 2026-10-17
 
 - **Escenario más compacto**: todo un poco más pequeño, en el escritorio y en el celular, para que haya más sitio (en pantallas táctiles, los botones miden 35 px como mínimo).

@@ -118,6 +118,8 @@ Si Manna no abre, vuelve a pulsar el icono. Si sigue sin abrir, aparece una pág
 
 ### Al actualizar Manna
 
+Cuando hay una versión nueva en GitHub, Manna lo avisa arriba: **«Hay una versión nueva de Manna»** (lo mira cada 20 minutos; sin internet no dice nada). En el equipo principal, **Actualizar ahora** abre el instalador de siempre, que cierra Manna, lo pone al día sin tocar el contenido ni los datos y lo vuelve a abrir. En los demás dispositivos el aviso dice que se actualiza desde el equipo principal. La × lo esconde hasta que salga otra versión.
+
 Si el programa se actualiza con Manna abierto, las pantallas de control muestran el aviso **«Manna se actualizó mientras estaba abierto»**. En el equipo principal, pulsa **Reiniciar ahora**: Manna se cierra y vuelve a abrirse solo, y los demás dispositivos se reconectan sin hacer nada. También vale pulsar otra vez el icono **Manna**, o **Ajustes → Reiniciar Manna**. Hasta reiniciarlo, lo nuevo puede fallar con un mensaje como «Manna no reconoce esa orden».
 
 ### Conexión por internet

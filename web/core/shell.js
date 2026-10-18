@@ -1,7 +1,7 @@
 import { action, connect, onServerUpdate, state, subscribe } from './api.js';
 import { watchBlocked } from './blocked.js';
 import { mountConnectionBar } from './connection.js';
-import { h, allowLeaving, confirmBeforeClose, dialog, go, guard, menu } from './dom.js';
+import { h, allowLeaving, confirmBeforeClose, dialog, go, guard, menu, toast } from './dom.js';
 import { icon } from './icons.js';
 import { joinNames, missingFor, toolsOf } from './needs.js';
 import { prefs } from './prefs.js';
@@ -257,6 +257,36 @@ export function createShell({ role, isLocal, modules, extras = [], topTools = []
       isLocal && h('button', { class: 'btn', onclick: restart }, icon('arrow-clockwise', 15), 'Reiniciar ahora'),
     ].filter(Boolean));
   });
+  // ---- Versión nueva en GitHub (server/modules/system/versions.js) ----
+  // En el equipo principal, con «Actualizar ahora», que abre el instalador; en los demás, solo el aviso. La × lo
+  // esconde en este dispositivo hasta que salga otra versión más nueva.
+  const fresh = h('div', { class: 'update-bar glass', role: 'status', hidden: true });
+  const install = () => {
+    const box = dialog('Actualizar Manna',
+      h('p', {}, 'Se abrirá el instalador: cierra Manna, descarga la versión nueva y lo vuelve a abrir. No toca las biblias, los himnos, los medios ni los datos de la iglesia. La proyección se interrumpe un momento y los demás dispositivos se reconectan solos.'),
+      h('div', { class: 'row', style: 'justify-content: flex-end;' },
+        h('button', { class: 'btn', onclick: () => box.close() }, 'Cancelar'),
+        h('button', { class: 'btn primary', onclick: guard(async () => {
+          await action('system.update');
+          box.close();
+          toast('Abriendo el instalador de Manna…');
+        }) }, 'Actualizar ahora')));
+  };
+  subscribe('system', ({ update: next }) => {
+    const version = next?.version;
+    fresh.hidden = !version || prefs.get('version.descartada') === version;
+    if (fresh.hidden || fresh.dataset.version === version) return;
+    fresh.dataset.version = version;
+    fresh.replaceChildren(...[
+      icon('download-simple', 18),
+      h('p', {}, h('strong', {}, `Hay una versión nueva de Manna (${version}). `), isLocal ? 'Se instala sin tocar el contenido ni los datos.' : 'Se actualiza desde el equipo principal.'),
+      isLocal && h('button', { class: 'btn primary', onclick: install }, icon('download-simple', 15), 'Actualizar ahora'),
+      h('button', { class: 'icon-btn sm', 'aria-label': 'Cerrar el aviso', title: 'Volverá a avisar con la próxima versión', onclick: () => {
+        prefs.set('version.descartada', version);
+        fresh.hidden = true;
+      } }, icon('x', 14)),
+    ].filter(Boolean));
+  });
   onServerUpdate(() => {
     allowLeaving();
     location.reload();
@@ -348,7 +378,7 @@ export function createShell({ role, isLocal, modules, extras = [], topTools = []
     // de abajo siguen funcionando con el cajón abierto (decisión del dueño, 2026-10-15).
     // Con un cajón abierto, el toque solo lo cierra; con él cerrado, esconde (o trae) la barra de abajo.
     scene.bg.addEventListener('click', (e) => { if (isOpen()) closeDrawer(); else scene.tapBackground(e); });
-    document.body.append(...[scene.bg, h('div', { class: 'scene-scrim', 'aria-hidden': 'true' }), top, update, scene.story,
+    document.body.append(...[scene.bg, h('div', { class: 'scene-scrim', 'aria-hidden': 'true' }), top, update, fresh, scene.story,
       dockbar, scene.queue, backdrop, drawer, scene.transport, controlsLayer, scene.search?.layer, scene.preview?.bar].filter(Boolean));
     place();
   }
