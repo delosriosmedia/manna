@@ -118,6 +118,27 @@ export default function setup(app) {
     return item;
   });
 
+  // Varios de una vez (las citas de un texto o documento, fase 27): bajo una sección nueva ({ title }), al final de una
+  // que ya existe ({ id }) o al final del orden. Se comprueban todos antes de añadir ninguno.
+  app.action('order.addMany', { permission: 'order.edit' }, ({ items: list, section } = {}) => {
+    if (!Array.isArray(list) || !list.length || list.length > 500) throw new HttpError(400, 'No hay nada que añadir.');
+    const added = list.map(({ kind, data: content } = {}) => {
+      const described = app.kinds.get(kind)?.describe(content);
+      if (!described) throw new HttpError(404, 'Alguno de esos contenidos no existe o ya no está disponible.');
+      return { id: crypto.randomUUID(), kind, title: described.title, subtitle: described.subtitle, steps: described.steps, data: described.data };
+    });
+    const next = [...items()];
+    if (section?.title != null) next.push({ id: crypto.randomUUID(), kind: 'section', title: cleanName(section.title, 60) || 'Sección' }, ...added);
+    else if (section?.id) {
+      const at = next.findIndex((i) => i.id === section.id && i.kind === 'section');
+      if (at < 0) throw new HttpError(404, 'Esa sección ya no está en el orden.');
+      const after = next.findIndex((i, k) => k > at && i.kind === 'section');
+      next.splice(after < 0 ? next.length : after, 0, ...added);
+    } else next.push(...added);
+    update(next);
+    return { added: added.length };
+  });
+
   app.action('order.addSection', { permission: 'order.edit' }, ({ title }) => {
     const item = { id: crypto.randomUUID(), kind: 'section', title: cleanName(title, 60) || 'Sección' };
     update([...items(), item]);

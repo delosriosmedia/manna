@@ -2,6 +2,7 @@ import { HttpError } from '../../core/router.js';
 import { watchFolder } from '../../core/folders.js';
 import { BibleLibrary } from './library.js';
 import { registerCompare } from './compare.js';
+import { createReview } from './citas.js';
 
 // Módulo Biblia: versiones disponibles, lectura por capítulo y búsqueda. Aporta dos tipos de
 // contenido: el pasaje en una versión ('verses') y en dos a la vez ('compare', en compare.js).
@@ -46,6 +47,19 @@ export default function setup(app) {
   });
 
   app.action('bible.rescan', { permission: 'bible.manage' }, rescan);
+
+  // Citas de un texto o documento (fase 27): el texto llega tal cual (text/plain, hasta 4 MB; un PDF trae «\f» entre
+  // páginas) y vuelve la lista para revisar (citas.js). Con el permiso de editar el orden, que es adonde van.
+  const SIGLAS = { RV60: 'RVR1960', RV1960: 'RVR1960', RVR: 'RVR1960' };
+  const versionOf = (sigla) => library.list().find((v) => (v.abbr || '').toUpperCase().replace(/\s+/g, '') === (SIGLAS[sigla] || sigla))?.id || null;
+  let review = null;
+  app.route('POST', '/api/bible/citas', async (ctx) => {
+    ctx.require('order.edit');
+    const text = (await ctx.raw(4 * 1024 * 1024)).toString('utf8');
+    if (!text.trim()) throw new HttpError(400, 'No hay texto en el que buscar citas.');
+    review ||= createReview({ structure: (b) => library.shape(b), verses: (b, c) => library.verseTexts(b, c), versionOf });
+    return review(text);
+  });
 
   // Tipo de contenido "pasaje bíblico". data: { versionId, ref }. Cada versículo es un paso.
   const single = (ref, n) => ({ ...ref, verseStart: n, verseEnd: n });

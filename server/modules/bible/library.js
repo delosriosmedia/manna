@@ -18,6 +18,8 @@ export class BibleLibrary {
   #dir;
   #versions = new Map(); // id -> { id, name, abbr, file }
   #parsed = new Map();   // id -> { books, byNumber, search? }
+  #shapes = new Map();   // libro -> versículos de cada capítulo (el mayor de las versiones instaladas)
+  #texts = new Map();    // 'libro:capítulo' -> [[texto del v. 1 en cada versión], …]
 
   constructor(dir) {
     this.#dir = dir;
@@ -54,7 +56,39 @@ export class BibleLibrary {
       if (found.get(id)?.mtime !== old.mtime) this.#parsed.delete(id);
     }
     this.#versions = found;
+    this.#shapes.clear();
+    this.#texts.clear();
     return this.list();
+  }
+
+  // Para el detector de citas de un texto (citas.js). Las versiones no numeran igual (2 Corintios 13 tiene 13
+  // versículos en la 1909 y 14 en la 1960): vale el mayor. Carga todas las versiones la primera vez (unos 100 MB y
+  // menos de un segundo con catorce).
+  shape(bookN) {
+    if (!this.#shapes.has(bookN)) {
+      let best = null;
+      for (const id of this.#versions.keys()) {
+        const book = this.#load(id)?.byNumber.get(bookN);
+        if (!book) continue;
+        const counts = book.chapters.map((c) => c.verses.length);
+        best = best ? best.map((n, i) => Math.max(n, counts[i] || 0)).concat(counts.slice(best.length)) : counts;
+      }
+      this.#shapes.set(bookN, best);
+    }
+    return this.#shapes.get(bookN);
+  }
+
+  // El texto de cada versículo de un capítulo, en todas las versiones instaladas (para comparar lo que copia un sermón).
+  verseTexts(bookN, chapterN) {
+    const key = `${bookN}:${chapterN}`;
+    if (!this.#texts.has(key)) {
+      const out = [];
+      for (const id of this.#versions.keys()) {
+        for (const v of this.chapter(id, bookN, chapterN)?.verses || []) (out[v.n - 1] ||= []).push(v.text);
+      }
+      this.#texts.set(key, out);
+    }
+    return this.#texts.get(key);
   }
 
   list() {

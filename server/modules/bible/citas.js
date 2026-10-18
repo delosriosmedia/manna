@@ -1,37 +1,34 @@
-// Prototipo: encontrar citas bíblicas en un texto libre (bosquejo de sermón), sin modelos de lenguaje.
+import { BOOK_FORMS, CANON } from './canon.js';
+
+// Las citas bíblicas de un texto libre (un bosquejo, un sermón en Word o PDF), sin modelos de lenguaje (fase 27,
+// decisión 47; investigación y calibración en docs/ideas.md, I1 e I2):
 // 1. Gramática estricta del libro y los números. 2. Comprobación contra los capítulos y versículos que existen.
 // 3. Contexto (horas, cantidades, minúsculas, nombres de persona). 4. Versículos sueltos («v. 18»), deducidos del
 // texto del que se está hablando. 5. Si el documento copia el texto del versículo, se compara con la Biblia.
-// Cada cita sale 'segura' o 'revisar' (con sus motivos); lo descartado, aparte, con el porqué.
-// Calibrado el 2026-10-18 con once documentos reales de la iglesia (diez Word y un PDF de 185 páginas; solo en local).
+// Cada cita sale 'segura' o 'revisar' (con sus motivos); lo descartado, aparte, con el porqué. Calibrado con once
+// documentos reales de la iglesia (solo en local); los casos que enseñaron están en test/citas.test.js.
 
-// [número de libro, formas]. Las formas con número (1 Corintios) se reconocen por ordinal + base.
-const BOOKS = [
-  [1, 'Génesis', 'Gén', 'Gen', 'Gn', 'Ge'], [2, 'Éxodo', 'Éx', 'Ex', 'Exo', 'Exod'], [3, 'Levítico', 'Lev', 'Lv'],
-  [4, 'Números', 'Núm', 'Num', 'Nm'], [5, 'Deuteronomio', 'Deut', 'Deu', 'Dt'], [6, 'Josué', 'Jos'], [7, 'Jueces', 'Jue', 'Jc'],
-  [8, 'Rut', 'Rt'], [15, 'Esdras', 'Esd'], [16, 'Nehemías', 'Neh'], [17, 'Ester', 'Est'], [18, 'Job', 'Jb'],
-  [19, 'Salmos', 'Salmo', 'Sal', 'Sl'], [20, 'Proverbios', 'Prov', 'Pr', 'Prv'], [21, 'Eclesiastés', 'Ecles', 'Ecle', 'Ecl', 'Ec', 'Qo'],
-  [22, 'Cantares', 'Cantar de los Cantares', 'Cnt', 'Cant'], [23, 'Isaías', 'Isa', 'Is'], [24, 'Jeremías', 'Jer', 'Jr'],
-  [25, 'Lamentaciones', 'Lam', 'Lm'], [26, 'Ezequiel', 'Ez', 'Eze', 'Ezeq'], [27, 'Daniel', 'Dan', 'Dn'], [28, 'Oseas', 'Ose', 'Os'],
-  [29, 'Joel', 'Jl'], [30, 'Amós', 'Am'], [31, 'Abdías', 'Abd'], [32, 'Jonás', 'Jon'], [33, 'Miqueas', 'Miq', 'Mi'],
-  [34, 'Nahúm', 'Nah'], [35, 'Habacuc', 'Hab'], [36, 'Sofonías', 'Sof'], [37, 'Hageo', 'Hag'], [38, 'Zacarías', 'Zac'],
-  [39, 'Malaquías', 'Mal', 'Ml'], [40, 'Mateo', 'Mt', 'Mat'], [41, 'Marcos', 'Mr', 'Mc', 'Mar', 'Mrc'], [42, 'Lucas', 'Lc', 'Luc'],
-  [43, 'Juan', 'Jn'], [44, 'Hechos', 'Hch', 'Hech', 'Hec', 'Hechos de los Apóstoles'], [45, 'Romanos', 'Rom', 'Ro', 'Rm'],
-  [48, 'Gálatas', 'Gál', 'Gal', 'Gá', 'Ga'], [49, 'Efesios', 'Efes', 'Ef', 'Efe'], [50, 'Filipenses', 'Filip', 'Fil', 'Flp'],
-  [51, 'Colosenses', 'Col'], [56, 'Tito', 'Tit', 'Tt'], [57, 'Filemón', 'Flm'], [58, 'Hebreos', 'Hebr', 'Heb', 'He'],
-  [59, 'Santiago', 'Stg', 'Sant', 'Stgo', 'Sgo'], [65, 'Judas', 'Jud'], [66, 'Apocalipsis', 'Apoc', 'Apo', 'Ap'],
-];
-// Libros con número: base -> [libro del 1, del 2, del 3].
-const NUMBERED = [
-  [[9, 10], 'Samuel', 'Sam', 'Sa', 'Sm', 'S'], [[11, 12], 'Reyes', 'Rey', 'Re', 'R'], [[13, 14], 'Crónicas', 'Crón', 'Cro', 'Cron', 'Cr'],
-  [[46, 47], 'Corintios', 'Corin', 'Cor', 'Co'], [[52, 53], 'Tesalonicenses', 'Tesal', 'Tes', 'Ts'], [[54, 55], 'Timoteo', 'Tim', 'Tm', 'Ti'],
-  [[60, 61], 'Pedro', 'Ped', 'Pe', 'P'], [[62, 63, 64], 'Juan', 'Jn'],
-];
+const foldKey = (s) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').replace(/\.$/, '');
+// De la lista única de libros (canon.js): los de un nombre ([número, formas]) y los numerados por su base
+// («Corintios», «Co»… -> [46, 47]), que se reconocen con su ordinal delante.
+const BOOKS = [];
+const numberedForms = new Map(); // base -> { books: [n1, n2, n3], forms: Set }
+BOOK_FORMS.forEach((names, i) => {
+  const m = /^([123])\s*(.+)$/.exec(names[0]);
+  if (!m) { BOOKS.push([i + 1, ...names]); return; }
+  const base = foldKey(m[2]);
+  const entry = numberedForms.get(base) || { books: [], forms: new Set() };
+  entry.books[Number(m[1]) - 1] = i + 1;
+  for (const f of names) entry.forms.add(f.replace(/^[123]\s*/, ''));
+  numberedForms.set(base, entry);
+});
+const NUMBERED = [...numberedForms.values()].map((e) => [e.books, ...e.forms]);
 // «S. Juan», «San Lucas», «1 S. Juan» (Primera de San Juan): el «San» de los evangelios y las cartas.
 const SAINTS = new Set(['juan', 'jn', 'mateo', 'mt', 'marcos', 'mr', 'lucas', 'lc', 'pedro']);
 // Formas que también son palabras corrientes, y libros que son nombres de persona: piden más pruebas.
 const WORDLIKE = new Set(['hechos', 'numeros', 'is', 'am', 'os', 'mi', 'ro', 'he', 'col', 'sal', 'mal', 'ap', 'ez', 'pr', 'ec', 'ga',
-  'jon', 'est', 'dan', 'mar', 'luc', 'jos', 'hab', 'sant', 'ef', 'fil', 'lam', 'cant', 'gen', 'ex', 'jer', 'jud', 'deu', 'tt', 'qo']);
+  'jon', 'est', 'dan', 'mar', 'luc', 'jos', 'hab', 'sant', 'ef', 'fil', 'lam', 'cant', 'gen', 'ex', 'jer', 'jud', 'deu', 'tt', 'qo',
+  'ab', 'na', 'ne', 'nu', 'pro', 'ps', 'ge', 'sl', 'cantar']);
 const PERSON = new Set(['juan', 'marcos', 'lucas', 'mateo', 'daniel', 'samuel', 'rut', 'ester', 'job', 'josue', 'isaias', 'jeremias',
   'ezequiel', 'oseas', 'joel', 'amos', 'abdias', 'jonas', 'miqueas', 'nahum', 'habacuc', 'sofonias', 'hageo', 'zacarias', 'malaquias',
   'nehemias', 'esdras', 'tito', 'timoteo', 'pedro', 'santiago', 'judas', 'filemon']);
@@ -194,14 +191,15 @@ export function createDetector({ structure, verses: verseTexts = null }) {
     }
     return best;
   }
-  // Los versículos del capítulo cuyo texto está copiado en el trozo. Solo los de seis palabras largas o más, y casi
-  // enteros: un versículo corto («Vino palabra de Jehová a mí, diciendo») se parece a cualquier párrafo.
+  // Los versículos del capítulo cuyo texto está copiado en el trozo: casi enteros (el 70 % de sus palabras) si tienen
+  // seis palabras largas o más; enteros si son cortos («Vino palabra de Jehová a mí, diciendo» se parece a cualquier
+  // párrafo).
   function versesIn(book, chapter, bag) {
     const n = count(book, chapter);
     const hits = [];
     for (let v = 1; v <= n; v += 1) {
       const long = (verseTexts?.(book, chapter)?.[v - 1] || []).some((t) => words(t).length >= 6);
-      if (long && likeness(book, chapter, v, bag) >= 0.7) hits.push(v);
+      if (likeness(book, chapter, v, bag) >= (long ? 0.7 : 1)) hits.push(v);
     }
     return hits;
   }
@@ -222,7 +220,7 @@ export function createDetector({ structure, verses: verseTexts = null }) {
 
   return function detect(raw) {
     // Una ligadura que el PDF no sabe escribir (la «ti» de Calibri) llega como un carácter nulo: «Corin\0os».
-    const text = raw.normalize('NFC').replace(/\u0000/g, 'ti').replace(/\r/g, '').replace(/[^\S\n]*\n[^\S\n]*/g, '\n').replace(/-\n(?=\p{Ll})/gu, '');
+    const text = raw.normalize('NFC').replace(/\u0000/g, 'ti').replace(/\r/g, '').replace(/[^\S\n\f]*\n[^\S\n\f]*/g, '\n').replace(/-\n(?=\p{Ll})/gu, '');
     const flat = plain(text);
     const lineAt = (pos) => (text.slice(0, pos).match(/\n/g) || []).length + 1;
     const original = (a, b) => text.slice(a, b).trim();
@@ -407,14 +405,88 @@ export function createDetector({ structure, verses: verseTexts = null }) {
       });
     }
     dropped.sort((a, b) => a.pos - b.pos);
+    // La página (un PDF llega con un salto de página, \f, entre ellas) y el trozo del documento donde está.
+    const pageAt = (pos) => (text.slice(0, pos).match(/\f/g) || []).length + 1;
+    const line = (str) => str.replace(/\s+/g, ' ');
+    // El contexto es la línea de la cita (hasta 90 letras a cada lado): lo de otras líneas confunde en la lista.
+    const around = (a, b) => {
+      const before = text.slice(Math.max(0, a - 90), a);
+      const after = text.slice(b, b + 90);
+      const cutBefore = before.search(/[\n\f][^\n\f]*$/);
+      const cutAfter = after.search(/[\n\f]/);
+      return {
+        before: cutBefore >= 0 ? line(before.slice(cutBefore + 1)) : a > 90 ? line(before).replace(/^\S*\s/, '…') : line(before),
+        match: line(text.slice(a, b)),
+        after: cutAfter >= 0 ? line(after.slice(0, cutAfter)) : b + 90 < text.length ? line(after).replace(/\s\S*$/, '…') : line(after),
+      };
+    };
+    for (const c of found) Object.assign(c, { page: pageAt(c.pos), context: around(c.pos, c.end) });
+    for (const d of dropped) Object.assign(d, { page: pageAt(d.pos), context: around(d.pos, d.pos + d.source.length) });
     return { found, dropped };
   };
 }
 
-// Para leer: «Juan 3:16-18», «Mateo 5–7».
-export function label(ref, names) {
-  const name = names[ref.book - 1];
+// Para leer: «Juan 3:16-18», «Mateo 5–7», «Hebreos 11:1 y siguientes».
+export function citeLabel(ref) {
+  const name = CANON[ref.book - 1]?.name || '';
   if (ref.from == null) return `${name} ${ref.chapter}${ref.toChapter ? `–${ref.toChapter}` : ''}`;
   if (ref.toChapter) return `${name} ${ref.chapter}:${ref.from}–${ref.toChapter}:${ref.to}`;
   return `${name} ${ref.chapter}:${ref.from}${ref.to > ref.from ? `-${ref.to}` : ''}${ref.open ? ' y siguientes' : ''}`;
+}
+
+// Lo que se añade al orden (tipo «verses», un capítulo cada uno): un capítulo entero va del 1 al último versículo;
+// «Mateo 5–7» y «5:1–7:29», un elemento por capítulo. count(book, chapter) -> versículos del capítulo.
+export function orderRefs(ref, count) {
+  const piece = (chapter, from, to) => ({ book: ref.book, chapter, verseStart: from, verseEnd: to });
+  if (ref.from == null) {
+    const last = ref.toChapter || ref.chapter;
+    return Array.from({ length: last - ref.chapter + 1 }, (_, k) => piece(ref.chapter + k, 1, count(ref.book, ref.chapter + k)));
+  }
+  if (!ref.toChapter) return [piece(ref.chapter, ref.from, ref.open ? count(ref.book, ref.chapter) : ref.to)];
+  return Array.from({ length: ref.toChapter - ref.chapter + 1 }, (_, k) => {
+    const c = ref.chapter + k;
+    return piece(c, k === 0 ? ref.from : 1, c === ref.toChapter ? ref.to : count(ref.book, c));
+  });
+}
+
+// Lo que ve quien revisa: cada cita una vez (con cuántas veces aparece), en el orden del documento, con sus opciones
+// (la propuesta primero) ya listas para añadir. versionOf(sigla) -> id de una versión instalada o null.
+export function createReview({ structure, verses, versionOf = () => null }) {
+  const detect = createDetector({ structure, verses });
+  const count = (b, c) => structure(b)?.[c - 1] || 0;
+  const choice = (refs) => ({ label: refs.map(citeLabel).join(' · '), order: refs.flatMap((r) => orderRefs(r, count)) });
+  return function review(text) {
+    const { found, dropped } = detect(text);
+    const items = [];
+    const seen = new Map();
+    for (const c of found) {
+      const choices = [];
+      if (c.suggest) choices.push(choice([{ ...c.refs[0], from: c.suggest.from, to: c.suggest.to }]));
+      choices.push(choice(c.refs));
+      if (c.refs.some((r) => r.open)) choices.push(choice(c.refs.map((r) => ({ ...r, open: false }))));
+      if (c.alternative) choices.push(choice(c.alternative));
+      const reasons = [...c.reasons];
+      const verses = choices[0].order.reduce((n, r) => n + r.verseEnd - r.verseStart + 1, 0);
+      if (verses > 40) reasons.push(`son ${verses} versículos`);
+      const key = choices[0].label;
+      const twin = seen.get(key);
+      if (twin) {
+        twin.times += 1;
+        if (c.confidence === 'segura' && twin.confidence !== 'segura') Object.assign(twin, { confidence: 'segura', reasons: [] });
+        continue;
+      }
+      const item = {
+        id: `c${items.length + 1}`, page: c.page, line: c.line, context: c.context, choices,
+        confidence: c.confidence, reasons, checked: c.text === 'coincide', side: Boolean(c.side), times: 1,
+        version: c.version, versionId: c.version ? versionOf(c.version) : null,
+      };
+      seen.set(key, item);
+      items.push(item);
+    }
+    return {
+      items,
+      dropped: dropped.map((d) => ({ page: d.page, line: d.line, context: d.context, why: d.why })),
+      pages: Math.max(1, ...found.map((c) => c.page), ...dropped.map((d) => d.page)),
+    };
+  };
 }

@@ -4,7 +4,12 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
-- Investigación para añadir al orden del culto las citas de un texto pegado o de un documento Word o PDF (todavía no está en Manna): ver `docs/ideas.md`. Propuesta como fase 27 (`docs/PLAN.md`).
+## 1.32.0 — 2026-10-18
+
+- **Citas de un texto o documento al orden del culto**: en el Orden, «Añadir» → «Citas de un texto o documento». Se pega el bosquejo o se elige un **Word (.docx) o un PDF** con texto, y Manna encuentra las citas bíblicas, escritas como las escriba cada predicador («Jn 3.16», «Romanos 8:28, 31», «1 Co. 13:4-7», «Salmo 23», «v. 18»…), y distingue lo que solo lo parece («Juan 3 hermanos», «Rut 5 años»).
+- **Una lista para revisarlas** antes de añadir nada: cada cita bien escrita, con el trozo del documento donde aparece; las seguras, marcadas; las dudosas, sin marcar, con su propuesta y el porqué; lo que ya está en el orden, sin marcar; y la página, en un PDF. «Añadir» las pone todas de una vez, en una sección nueva con el nombre del documento o al final de una que ya exista.
+- **Pegar varias citas en la cita rápida** (en líneas, o separadas por «;») abre esa misma lista.
+- Un Word antiguo (.doc) o un PDF escaneado no se pueden leer: Manna dice qué hacer.
 
 ## 1.31.0 — 2026-10-18
 

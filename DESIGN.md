@@ -165,6 +165,7 @@ Fuera de las tres zonas hay dos páginas sobre el resplandor de la M (`body.glow
 - Un elemento con **nombre propio** muestra ese nombre como título, y el que le da su contenido pasa al principio de la línea secundaria ("Juan 3:16 · Biblia · …").
 - Lo que ya pasó se atenúa; lo que está al aire lleva fondo rojo suave y la insignia "Al aire".
 - Al elegir un elemento se despliegan sus **pasos** como miniaturas (versículos, estrofas, diapositivas). Un toque en una miniatura proyecta ese paso. **Otro clic sobre el mismo elemento lo recoge**, y recogido se queda hasta que se elija otro.
+- **Citas de un texto o documento** (1.32) es una ventana ancha (720 px): primero el texto para pegar y «Elegir documento»; después, la lista para revisar, que es lo único que se desplaza (dónde, la versión y «Añadir N al orden» quedan siempre abajo, a la vista). Cada cita es una fila con su casilla y su cita bien escrita (o un desplegable con la propuesta primero y «o …» las otras), el porqué en ámbar con un aviso si es dudosa, el trozo de su línea con la cita en negrita y notas en gris («aparece 3 veces», «ya está en el orden», «página 2»). Marcada, la fila lleva borde y fondo cian suaves. Con más de 40 citas en varias páginas, van por página, con un título fijo arriba al desplazarse que las marca de una vez y dice cuántas lleva («· 5 de 12»). Lo descartado, plegado al final.
 
 ## 9. Estados
 

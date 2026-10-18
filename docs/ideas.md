@@ -2,11 +2,11 @@
 
 Ideas del dueño para más adelante, todavía sin compromiso. **No son el plan**: aquí se anotan como llegan y se van puliendo (qué se quiere, para qué, qué hay ya en Manna, qué falta decidir). Cuando una está madura pasa a `docs/PLAN.md` como cambio sugerido (sección 11), y solo entra como fase cuando el dueño la aprueba.
 
-Estados: **cruda** (recién anotada), **en desarrollo** (con preguntas en curso), **lista** (para proponerla al plan), **al plan** (ya es una sugerencia o una fase; se deja aquí el enlace).
+Estados: **cruda** (recién anotada), **en desarrollo** (con preguntas en curso), **lista** (para proponerla al plan), **al plan** (ya es una sugerencia o una fase; se deja aquí el enlace), **hecha** (ya está en Manna).
 
 ## I1 · Varias citas de una vez al orden del culto
 
-**Estado**: al plan · 2026-10-18: **fase 27** de `docs/PLAN.md` (decisión 47), junto con I2
+**Estado**: hecha · 2026-10-18: **fase 27** de `docs/PLAN.md` (decisión 47), junto con I2, en la 1.32.0
 
 **Qué**: pegar de una vez muchas citas bíblicas (una por línea, o separadas por comas o punto y coma, como vengan) y que Manna las añada todas al orden del culto, en ese orden.
 
@@ -16,7 +16,7 @@ Estados: **cruda** (recién anotada), **en desarrollo** (con preguntas en curso)
 
 ## I2 · Sacar las citas de un documento Word o PDF
 
-**Estado**: al plan · 2026-10-18: **fase 27** de `docs/PLAN.md` (decisión 47), junto con I1, con quien comparte el detector y la lista para revisar
+**Estado**: hecha · 2026-10-18: **fase 27** de `docs/PLAN.md` (decisión 47), junto con I1, con quien comparte el detector y la lista para revisar, en la 1.32.0
 
 **Qué**: entregar a Manna un documento Word (`.docx`) o PDF, como el bosquejo del sermón, y que encuentre las citas bíblicas que menciona y las añada al orden del culto.
 
@@ -24,10 +24,10 @@ Estados: **cruda** (recién anotada), **en desarrollo** (con preguntas en curso)
 
 ## Investigación de I1 e I2 (2026-10-18)
 
-**Conclusión: viable, sin programas ni dependencias nuevas y sin modelos de lenguaje.** Un prototipo (`scripts/prototipos/citas/`) lo comprobó con textos de prueba y lo calibró con once documentos reales de la iglesia (abajo).
+**Conclusión: viable, sin programas ni dependencias nuevas y sin modelos de lenguaje.** Un prototipo lo comprobó con textos de prueba y lo calibró con once documentos reales de la iglesia (abajo). Desde la fase 27 está en Manna (`server/modules/bible/citas.js`, `web/core/documentos.js`) y el prototipo se borró; sus casos y textos inventados son `test/datos/citas/`.
 
 **Sacar el texto** (en el navegador de quien lo sube, también un celular):
-- `.docx`: es un `.zip`; se lee su índice y se descomprime `word/document.xml` con `DecompressionStream`, que traen los navegadores (`leer.mjs`, unas 30 líneas). Probado: el texto salió idéntico al original.
+- `.docx`: es un `.zip`; se lee su índice y se descomprime `word/document.xml` con `DecompressionStream`, que traen los navegadores (hoy `docxText` en `web/core/documentos.js`). Probado: el texto salió idéntico al original.
 - PDF: pdf.js, que Manna ya trae para las presentaciones (`getTextContent`). Probado en Chrome con un PDF de dos páginas: texto idéntico.
 - Un PDF sin texto (escaneado) se reconoce porque no da texto, y se avisa. `.doc` antiguo: pedir que se guarde como `.docx` o PDF. `.txt` y pegar texto (I1) entran directos.
 
@@ -47,7 +47,7 @@ Estados: **cruda** (recién anotada), **en desarrollo** (con preguntas en curso)
 - **a revisar**: con el motivo (««3, 16»: se entendió 3:16», «“ss”: ¿hasta dónde?», «deducido de Jn 3.16», «le sigue “nos”: ¿es la cita?»);
 - **descartadas**: plegadas, con el porqué, por si alguna sí era cita.
 
-**Medido con el prototipo** (`run.mjs`):
+**Medido con el prototipo**:
 
 | Prueba | Resultado |
 | --- | --- |

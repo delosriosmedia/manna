@@ -116,6 +116,9 @@ const SCREENS = [
   // El ejemplo trae uno solo («Orden del culto»); se duplica con otro nombre si aún no hay dos.
   { name: 'Orden: órdenes guardados', url: '/control#orden', inside: '.modal', settle: 900,
     prepare: `(async () => { const s = await (await fetch('/api/state')).json(); if (s.order.saved.length < 2) await fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'order.duplicate', payload: { id: s.order.saved[0].id, name: 'Culto del sábado por la tarde con un nombre muy largo para ver cómo se corta en el celular' } }) }); await new Promise((r) => setTimeout(r, 400)); document.querySelector('.ws[data-module=orden] .order-switch').click(); })()` },
+  // Citas de un texto o documento (fase 27): una lista larga, por páginas, con una dudosa; «Añadir» siempre a la vista.
+  { name: 'Orden: citas de un documento', url: '/control#orden', inside: '.citas-where + .citas-actions', settle: 1800,
+    prepare: `(async () => { const w = (ms) => new Promise((r) => setTimeout(r, ms)); document.querySelector('.ws[data-module=orden] .order-add').click(); await w(300); [...document.querySelectorAll('.menu button')].find((b) => b.textContent.includes('Citas de un texto')).click(); await w(300); document.querySelector('.citas-text').value = Array.from({ length: 48 }, (_, i) => 'Leemos con atención lo que dice Salmos ' + (i + 1) + ':1 sobre la alabanza' + (i % 12 === 11 ? '\\f' : '')).join('\\n') + '\\nFíjense en el v. 3.'; [...document.querySelectorAll('.citas-actions .btn')].find((b) => b.textContent.includes('Buscar')).click(); })()` },
   // El equipo de la auditoría "no tiene" navegador para la proyección: Ajustes lleva su aviso.
   { name: 'Ajustes, con aviso', url: '/control#ajustes', content: '.settings', inside: '.ws-notice' },
   // La capa de mandos abierta: su recuadro cabe en la pantalla y trae los mandos de lo que está al aire.
@@ -259,7 +262,8 @@ const MEASURE = (screen, touch, narrow) => {
   if (${JSON.stringify(touch)}) {
     const small = [...document.querySelectorAll('button, a[href], select, summary, input:not([type=range]):not([type=color]):not([type=file])')]
       .filter((el) => shown(el) && !el.disabled && !el.closest('.soon') && !el.closest('[hidden]'))
-      .filter((el) => { const r = box(el); const p = el.closest('label.search'); const b = p ? box(p) : r; return Math.min(b.width, b.height) < 34.5; })
+      // Lo que se toca a través de su etiqueta (el buscador, una casilla en su fila) mide lo que mide la etiqueta.
+      .filter((el) => { const r = box(el); const p = el.matches('input[type=checkbox], input[type=radio]') ? el.closest('label') : el.closest('label.search'); const b = p ? box(p) : r; return Math.min(b.width, b.height) < 34.5; })
       .map((el) => (el.getAttribute('aria-label') || el.textContent || el.className).trim().slice(0, 24));
     out.dedos = small.length === 0;
     if (small.length) out.pequenos = [...new Set(small)].slice(0, 6);

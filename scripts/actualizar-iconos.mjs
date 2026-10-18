@@ -36,6 +36,8 @@ const ICONS = [
   'text-aa', 'quotes',
   // «Solo fondo» en la barra de arriba (1.31): el texto se va
   'text-t-slash',
+  // citas de un texto o documento (fase 27)
+  'file-text',
 ];
 
 // Iconos propios (a petición del dueño, no son de Phosphor): un QR que se lee desde 14 px y, para «Negro», una

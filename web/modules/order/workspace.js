@@ -6,6 +6,7 @@ import { prefs } from '../../core/prefs.js';
 import { whenLabel } from '../../core/time.js';
 import { createStage } from '../projection/stage.js';
 import { createLiveControls } from '../projection/live.js';
+import { openCitas } from './citas.js';
 
 const MAX_SLIDES = 60;
 const WIDE = 1000; // desde este ancho del cajón, los pasos van en su columna (lo mismo dice order.css)
@@ -61,6 +62,13 @@ function mount(el, ctx) {
   const quick = h('input', {
     type: 'text', placeholder: 'Añadir una cita rápida: jn 3 16', autocomplete: 'off', 'aria-label': 'Añadir una cita al orden',
     onkeydown: (e) => { if (e.key === 'Enter') quickAdd(quick.value.trim()); },
+    // Varias citas pegadas de una vez (en líneas o con «;»): la lista para revisarlas (fase 27).
+    onpaste: (e) => {
+      const text = e.clipboardData?.getData('text') || '';
+      if (!/[\n;]/.test(text.trim())) return;
+      e.preventDefault();
+      openCitas({ text });
+    },
   });
 
   el.replaceChildren(
@@ -86,6 +94,8 @@ function mount(el, ctx) {
       { label: 'Medios', icon: 'image', note: 'Imágenes, videos, audios y presentaciones', onclick: () => ctx.go('medios') },
       { label: 'Página web', icon: 'globe', note: 'Canva, Kahoot…', onclick: () => ctx.go('paginas') },
       { label: 'Sección', icon: 'rows', onclick: () => askTitle({ title: 'Nueva sección', onSave: (title) => run('order.addSection', { title }) }) },
+      '-',
+      { label: 'Citas de un texto o documento', icon: 'file-text', note: 'Pegar, o un Word o un PDF', onclick: () => openCitas() },
     ]);
   }
 
@@ -112,6 +122,7 @@ function mount(el, ctx) {
 
   const quickAdd = guard(async (q) => {
     if (!q) return;
+    if (q.includes(';')) { quick.value = ''; openCitas({ text: q }); return; }
     const versionId = prefs.get('version') || state.bible?.versions[0]?.id;
     if (!versionId) return toast('No hay biblias instaladas.', 'error');
     const res = await api(`/api/bible/${versionId}/search?q=${encodeURIComponent(q)}`);

@@ -119,3 +119,35 @@ span.order-switch { color: var(--ink-3); }
 .compact .ws[data-module='orden'] .ws-head, .compact .ws[data-module='orden'] .order-bar, .compact .ws[data-module='orden'] .omap { display: none; }
 .compact .ws[data-module='orden'] .olist[hidden] { display: block; }
 .compact .ws[data-module='orden'] .odetail.inline .odetail-tools { display: none; }
+
+/* «Citas de un texto o documento» (fase 27): una ventana más ancha con la lista para revisar. Cada fila se toca
+   entera (la casilla va dentro de su etiqueta); la marcada, en cian; la dudosa lleva su motivo en rojo claro. */
+.modal.citas-box { width: min(100%, 720px); display: flex; flex-direction: column; }
+.citas-box .modal-body, .citas { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.citas-scroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.citas-start { display: grid; gap: 10px; }
+.citas-text { min-height: 140px; padding: 10px; resize: vertical; font: inherit; line-height: 1.45; }
+.citas-actions { justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.citas-status:empty { display: none; }
+.citas-top { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 8px; }
+.modal-body .citas-summary { flex: 1 1 200px; margin: 0; font-weight: 600; }
+.citas-list { display: grid; gap: 4px; }
+.citas-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r); cursor: pointer; }
+.citas-row:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.citas-row input[type='checkbox'] { flex-shrink: 0; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent); }
+.citas-main { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.citas-choice { width: auto; max-width: 100%; justify-self: start; }
+.citas-why { display: flex; align-items: center; gap: 4px; color: var(--live-ink); }
+.citas-ctx { color: var(--ink-3); overflow-wrap: anywhere; }
+.citas-ctx mark { background: none; color: var(--ink); font-weight: 600; }
+.citas-group { display: grid; gap: 4px; margin-bottom: 10px; }
+.citas-page { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px; padding: 8px 2px; background: var(--glass-3); cursor: pointer; }
+.citas-dropped { margin-top: 10px; color: var(--ink-3); }
+.citas-dropped summary { cursor: pointer; }
+html.touch .citas-dropped summary { padding: 11px 0; }
+.modal-body .citas-dropped p { margin: 6px 0; }
+.citas-where { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.citas-where .field { display: grid; gap: 6px; margin: 0; }
+.citas-where .label { margin: 0; }
+@media (max-width: 559px) { .citas-where { grid-template-columns: 1fr; } }
+
