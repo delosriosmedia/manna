@@ -234,6 +234,7 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 ## Decisiones tomadas
 
+- **2026-10-18 · YouTube en lote, carpeta de contenido e instalador** (decisión 48): sí a las fases 28, 29 y 30, con las observaciones del dueño (en `docs/PLAN.md`).
 - **2026-10-18 · Citas de un texto o documento** (decisión 47): sí a la fase 27 (I1 e I2 de `docs/ideas.md`), con todas las recomendaciones del asistente. Las decisiones están en la bandeja de ideas y la fase, en `docs/PLAN.md`.
 - **2026-10-18 · Barra de arriba y Ajustes** (decisión 46, fase 26): la marca con la versión a la izquierda (el logo abre Ajustes, que sale del dock; cambiar de función, en un botón aparte), «Al aire» al centro en su burbuja, «Solo fondo» y «Negro» como iconos junto a la marca, el wifi y el QR que se abren en su sitio, fundidos cortos en lo que se abre, el tamaño de la interfaz por dispositivo (de como estaba a un 8 % más, sin números) y borrar lo subido por categoría con doble confirmación. La versión nueva se busca cada hora, y a mano desde Ajustes. **Regla nueva**: las pruebas largas tienen tiempo máximo y quien las lanza las vigila (en `CLAUDE.md`).
 - **2026-10-17 · Aviso de versión nueva** (decisión 45): Manna mira cada 20 minutos (cada hora desde la 1.31) en GitHub si hay una versión nueva y, solo entonces, lo avisa con un botón que abre el instalador. Es una excepción más a «nada de internet» (en `CLAUDE.md`).
@@ -301,9 +302,9 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 En `docs/PLAN.md`, sección 11.
 
-### 0 a. Fases 28 a 30 (propuestas el 2026-10-18)
+### 0 a. Fase 30: compilar el instalador de Windows
 
-Varios videos de YouTube de una vez, elegir la carpeta de contenido (en Ajustes y al instalar) e instaladores con ventana, paso a paso y Node.js incluido. La propuesta y lo que hay que decidir están en `docs/PLAN.md` (fases 28, 29 y 30): las listas de reproducción de YouTube, incluir Node.js en el instalador, el formato de los instaladores y si se firman (cuesta dinero cada año).
+Al empezar la fase 30 se confirma con el dueño que el `.exe` se compile con el compilador de C# del propio Windows en GitHub Actions (es un paso de compilación), y si el `.pkg` de Mac vale con el icono de paquete de Apple (ver la fase en `docs/PLAN.md`).
 
 ### 0 bis. Funciones especializadas para el celular (fase 19)
 
@@ -335,7 +336,7 @@ Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron*
 - **Fase 24 (Biblia al aire)**: hecha el 2026-10-17 (1.29.0).
 - **Fase 25 (Escenario más compacto)**: hecha el 2026-10-17 (con la 24, en la 1.29.0).
 - **Fase 27** (citas de un texto o documento al orden): hecha el 2026-10-18 (1.32.0). Falta medirla con 3 o 4 sermones nuevos del dueño (ver «Problemas conocidos»).
-- **Fases 28 a 30** (YouTube en lote, carpeta de contenido, instaladores): propuestas el 2026-10-18, por aprobar.
+- **Fases 28 a 30** (YouTube en lote, carpeta de contenido, instalador de un solo archivo): aprobadas el 2026-10-18 (decisión 48), en ese orden. La 28, en curso.
 - **Lo que sigue**: las pruebas del dueño en la iglesia (fase 9, para la 2.0); la fase 19 (funciones para el celular) sigue aplazada y la 3 (televisores), en pausa hasta el final.
 - **Fase 19** (funciones especializadas para el celular): aplazada. La propuesta sigue en `docs/funciones-celular.md`.
 - **Fase 9** (auditoría, sección 8 de `docs/PLAN.md`): hecha la parte de código (1.18.0); la del equipo real son las pruebas del dueño, y al pasarlas se publica la 2.0.

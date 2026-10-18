@@ -4,7 +4,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
-- Propuestas, todavía sin hacer: añadir varios videos de YouTube de una vez, elegir la carpeta de contenido desde Ajustes y al instalar, e instaladores con ventana que explican cada paso y no piden instalar Node.js antes (`docs/PLAN.md`, fases 28 a 30).
+- Planeado (todavía sin hacer): añadir varios videos de YouTube de una vez, elegir la carpeta de contenido desde Ajustes sin reiniciar, y un instalador de un solo archivo con el icono de Manna que no pide instalar Node.js antes (`docs/PLAN.md`, fases 28 a 30).
 
 ## 1.32.0 — 2026-10-18
 
