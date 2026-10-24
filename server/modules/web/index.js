@@ -84,8 +84,10 @@ export default function setup(app) {
   // data = { id }. Un solo paso. Un archivo propio y lo que va en su propia ventana tienen mandos: las
   // flechas que se han pulsado, en orden, y cuántas van. Al archivo se las entrega cada pantalla (también
   // la que se abra tarde); a la ventana, el módulo de proyección.
+  // Va también en una capa (módulo layers), si se deja mostrar dentro de Manna.
   app.kind('web', {
     label: 'Página web',
+    layer: true,
     describe(data) {
       const page = pages().find((p) => p.id === data?.id);
       return page ? { title: page.name, subtitle: subtitle(page), steps: 1, data: { id: page.id } } : null;

@@ -39,6 +39,8 @@ const ICONS = [
   // citas de un texto o documento (fase 27)
   'file-text',
   'list-plus',
+  // capas (fase 31)
+  'stack', 'eye',
 ];
 
 // Iconos propios (a petición del dueño, no son de Phosphor): un QR que se lee desde 14 px y, para «Negro», una

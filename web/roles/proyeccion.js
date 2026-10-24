@@ -16,6 +16,7 @@ const stage = createStage($('#stage'));
 subscribe('projection', (p) => stage.render(p));
 subscribe('live', (live) => stage.setLive(live));
 subscribe('pointer', (p) => stage.setPointer(p));
+subscribe('layers', ({ slots }) => stage.setLayers(slots));
 subscribe('conexiones', ({ sonido }) => stage.setSound(Boolean(sonido) && sonido === connectionId()));
 watchBlocked({ buttons: false });
 connect('proyeccion');

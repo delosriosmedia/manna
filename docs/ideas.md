@@ -22,6 +22,18 @@ Estados: **cruda** (recién anotada), **en desarrollo** (con preguntas en curso)
 
 **Decidido por el dueño (2026-10-18)**: un documento sin texto (un PDF escaneado, una foto del papel) se descarta con un aviso; no se intenta leer. Lo importante es que el detector distinga bien qué es una cita y qué no, sin errores.
 
+## I3 · La hora permanente en la pantalla de proyección
+
+**Estado**: al plan · 2026-10-24: **fase 32** de `docs/PLAN.md`, en una capa (fase 31)
+
+**Qué**: poner la hora en la pantalla de proyección de forma permanente: en una esquina, centrada o donde se elija, muy sutil pero visible (nota de voz del dueño, 2026-10-24).
+
+## I4 · Temporizador para las actividades
+
+**Estado**: al plan · 2026-10-24: **fase 32** de `docs/PLAN.md`, con el cronómetro
+
+**Qué**: un módulo de temporizador para contar el tiempo que le queda a cada actividad, con un título de lo que se cuenta y que se vea grande (nota de voz del dueño, 2026-10-24).
+
 ## Investigación de I1 e I2 (2026-10-18)
 
 **Conclusión: viable, sin programas ni dependencias nuevas y sin modelos de lenguaje.** Un prototipo lo comprobó con textos de prueba y lo calibró con once documentos reales de la iglesia (abajo). Desde la fase 27 está en Manna (`server/modules/bible/citas.js`, `web/core/documentos.js`) y el prototipo se borró; sus casos y textos inventados son `test/datos/citas/`.

@@ -186,6 +186,7 @@ const SCREENS = [
   { name: 'Páginas web', url: '/control#paginas', content: '.web-list', inside: '.web-item', settle: 400 },
   { name: 'Páginas web: una elegida', url: '/control#paginas', content: '.web-list', primary: '.ws[data-module=paginas] .abar .btn.primary', inside: '.ws[data-module=paginas] .abar', settle: 600,
     prepare: `document.querySelector('.ws[data-module=paginas] .web-pick').click()` },
+  { name: 'Capas', url: '/control#capas', content: '.layers-list', inside: '.layer-row', settle: 600 },
   { name: 'Televisores', url: '/control#televisores', content: '.tvs', inside: '.tv' },
   { name: 'Televisores: control remoto', url: '/control#televisores', inside: '.modal', settle: 700,
     prepare: `[...document.querySelectorAll('.tv-actions .btn')].find((b) => b.textContent === 'Control remoto').click()` },
@@ -402,6 +403,9 @@ async function worker(list, n) {
     { id: 'enlace2', name: 'Concurso bíblico', source: 'url', url: 'https://kahoot.it/', framable: false, added: 2 },
     { id: 'archivo1', name: 'Juego de la iglesia', source: 'file', url: null, framable: true, added: 1 },
   ] }));
+  // Dos capas (fase 31): el archivo, a la vista (la pastilla de capas sale arriba en todas las pantallas), y la dirección
+  // larga, oculta y esperando (localhost:9 no contesta).
+  fs.writeFileSync(path.join(data, 'capas.json'), JSON.stringify({ slots: [null, { kind: 'web', data: { id: 'archivo1' }, visible: true }, { kind: 'web', data: { id: 'enlace1' }, visible: false }] }));
   // El ejemplo se escribe antes de arrancar: el servidor lee el orden y la biblioteca al abrirse.
   const example = seedExample(data);
   const server = killOnExit(spawn(process.execPath, ['server/index.js'], {

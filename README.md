@@ -21,6 +21,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
   - **Audios**: se suben o se copian a `Contenido/Medios/`, y se gobiernan como un video.
   - **Presentaciones**: las de la iglesia, en PDF o en PowerPoint, convertidas en imágenes. Se recorren con «Siguiente», la barra de abajo muestra la diapositiva que viene y cuántas quedan, y cada una se puede acercar como una imagen. En Windows, un PowerPoint lo puede pasar **el propio PowerPoint en el proyector**, con sus videos y animaciones, y se sigue pasando desde cualquier celular.
 - **Textos**: mensajes (un anuncio, una bienvenida, un motivo de oración) y **citas con su autor**, para proyectarlos con el fondo y la letra de la Biblia. Se guardan para volver a usarlos y se añaden al orden del culto. Una línea en blanco parte un texto largo en pantallas, que se pasan con «Siguiente».
+- **Capas**: tres capas que quedan encima de todo lo que se proyecte (también con «Negro» y «Solo fondo») hasta que las quites, por ejemplo una página web transparente que muestra algo de vez en cuando.
 - **Páginas web**: presentaciones y juegos de internet (Canva, Google Slides, Genially, Kahoot) o un archivo HTML propio, a pantalla completa. Una dirección necesita internet durante el culto; si la página no se deja mostrar dentro de Manna, el proyector la abre en su propia ventana. Un archivo HTML se pasa con «Anterior» y «Siguiente» desde cualquier dispositivo.
 - **Fondos**: seis colores y las imágenes que subas, que quedan guardadas junto a ellos en Ajustes.
 - **Espacio en disco** (Ajustes): cuánto ocupa lo subido o descargado desde Manna (YouTube, videos y audios, imágenes, presentaciones, páginas web) y lo libre del disco. Cada categoría tiene su **botón de borrar** (la papelera), que pregunta dos veces antes de borrar, y lo borrado se quita también del orden del culto; la carpeta Contenido (himnario, biblias y medios) y los fondos no se tocan. Las copias para celulares de los videos se borran con su video.
@@ -265,6 +266,16 @@ Solo «Control completo» crea y cambia textos; las demás funciones los proyect
 
 Las direcciones **necesitan internet durante el culto**. Los archivos se guardan en `data/paginas/` del equipo principal.
 
+### Capas
+
+Lo que pongas en una capa queda **encima de todo lo que se proyecte**, también con «Negro» y «Solo fondo», hasta que lo quites, aunque Manna se reinicie. Hay tres: la 1 encima de lo que está al aire, la 2 encima de la 1 y la 3 encima de todo. Hoy van en una capa las páginas web que se dejan mostrar dentro de Manna, como una página con fondo transparente que muestra algo de vez en cuando.
+
+1. En **Páginas web**, elige la página y pulsa **Capa** → la capa que quieras. También desde **Capas** → **Poner aquí**.
+2. En **Capas**, el ojo la oculta o la muestra sin recargarla; **…** → **Recargar** la carga de nuevo y **Quitar** la quita. Arriba, junto a «Al aire», una pastilla dice cuántas hay a la vista.
+3. La página se carga una vez y se queda: lo que muestra lo decide ella. Si no hay internet, la capa espera oculta y se carga sola cuando vuelva, sin que nadie recargue nada.
+
+Una página con fondo transparente se ve transparente solo si su fondo lo es de verdad (y no declara un esquema oscuro, `color-scheme: dark`). Mientras haya una capa a la vista, una presentación de PowerPoint va como imágenes (PowerPoint, en su propia ventana, la taparía); al ocultar la capa vuelve a pasarla PowerPoint.
+
 ### Un televisor como pantalla
 
 > **En pausa.** En la primera prueba con un televisor real, Manna le abrió el navegador pero el televisor no llegó a mostrar la proyección. El módulo no aparece en la barra; lo que sigue describe cómo está pensado y se retomará más adelante.
@@ -327,6 +338,7 @@ server/
     slides/             presentaciones convertidas en diapositivas (en la web, su grupo de Medios, panel.js, y el Presentador): recibir las páginas de un PDF, pedirle
                         a PowerPoint que exporte las de una presentación o que la pase en vivo (powerpoint.js) y proyectarlas
     texts/              textos y citas para proyectar: guardarlos, partirlos en pantallas (text.js)
+    layers/             las tres capas encima de la proyección: guardarlas y ver si su página contesta
     web/                páginas web y archivos HTML: comprobar si una dirección se deja mostrar
                         dentro de otra página y servir los archivos encerrados
     internet/           conexión por internet: abre el túnel de Cloudflare (cloudflared) mientras

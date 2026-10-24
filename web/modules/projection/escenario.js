@@ -47,6 +47,21 @@ export function createEscenario(ctx) {
     pills.push(el);
     return el;
   };
+  // Las capas a la vista (fase 31), para que nadie olvide que hay algo encendido encima de lo que se proyecta.
+  const chips = [];
+  const layerChip = () => {
+    const el = h('span', { class: 'layers-chip', hidden: true }, icon('stack', 14), h('span', {}));
+    chips.push(el);
+    return el;
+  };
+  subscribe('layers', ({ slots }) => {
+    const shown = slots.filter((s) => s.kind && s.visible);
+    for (const chip of chips) {
+      chip.hidden = !shown.length;
+      chip.lastChild.textContent = shown.length;
+      chip.title = `En capas, encima de lo que se proyecta: ${shown.map((s) => `${s.n}. ${s.title}`).join(' · ')}`;
+    }
+  });
   const caption = h('strong', { class: 'scene-caption' });
   const power = ctx.role === 'control' && ctx.isLocal ? createDisplayToggle({ compact: true }) : null;
   power?.classList.add('scene-power', 'glass');
@@ -55,10 +70,10 @@ export function createEscenario(ctx) {
   const clear = h('button', { class: 'mode-btn', 'aria-label': 'Solo fondo', title: 'Solo fondo (C): oculta el texto y deja el fondo', onclick: () => toggleMode('clear') }, icon('text-t-slash', 18));
   const black = h('button', { class: 'mode-btn', 'aria-label': 'Negro', title: 'Negro (B): la pantalla en negro', onclick: () => toggleMode('black') }, icon('pantalla-negra', 18));
   const modeBar = h('div', { class: 'scene-modes glass', role: 'group', 'aria-label': 'Qué se ve en la proyección' }, clear, black);
-  const status = h('div', { class: 'scene-status glass' }, livePill(), caption);
+  const status = h('div', { class: 'scene-status glass' }, livePill(), caption, layerChip());
   // En el celular, la cabecera del cajón dice lo que está al aire (el cajón tapa el recuadro).
   const miniCaption = h('strong', { class: 'scene-caption' });
-  const mini = h('div', { class: 'scene-mini' }, livePill(), miniCaption);
+  const mini = h('div', { class: 'scene-mini' }, livePill(), miniCaption, layerChip());
 
   // ---- Lo marcado ----
   // { orderId, step, project }: el elemento de la cola o de «A continuación» que se tocó. Se ve con su borde cian y

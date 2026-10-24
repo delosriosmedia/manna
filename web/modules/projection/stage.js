@@ -9,6 +9,9 @@ import '../kinds.js';
 // El escenario pone el fondo y decide qué se ve según el modo (al aire, solo fondo, negro).
 // El contenido lo dibuja el tipo de cada elemento (ver web/core/kinds.js).
 //
+// Encima de lo que está al aire van las tres capas (módulo Capas, fase 31), que solo dibuja quien llama a
+// setLayers (la pantalla de proyección): siguen ahí con «Negro» y «Solo fondo».
+//
 // sound: esta pantalla es la que suena. Lo decide el servidor y puede cambiar (setSound).
 // thumbnail: es una miniatura de una lista (los pasos del orden del culto): el tipo carga lo más ligero que tenga.
 // Una miniatura (thumbnail) no reproduce lo que suena: un video muestra su imagen, sin gastar batería, red ni
@@ -18,15 +21,46 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
   const bg = h('div', { class: 'stage-bg' });
   const overlay = h('div', { class: 'stage-overlay' });
   const content = h('div', { class: 'stage-content' });
+  const layerHost = h('div', { class: 'stage-layers' });
   const pointer = h('div', { class: 'stage-pointer', hidden: true });
   container.classList.add('stage');
-  container.replaceChildren(bg, overlay, content, pointer);
+  container.replaceChildren(bg, overlay, content, layerHost, pointer);
 
   let drawn = null;  // { kind, view }: lo que hay dibujado ahora
   let current = null; // el último elemento recibido
   let live = null;    // { uid, state, volume }
   let point = null;   // { uid, x, y }: dónde señala el puntero (espacio "pointer" del servidor)
   let lastKey = '';
+  let styles = null;  // los de Ajustes: también los usan las capas
+  const layers = [];  // por capa: { el, view, key, item }
+  let slots = [];
+
+  // Una capa se dibuja con el tipo de su elemento, sin fondo, y se carga una sola vez: ocultarla no la quita (una
+  // página sigue cargada) y cambiar lo que está al aire no la toca. Solo se rehace si cambia su elemento o se recarga
+  // (uid). Si deja de estar lista (una página cuya dirección dejó de contestar) se queda como está; lo que aún no se
+  // ha cargado espera a que lo esté.
+  function drawLayers() {
+    slots.forEach((slot, i) => {
+      const layer = layers[i] ||= { el: layerHost.appendChild(h('div', { class: 'stage-layer', dataset: { n: i + 1 } })) };
+      const key = slot.kind && slot.content ? `${slot.kind}|${slot.uid}` : '';
+      if (layer.key && layer.key !== key) {
+        layer.view?.destroy?.();
+        layer.el.replaceChildren();
+        layer.view = null;
+        layer.key = '';
+      }
+      const def = key && kindOf(slot.kind);
+      if (!layer.view && def && slot.ready && styles) {
+        layer.view = def.draw(layer.el, { stage: container, layer: true });
+        layer.key = key;
+      }
+      layer.item = layer.view ? { ...slot.content, uid: slot.uid } : null;
+      if (layer.view) layer.view.update(layer.item, { mode: 'live', styles });
+      const on = Boolean(layer.view) && slot.visible;
+      layer.el.style.visibility = on ? '' : 'hidden';
+      layer.view?.visible?.(on && document.visibilityState === 'visible');
+    });
+  }
 
   // El tipo dice dónde cae en pantalla un punto de su contenido (locate); el que no sabe, no lo muestra.
   function placePointer() {
@@ -45,7 +79,9 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
     drawn.view.live(mine, { volume: live?.volume ?? 1, sound, still: thumbnail });
   }
 
-  function render({ mode, item, styles }) {
+  function render({ mode, item, styles: next }) {
+    styles = next;
+    if (slots.length) drawLayers(); // las capas siguen la letra y los colores de Ajustes
     container.dataset.mode = item ? mode : (mode === 'black' ? 'black' : 'clear');
     bg.style.background = styles.backgroundType === 'image' && styles.bgImage
       ? `url("${styles.bgImage}") center / cover no-repeat`
@@ -106,5 +142,12 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
     },
     // ¿Lo dibujado sabe situar un punto? (con eso se puede señalar sobre él)
     pointable: () => Boolean(drawn?.view.locate),
+    // Las capas (espacio "layers" del servidor). Una página de una capa sabe si se ve (`visible`), también cuando la
+    // ventana de proyección se oculta.
+    setLayers(next) {
+      if (!slots.length) document.addEventListener('visibilitychange', drawLayers);
+      slots = next || [];
+      drawLayers();
+    },
   };
 }

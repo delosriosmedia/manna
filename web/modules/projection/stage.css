@@ -82,6 +82,16 @@
   opacity: 1 !important;
 }
 
+/* Capas (fase 31): encima de lo que está al aire, cada una sobre la anterior. No reciben el ratón ni se apagan con
+   «Negro» ni con «Solo fondo». Una página en una capa va sin el fondo blanco del marco. */
+.stage-layers,
+.stage-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.stage-layer .web-frame { background: transparent; }
+
 /* Puntero del presentador: un punto rojo con halo, como un láser. Su sitio lo pone stage.js. */
 .stage-pointer {
   position: absolute;

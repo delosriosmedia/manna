@@ -4,6 +4,11 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.36.0 — 2026-10-24
+
+- **Capas**: tres capas que quedan encima de todo lo que se proyecte, también con «Negro» y «Solo fondo», hasta que las quites, aunque Manna se reinicie. Hoy va en una capa una página web que se deje mostrar dentro de Manna: con fondo transparente, se ve encima de videos, versículos, himnos o imágenes. Se pone desde Páginas web («Capa») o desde el cajón nuevo **Capas**, donde el ojo la oculta sin recargarla. Arriba, junto a «Al aire», una pastilla dice cuántas hay a la vista.
+- Una página en una capa se carga una vez y se queda; si no hay internet, espera oculta y se carga sola cuando vuelve, sin que salga una página de error encima del culto.
+- Mientras haya una capa a la vista, una presentación de PowerPoint va como imágenes (la ventana de PowerPoint la taparía), y sus mandos lo dicen; al ocultar la capa la vuelve a pasar PowerPoint.
 - Las pruebas automáticas de Manna también pasan en Windows, y desde ahora corren allí en cada versión (cambio interno, sin efecto en la app).
 
 ## 1.35.0 — 2026-10-18

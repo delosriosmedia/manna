@@ -42,3 +42,6 @@ node_modules/
 # Archivos personales de desarrollo
 CLAUDE.local.md
 .claude/settings.local.json
+
+# Presentaciones reales de la iglesia para medir DeckCraft (fase 33): solo en local.
+/Presentaciones pruebas/

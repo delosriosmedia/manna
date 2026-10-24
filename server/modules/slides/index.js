@@ -102,7 +102,8 @@ export default function setup(app) {
 
   function wanted() {
     const { item, mode, display } = store.get('projection') || {};
-    if (item?.kind !== 'slides' || mode !== 'live' || !(display?.open || fake) || framed(item)) return null;
+    // Con una capa a la vista (fase 31), la ventana de PowerPoint la taparía: va como imágenes hasta que se oculte.
+    if (item?.kind !== 'slides' || mode !== 'live' || !(display?.open || fake) || framed(item) || !item.powerpoint) return null;
     const deck = ready(item.source.data?.id);
     return deck && inPowerPoint(deck) ? { deck, number: item.number } : null;
   }
@@ -182,7 +183,13 @@ export default function setup(app) {
     publish();
     app.services.projection?.refresh();
   }
+  let covering = false;
   store.on('change', (ns) => {
+    // Al mostrar u ocultar una capa, lo que está al aire vuelve a decir si lo pasa PowerPoint (y sync lo sigue).
+    if (ns === 'layers' && covering !== Boolean(app.services.layers?.covering())) {
+      covering = !covering;
+      app.services.projection?.refresh();
+    }
     // Los mandos, solo si son de lo que está al aire (al proyectar algo, llegan antes que ello).
     if (ns === 'projection' || (ns === 'live' && store.get('live').uid === store.get('projection')?.item?.uid)) sync();
     // «Señalar» sobre una presentación en vivo: el punto lo dibuja PowerPoint encima del pase (S39). Cambia muchas
@@ -213,8 +220,10 @@ export default function setup(app) {
     return {
       id: deck.id, title: deck.name, reference: `Diapositiva ${n}`, number: n, pages: deck.pages,
       url: pageUrl(deck, n), thumb: thumbUrl(deck, n), width: deck.width, height: deck.height, fit: 'contain',
-      // La pasa PowerPoint (salvo acercada: ver framed); el puntero lo dibuja una capa encima del pase.
-      powerpoint: inPowerPoint(deck),
+      // La pasa PowerPoint (salvo acercada: ver framed); el puntero lo dibuja una capa encima del pase. Con una capa
+      // de Manna a la vista (fase 31), PowerPoint la taparía: va como imágenes (covered) hasta que se oculte.
+      powerpoint: inPowerPoint(deck) && !app.services.layers?.covering(),
+      covered: inPowerPoint(deck) && Boolean(app.services.layers?.covering()),
       // La que viene, para verla antes de pasar a ella.
       next: n < deck.pages ? { number: n + 1, thumb: thumbUrl(deck, n + 1) } : null,
     };

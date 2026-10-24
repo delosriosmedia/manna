@@ -8,6 +8,8 @@ import { registerKind } from '../../core/kinds.js';
 // propia ventana: aquí, como en las miniaturas, solo se ve una tarjeta.
 // Un archivo propio recibe las flechas que se pulsan desde cualquier dispositivo (live.presses): cada
 // pantalla entrega a su marco las que le faltan y, si la página se recarga, todas desde el principio.
+// En una capa (fase 31) el marco va sin fondo, y la página recibe { manna: 'capa', visible } al cargar y cada vez que
+// se muestra u oculta: así sabe cuándo se ve de verdad lo que pone (el concurso del Sábado Joven lo usa).
 const WIDTH = 1920;
 const HEIGHT = 1080;
 const where = (item) => (item.window ? 'Se ve en su propia ventana en el proyector' : item.file ? 'Archivo HTML' : new URL(item.url).hostname);
@@ -19,7 +21,7 @@ registerKind('web', {
   key: (item) => item.url,
   background: false,
 
-  draw(host, { thumbnail }) {
+  draw(host, { thumbnail, layer = false }) {
     const name = h('strong', {});
     const note = h('small', {});
     const card = h('div', { class: 'web-card' }, icon('globe', 48), name, note);
@@ -27,6 +29,8 @@ registerKind('web', {
     let frame = null;
     let presses = { presses: [], count: 0 };
     let seen = 0; // cuántas pulsaciones ha recibido ya el marco
+    let shown = null; // en una capa: si se ve (lo último que se le dijo a la página)
+    const tell = () => layer && shown != null && frame?.contentWindow?.postMessage({ manna: 'capa', visible: shown }, '*');
     const deliver = () => {
       const missing = presses.presses.slice(Math.max(0, presses.presses.length - (presses.count - seen)));
       seen = presses.count;
@@ -60,9 +64,15 @@ registerKind('web', {
         frame.addEventListener('load', () => {
           seen = presses.count - presses.presses.length;
           deliver();
+          tell();
         });
         host.append(frame);
         fit();
+      },
+      visible(on) {
+        if (on === shown) return;
+        shown = on;
+        tell();
       },
       live(state) {
         presses = state?.presses ? state : { presses: [], count: 0 };

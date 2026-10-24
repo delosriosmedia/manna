@@ -2,6 +2,7 @@ import { action, state, subscribe, upload } from '../../core/api.js';
 import { h, dialog, guard, menu, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { nameFromFile } from '../../core/names.js';
+import { layerButton } from '../../core/capas.js';
 
 // "Informe_final-2.html" -> "Informe final 2"
 const ADDED = (page) => (page.framable
@@ -84,12 +85,18 @@ function mount(el, ctx) {
   });
   const list = h('div', { class: 'web-list' });
   const name = h('span', { class: 'sel-ref' });
+  // Solo lo que se deja mostrar dentro de Manna va en una capa (lo de su propia ventana la taparía).
+  const toLayer = layerButton(() => {
+    const page = current();
+    return page?.framable ? { kind: 'web', data: { id: page.id }, title: page.name } : null;
+  });
   const bar = h('div', { class: 'abar web-bar', hidden: true }, name,
     h('button', { class: 'btn', onclick: guard(async () => {
       const page = current();
       await action('order.add', { kind: 'web', data: { id: page.id } });
       toast(`«${page.name}» añadida al orden del culto.`);
     }) }, icon('plus', 16), 'Añadir al orden'),
+    toLayer,
     h('button', { class: 'btn primary', onclick: () => project() }, icon('play', 16), 'Proyectar', h('kbd', {}, '↵')));
   el.replaceChildren(h('div', { class: 'ws-head' }, h('h1', {}, 'Páginas web'), h('span', { class: 'spacer' }),
     ctx.canEdit && h('button', { class: 'btn', onclick: openAdd }, icon('plus', 16), 'Agregar página')), list, bar, picker);
@@ -117,6 +124,7 @@ function mount(el, ctx) {
     }
     const page = current();
     bar.hidden = !page;
+    toLayer.hidden = !page?.framable;
     name.textContent = page?.name || '';
   }
   subscribe('web', render);

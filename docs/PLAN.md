@@ -157,6 +157,10 @@ De menor a mayor riesgo; cada fase deja algo usable y **se publica al cerrarla**
 | 28 | Varios videos de YouTube de una vez: pegar muchos enlaces y que se descarguen en cola (decisión 48) | S | 1.33 |
 | 29 | Elegir la carpeta de contenido desde Ajustes, sin reiniciar, y avisar si no se ha elegido (decisión 48) | M | 1.34 |
 | 30 | Instalador de un solo archivo con el icono de Manna, paso a paso y con Node.js incluido (decisión 48) | L | 1.35 |
+| 31 | Tres capas encima de la proyección y páginas web transparentes (decisión 51; con fecha: el 29 de octubre) | M | 1.36 |
+| 32 | Tiempo: la hora, cronómetros y temporizadores, a la proyección o a una capa (decisión 51) | M | 1.37 |
+| 33 | Presentaciones sin PowerPoint, con DeckCraft: medir la fidelidad, convertir y pasar en vivo dentro de Manna (decisión 51) | L | 1.38 y 1.39 |
+| 34 | Capas en el orden del culto y versículos en una capa (decisión 51) | M | |
 
 **Orden cambiado el 2026-10-04 (decisión 20)**: la fase 6 va antes que la 5, mientras el dueño revisa las letras de los himnos. La reproducción (pausa, avance, volumen, una sola pantalla que suena), que iba a estrenarse con el himnario, se construye con los videos.
 
@@ -623,6 +627,228 @@ Pedido del dueño del 2026-10-18: que para instalar Manna baste con descargar **
 
 **Orden**: 28, 29 y 30.
 
+### Fase 31 · Tres capas encima de la proyección y páginas web transparentes — hecha (1.36.0)
+
+Pedido del dueño del 2026-10-24 (desde la sesión «Sábado Joven», proyecto NUEVA VIDA, y en esta): tener cosas que **queden encendidas encima de todo lo que se proyecte** hasta que alguien las apague, como una página web con transparencias o la hora (fase 32). Serían **tres capas**: la 1 encima de lo que está al aire, la 2 encima de la 1 y la 3 encima de la 2. Lo que se elige en un módulo se envía a la proyección o a una capa, según prefiera quien lo maneja. Las indicaciones detalladas de la página web en una capa están en `docs/capas-y-paginas-transparentes.md`.
+
+**Tiene fecha.** El sábado 31 de octubre de 2026 (Sábado Joven, Auditorio del SENA de Barrancabermeja) hay un concurso:
+- la página que muestra cada palabra (`milugar.manna-iglesia.es/word?k=…`) va en una capa durante toda la jornada;
+- es transparente casi siempre, y la palabra aparece en grande en menos de un segundo cuando el administrador la libera;
+- el reloj del concurso arranca cuando la palabra está de verdad en pantalla.
+
+Tiene que estar probado en el equipo que proyectará en el SENA **antes del ensayo del jueves 29**.
+
+**Lo que ya hay**:
+- `web` es un tipo de contenido: sustituye lo que está al aire.
+- La página se dibuja a 1920 × 1080, escalada, dentro de un marco con fondo blanco fijo (`.web-frame` en `web/modules/projection/stage.css`). Por eso una página transparente se ve blanca.
+- El escenario (`web/modules/projection/stage.js`) pinta, de abajo arriba, el fondo, la capa que oscurece, el contenido y el puntero. Nada va encima del contenido.
+- Lo que está al aire se recupera tras un reinicio solo si fue hace menos de 15 minutos (`server/modules/projection/live.js`).
+- PowerPoint en vivo y las páginas que no se dejan enmarcar se abren en una ventana propia, encima de la de proyección: taparían una capa.
+
+**Qué haría**:
+- **Módulo nuevo `layers`** («Capas» en la interfaz), sin acoplarse a los demás:
+  - **Tres capas fijas.** Cada una lleva un elemento (un tipo de contenido con su `data`, como el orden del culto) y un ojo para mostrarla u ocultarla.
+  - **Estado y órdenes.** Estado `layers = { slots: [{ n, item, visible }] }`. Órdenes `layers.set { n, kind, data }`, `layers.visible { n, visible }`, `layers.reload { n }` y `layers.clear { n }`, con el permiso `projection.control`: las funciones que ya pueden proyectar.
+  - **Siempre vuelven.** Se guardan en `data/capas.json` y vuelven **siempre** al arrancar, sin el límite de 15 minutos: una capa queda encendida hasta que alguien la apague.
+  - **Qué tipos entran.** Un tipo va en una capa solo si lo declara (`layer: true` en `app.kind` y en `registerKind`). Se dibuja con su propio `draw`, sin fondo. En esta fase entra `web`, y la 32 añade la hora y los temporizadores. Lo que suena (videos, audios, himnos) no va en capas: rompería la regla de que suena una sola pantalla.
+- **Enviar a una capa desde el módulo**: junto a «Proyectar», un botón «Capa» con su menú (capa 1, 2 o 3), cuando lo elegido es de un tipo que va en capas. En esta fase, en Páginas web.
+- **El cajón «Capas»** en el dock: las tres capas con lo que tiene cada una, el ojo, «Recargar», «Quitar» y «Poner aquí…».
+- **En la ventana de proyección**, tres contenedores encima del contenido y debajo del puntero:
+  - el mismo encaje 16:9, con `pointer-events: none`;
+  - cambiar lo que está al aire no los toca.
+- **Modos**: «Negro» y «Solo fondo» afectan solo a lo que está al aire: **las capas siguen encima** (decisión 51).
+- **Otras pantallas** (el fondo del control, celulares, Presentador):
+  - una página web de una capa no se carga en ellas: no se abre diez veces ni corre en todos los dispositivos;
+  - una pastilla «Capas» junto a «Al aire» recuerda que hay algo encendido encima, y el cajón dice qué;
+  - los tipos ligeros, como la hora de la fase 32, sí se dibujan en la proyección de fondo del equipo principal, para ver dónde caen.
+- **Página web en una capa** (detalles en el documento de arriba):
+  - **Marco transparente.** Es el mismo marco de `web`, con fondo transparente solo en las capas; el contenido `web` normal sigue en blanco. La proyección se queda en `color-scheme: normal`, así que una página que declare `color-scheme: dark` se vería con fondo: se documenta.
+  - **Solo páginas que se dejan enmarcar**, con la revisión que ya hace `server/modules/web/index.js`. Las que no, se rechazan como capa diciendo por qué.
+  - **Se carga una vez y se queda** (observación del dueño): la página de una capa se carga al ponerla y sigue cargada toda la jornada. Lo que muestra lo decide ella: en el concurso, la palabra aparece en cuanto el administrador la revela y se quita cuando la oculta, por la propia conexión de la página, sin pulsar nada en Manna.
+  - **Ocultar no recarga.** Ocultar es `visibility: hidden`: el marco no se recarga al ocultarlo ni al cambiar lo que está al aire, solo con «Recargar» o si cambia la dirección.
+  - **Sin páginas de error encima del culto, sin que nadie recargue.** Antes de cargar la página (al ponerla, al abrirse la ventana de proyección o al reiniciar Manna), el equipo principal comprueba que su dirección contesta. Si no contesta (sin internet), la capa espera oculta y Manna lo vuelve a intentar sola cada 15 s; en cuanto contesta, la carga. Así la página de error de Chrome no llega a verse, y la página no tiene que hacer nada especial (lo de `capa-lista` del documento queda descartado).
+  - **Aviso de visibilidad.** Manna le manda a la página `{ manna: 'capa', visible }` al cargar y en cada cambio (el ojo, «Negro», la ventana oculta). Con eso el concurso sabe cuándo la palabra está de verdad en pantalla.
+  - **Seguridad.** Manna no acepta órdenes ni mensajes de la página: solo le habla.
+- **Lo que taparía una capa**: PowerPoint en vivo y una página en ventana propia. Al proyectarlas con una capa visible, Manna avisa y ofrece pasar la presentación como imágenes (decisión 51), hasta que DeckCraft reemplace a PowerPoint (fase 33).
+- **Orden del culto**: «Encender capa» y «Apagar capa» como pasos, en la fase 34 (decisión 51).
+
+**Pruebas**, todas antes del jueves 29:
+- **Automáticas.** `test/capas.test.js` y `test/servidor.test.js`: las órdenes, los permisos, la validación, los tipos que no van en capas, y que se guarden y vuelvan al arrancar.
+- **Página de prueba local** (`scripts/lib/capa-prueba.mjs`): fondo transparente, un recuadro semitransparente y un texto que cambia cada segundo (como la palabra que se revela). Muestra el último `visible` que recibió.
+- **En Chrome** (`probar-chrome.mjs`), con cada botón nuevo pulsado:
+  - la capa se ve encima de una imagen, un video, unos versículos, un himno, «Solo fondo» y «Negro»;
+  - lo de debajo se ve a través de ella (se lee un píxel);
+  - el marco no se recarga al cambiar de contenido;
+  - vuelve sola al recargar la proyección y al reiniciar Manna;
+  - con la dirección sin contestar, la capa espera oculta y se carga sola cuando vuelve a contestar;
+  - lo que cambia la página (la palabra que aparece) se ve sin recargar nada;
+  - el aviso de visibilidad llega en cada cambio.
+- **Auditoría de pantallas**: el cajón «Capas» en los diez tamaños.
+- **En el equipo del SENA**, a cargo del dueño, con la 1.36 y el Chrome o el Edge de Manna: la página de prueba, y la del concurso cuando la sesión del Sábado Joven avise que está publicada.
+
+**Tamaño**: M. **Calendario**: el plan se aprueba el 24 o el 25; la fase queda hecha y publicada (1.36.0) el lunes 26 o el martes 27, y el dueño la prueba en el equipo del SENA el 27 o el 28.
+
+**Decidido (decisión 51)**:
+1. «Negro» y «Solo fondo» **no ocultan las capas**: solo afectan a lo que está al aire.
+2. En esta fase, solo páginas web; la hora y los temporizadores, en la 32; **los versículos en una capa** (para ponerlos sobre una presentación sin salir de ella), en la 34.
+3. Con una capa visible, PowerPoint en vivo o una página en ventana propia: Manna avisa y ofrece pasar la presentación como imágenes, mientras PowerPoint siga; la meta es reemplazarlo del todo por DeckCraft (fase 33).
+4. «Encender» y «Apagar» capas desde el orden del culto: en la fase 34, cuando estén terminadas la 31, la 32 y la 33.
+
+### Fase 32 · Tiempo: la hora, cronómetros y temporizadores — aprobada (decisión 51)
+
+Pedido del dueño del 2026-10-24, con dos ideas suyas de ese día (`docs/ideas.md`, I3 e I4):
+- **la hora** en la pantalla de proyección, de forma permanente, sutil pero visible, en una esquina, centrada o donde se elija;
+- **temporizadores** para el tiempo que le queda a cada actividad, con su título y en grande;
+- además, **cronómetro**.
+
+Lo que se elija se envía a la proyección o a una capa (fase 31), como en cualquier módulo. **Siempre transparente**: en la proyección va sobre el fondo configurado en Ajustes; en una capa, sin fondo.
+
+**Lo que ya hay**:
+- **El reloj compartido** de lo que se reproduce (`server/core/playback.js` en el servidor, `positionAt` en `web/core/playback.js`): cada pantalla calcula el tiempo con la hora del servidor (`serverNow()`), sin contar segundos por su cuenta. Así todas ven el mismo segundo.
+- **El tipo `text`** (Textos), que se dibuja sobre el fondo con la letra y los colores de Ajustes.
+
+**Qué haría**:
+- **Módulo nuevo `time`** («Tiempo» en el dock), con tres clases de elemento:
+  - **Hora**: la del equipo principal.
+  - **Cronómetro**: cuenta hacia arriba desde cero.
+  - **Temporizador**: cuenta atrás desde una duración, con su título («Anuncios», «Predicación»).
+
+  Los cronómetros y temporizadores se guardan con su título, como los textos (`data/tiempo.json`). Cada uno lleva su reloj en el servidor (`{ running, position, at }`, el de la reproducción): corre aunque no esté a la vista, y todas las pantallas ven el mismo segundo.
+- **Órdenes**:
+  - crear y cambiar: `time.add`, `time.edit` y `time.remove`, con el permiso nuevo `time.edit`;
+  - manejar: `time.start`, `time.pause`, `time.reset` y `time.adjust { minutos }` (sumar o restar un minuto), con `projection.control`.
+- **Tipo nuevo `clock`**, con `layer: true`. Su `data` dice qué reloj es y cómo se ve:
+  - **dónde**: nueve sitios (las cuatro esquinas, los bordes al centro y el centro);
+  - **tamaño**: pequeño (la hora sutil), mediano o grande (el temporizador «que se vea grande»);
+  - **aspecto**: sutil (semitransparente) o normal, con el título encima del número si lo tiene.
+
+  En la proyección se dibuja sobre el fondo de Ajustes, con su letra y sus colores. En una capa va sin fondo, con una sombra suave para que se lea sobre lo claro y lo oscuro (la auditoría ya comprueba el contraste con una diapositiva blanca y una negra detrás).
+- **Varios estilos gráficos** (observación del dueño), para elegir en cada reloj. Propuesta de partida, que se le muestra al dueño en una página de prueba antes de construirla: **Sencillo** (solo las cifras, con la letra de Ajustes), **Digital** (cifras de Geist Mono en una pastilla de cristal), **Tarjeta** (el título arriba y el número grande en un recuadro), **Anillo** (un temporizador con un anillo que se vacía) y **Barra** (las cifras con una barra fina que se acorta).
+- **Al llegar a cero** (decisión 51): el temporizador **se queda quieto en 0:00**. En los últimos 10 segundos suena un **tictac de reloj** suave; en los últimos 5, más marcado; y al llegar a cero, una **alarma corta, suave y bonita**, nada estridente. Los sonidos los genera Manna en el navegador (Web Audio), sin archivos de terceros; suenan por la pantalla que suena (la regla de una sola) y con el volumen general. Cada temporizador se puede dejar sin sonido.
+- **Mandos en vivo**: con un temporizador al aire o en una capa, sus botones (empezar, pausa, reiniciar, +1 min y −1 min) en los mandos y en el cajón «Capas».
+- **Orden del culto**: un temporizador se puede añadir al orden, como todo lo proyectable (decisión 4).
+- Sin dependencias: la cuenta es la del reloj compartido.
+
+**Pruebas**:
+- **Automáticas.** La lógica del reloj en `test/tiempo.test.js`: pausar, seguir, ajustar y pasar de cero. Las órdenes y los permisos, en `servidor.test.js`.
+- **En Chrome**: crear, empezar y pausar, y enviar a la proyección y a una capa.
+- **Auditoría**: la pantalla nueva y el contraste de la hora en una capa, sobre blanco y sobre negro.
+
+**Tamaño**: M. Va después de la 31; el concurso del sábado no la necesita.
+
+**Decidido (decisión 51)**:
+1. Crear y cambiar relojes, solo Control completo (`time.edit`, como Textos); empezar y parar, las funciones que pueden proyectar.
+2. La hora en 12 horas con «a. m.» y «p. m.» por defecto, con la opción de 24 horas.
+3. Al llegar a cero se queda quieto, con el tictac de los últimos 10 segundos (más marcado en los últimos 5) y una alarma corta y suave al final.
+4. Un temporizador proyectado desde el orden del culto empieza solo si está en su principio; si ya corrió, sigue donde iba.
+
+### Fase 33 · Presentaciones sin PowerPoint, con DeckCraft — aprobada la parte 1 (decisión 51), en curso
+
+Pedido del dueño del 2026-10-24: revisar si **DeckCraft** (https://github.com/storytold/deckcraft), de código abierto, puede integrarse en Manna para **reemplazar totalmente la dependencia de Microsoft PowerPoint** y resolver los problemas que ha dado.
+
+**Los problemas de PowerPoint hasta hoy** (`docs/ESTADO.md`):
+- **Hace falta PowerPoint instalado**, con su licencia de Office, en el equipo principal.
+- **En Windows nunca se ha ejecutado con un PowerPoint real** (S25): ni la conversión ni el pase en vivo, solo con uno de mentira.
+- **Puede quedarse colgado o abierto.** Si se cancela una conversión, PowerPoint puede quedarse abierto sin ventana. Si se queda esperando una respuesta suya, Manna corta a los 10 s, pero el pase puede quedarse en el proyector hasta cerrarlo a mano.
+- **En Mac** se abre a la vista y pide dos permisos que solo puede aceptar una persona.
+- **El pase en vivo es otra ventana encima de la de Manna**:
+  - «Señalar» necesita una ventana transparente aparte, sin probar;
+  - «Mover» termina el pase y lo vuelve a empezar, así que una animación a medias empieza de nuevo;
+  - «Negro» y «Solo fondo» lo terminan;
+  - **taparía las capas** de la fase 31.
+- **En vivo solo funciona en Windows**, y las diapositivas ocultas salen distinto en Windows y en Mac.
+
+**Qué es DeckCraft** (revisado el 2026-10-24 en su repositorio, versión 0.10.0 del 22 de octubre):
+- **Qué es.** Un programa de presentaciones hecho en Rust, con licencia MIT o Apache 2.0: se puede usar y redistribuir llevando su licencia. Abre y guarda `.pptx`, y pasa las presentaciones con transiciones y animaciones.
+- **Tres formas**:
+  - **Línea de órdenes** (`deckcraft-cli`). Dibuja cada diapositiva en PNG sin ventana y sin tarjeta gráfica (`render archivo.pptx --all --scale S carpeta/`), y con `--transparent`, sin el fondo de la diapositiva. Viene en el `.zip` portátil de Windows (77 MB, sin instalar nada más) y en el `.zip` de Mac (69 MB).
+  - **Versión web** (WebAssembly, 10 MB). Dibuja con WebGPU o WebGL2 dentro de una página, se puede incrustar en otra y empieza el pase con `?show`. Abre archivos con la ventana de elegir archivo o soltándolos encima, pero no por una dirección, y otra página no puede saber en qué diapositiva va.
+  - **App de escritorio.** Otro programa la maneja por un canal local (JSON en 127.0.0.1): empezar el pase, pulsar teclas y saber en qué va.
+- **Es muy joven.** Se creó el 7 de octubre de 2026, está en alfa y saca versión cada dos o tres días. Sus propias carencias (`docs/gaps.md` de DeckCraft):
+  - la primera de su lista: solo se ha comprobado con presentaciones hechas por ellos, no comparadas con lo que dibuja PowerPoint;
+  - las fuentes, solo en normal, negrita y cursiva; usa las fuentes incrustadas en el `.pptx`, salvo las comprimidas a la manera de Office (MicroType Express), que guarda pero no dibuja;
+  - las imágenes SVG no salen;
+  - reproduce las 48 transiciones de PowerPoint, pero solo 64 de unos 190 efectos de animación (`docs/animation-parity.md` de DeckCraft);
+  - la app de escritorio no arranca con algunas tarjetas gráficas de Windows.
+
+**Qué haría**, por partes. Cada parte se prueba antes de pasar a la siguiente:
+- **Parte 1 · Medir la fidelidad** (S, sin cambiar Manna):
+  - en este Mac, con el `deckcraft-cli` de su versión de GitHub y PowerPoint al lado, convertir las 9 presentaciones reales que entregó el dueño (`Presentaciones pruebas/`, fuera de git; no se le pasan a Gemini). Revisadas el 2026-10-24: 149 diapositivas, muchas hechas de una imagen; una con transiciones; ninguna con animaciones, diapositivas ocultas, fuentes incrustadas ni videos; fuentes Aptos, Calibri, Arial, Verdana, Arial Rounded, Amasis MT Pro, Cascadia Mono, Nimbus y Bitstream Charter;
+  - compararlas diapositiva por diapositiva con lo que saca PowerPoint: texto, fuentes, imágenes y colores, y cuánto tarda;
+  - como esas 9 no traen lo difícil, **presentaciones de prueba hechas a propósito** (y abiertas en PowerPoint para comprobar que son válidas) con: una **diapositiva oculta** (¿la salta?), **animaciones de entrada** (¿dibuja todo visible, como hoy, o vacío?), **animaciones poco comunes** que DeckCraft no tiene (la presentación tiene que proyectarse igual, con esos elementos sin animar: si falla entera, no sirve) y **fuentes incrustadas** (tienen que verse con su letra; las que Office guarda comprimidas se prueban con una presentación que el dueño haga en el PowerPoint de Windows);
+  - el resultado es una tabla de lo que sale bien y lo que no. Si sale mal, aquí se para; lo que falle se le reporta a DeckCraft con una presentación inventada.
+- **Parte 2 · Convertir sin PowerPoint** (M):
+  - **Un programa más del equipo principal**, como ffmpeg o yt-dlp (`server/core/tools.js`). Manna lo descarga de la versión de GitHub y comprueba su huella (`SHA256SUMS.txt`); en Windows guarda solo `deckcraft-cli.exe`. Se usa una versión fija, probada, que se cambia a mano tras probar la nueva.
+  - **Convierte DeckCraft.** Un `.pptx` se convierte en una imagen por diapositiva y su miniatura, sin abrir ventanas ni pedir permisos, y sale igual en Windows y en Mac.
+  - **Pruebas**: la prueba en Chrome sube un `.pptx` de verdad, fabricado en el momento y liviano, y DeckCraft lo convierte de verdad; un Windows de GitHub lo convierte también en cada versión.
+- **Parte 3 · Pase con animaciones dentro de Manna** (L):
+  - **Dentro de la proyección.** La versión web de DeckCraft va dentro de la propia ventana de proyección de Manna, como el marco de una página web.
+  - **Lo que se gana.** Las animaciones y transiciones se ven en la ventana de Manna, **debajo de las capas**. «Señalar», «Mover», «Negro» y «Solo fondo» funcionan como en cualquier contenido, en Windows y en Mac. Los celulares siguen viendo la imagen de cada diapositiva.
+  - **Lo que le falta a DeckCraft.** El archivo quizá se le pueda dar soltándolo encima, como hace una persona, pero falta que Manna le diga «siguiente», «anterior» e «ir a» y sepa en qué diapositiva va. Se le propone a DeckCraft como mejora (es de código abierto); si no la aceptan, Manna lleva una copia propia, compilada en GitHub como el `.exe` del instalador.
+  - **Empieza con una prueba de concepto** en el equipo de la iglesia, para ver si su tarjeta gráfica mueve las animaciones con fluidez.
+  - **Con esto se quita PowerPoint en vivo** (`server/modules/slides/powerpoint.js`).
+- **No recomendado**: manejar la app de escritorio de DeckCraft en vivo, como hoy se maneja PowerPoint. Sería otra ventana encima, que taparía las capas, y no arranca con algunas tarjetas gráficas.
+
+| Problema de hoy | Parte 2 (convertir) | Parte 3 (en vivo) |
+| --- | --- | --- |
+| Hace falta PowerPoint y su licencia | Resuelto | Resuelto |
+| Se queda abierto o colgado; permisos en Mac | Resuelto (un programa sin ventana) | Resuelto |
+| Otra ventana encima: tapa las capas, «Señalar» y «Mover» a medias | — | Resuelto |
+| En vivo solo en Windows | — | Resuelto (también en Mac) |
+| Sin probar en un Windows real | Lo prueba un Windows de GitHub en cada versión | La prueba de concepto en el equipo de la iglesia |
+
+**Riesgos**:
+- **Fidelidad**: es lo que mide la parte 1, y por eso va primero.
+- **Juventud del proyecto**: cambia mucho entre versiones. Por eso Manna fija una versión probada.
+- **Tamaño**: 77 MB en Windows.
+- **Fuentes**: si el equipo no tiene las de la presentación, se sustituyen, igual que en PowerPoint.
+- **Rendimiento** de la versión web en el equipo de la iglesia: lo mide la prueba de concepto.
+
+Mientras tanto, **un PDF sigue funcionando siempre**, sin nada instalado.
+
+**Tamaño**: L en total (S + M + L). Va después de la 32; la parte 1 se puede hacer en cuanto el dueño entregue las presentaciones.
+
+**Parte 1 · resultados (2026-10-24)**, en este Mac con `deckcraft-cli` 0.10.0 frente al PowerPoint 16 del Mac (el informe y las comparaciones quedaron fuera del repositorio):
+- **Las 9 presentaciones (149 diapositivas)**: 93 idénticas a la vista, 54 con diferencias leves y **2 graves**: un cuadro de texto denso se monta distinto y una línea queda pisada (DeckCraft no reduce el texto como PowerPoint cuando no cabe, `normAutofit`) o tapada por una foto.
+- **Tiempo**: 12,6 s en total, frente a 41 s de PowerPoint (más lo que tarda sacar las imágenes de su PDF), sin abrir ninguna aplicación.
+- **Leves, casi todas por fuentes**:
+  - Aptos sale como Inter, que mide distinto.
+  - Una fuente de la nube de Microsoft (Amasis) cae en Calibri.
+  - Las viñetas con símbolo («❑») salen como punto.
+- **Colores**: DeckCraft da los del archivo; el camino de PowerPoint a PDF los desatura un poco.
+- **Los cuatro casos de prueba**, con presentaciones inventadas:
+  - **(a) Diapositiva oculta**: `render --all` la dibuja (PowerPoint la salta). Manna la saltará leyendo `info`.
+  - **(b) Animaciones de entrada**: dibuja los elementos visibles, como hasta ahora.
+  - **(c) Efectos que DeckCraft no tiene**: la presentación se abre y se dibuja igual, sin error (requisito del dueño cumplido).
+  - **(d) Fuente incrustada**: la dibuja con su letra si va como TrueType o como EOT. Falta la que guarda el PowerPoint de Windows, comprimida: el dueño hará una allí.
+- **Windows**: su `.zip` portátil trae `deckcraft-cli.exe` (`packaging/windows/package.ps1` de DeckCraft); falta probarlo en Windows.
+- **Conclusión: la parte 2 es viable.** Las dos diapositivas graves piden ver la vista previa antes de proyectar, mientras DeckCraft no lo resuelva.
+- **Se le propondrá a DeckCraft**:
+  - reducir el texto que no cabe como PowerPoint;
+  - las viñetas con símbolo;
+  - una sustituta de Aptos con sus medidas;
+  - `--skip-hidden` y el ancho en píxeles;
+  - conservar los efectos que no tiene al guardar;
+  - publicar `deckcraft-cli.exe` suelto.
+
+**Requisitos del dueño** (decisión 51):
+- Una animación que DeckCraft no tenga no puede hacer fallar la presentación: se proyecta igual, con ese elemento sin animar.
+- Las fuentes incrustadas en la presentación tienen que verse bien. Si alguna no se puede dibujar (las que Office guarda comprimidas), Manna lo dice y nombra la fuente, y se busca cómo resolverlo (proponer a DeckCraft que las lea, o instalar la fuente en el equipo).
+
+**Decidido (decisión 51)**:
+1. DeckCraft: la medición (parte 1), ya; como programa del equipo principal, cuando la medición salga bien.
+2. PowerPoint se quita del todo cuando DeckCraft pase la prueba en el equipo de la iglesia. Hasta entonces sigue como está.
+3. Compilar en GitHub una copia propia de la versión web de DeckCraft, si sus autores no aceptan la mejora: **pendiente**; el dueño pidió que se le explique mejor.
+4. Las presentaciones de la medición son las 9 de `Presentaciones pruebas/`.
+
+### Fase 34 · Capas en el orden del culto y versículos en una capa — aprobada para después de la 33 (decisión 51)
+
+Pedido del dueño del 2026-10-24, para cuando estén terminadas la 31, la 32 y la 33:
+- **«Encender capa» y «Apagar capa» como pasos del orden del culto**: por ejemplo, encender la hora al empezar y apagarla al terminar, o poner una página en la capa 2 en un momento del programa.
+- **Versículos en una capa**: poner un pasaje encima de una presentación sin salir de ella (el tipo `verses` con `layer: true`, dibujado en una franja o un recuadro con la letra de Ajustes).
+
+Se planea en detalle al llegar, con lo aprendido en las anteriores. **Tamaño**: M.
+
 ### Fase 13 · Rediseño «Escenario» de la interfaz de control
 
 Decisión 32. El diseño se aprobó sobre un lienzo de prototipos navegables (https://claude.ai/artifact/J1nL2fMbgmB3wiUgVZKJW4, privado del dueño). Lo que hace falta para construirlo está aquí; al empezar, `DESIGN.md` se reescribe con ello.
@@ -757,6 +983,7 @@ Tomadas el 2026-10-04.
 | 38 | Tras probar la 1.17 (2026-10-16) | «Escuchar aquí» se quita si no hay una solución segura (no la hay sin un celular de verdad para probar). La barra de abajo del escritorio se aparta sola sin uso. yt-dlp se pone al día solo y YouTube reintenta. **Node.js propio para YouTube**: si el del equipo es anterior al 22, Manna instala el oficial (nodejs.org) solo para eso y lo pone al día solo. Publicar todo junto en la 1.18.0 |
 | 39 | Manejar páginas web desde el celular (2026-10-16) | **S40 se descarta por ahora**, aunque la prueba de concepto funcionó. El estudio queda en la sección 11 por si se retoma |
 | 50 | Pruebas en Windows en cada versión (2026-10-18) | **Sí a S47**, tras medirla: en cada versión, un Windows de GitHub corre `npm test` (unos 40 s, a la vez que los instaladores), con tiempo máximo en cada paso. Antes, el dueño pidió el estimado: no quería alargar la publicación |
+| 51 | Capas, tiempo y DeckCraft (2026-10-24) | **Sí a las fases 31, 32 y 33** (de la 33, por ahora la parte 1, la medición) y **se añade la 34**, con las observaciones del dueño: «Negro» y «Solo fondo» no ocultan las capas; la página de una capa se carga una vez y se queda, sin que nadie recargue nada; varios estilos gráficos en Tiempo; el temporizador se queda quieto en cero, con tictac en los últimos 10 s (más marcado en los últimos 5) y una alarma corta y suave; la hora en 12 h por defecto; DeckCraft reemplaza a PowerPoint del todo cuando pase la prueba en el equipo de la iglesia, sin que una animación que no tenga haga fallar la presentación y con las fuentes incrustadas bien. Pendiente de explicar: compilar una copia propia de la versión web de DeckCraft (parte 3) |
 | 49 | PDF hechos de imágenes (2026-10-18) | Pedido del dueño con un PDF real que Manna rechazaba («no tiene texto»): era de imágenes (hecho con jsPDF). **Se leen con el reconocimiento de texto del sistema** en el equipo principal (Vision en Mac, `Windows.Media.Ocr` en Windows), sin programas de terceros ni modelos de lenguaje propios; cambia lo decidido en la fase 27 (descartar los documentos sin texto) |
 | 48 | YouTube en lote, carpeta de contenido e instalador (2026-10-18) | **Sí a las fases 28, 29 y 30**, en ese orden, con las recomendaciones del asistente y las observaciones del dueño: en la 28, reconocer lo que ya está aunque tenga otro nombre y que el título de YouTube llegue con sus tildes, sin listas de reproducción; en la 29, cambiar la carpeta sin reiniciar y avisar al abrir Manna si no se ha elegido; en la 30, un único archivo con el icono de Manna (`.pkg` en Mac, `.exe` en Windows) que lo hace todo, consola con barra de avance si hace falta, Node.js incluido, sin elegir la carpeta ni firmar |
 | 47 | Citas de un texto o documento (2026-10-18) | **Sí a la fase 27** (I1 e I2 de `docs/ideas.md`), con todas las recomendaciones del asistente: en el Orden, «Añadir» → «Citas de un texto o documento» (y la cita rápida, si se pegan varias); una lista para revisar con las seguras y las de paso marcadas y las dudosas sin marcar; una sección con el nombre del documento; capítulo entero si no hay versículo; repetidas una vez; la versión del documento si está instalada; el orden del documento; documentos largos en grupos. Un documento sin texto se descarta con un aviso. Antes de construir, se mide con 3 o 4 sermones nuevos |
@@ -873,6 +1100,10 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 28 Varios videos de YouTube | **Hecha** · 2026-10-18 (decisión 48) | 1.33.0 | «Varios» junto al enlace de Medios (y pegar un mensaje en el campo, o «Añadir» con el campo vacío) abre una lista para revisar: `youtubeLinks` saca los enlaces de un texto como venga (viñetas, nombres, notas, `?si=`, comas, invisibles), cada video una vez con lo demás de su línea; `POST /api/media/youtube/enlaces` dice lo que ya está por el identificador del video (aunque se haya renombrado) y `media.youtubeMany` pone en cola los elegidos (hasta 50), que bajan de uno en uno como siempre. Las tildes rotas del título: yt-dlp en Windows escribe en la codificación de la consola si no se le pide `--encoding utf-8`, y una letra partida entre dos trozos de la salida también se rompía (ahora se lee como texto UTF-8); el yt-dlp de mentira escribe como el de Windows y la prueba lo detecta. La lista para revisar es la misma de las citas: sus estilos pasaron a `app.css` (`review-*`). La revisión encontró, y se corrigió: el nombre tomado del mensaje dejaba comas sueltas y, en el celular pequeño (360 px), el campo del enlace quedaba bajo los botones de la esquina (ahí «Varios» no se muestra). Dos comprobaciones de Chrome con esperas fijas fallaron con el equipo muy cargado y pasaron a esperar la condición. Pruebas al cerrar: 197 automáticas, 600 comprobaciones en Chrome sin fallos y con todas las órdenes pulsadas, auditoría de 10 tamaños sin problemas, también al máximo (los tamaños que fallaron, repetidos tras el arreglo). **Sin probar**: el yt-dlp de verdad en Windows y descargas reales seguidas |
 | 29 Carpeta de contenido | **Hecha** · 2026-10-18 (decisión 48) | 1.34.0 | Ajustes → «Carpeta de contenido»: la ruta, qué tiene, «Abrir la carpeta» y «Cambiar…» (la ventana del sistema, en el equipo principal; si la elegida no lo parece pero tiene una `Contenido` dentro, se usa esa, y si no, se pregunta). **Sin reiniciar**: `app.setContent` avisa a Biblia, Himnario y Medios (`app.onContent`), que vigilan la carpeta nueva y vuelven a leer; lo que se sirve se resuelve en cada petición. Se le añade lo que falte sin tocar nada y se guarda en `carpetas.json` (`elegida`) o en `data/ajustes.json`. Aviso arriba si no se encuentra o si solo tiene la Reina-Valera 1909 y ningún himno. Con la fase sale también la lectura del texto de los PDF hechos de imágenes (decisión 49). Pruebas al cerrar: 201 automáticas (`test/contenido.test.js`, y la del texto de una imagen en `test/citas.test.js`), 606 comprobaciones en Chrome sin fallos y con todas las órdenes pulsadas (la carpeta con una ventana de mentira; un PDF de imágenes leído de verdad por el Mac), auditoría de 10 tamaños sin problemas, también al máximo. **Sin probar en Windows**: la ventana para elegir carpeta, «Abrir la carpeta» y la lectura del texto de las imágenes |
 | 30 Instalador de un solo archivo | **Hecha** · 2026-10-18 (decisión 48; `.exe` compilado en GitHub y `.pkg` en Mac, confirmados ese día) | 1.35.0 | Un instalador por sistema, de una sola fuente: en Windows, `instalacion/windows/instalar.ps1` (UTF-8 con BOM, con tildes, la consola con los pasos y una barra de avance), que lleva dentro `Instalar-Manna-Windows.exe` (un programa de C# mínimo, compilado con el `csc` de Windows en GitHub, con el icono de Manna) y que abre el `.bat` del programa para actualizar; en Mac, `Instalar Manna en Mac.command`, que lleva dentro `Instalar-Manna-Mac.pkg` (`pkgbuild` y `productbuild`, sin archivos: su `postinstall` lo ejecuta como la persona de la sesión) con una página de pasos y otra de lo que sigue. Los dos bajan el Node.js oficial (24, con su huella) a `Programa/node`, que usa el icono Manna. `ordenar.mjs` ya no deduce la carpeta Manna de la de contenido (la elegida en Ajustes puede estar en otro sitio) y conserva `elegida`. GitHub (`.github/workflows/instaladores.yml`) compila y prueba los dos en cada rama `fase-*` y, al publicar una versión, los adjunta. La prueba en GitHub encontró, y se corrigió: el PowerShell 5.1 heredaba las rutas de módulos del 7 y no encontraba `Get-FileHash` (ahora la huella y los `.zip` van con .NET, y el `.exe` y el `.bat` limpian esas rutas), y el `.pkg` preparaba el instalador en la carpeta temporal del administrador, donde la persona no puede entrar (ahora en `/tmp`). Pruebas al cerrar: 203 automáticas, 606 comprobaciones en Chrome sin fallos y con todas las órdenes pulsadas, auditoría de 10 tamaños sin problemas, y los dos instaladores en GitHub. **Sin probar**: el doble clic en el `.exe` en el Windows de la iglesia, el instalador de Apple de verdad y actualizar una instalación anterior |
+| 31 Capas y páginas transparentes | **Hecha** · 2026-10-24 (decisión 51) | 1.36.0 | Módulo nuevo `layers` (cajón «Capas» en Control completo): tres capas encima de lo que se proyecte, que no se apagan con «Negro» ni con «Solo fondo» y vuelven siempre al arrancar (`data/capas.json`). Hoy, páginas web que se dejan mostrar dentro de Manna, con el marco transparente (botón «Capa» de Páginas web o «Poner aquí»); el ojo las oculta sin recargarlas. Una página de internet solo se carga cuando su dirección contesta (si no, espera oculta y se vuelve a mirar sola cada 15 s) y recibe `{ manna: 'capa', visible }`. Solo las dibuja la pantalla de proyección; arriba, junto a «Al aire», la pastilla de capas. Con una capa a la vista, PowerPoint en vivo va como imágenes y sus mandos lo dicen. Pruebas al cerrar: 207 automáticas (4 nuevas en `test/capas.test.js`), 627 comprobaciones en Chrome sin fallos y con todas las órdenes pulsadas (una página de prueba transparente, `LAYER_PAGE`), auditoría de 10 tamaños sin problemas (con la pastilla arriba en todas las pantallas). **Sin probar**: en el equipo Windows del SENA y con la página real del concurso |
+| 32 Tiempo | **Aprobada** · 2026-10-24 (decisión 51); después de la 31 | 1.37 | |
+| 33 DeckCraft | **Parte 1 hecha** · 2026-10-24 (decisión 51): 93 de 149 diapositivas idénticas, 54 leves, 2 graves; ver la fase | 1.38 y 1.39 | |
+| 34 Capas en el orden y versículos en capa | **Aprobada para después de la 33** · 2026-10-24 (decisión 51) | | |
 | 15 Himnario corregido y Letras sin música | **Hecha** · 2026-10-16 | 1.17.0 | Categorías en dos niveles (sección y categoría, como el índice del himnario) y la pestaña «Letras sin música»: las diapositivas de cada himno, tipo `lyrics`, que se pasan a mano y tras la última vuelven a la portada del mismo himno. Con el himnario real corregido, en un servidor de prueba: 613 himnos, todos con letra y diapositivas, 46 categorías en 7 secciones, sin avisos. Cierra S7, S29, S30 y S31. Pruebas al cerrar: 160 automáticas, 444 en Chrome (8 nuevas del himnario), auditoría de 9 tamaños sin problemas (con la pestaña nueva). **Sin probar**: el himnario real en Chrome y en Windows, y las letras sin música en el proyector |
 | 14 Ajustes tras la prueba | **Hecha** · 2026-10-16 | 1.16.0 | Parte 1: YouTube con el Node de Manna como intérprete de JavaScript y el motivo de cada fallo en el registro; «Actualizar» ya no rompe el programa que funcionaba; «Escuchar aquí» con un solo reproductor y sincronización tolerante; «Escuchar» del Himnario siempre cantado; el Presentador ya no arrastra la diapositiva con el ratón y pierde el zoom viejo. Parte 2: mandos siempre a la vista en la barra de abajo, «Solo fondo» y «Negro» arriba, «Señalar» y «Mover» también en Control y Orden (`projection/gestures.js`), hoja de mandos del celular con márgenes, Presentador con la anterior y la siguiente debajo. Parte 3: categorías del Himnario más limpias, «Buscar en todo» con más aire, botón de la cola fijo y con forma según su estado, proyección de fondo que se desvanece en los bordes. Parte 4: sin desenfoque con un video al aire, y sin reproducir el video de fondo en los celulares salvo al escuchar. Parte 5: espacio en disco y «Limpiar multimedia temporales» (S24), tamaño de los subtítulos (S23), punto rojo encima del pase de PowerPoint (S39, revisado por Gemini). Pruebas al cerrar: 159 automáticas, 434 en Chrome, auditoría de 9 tamaños sin problemas. **Sin probar en Windows**: YouTube, el punto rojo en PowerPoint y el consumo en un equipo modesto; **ni en un celular real**: «Escuchar aquí» |
 | 12 PowerPoint en vivo | **Hecha** · 2026-10-15 | 1.14.0 | Antes, S37: la prueba en Chrome baja a menos de 3 min (YouTube y el himnario al grupo «red»). PowerPoint en vivo con el original guardado, «Pasar con PowerPoint» / «Pasar como imágenes», «Siguiente» y «Anterior» dados por PowerPoint (con las animaciones), seguimiento de lo que se pase en el equipo y vuelta a las imágenes si falla. Gemini revisó el guion de PowerShell y se aplicaron sus avisos (sección 10). Pruebas al cerrar: 157 automáticas, 427 en Chrome, auditoría de 9 tamaños sin problemas, todo con un PowerPoint de mentira. **El guion de verdad no se ha ejecutado: falta la prueba del dueño en Windows con PowerPoint y el proyector (S25)**. Sigue la fase 9 (auditoría) |
@@ -1208,6 +1439,10 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-18 | Fase 30: el instalador de Windows es un guion de PowerShell (`instalar.ps1`) que lleva dentro el `.exe` y que abre el `.bat` para actualizar; el de Mac es el `.command`, que lleva dentro el `.pkg` | Una sola fuente por sistema para instalar y para actualizar, probada en GitHub en las dos formas |
 | 2026-10-18 | Fase 30: la carpeta Manna se apunta en `carpetas.json` (`raiz`) y ya no se deduce de la de contenido | Desde la fase 29 el contenido puede estar en otro sitio; al actualizar, el programa y los datos se habrían ido al lado de la carpeta elegida |
 | 2026-10-18 | S47 aceptada (decisión 50): las pruebas automáticas corren también en un Windows de GitHub en cada versión, en el mismo flujo que los instaladores (`instaladores.yml`, trabajo `pruebas-windows`) | Medido: 47 s, en paralelo; los 4 fallos que dieron eran de las propias pruebas y se corrigieron antes |
+| 2026-10-24 | Se añaden las fases 31 (capas y páginas transparentes), 32 (tiempo), 33 (DeckCraft en vez de PowerPoint) y 34 (capas en el orden y versículos en capa) | Decisión 51; la 31 tiene fecha, por el concurso del Sábado Joven del 31 de octubre |
+| 2026-10-24 | Fase 31: con una capa a la vista, PowerPoint en vivo pasa como imágenes por su cuenta y sus mandos lo dicen («oculta la capa para pasarla con PowerPoint»), en vez de preguntar al proyectar | La presentación se proyecta desde muchos sitios (el orden, «Siguiente», el Presentador, un celular): una pregunta en cada uno sería más código y más interrupciones, y PowerPoint va a dejar paso a DeckCraft (fase 33) |
+| 2026-10-24 | Fase 31: el cajón «Capas» solo está en Control completo; las demás funciones que proyectan pueden usar las órdenes, pero no tienen el cajón | Lo que pidió el dueño es para quien maneja la proyección; se añade a otras funciones si se pide |
+| 2026-10-24 | Fase 31: la página de una capa no avisa que cargó (`capa-lista` descartado); el equipo principal comprueba que su dirección contesta antes de cargarla y lo reintenta solo cada 15 s | Observación del dueño: nadie debe tener que recargar nada, y la página del concurso no tiene que hacer nada especial |
 
 ## 11. Cambios sugeridos al plan
 

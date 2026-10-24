@@ -59,6 +59,8 @@ button.brand-mark:hover { background: var(--s3); }
 .brand-switch:hover { background: var(--s3); color: var(--ink); }
 html.touch :is(.brand-mark, .brand-switch) { width: var(--tap); height: var(--tap); }
 html.touch .brand { height: calc(var(--tap) + 4px); }
+.layers-chip { display: inline-flex; align-items: center; gap: 3px; flex: none; padding: 2px 7px; border-radius: var(--r-pill); background: var(--accent-soft); color: var(--accent); font: 600 11px/1 var(--mono); }
+.layers-chip[hidden] { display: none; }
 .scene-caption { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* «Solo fondo» y «Negro», junto a lo que está al aire. */
 /* «Solo fondo» (el texto tachado) y «Negro» (la pantalla con el cristal negro), como iconos junto a la marca (1.31). */

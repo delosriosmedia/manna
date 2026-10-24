@@ -215,7 +215,7 @@ fs.writeFileSync(fakeInstaller, `import fs from 'node:fs'; fs.writeFileSync(${JS
 function startServer(host, extra = {}) {
   // MANNA_SIN_VENTANA: la prueba no abre su proyección en el proyector de verdad, si lo hay.
   // MANNA_CONVERSION_LENTA: cada conversión tarda en empezar, para poder ver qué pasa mientras tanto.
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, MANNA_CARPETA_PRUEBA: path.join(tmp, 'otra-iglesia'), PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', MANNA_VERSIONES_URL: `http://127.0.0.1:${fakeGithub.address().port}/package.json`, MANNA_VERSIONES_MS: '500', MANNA_ACTUALIZADOR_PRUEBA: fakeInstaller, ...extra };
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, MANNA_CARPETA_PRUEBA: path.join(tmp, 'otra-iglesia'), PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', MANNA_CAPAS_REINTENTO_MS: '500', MANNA_VERSIONES_URL: `http://127.0.0.1:${fakeGithub.address().port}/package.json`, MANNA_VERSIONES_MS: '500', MANNA_ACTUALIZADOR_PRUEBA: fakeInstaller, ...extra };
   if (host) env.MANNA_HOST = host;
   // killOnExit: si la prueba se corta a medias, el servidor no se queda abierto ocupando el puerto.
   return killOnExit(spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env }));
@@ -283,6 +283,14 @@ function harvest() {
 }
 // Las órdenes que la prueba manda por su cuenta, sin pulsar nada, van marcadas: no cuentan como
 // "la interfaz lo usó" (ver el recuento del final).
+// La página de prueba de una capa (fase 31), como la del concurso: fondo transparente, un recuadro semitransparente y
+// una palabra que cambia sola cada segundo. Le cuenta a su pantalla cuándo se carga y qué le dice Manna de si se ve.
+const LAYER_PAGE = `<!doctype html><html style="background:transparent"><title>Capa de prueba</title>
+<body style="margin:0;background:transparent;color:#fff;font:700 140px system-ui">
+<div style="position:absolute;left:10%;top:10%;width:30%;height:30%;background:rgba(0,0,0,.5)"></div><div id="palabra"></div>
+<script>let n = 0; setInterval(() => { document.getElementById('palabra').textContent = 'Palabra ' + (++n); }, 1000);
+parent.postMessage({ capaCargada: true }, '*');
+addEventListener('message', (e) => { if (e.data && e.data.manna === 'capa') parent.postMessage({ capaVisible: e.data.visible }, '*'); });</script></body></html>`;
 const post = (type, payload = {}) => `fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json','X-Prueba':'1'},body:JSON.stringify(${JSON.stringify({ type, payload })})}).then(r=>r.status)`;
 const live = async () => JSON.parse(await run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ mode: s.projection.mode, ref: s.projection.item?.reference, kind: s.projection.item?.kind, order: s.order.items.map(i => i.title), size: s.projection.styles.fontSize, pattern: s.live.state?.pattern, clock: s.live.state?.clock })`));
 // "1:02.5" -> 62.5
@@ -1129,7 +1137,7 @@ try {
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await sleep(500);
   const dockNames = `[...document.querySelectorAll('.dockbar .dock-item')].map(b => b.querySelector('.dock-name').textContent).join('|')`;
-  check('en el celular, el dock va abajo con todos los módulos y su nombre, sin «Más» (Ajustes, en el logo de arriba)', await run(`const r = document.querySelector('.dockbar').getBoundingClientRect(); const logo = document.querySelector('.topbar .brand-mark[data-id=ajustes]').getBoundingClientRect(); return ${dockNames} === 'Orden|Biblia|Himnario|Medios|Textos|Páginas web' && logo.width >= 30 && logo.top >= 0 && logo.bottom <= innerHeight && getComputedStyle(document.querySelector('.dock-name')).display !== 'none' && r.bottom > innerHeight - 30 && r.top > innerHeight / 2 && !document.querySelector('.tabbar') && ![...document.querySelectorAll('.dockbar button')].some(b => b.textContent === 'Más') && document.querySelector('.dock-item.on').dataset.id === 'medios'`), await run(`return ${dockNames}`));
+  check('en el celular, el dock va abajo con todos los módulos y su nombre, sin «Más» (Ajustes, en el logo de arriba)', await run(`const r = document.querySelector('.dockbar').getBoundingClientRect(); const logo = document.querySelector('.topbar .brand-mark[data-id=ajustes]').getBoundingClientRect(); return ${dockNames} === 'Orden|Biblia|Himnario|Medios|Textos|Páginas web|Capas' && logo.width >= 30 && logo.top >= 0 && logo.bottom <= innerHeight && getComputedStyle(document.querySelector('.dock-name')).display !== 'none' && r.bottom > innerHeight - 30 && r.top > innerHeight / 2 && !document.querySelector('.tabbar') && ![...document.querySelectorAll('.dockbar button')].some(b => b.textContent === 'Más') && document.querySelector('.dock-item.on').dataset.id === 'medios'`), await run(`return ${dockNames}`));
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(400);
 
@@ -1997,6 +2005,28 @@ try {
     await deckMenu(madeCard, 'Pasar como imágenes');
     check('«Pasar como imágenes» la cierra en PowerPoint y los mandos dejan de decir que la pasa él', await until(`${LIVE}.querySelector('.slide-ppt').hidden`, 10) && pptSaid().at(-1) === 'cerrar' && (await decksNow()).find((d) => d.id === made.id)?.live === false
       && await run(`return !${madeCard}.querySelector('small').textContent.includes('en vivo')`), pptSaid().join(', '));
+
+    // Con una capa a la vista (fase 31), la ventana de PowerPoint la taparía: va como imágenes hasta que se oculte.
+    // La capa, por la API (sus botones los pulsa «Capas», más abajo): una página de este mismo Manna.
+    await run(`return await ${post('web.add', { url: `${local}/logo.svg`, name: 'Logo en una capa' })}`);
+    const logoPage = (await run(`return JSON.stringify((await (await fetch('/api/state')).json()).web.pages)`).then(JSON.parse)).find((p) => p.name === 'Logo en una capa');
+    await run(`return await ${post('layers.set', { n: 1, kind: 'web', data: { id: logoPage?.id } })}`);
+    await run(`return await ${post('slides.live', { id: made.id, on: true })}`);
+    await sleep(800);
+    const before = pptSaid().length;
+    await run(`return await ${post('projection.show', { kind: 'slides', data: { id: made.id }, step: 0 })}`);
+    await sleep(1000);
+    check('con una capa a la vista, un PowerPoint en vivo va como imágenes y los mandos lo dicen', pptSaid().length === before && (await onAir()).item.powerpoint === false && (await onAir()).item.covered === true
+      && await until(`[...${LIVE}.querySelectorAll('.slide-ppt')].some(p => !p.hidden && p.textContent.includes('Hay una capa a la vista'))`, 10), pptSaid().slice(before).join(', '));
+    await run(`return await ${post('layers.visible', { n: 1, visible: false })}`);
+    await sleep(1200);
+    check('al ocultar la capa, PowerPoint lo pasa en vivo', pptSaid().slice(before).includes('ir 1') && (await onAir()).item.powerpoint === true, pptSaid().slice(before).join(', '));
+    await run(`return await ${post('layers.visible', { n: 1, visible: true })}`);
+    await sleep(1200);
+    check('y al volver a mostrarla, PowerPoint se aparta', pptSaid().at(-1) === 'parar' && (await onAir()).item.powerpoint === false, pptSaid().slice(before).join(', '));
+    await run(`return await ${post('layers.clear', { n: 1 })}`);
+    await run(`return await ${post('web.remove', { id: logoPage?.id })}`);
+    await run(`return await ${post('slides.live', { id: made.id, on: false })}`);
     await run(`return await ${post('projection.show', { kind: 'slides', data: { id: deck.id }, step: 2 })}`);
     await sleep(500);
 
@@ -2182,7 +2212,7 @@ try {
     // (X-Frame-Options): nada sale a internet.
     const site = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', ...(req.url.startsWith('/no-se-deja') && { 'X-Frame-Options': 'DENY' }) });
-      res.end('<!doctype html><title>Sitio de prueba</title><body>Sitio de prueba</body>');
+      res.end(req.url.startsWith('/capa') ? LAYER_PAGE : '<!doctype html><title>Sitio de prueba</title><body>Sitio de prueba</body>');
     });
     await new Promise((resolve) => site.listen(0, '127.0.0.1', resolve));
     const open = `http://127.0.0.1:${site.address().port}/se-deja`;
@@ -2409,6 +2439,108 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
         await run(`await ${post('projection.show', { kind: 'web', data: { id: ids['Concurso bíblico'] } })}`);
         await chrome.send('Page.navigate', { url: `${local}/control?q=${Date.now()}#paginas` });
         await sleep(2500);
+      }
+
+      // ---- Capas (fase 31): una página transparente que queda encima de todo lo que se proyecte ----
+      console.log('\n1. Interfaz · Capas');
+      {
+        const capas = `document.querySelector('.ws[data-module=capas]')`;
+        const row = (n) => `${capas}.querySelector('.layer-row[data-n="${n}"]')`;
+        const layerOf = (n) => `${far}.querySelector('.stage-layer[data-n="${n}"]')`;
+        const layersNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).layers.slots)`).then(JSON.parse);
+        const said = async (key) => (await heard()).filter((m) => key in m).map((m) => m[key]);
+        const chip = `document.querySelector('.scene-status .layers-chip')`;
+        const layerUrl = `http://127.0.0.1:${site.address().port}/capa`;
+        await run(`return await ${post('web.add', { url: layerUrl, name: 'Palabra del concurso' })}`);
+        await goTo('paginas');
+        await sleep(500);
+        const layerBtn = `[...${ws}.querySelectorAll('.abar .btn')].find(b => b.textContent.trim() === 'Capa')`;
+        await pickPage('Concurso bíblico');
+        check('una página que va en su propia ventana no ofrece «Capa» (la taparía)', await run(`return ${layerBtn}.hidden`));
+        await pickPage('Palabra del concurso');
+        check('una que se deja mostrar ofrece «Capa», junto a «Proyectar»', await run(`return !${layerBtn}.hidden && ${layerBtn}.getClientRects().length > 0`));
+
+        // La pantalla de proyección, dentro de la prueba, escucha lo que le dice la página de la capa.
+        await run(`const f = document.createElement('iframe'); f.id = 'pantalla'; f.src = '/proyeccion'; f.style.cssText = 'position:fixed;left:0;bottom:0;width:640px;height:360px;z-index:99;border:0'; document.body.append(f);`);
+        await until(`${far}?.readyState === 'complete'`, 20);
+        await run(`const w = document.querySelector('#pantalla').contentWindow; w.__msgs = []; w.addEventListener('message', (e) => w.__msgs.push(e.data));`);
+
+        await click(layerBtn);
+        await sleep(300);
+        check('«Capa» ofrece las tres capas, vacías', await run(`const b = [...document.querySelectorAll('.menu button')]; return b.length === 3 && b.every((x, i) => x.textContent.includes('Capa ' + (i + 1)) && x.textContent.includes('vacía'))`));
+        await menuItem('Capa 2');
+        await sleep(600);
+        check('elegir «Capa 2» la pone en la capa 2 y lo dice', (await text('#toast')).includes('capa 2') && (await layersNow())[1].title === 'Palabra del concurso' && (await layersNow())[1].visible === true, await text('#toast'));
+        check('la proyección la carga en la capa 2, con el marco transparente y a la vista', await until(`${layerOf(2)}?.querySelector('iframe.web-frame')?.getAttribute('src') === ${JSON.stringify(layerUrl)}`, 20)
+          && await run(`const l = ${layerOf(2)}; const f = l.querySelector('iframe'); return getComputedStyle(f).backgroundColor === 'rgba(0, 0, 0, 0)' && getComputedStyle(l).visibility === 'visible' && getComputedStyle(f).pointerEvents === 'none' && !${layerOf(1)}.querySelector('iframe')`));
+        check('la página se carga una vez y Manna le dice que se ve', await until(`document.querySelector('#pantalla').contentWindow.__msgs.some(m => m.capaVisible === true)`, 15) && (await said('capaCargada')).length === 1);
+        check('arriba, junto a «Al aire», la pastilla de capas dice que hay 1 encendida', await until(`!${chip}.hidden && ${chip}.textContent.trim() === '1'`, 10) && await run(`return ${chip}.title.includes('Palabra del concurso')`));
+
+        // Lo que está al aire cambia por debajo; la capa sigue y no se recarga, también con «Negro» y «Solo fondo».
+        await run(`${layerOf(2)}.querySelector('iframe').dataset.marca = 'sigue'`);
+        await run(`return await ${post('projection.show', { kind: 'testcard', data: {} })}`);
+        await sleep(800);
+        await click(`document.querySelector('.scene-modes .mode-btn[aria-label="Negro"]')`);
+        await sleep(600);
+        check('con «Negro», la capa sigue a la vista encima', await run(`return ${far}.querySelector('.stage').dataset.mode === 'black' && getComputedStyle(${layerOf(2)}).visibility === 'visible'`));
+        await click(`document.querySelector('.scene-modes .mode-btn[aria-label="Solo fondo"]')`);
+        await sleep(600);
+        check('con «Solo fondo», también', await run(`return ${far}.querySelector('.stage').dataset.mode === 'clear' && getComputedStyle(${layerOf(2)}).visibility === 'visible'`));
+        await click(`document.querySelector('.scene-modes .mode-btn[aria-label="Solo fondo"]')`);
+        await sleep(400);
+        check('cambiar lo que está al aire y los modos no recarga la capa', await run(`return ${layerOf(2)}.querySelector('iframe').dataset.marca === 'sigue'`) && (await said('capaCargada')).length === 1);
+
+        // El cajón «Capas»: la 3 arriba, el ojo, recargar y quitar.
+        await goTo('capas');
+        await sleep(500);
+        check('«Capas» muestra las tres, la 3 arriba, con lo que tiene la 2 a la vista', await run(`const r = [...${capas}.querySelectorAll('.layer-row')]; return document.title === 'Manna · Capas' && r.map(x => x.dataset.n).join() === '3,2,1' && ${row(2)}.classList.contains('shown') && ${row(2)}.textContent.includes('Palabra del concurso') && ${row(2)}.textContent.includes('A la vista') && ${row(3)}.textContent.includes('Vacía')`));
+        await click(`${row(2)}.querySelector('.layer-eye')`);
+        await sleep(600);
+        check('el ojo la oculta: la capa se oculta sin quitarse, la página sabe que ya no se ve y la pastilla se va', (await layersNow())[1].visible === false && await run(`return getComputedStyle(${layerOf(2)}).visibility === 'hidden' && ${layerOf(2)}.querySelector('iframe').dataset.marca === 'sigue' && ${chip}.hidden`)
+          && (await said('capaVisible')).at(-1) === false);
+        await click(`${row(2)}.querySelector('.layer-eye')`);
+        await sleep(600);
+        check('y la vuelve a mostrar', (await layersNow())[1].visible === true && await run(`return getComputedStyle(${layerOf(2)}).visibility === 'visible'`) && (await said('capaVisible')).at(-1) === true);
+
+        await click(`${row(2)}.querySelector('.layer-row > .icon-btn.sm')`);
+        await sleep(300);
+        await menuItem('Recargar');
+        check('«Recargar» la vuelve a cargar desde el principio', await until(`document.querySelector('#pantalla').contentWindow.__msgs.filter(m => m.capaCargada).length === 2`, 20)
+          && await run(`return !${layerOf(2)}.querySelector('iframe').dataset.marca`));
+
+        // Sin respuesta de la dirección (como sin internet), la capa espera oculta y se carga sola cuando contesta.
+        const spare = http.createServer((req, res) => { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(LAYER_PAGE); });
+        await new Promise((resolve) => spare.listen(0, '127.0.0.1', resolve));
+        const sparePort = spare.address().port;
+        await run(`return await ${post('web.add', { url: `http://127.0.0.1:${sparePort}/capa`, name: 'Sin internet' })}`);
+        spare.closeAllConnections();
+        await new Promise((resolve) => spare.close(resolve));
+        await click(`${row(1)}.querySelector('.btn')`);
+        await sleep(300);
+        check('«Poner aquí» en la capa vacía ofrece lo que puede ir en una capa', await run(`const b = [...document.querySelectorAll('.menu button')].map(x => x.textContent); return b.some(t => t.includes('Sin internet')) && b.some(t => t.includes('Palabra del concurso')) && !b.some(t => t.includes('Concurso bíblico'))`));
+        await menuItem('Sin internet');
+        await sleep(1500);
+        check('si la dirección no contesta, la capa espera sin cargar nada y el cajón lo dice', (await layersNow())[0].ready === false && await run(`return !${layerOf(1)}.querySelector('iframe') && ${row(1)}.textContent.includes('Esperando')`));
+        const back = http.createServer((req, res) => { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(LAYER_PAGE); });
+        await new Promise((resolve) => back.listen(sparePort, '127.0.0.1', resolve));
+        try {
+          check('cuando vuelve a contestar, se carga sola, sin recargar nada', await until(`${layerOf(1)}?.querySelector('iframe.web-frame')`, 25) && await until(`${row(1)}.textContent.includes('A la vista')`, 10));
+        } finally {
+          back.closeAllConnections();
+          back.close();
+        }
+
+        // «Quitar» las vacía; la proyección ya no las tiene.
+        for (const n of [1, 2]) {
+          await click(`${row(n)}.querySelector('.layer-row > .icon-btn.sm')`);
+          await sleep(300);
+          await menuItem('Quitar');
+          await sleep(600);
+        }
+        check('«Quitar» vacía las capas y la proyección deja de mostrarlas', (await layersNow()).every((sl) => !sl.kind) && await run(`return !${far}.querySelector('.stage-layer iframe') && ${chip}.hidden && ${capas}.querySelectorAll('.empty-layer').length === 3`));
+        await run(`document.querySelector('#pantalla').remove()`);
+        await run(`return await ${post('web.remove', { id: (await pagesNow()).find((p) => p.name === 'Sin internet').id })}`);
+        await run(`return await ${post('web.remove', { id: (await pagesNow()).find((p) => p.name === 'Palabra del concurso').id })}`);
       }
 
       // Nombre y eliminación.

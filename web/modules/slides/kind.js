@@ -25,7 +25,8 @@ registerKind('slides', {
     // Si la pasa PowerPoint, se dice debajo.
     const framing = h('div', { class: 'live-part slide-framing' });
     const ppt = h('p', { class: 'slide-ppt muted sec' }, 'La pasa PowerPoint en el proyector, con sus videos y animaciones: «Siguiente» avanza también las animaciones, y «Señalar» se ve encima. Al acercarla, PowerPoint se aparta hasta volver a la vista completa.');
-    host.replaceChildren(info, framing, ppt);
+    const covered = h('p', { class: 'slide-ppt muted sec' }, 'Hay una capa a la vista: PowerPoint la taparía, así que va como imágenes. Para pasarla con PowerPoint, oculta la capa en «Capas».');
+    host.replaceChildren(info, framing, ppt, covered);
     const view = pictureControls(framing, tools, { fits: false });
 
     return {
@@ -42,6 +43,7 @@ registerKind('slides', {
           label.textContent = 'Fin de la presentación';
         }
         ppt.hidden = !item.powerpoint;
+        covered.hidden = !item.covered;
         view.update(state, item);
       },
       destroy: () => view.destroy(),
