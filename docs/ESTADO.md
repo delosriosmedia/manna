@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Última actualización: 2026-10-25 · Versión: 1.41.0
+Última actualización: 2026-10-25 · Versión: 1.42.0
 
 Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver `.claude/rules/documentacion.md`). El historial está en `CHANGELOG.md`.
 
@@ -194,6 +194,7 @@ Desde el 2026-10-25 (decisión 60), lo que esta tabla da por «sin probar» en e
 - **Prueba automática que falló una vez**: «lo que el navegador ya tiene no se vuelve a enviar, y un archivo cambiado sí» falló una vez el 2026-10-14 y pasó en las dos siguientes. Probablemente el archivo cambia dentro del mismo milisegundo y su huella (tamaño y fecha) no cambia. Sin investigar.
 - **Un archivo borrado justo mientras Manna lo está mirando** (menos de un segundo tras descargarlo de YouTube o reintentarlo) puede dejar un aviso de conversión fallida en la cola del culto. Se quita con su aspa.
 - **Citas de un documento sin medir con sermones nuevos** (fase 27, parte 1): el 2026-10-18 el dueño dijo haber copiado sermones nuevos, pero en «Bosquejos temporales» seguían los mismos once documentos con los que se calibró. Hace falta pasar por el detector 3 o 4 que no haya visto y revisarlos cita por cita; lo que falle se corrige y pasa a prueba con una frase inventada. Tampoco se ha probado un PDF a dos columnas (puede mezclar las líneas), y una cita escrita en palabras («Juan tres dieciséis») no se reconoce. La primera búsqueda carga todas las biblias en memoria: unos 106 MB con 14 versiones (sin medir en el equipo de la iglesia). **En pausa** (decisión 60): hasta hoy funciona bien; si un documento da problemas, el dueño trae esos casos.
+- **Prueba automática que falló una vez en este Mac**: «avisa solo de una versión más nueva… y «Actualizar ahora» abre el instalador desde el equipo principal» (`test/versiones.test.js`) falló el 2026-10-25 en la tanda completa de `npm test` (el instalador de mentira apuntó como carpeta la del proyecto en vez de la temporal) y pasó sola tres veces y en la tanda siguiente. Sin causa encontrada; si se repite, revisar cómo se lanza el instalador de mentira con las demás pruebas a la vez.
 - **Prueba automática que falló dos veces en el Windows de GitHub** (1.37.0 y 1.39.0; al repetirla, pasó): «PowerPoint en vivo: … si alguien la pasa en el equipo, los demás lo ven» (`test/diapositivas.test.js`). Causa probable: el PowerPoint de mentira podía leer vacío, mientras se escribía, el archivo con el que la prueba simula que alguien pasa la diapositiva, y lo tomaba como la 0. Corregido el 2026-10-25 (sin publicar): si lo lee vacío, espera a la siguiente vuelta. Si vuelve a fallar, la causa es otra.
 - **Cancelar la conversión de un PowerPoint en Windows** corta el guion de PowerShell y puede dejar PowerPoint abierto sin ventana. Sin probar (no hay Windows en el equipo de desarrollo).
 
