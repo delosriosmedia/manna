@@ -203,7 +203,7 @@ test('un PDF llega ya convertido en imágenes, página a página, y se proyecta 
 
 test('un PowerPoint lo convierte el PowerPoint del equipo principal, como tarea con avance', async () => {
   const fake = writeFakePowerPoint(path.join(tmp, 'falso'), { slides: 3, pause: 40 });
-  const s = await start('powerpoint', { MANNA_POWERPOINT_PRUEBA: fake });
+  const s = await start('powerpoint', { MANNA_POWERPOINT_PRUEBA: fake, MANNA_FALTA: 'deckcraft' });
   try {
     assert.equal(s.app.tools.has('powerpoint'), true);
     assert.equal((await s.put('/api/slides/powerpoint?name=x&ext=.key', fakePresentation())).http, 415, 'solo PowerPoint');
@@ -239,7 +239,7 @@ test('un PowerPoint lo convierte el PowerPoint del equipo principal, como tarea 
 test('PowerPoint en vivo: la pasa el propio PowerPoint, que da los pasos (también las animaciones), y Manna lo sigue', async () => {
   const dir = path.join(tmp, 'falso-vivo');
   const fake = writeFakePowerPoint(dir, { slides: 3, pause: 0 });
-  const s = await start('vivo', { MANNA_POWERPOINT_PRUEBA: fake });
+  const s = await start('vivo', { MANNA_POWERPOINT_PRUEBA: fake, MANNA_FALTA: 'deckcraft' });
   process.env.MANNA_POWERPOINT_PRUEBA = fake;
   // Lo que recibió PowerPoint, en orden; el de mentira tiene una animación en la diapositiva 2.
   const log = path.join(dir, 'pase.jsonl');
@@ -322,7 +322,7 @@ test('PowerPoint en vivo: la pasa el propio PowerPoint, que da los pasos (tambi�
 });
 
 test('sin PowerPoint en el equipo, una presentación se rechaza diciendo que se suba el PDF', async () => {
-  const s = await start('sin-powerpoint', { MANNA_FALTA: 'powerpoint' });
+  const s = await start('sin-powerpoint', { MANNA_FALTA: 'powerpoint,deckcraft' });
   try {
     assert.equal(s.app.tools.has('powerpoint'), false);
     const res = await s.put('/api/slides/powerpoint?name=x&ext=.pptx', fakePresentation());

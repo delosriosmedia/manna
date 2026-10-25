@@ -29,6 +29,24 @@ jobs:
         timeout-minutes: 3
         with:
           node-version: 24
+      # La conversión de PowerPoint con DeckCraft (fase 33) se prueba con el de verdad: la versión fija de core/tools.js,
+      # de su página oficial y con su huella. Las presentaciones las fabrica la prueba (scripts/lib/pptx.mjs).
+      - name: DeckCraft de verdad, para la prueba de convertir
+        timeout-minutes: 4
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path server/core/tools.js -Pattern "DECKCRAFT_VERSION = '([^']+)'").Matches[0].Groups[1].Value
+          $base = "https://github.com/storytold/deckcraft/releases/download/v$v"
+          $zip = "deckcraft-$v-windows-x64-portable.zip"
+          Invoke-WebRequest "$base/$zip" -OutFile "$env:RUNNER_TEMP\dc.zip"
+          Invoke-WebRequest "$base/SHA256SUMS.txt" -OutFile "$env:RUNNER_TEMP\dc-sums.txt"
+          $want = ((Get-Content "$env:RUNNER_TEMP\dc-sums.txt" | Where-Object { $_ -like "*  $zip" }) -split '\s+')[0]
+          $have = (Get-FileHash "$env:RUNNER_TEMP\dc.zip" -Algorithm SHA256).Hash.ToLower()
+          if (-not $want -or $want -ne $have) { throw "La huella de DeckCraft no cuadra ($want / $have)" }
+          Expand-Archive "$env:RUNNER_TEMP\dc.zip" -DestinationPath "$env:RUNNER_TEMP\dc"
+          $cli = Get-ChildItem "$env:RUNNER_TEMP\dc" -Recurse -Filter deckcraft-cli.exe | Select-Object -First 1
+          & $cli.FullName --version
+          "MANNA_DECKCRAFT_PRUEBA=$($cli.FullName)" >> $env:GITHUB_ENV
       - name: Pruebas automáticas (npm test)
         timeout-minutes: 10
         run: npm test

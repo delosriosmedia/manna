@@ -4,7 +4,7 @@ import { openPdf } from './pdf.js';
 import { nameFromFile } from '../../core/names.js';
 
 // Subir una presentación. Un PDF lo convierte este navegador en imágenes y las envía una a una;
-// un PowerPoint se envía entero y lo convierte el PowerPoint del equipo principal.
+// un PowerPoint se envía entero y lo convierte el equipo principal: DeckCraft si está, si no su PowerPoint (fase 33).
 
 export const PRESENTATION_TYPES = ['.pptx', '.ppsx', '.pptm', '.ppsm', '.ppt', '.pps'];
 export const DECK_ACCEPT = ['.pdf', 'application/pdf', ...PRESENTATION_TYPES].join(',');
@@ -13,7 +13,10 @@ export const isPdf = (file) => file.type === 'application/pdf' || extensionOf(fi
 export const isPresentation = (file) => PRESENTATION_TYPES.includes(extensionOf(file.name));
 export const acceptsDeck = (file) => isPdf(file) || isPresentation(file);
 // "Informe_tesoreria-3T (final).pdf" -> "Informe tesoreria 3T (final)"
-export const hasPowerPoint = () => Boolean((state.tools?.list || []).find((t) => t.id === 'powerpoint')?.found);
+const found = (id) => Boolean((state.tools?.list || []).find((t) => t.id === id)?.found);
+export const hasPowerPoint = () => found('powerpoint');
+// Quién convertirá un PowerPoint en el equipo principal: 'DeckCraft', 'PowerPoint' o null.
+export const converter = () => (found('deckcraft') ? 'DeckCraft' : found('powerpoint') ? 'PowerPoint' : null);
 
 const LOST = 'Las animaciones, las transiciones y los videos incrustados no se conservan: cada diapositiva queda como una imagen.';
 const AS_PDF = 'Ábrela en el programa donde se hizo y guárdala como PDF: en PowerPoint, Archivo → Exportar (o Guardar como) → PDF. En Presentaciones de Google, Archivo → Descargar → PDF. En Keynote, Archivo → Exportar a → PDF.';
@@ -28,9 +31,9 @@ export function openDeckUpload(file, { onDone = () => {} } = {}) {
     return;
   }
   const pdf = isPdf(file);
-  if (!pdf && !hasPowerPoint()) {
+  if (!pdf && !converter()) {
     const box = dialog('Hace falta el PDF de la presentación',
-      h('p', {}, 'El equipo principal no tiene PowerPoint, así que Manna no puede abrir esta presentación.'), h('p', { class: 'muted' }, AS_PDF),
+      h('p', {}, 'El equipo principal no tiene con qué abrir esta presentación. Puedes instalar DeckCraft (gratis, sin PowerPoint) desde la revisión del equipo: Ajustes → Revisar el equipo.'), h('p', { class: 'muted' }, AS_PDF),
       h('p', { class: 'muted' }, 'Luego sube aquí el PDF.'),
       h('div', { class: 'row', style: 'justify-content: flex-end; margin-top: 14px;' }, h('button', { class: 'btn primary', onclick: () => box.close() }, 'Entendido')));
     return;
@@ -39,7 +42,7 @@ export function openDeckUpload(file, { onDone = () => {} } = {}) {
   const name = h('input', { class: 'input', value: nameFromFile(file.name, 'Presentación'), maxLength: 80, 'aria-label': 'Nombre de la presentación' });
   const fill = h('span', { style: 'width: 0%;' });
   const bar = h('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': 0 }, fill);
-  const status = h('small', { class: 'deck-up-status' }, pdf ? 'Leyendo el PDF…' : 'La convertirá el PowerPoint del equipo principal. Puede tardar un momento.');
+  const status = h('small', { class: 'deck-up-status' }, pdf ? 'Leyendo el PDF…' : `La convertirá ${converter() === 'DeckCraft' ? 'DeckCraft' : 'el PowerPoint'} del equipo principal. Puede tardar un momento.`);
   const send = h('button', { class: 'btn primary', disabled: pdf }, 'Subir');
   const cancel = h('button', { class: 'btn' }, 'Cancelar');
   const box = dialog('Subir una presentación',

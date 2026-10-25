@@ -119,7 +119,8 @@ export default {
   needs: [
     { tools: ['ffmpeg'], parts: ['videos', 'audios'], feature: 'convertir los videos y audios que el navegador no reproduce (los MP4 y MP3 habituales sí funcionan)' },
     { tools: ['yt-dlp', 'ffmpeg', 'node'], parts: ['videos'], feature: 'descargar videos de YouTube' },
-    // Opcional: sin él se suben los PDF, y Medios lo explica al elegir un PowerPoint.
-    { tools: ['powerpoint'], parts: ['diapositivas'], feature: 'abrir presentaciones de PowerPoint (los PDF sí funcionan)' },
+    // Opcional: sin él convierte el PowerPoint del equipo, si está; si no, se suben los PDF, y Medios lo explica al elegir
+    // un PowerPoint.
+    { tools: ['deckcraft'], parts: ['diapositivas'], feature: 'abrir presentaciones de PowerPoint sin PowerPoint (los PDF sí funcionan)' },
   ],
 };

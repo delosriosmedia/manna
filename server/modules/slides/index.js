@@ -59,11 +59,11 @@ export default function setup(app) {
   }
 
   const pageUrl = (deck, n) => `/media/${FOLDER}/${deck.id}/${n}.${deck.ext}`;
-  const thumbUrl = (deck, n) => (deck.thumbs ? `/media/${FOLDER}/${deck.id}/m${n}.jpg` : pageUrl(deck, n));
+  const thumbUrl = (deck, n) => (deck.thumbs ? `/media/${FOLDER}/${deck.id}/m${n}.${deck.thumbExt || 'jpg'}` : pageUrl(deck, n));
   // La interfaz arma la dirección de cada diapositiva con `base`, `ext` y `thumbs`: no se publica la lista.
   const view = (deck) => ({
     id: deck.id, name: deck.name, source: deck.source, pages: deck.pages, width: deck.width || 0, height: deck.height || 0, added: deck.added,
-    status: deck.status, error: deck.error || null, base: `/media/${FOLDER}/${deck.id}/`, ext: deck.ext || 'jpg', thumbs: Boolean(deck.thumbs),
+    status: deck.status, error: deck.error || null, base: `/media/${FOLDER}/${deck.id}/`, ext: deck.ext || 'jpg', thumbs: Boolean(deck.thumbs), thumbExt: deck.thumbExt || 'jpg',
     // Tras un fallo de PowerPoint va como imágenes, y el menú ofrece volver a intentarlo.
     live: Boolean(deck.live) && !failed.has(deck.id), liveable: liveable(deck),
   });
@@ -311,7 +311,7 @@ export default function setup(app) {
     ctx.require('slides.edit');
     const ext = String(ctx.query.get('ext') || '').toLowerCase();
     if (!PRESENTATION_EXTENSIONS.includes(ext)) throw new HttpError(415, 'Manna admite presentaciones de PowerPoint (.pptx, .ppt, .ppsx) y PDF.');
-    if (!app.tools.has('powerpoint')) throw new HttpError(409, 'Este equipo no tiene PowerPoint para convertir la presentación. Guárdala como PDF (Archivo → Exportar) y sube el PDF.');
+    if (!app.tools.has('deckcraft') && !app.tools.has('powerpoint')) throw new HttpError(409, 'Este equipo no tiene con qué convertir la presentación: instala DeckCraft desde la revisión del equipo, o guárdala como PDF (en PowerPoint, Archivo → Exportar) y sube el PDF.');
     const id = crypto.randomBytes(6).toString('hex');
     fs.mkdirSync(app.tmpDir, { recursive: true });
     const input = path.join(app.tmpDir, `presentacion-${id}${ext}`);
@@ -362,16 +362,19 @@ export default function setup(app) {
     if (pages.length > MAX_PAGES) throw new HttpError(413, `Esa presentación tiene ${pages.length} diapositivas; Manna admite hasta ${MAX_PAGES}.`);
     const first = readImageInfo(pages[0].file);
     const ext = EXT[first?.type];
-    if (!ext) throw new HttpError(415, 'PowerPoint entregó algo que no son imágenes.');
+    if (!ext) throw new HttpError(415, 'La conversión entregó algo que no son imágenes.');
     fs.mkdirSync(dirOf(deck), { recursive: true });
-    let thumbs = true;
+    // Las miniaturas, en JPEG (PowerPoint) o en PNG (DeckCraft), todas del mismo tipo; si no, se usa la diapositiva.
+    const thumbType = pages[0].thumb ? readImageInfo(pages[0].thumb)?.type : null;
+    const thumbExt = thumbType === 'jpeg' || thumbType === 'png' ? EXT[thumbType] : null;
+    let thumbs = Boolean(thumbExt);
     pages.forEach((page, i) => {
-      if (readImageInfo(page.file)?.type !== first.type) throw new HttpError(415, 'PowerPoint entregó imágenes de tipos distintos.');
+      if (readImageInfo(page.file)?.type !== first.type) throw new HttpError(415, 'La conversión entregó imágenes de tipos distintos.');
       fs.renameSync(page.file, path.join(dirOf(deck), `${i + 1}.${ext}`));
-      if (page.thumb && readImageInfo(page.thumb)?.type === 'jpeg') fs.renameSync(page.thumb, path.join(dirOf(deck), `m${i + 1}.jpg`));
+      if (thumbs && page.thumb && readImageInfo(page.thumb)?.type === thumbType) fs.renameSync(page.thumb, path.join(dirOf(deck), `m${i + 1}.${thumbExt}`));
       else thumbs = false;
     });
-    Object.assign(deck, { pages: pages.length, ext, thumbs, width: first.width, height: first.height, status: 'ready', error: null, added: Date.now() });
+    Object.assign(deck, { pages: pages.length, ext, thumbs, thumbExt: thumbs ? thumbExt : 'jpg', width: first.width, height: first.height, status: 'ready', error: null, added: Date.now() });
   }
 
   // ---- Órdenes ----

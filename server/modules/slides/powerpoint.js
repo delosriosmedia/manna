@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { readImageInfo } from '../../core/images.js';
+import { convertWithDeckCraft } from './deckcraft.js';
 
 // PowerPoint convierte una presentación en imágenes, una por diapositiva. Manna no abre el
 // archivo por su cuenta: se lo pide al PowerPoint del equipo principal, que es quien mejor lo
@@ -506,11 +507,40 @@ export function createExporter(app, { platform = process.platform } = {}) {
     });
   }
 
+  // Cómo termina una conversión, la haga quien la haga: las imágenes a la presentación, o el motivo del fallo.
+  function finish(current, pages, err, who, explained) {
+    const { task, job } = current;
+    const ok = pages.length > 0 && !current.cancelled && !closed;
+    running = null;
+    if (ok) job.done('Listo');
+    else if (current.cancelled || closed) job.done('Cancelado');
+    else {
+      // El motivo tal cual, al registro: lo que se le dice a la persona no lo lleva.
+      console.error(`${who} no pudo convertir «${task.name}»: ${String(err).trim()}`);
+      job.fail(explained);
+    }
+    task.onDone({ ok, pages, cancelled: current.cancelled || closed, error: ok ? null : explained });
+    next();
+  }
+
   async function next() {
     if (running || closed || !queue.length) return;
     running = queue.shift();
     const current = running;
     const { task, job } = current;
+    // Con DeckCraft instalado, convierte él (fase 33): sin ventanas ni permisos, igual en Windows y en Mac.
+    if (app.tools.has('deckcraft')) {
+      job.update({ detail: 'Convirtiendo con DeckCraft' });
+      fs.mkdirSync(task.dir, { recursive: true });
+      const done = await convertWithDeckCraft(app, {
+        input: task.input, dir: task.dir, sides: { slide: SLIDE_SIDE, thumb: THUMB_SIDE },
+        onProgress: (n, total) => job.update({ progress: Math.min(0.99, n / total) }),
+        onChild: (child) => { current.child = child; },
+      });
+      const pages = done.ok ? done.pages.filter((page) => readImageInfo(page.file)) : [];
+      finish(current, pages, done.err, 'DeckCraft', /ocultas/.test(done.err) ? done.err : 'DeckCraft no pudo convertir esta presentación. Guárdala como PDF (en PowerPoint, Archivo → Exportar) y sube el PDF.');
+      return;
+    }
     const mac = platform === 'darwin' && !fake;
     job.update({ detail: mac ? 'Abriendo PowerPoint (si pide acceso a una carpeta, pulsa «Seleccionar…» y «Conceder acceso»)' : 'Abriendo PowerPoint' });
     fs.mkdirSync(task.dir, { recursive: true });
@@ -544,17 +574,7 @@ export function createExporter(app, { platform = process.platform } = {}) {
     }
 
     const pages = result.code === 0 ? collect(task.dir).filter((page) => readImageInfo(page.file)) : [];
-    const ok = pages.length > 0 && !current.cancelled && !closed;
-    running = null;
-    if (ok) job.done('Listo');
-    else if (current.cancelled || closed) job.done('Cancelado');
-    else {
-      // El motivo tal cual, al registro: lo que se le dice a la persona no lo lleva.
-      console.error(`PowerPoint no pudo convertir «${task.name}»: ${String(result.err).trim()}`);
-      job.fail(explain(result.err, platform));
-    }
-    task.onDone({ ok, pages, cancelled: current.cancelled || closed, error: ok ? null : explain(result.err, platform) });
-    next();
+    finish(current, pages, result.err, 'PowerPoint', explain(result.err, platform));
   }
 
   // Quita los avisos que dejaron las conversiones de esa presentación que ya terminaron.

@@ -54,7 +54,8 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 | ffmpeg | Convertir videos y audios, unir imagen y sonido de YouTube, sacar la pista instrumental de los himnos | Manna se abre; las funciones que lo usan no estarán disponibles |
 | yt-dlp | Descargar videos de YouTube | Igual |
 | Node.js para YouTube | Lo pide YouTube para dejar descargar: el mismo Node.js de Manna, si es de la 22 o más nuevo; si no, Manna instala uno propio (Windows) y lo pone al día solo | Igual |
-| Microsoft PowerPoint (opcional) | Convertir las presentaciones de PowerPoint en diapositivas y, en Windows, pasarlas en vivo | Se sube el PDF de la presentación, que no necesita ningún programa |
+| DeckCraft (opcional) | Convertir las presentaciones de PowerPoint en diapositivas sin PowerPoint (programa libre; Manna lo instala) | Las convierte PowerPoint, si está; si no, se sube el PDF |
+| Microsoft PowerPoint (opcional) | Convertir las presentaciones de PowerPoint cuando no está DeckCraft y, en Windows, pasarlas en vivo | Se sube el PDF de la presentación, que no necesita ningún programa |
 | cloudflared (opcional) | La conexión por internet (Ajustes) | Manna funciona igual en la red de la iglesia; la conexión por internet avisa de que falta |
 
 Manna corre con Node.js 18 o superior; el que instala el instalador (24) sirve también para YouTube. Si Manna corre con uno anterior al 22, la revisión del equipo ofrece instalar «Node.js para YouTube» (el oficial, solo para eso). Los guiones de pruebas en Chrome también necesitan Node.js 22.
@@ -232,8 +233,8 @@ La pista instrumental necesita ffmpeg en el equipo principal: los videos traen d
 1. En **Medios**, pulsa **Subir** y elige un **PDF** o un **PowerPoint** (también puedes arrastrarlo hasta la pantalla).
 2. Ponle el nombre con el que quieres verla en el orden del culto y pulsa **Subir**.
    - Un **PDF** lo convierte el propio navegador, página a página, con el avance a la vista. Se puede hacer desde un celular.
-   - Un **PowerPoint** lo convierte el PowerPoint del equipo principal, de fondo; mientras tanto puedes seguir usando Manna. En Windows no se ve ninguna ventana. En Mac, PowerPoint se abre un momento. La primera vez hay que aceptar dos avisos: el de macOS, que pregunta si Manna puede controlar PowerPoint, y el de PowerPoint, que pide acceso a una carpeta de Manna («Seleccionar…» y luego «Conceder acceso»). No vuelven a salir.
-   - Si el equipo principal **no tiene PowerPoint**, guarda la presentación como PDF donde la hiciste (en PowerPoint: Archivo → Exportar → PDF; en Presentaciones de Google: Archivo → Descargar → PDF; en Keynote: Archivo → Exportar a → PDF) y sube el PDF.
+   - Un **PowerPoint** lo convierte, de fondo, **DeckCraft** si está instalado: un programa libre que no abre ninguna ventana ni pide permisos, igual en Windows y en Mac, y que salta las diapositivas ocultas (se instala desde la revisión del equipo, unos 70 MB). Si no está, lo convierte el PowerPoint del equipo principal; mientras tanto puedes seguir usando Manna. En Windows no se ve ninguna ventana. En Mac, PowerPoint se abre un momento. La primera vez hay que aceptar dos avisos: el de macOS, que pregunta si Manna puede controlar PowerPoint, y el de PowerPoint, que pide acceso a una carpeta de Manna («Seleccionar…» y luego «Conceder acceso»). No vuelven a salir.
+   - Si el equipo principal **no tiene ni DeckCraft ni PowerPoint**, instala DeckCraft o guarda la presentación como PDF donde la hiciste (en PowerPoint: Archivo → Exportar → PDF; en Presentaciones de Google: Archivo → Descargar → PDF; en Keynote: Archivo → Exportar a → PDF) y sube el PDF.
 3. Elige la presentación (en el grupo **Presentaciones**): aparecen sus diapositivas, y **Presentaciones** vuelve a la lista. Toca aquella por la que quieres empezar y pulsa **Proyectar** (o doble clic), o **Añadir al orden** para dejarla preparada.
 4. Con una diapositiva al aire, **Siguiente** y **Anterior** (o ← →) las recorren. La barra de abajo dice por cuál vas, cuántas quedan y muestra la que sigue; debajo, el recuadro para acercar y desplazar, como en una imagen.
 
@@ -344,7 +345,8 @@ server/
     hymns/              el himnario: videos, letras y diapositivas de la carpeta de la iglesia, búsqueda por
                         número, título y letra, la pista instrumental y las letras sin música
     slides/             presentaciones convertidas en diapositivas (en la web, su grupo de Medios, panel.js, y el Presentador): recibir las páginas de un PDF, pedirle
-                        a PowerPoint que exporte las de una presentación o que la pase en vivo (powerpoint.js) y proyectarlas
+                        a DeckCraft (deckcraft.js) o a PowerPoint que dibuje las de una presentación, a PowerPoint que la pase
+                        en vivo (powerpoint.js), y proyectarlas
     texts/              textos y citas para proyectar: guardarlos, partirlos en pantallas (text.js)
     time/               la hora, cronómetros y temporizadores: guardarlos, sus relojes y cómo se ven (clock.js)
     layers/             las tres capas encima de la proyección: guardarlas y ver si su página contesta
@@ -392,7 +394,7 @@ El procedimiento completo está en `.claude/skills/nuevo-modulo/SKILL.md`. En re
 3. **Interfaz**: `web/modules/<id>/workspace.js` y una línea en `web/modules/registry.js`. Aparece en el dock de módulos. Cómo se dibuja su tipo de contenido y sus mandos van en `web/modules/<id>/kind.js`.
 4. **Aspecto**: siguiendo `DESIGN.md`.
 
-El código no tiene dependencias: no hace falta `npm install`. Los programas externos del equipo principal (ffmpeg, yt-dlp, cloudflared, PowerPoint) se detectan en `server/core/tools.js` y se usan solo desde ahí o, PowerPoint, desde `server/modules/slides/powerpoint.js`. Lo de terceros que va dentro del proyecto (`web/vendor/`) se renueva con `scripts/actualizar-iconos.mjs` y `scripts/actualizar-pdfjs.mjs`.
+El código no tiene dependencias: no hace falta `npm install`. Los programas externos del equipo principal (ffmpeg, yt-dlp, cloudflared, DeckCraft, PowerPoint) se detectan en `server/core/tools.js` y se usan solo desde ahí o, PowerPoint, desde `server/modules/slides/powerpoint.js`. Lo de terceros que va dentro del proyecto (`web/vendor/`) se renueva con `scripts/actualizar-iconos.mjs` y `scripts/actualizar-pdfjs.mjs`.
 
 ### Para continuar el desarrollo
 

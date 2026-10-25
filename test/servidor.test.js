@@ -334,7 +334,7 @@ test('cambiar el PIN cierra las demás sesiones, también las abiertas sin PIN',
 test('la revisión del equipo lista los programas y dice con qué página abrir', async () => {
   const { tools } = await main.state();
   assert.equal(tools.checked, true);
-  assert.deepEqual(tools.list.map((t) => t.id), ['navegador', 'ffmpeg', 'yt-dlp', 'node', 'cloudflared', 'powerpoint']);
+  assert.deepEqual(tools.list.map((t) => t.id), ['navegador', 'ffmpeg', 'yt-dlp', 'node', 'cloudflared', 'deckcraft', 'powerpoint']);
   // Con el Node.js de las pruebas (22 o más nuevo) no hace falta otro para YouTube.
   assert.equal(tools.list.find((t) => t.id === 'node').found, true);
   assert.equal(tools.pending, tools.list.filter((t) => t.level === 'feature' && !t.found).length);

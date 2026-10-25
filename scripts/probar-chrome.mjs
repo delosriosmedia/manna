@@ -47,6 +47,8 @@ import { writeFakeCloudflared } from './lib/cloudflared-falso.mjs';
 import { fakePresentation, writeFakePowerPoint } from './lib/powerpoint-falso.mjs';
 import { makeImagePdf, makePdf } from './lib/pdf.mjs';
 import { makeDocx } from './lib/docx.mjs';
+import { makePptx } from './lib/pptx.mjs';
+import { writeFakeDeckCraft } from './lib/deckcraft-falso.mjs';
 import { HYMN_FACTS, hymnTitle, seedHymnal } from './lib/himnario-falso.mjs';
 import { examplePoster } from './lib/png.mjs';
 import { checkContract, sourceFiles } from './lib/codigo.mjs';
@@ -215,7 +217,7 @@ fs.writeFileSync(fakeInstaller, `import fs from 'node:fs'; fs.writeFileSync(${JS
 function startServer(host, extra = {}) {
   // MANNA_SIN_VENTANA: la prueba no abre su proyección en el proyector de verdad, si lo hay.
   // MANNA_CONVERSION_LENTA: cada conversión tarda en empezar, para poder ver qué pasa mientras tanto.
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, MANNA_CARPETA_PRUEBA: path.join(tmp, 'otra-iglesia'), PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', MANNA_CAPAS_REINTENTO_MS: '500', MANNA_VERSIONES_URL: `http://127.0.0.1:${fakeGithub.address().port}/package.json`, MANNA_VERSIONES_MS: '500', MANNA_ACTUALIZADOR_PRUEBA: fakeInstaller, ...extra };
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared,deckcraft', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, MANNA_CARPETA_PRUEBA: path.join(tmp, 'otra-iglesia'), PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', MANNA_CAPAS_REINTENTO_MS: '500', MANNA_VERSIONES_URL: `http://127.0.0.1:${fakeGithub.address().port}/package.json`, MANNA_VERSIONES_MS: '500', MANNA_ACTUALIZADOR_PRUEBA: fakeInstaller, ...extra };
   if (host) env.MANNA_HOST = host;
   // killOnExit: si la prueba se corta a medias, el servidor no se queda abierto ocupando el puerto.
   return killOnExit(spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env }));
@@ -397,7 +399,7 @@ async function reviewSection() {
     await sleep(2000);
     const card = `document.querySelector('.req[data-id="yt-dlp"]')`;
     const mod = (id) => `document.querySelector('#modules .mod[data-id=${id}]')`;
-    check('la revisión lista los seis programas y marca los que faltan', await run(`return document.querySelectorAll('.req').length === 6 && ${card}.classList.contains('missing') && document.querySelector('.req[data-id=navegador]').classList.contains('missing') && document.querySelector('.req[data-id=cloudflared]').classList.contains('missing') && !document.querySelector('.req[data-id=node]').classList.contains('missing')`));
+    check('la revisión lista los siete programas y marca los que faltan', await run(`return document.querySelectorAll('.req').length === 7 && ${card}.classList.contains('missing') && document.querySelector('.req[data-id=navegador]').classList.contains('missing') && document.querySelector('.req[data-id=cloudflared]').classList.contains('missing') && !document.querySelector('.req[data-id=node]').classList.contains('missing')`));
     check('explica para qué sirve y cómo instalarlo a mano', await run(`return ${card}.textContent.includes('YouTube') && Boolean(${card}.querySelector('details code'))`));
     check('dice qué módulos funcionarán completos y cuáles no', await run(`return ${mod('biblia')}.textContent.includes('Completo') && !${mod('biblia')}.classList.contains('limited') && ${mod('medios')}.classList.contains('limited') && ${mod('medios')}.textContent.includes('YouTube: falta yt-dlp') && !${mod('videos')} && ${mod('ajustes')}.textContent.includes('falta Google Chrome')`));
     check('no bloquea: Manna se puede abrir aunque falten programas', await run(`const a = document.querySelector('#footer a'); return a.textContent === 'Abrir Manna' && a.getAttribute('href') === '/control' && document.querySelector('#lead').textContent.startsWith('Manna funciona')`));
@@ -438,7 +440,7 @@ async function reviewSection() {
     // YouTube cambia a menudo y yt-dlp se queda atrás: Ajustes deja ponerlo al día con un botón.
     program = build('2026.02.02');
     const toolRow = `document.querySelector('.settings .tool[data-id="yt-dlp"]')`;
-    check('Ajustes ofrece actualizar yt-dlp e instalar lo que falta y Manna sabe instalar', await run(`return [...document.querySelectorAll('.settings .tool .btn')].map(b => b.closest('.tool').dataset.id + ':' + b.textContent).join() === 'yt-dlp:Actualizar,cloudflared:Instalar' && ${toolRow}.textContent.includes('2026.01.01')`), await run(`return [...document.querySelectorAll('.settings .tool .btn')].map(b => b.closest('.tool').dataset.id + ':' + b.textContent).join()`));
+    check('Ajustes ofrece actualizar yt-dlp e instalar lo que falta y Manna sabe instalar', await run(`return [...document.querySelectorAll('.settings .tool .btn')].map(b => b.closest('.tool').dataset.id + ':' + b.textContent).join() === 'yt-dlp:Actualizar,cloudflared:Instalar,deckcraft:Instalar' && ${toolRow}.textContent.includes('2026.01.01')`), await run(`return [...document.querySelectorAll('.settings .tool .btn')].map(b => b.closest('.tool').dataset.id + ':' + b.textContent).join()`));
     await click(`${toolRow}.querySelector('.btn')`);
     await sleep(900);
     check('"Actualizar" lo descarga de nuevo, a la vista y sin detener la app', await run(`const b = ${toolRow}.querySelector('.btn'); return b.disabled && b.textContent === 'Actualizando…' && [...document.querySelectorAll('.queue .scene-jobs .job strong')].some(s => s.textContent === 'Descargando yt-dlp')`) && (await text('#toast')).includes('Actualizando yt-dlp'));
@@ -2197,6 +2199,28 @@ try {
     await sleep(700);
     check('y se elimina con todas sus imágenes', (await decksNow()).length === 1 && await run(`return (await fetch(${JSON.stringify(`${made.base}1.png`)})).status === 404`));
 
+    // Con DeckCraft (fase 33) convierte él, sin PowerPoint: la diapositiva oculta se salta y las miniaturas son pequeñas.
+    // El de mentira se pone en la carpeta de programas de este servidor y se revisa el equipo; al terminar, se quita.
+    if (process.platform !== 'win32') {
+      const dcFile = writeFakeDeckCraft(path.join(tmp, 'data', 'herramientas'));
+      await run(`return await ${post('tools.scan')}`);
+      await until(`(await (await fetch('/api/state')).json()).tools.list.find(t => t.id === 'deckcraft')?.found`, 20);
+      await openSlides();
+      await sleep(300);
+      const welcome = path.join(tmp, 'bienvenida.pptx');
+      fs.writeFileSync(welcome, makePptx([{ text: 'Bienvenidos' }, { text: 'Oculta', hidden: true }, { text: 'Anuncios' }]));
+      await pickFile(welcome);
+      check('con DeckCraft en el equipo, un PowerPoint lo convertirá DeckCraft', await run(`return ${modal}.querySelector('.deck-up-status').textContent.includes('La convertirá DeckCraft')`), await run(`return ${modal}?.querySelector('.deck-up-status')?.textContent`));
+      await modalButton('Subir');
+      const ready = await until(`(await (await fetch('/api/state')).json()).slides.decks.some(d => d.name === 'bienvenida' && d.status === 'ready')`, 40);
+      const converted = (await decksNow()).find((d) => d.name === 'bienvenida');
+      check('DeckCraft la convierte: sin la oculta, en PNG y con miniaturas pequeñas', ready && converted.pages === 2 && converted.thumbs && converted.thumbExt === 'png' && converted.width === 2560
+        && await until(`[...${ws}.querySelectorAll('.deck[data-id="${converted.id}"] img')].some(i => i.naturalWidth === 320 && i.getAttribute('src').endsWith('m1.png'))`, 10), JSON.stringify(converted));
+      await run(`return await ${post('slides.remove', { id: converted?.id })}`);
+      fs.rmSync(dcFile, { force: true });
+      await run(`return await ${post('tools.scan')}`);
+    }
+
     // La categoría elegida se recuerda en este dispositivo: al recargar la página sigue elegida.
     await click(catChip('Escuela sabática'));
     await sleep(300);
@@ -2797,7 +2821,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await run(`const s = [...document.querySelectorAll('.settings .field')].find(f => f.textContent.includes('Tamaño de los subtítulos')).querySelector('input[type=range]'); s.value = 150; s.dispatchEvent(new Event('input'));`);
   await sleep(500);
   check('«Tamaño de los subtítulos» se guarda y agranda los de la proyección', await run(`const s = await (await fetch('/api/state')).json(); return s.projection.styles.subtitleSize === 150 && document.querySelector('.scene-screen').style.getPropertyValue('--cue') === '1.5'`));
-  check('Ajustes lista los programas del equipo principal', await run(`return document.querySelectorAll('.tools .tool').length === 6 && Boolean(document.querySelector('.tools .tool[data-id=cloudflared]')) && Boolean(document.querySelector('.tools .tool[data-id=node]'))`));
+  check('Ajustes lista los programas del equipo principal', await run(`return document.querySelectorAll('.tools .tool').length === 7 && Boolean(document.querySelector('.tools .tool[data-id=deckcraft]')) && Boolean(document.querySelector('.tools .tool[data-id=node]'))`));
   await tapEl(`[...document.querySelectorAll('.set-nav .btn')].find(b => b.textContent === 'Programas')`);
   await sleep(800);
   check('la fila de secciones de Ajustes tiene una por sección y lleva a la elegida', await run(`const s = [...document.querySelectorAll('.settings .set')].find(x => x.querySelector('h2').textContent === 'Programas del equipo principal'); const c = document.querySelector('.settings').getBoundingClientRect(); const r = s.getBoundingClientRect(); return document.querySelectorAll('.set-nav .btn').length === document.querySelectorAll('.settings .set').length && Math.abs(r.top - c.top) < 30`));

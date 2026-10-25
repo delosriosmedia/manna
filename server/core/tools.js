@@ -112,6 +112,10 @@ const CF = 'https://github.com/cloudflare/cloudflared/releases/latest/download';
 const CF_SUMS = 'https://api.github.com/repos/cloudflare/cloudflared/releases/latest';
 // Node.js de la línea 24 (LTS): el nombre lleva la versión, así que se elige en su lista de huellas (pick).
 const NODE = 'https://nodejs.org/dist/latest-v24.x';
+// DeckCraft (fase 33): una versión fija, la que se probó con presentaciones reales; se cambia a mano tras probar la nueva.
+// En Windows solo viene dentro del .zip portátil, junto a la app: se saca de él el programa de órdenes.
+export const DECKCRAFT_VERSION = '0.10.0';
+const DC = `https://github.com/storytold/deckcraft/releases/download/v${DECKCRAFT_VERSION}`;
 const OFFICIAL = {
   ffmpeg: {
     win32: {
@@ -127,6 +131,10 @@ const OFFICIAL = {
   },
   node: {
     win32: { sums: `${NODE}/SHASUMS256.txt`, pick: 'node-v[0-9.]+-win-x64\\.zip', extract: ['node.exe'], size: '36 MB' },
+  },
+  deckcraft: {
+    win32: { url: `${DC}/deckcraft-${DECKCRAFT_VERSION}-windows-${process.arch === 'arm64' ? 'arm64' : 'x64'}-portable.zip`, sums: `${DC}/SHA256SUMS.txt`, extract: ['deckcraft-cli.exe'], size: '77 MB' },
+    darwin: { url: `${DC}/deckcraft-cli-${DECKCRAFT_VERSION}-macos-universal.zip`, sums: `${DC}/SHA256SUMS.txt`, extract: ['deckcraft-cli'], size: '69 MB' },
   },
   cloudflared: {
     win32: { url: `${CF}/cloudflared-windows-amd64.exe`, sums: CF_SUMS, release: true, file: 'cloudflared.exe', size: '65 MB' },
@@ -226,10 +234,22 @@ const CATALOG = [
     },
   },
   {
+    id: 'deckcraft',
+    name: 'DeckCraft',
+    level: 'optional',
+    purpose: 'Convierte las presentaciones de PowerPoint en diapositivas sin necesitar PowerPoint: un programa libre, de código abierto, que no abre ninguna ventana.',
+    link: 'https://github.com/storytold/deckcraft',
+    binaries: ['deckcraft-cli'],
+    version: { args: ['--version'], pattern: /deckcraft-cli (\S+)/ },
+    manual: {
+      other: { steps: ['Pulsa «Instalar por mí»: Manna lo descarga de su página oficial y comprueba que llegó entero.'] },
+    },
+  },
+  {
     id: 'powerpoint',
     name: 'Microsoft PowerPoint',
     level: 'optional',
-    purpose: 'Convierte las presentaciones de PowerPoint en diapositivas. Sin él, se guardan como PDF desde otro equipo y se añade el PDF.',
+    purpose: 'Convierte las presentaciones de PowerPoint cuando no está DeckCraft, y las pasa en vivo (en Windows). Sin ninguno de los dos, se guardan como PDF desde otro equipo y se añade el PDF.',
     link: 'https://www.microsoft.com/microsoft-365/powerpoint',
     manual: { other: { steps: ['Si la iglesia tiene Microsoft Office, instálalo en este equipo. No es obligatorio.'] } },
     find: async () => {

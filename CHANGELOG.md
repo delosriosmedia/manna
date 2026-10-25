@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.38.0 — 2026-10-25
+
+- **Presentaciones de PowerPoint sin PowerPoint**: con **DeckCraft**, un programa libre que Manna instala desde la revisión del equipo, un PowerPoint se convierte en diapositivas sin abrir ninguna ventana ni pedir permisos, igual en Windows y en Mac, y sin las diapositivas ocultas. Si DeckCraft no está, lo convierte PowerPoint, como hasta ahora.
+- Al subir un PowerPoint, la ventana dice quién lo convertirá; si el equipo no tiene ni DeckCraft ni PowerPoint, explica cómo instalar DeckCraft o subir el PDF.
 ## 1.37.0 — 2026-10-25
 
 - **Tiempo**, un módulo nuevo: la **hora**, **cronómetros** y **temporizadores** con su título, para proyectar, poner en una capa o añadir al orden del culto. Cinco estilos (Sencillo, Digital, Tarjeta, Anillo y Barra), tres tamaños, nueve sitios y un aspecto sutil o normal, con su vista previa. En la proyección van sobre el fondo de Ajustes; en una capa, sin fondo.
