@@ -1608,7 +1608,7 @@ Desde el 2026-10-25 **todo lo pendiente de Manna está aquí**, en cuatro grupos
 
 | Qué | Estado |
 | --- | --- |
-| **Fases 35 a 39: Manna Iglesia en la nube** (decisiones 55, 57 a 59) | En curso: la prueba del hosting está hecha y la 35 (usuarios) empezó. Llevan dentro lo que dejó anotado la auditoría (fase 9): las sesiones sin límite, ya resuelto en la 35 (como mucho 500 guardadas); los enlaces que se siguen dentro de las carpetas, las direcciones del propio equipo en Páginas web y un video aceptado por su extensión sin ffmpeg, en la 36, antes de abrir Manna a internet |
+| **Fases 35 a 39: Manna Iglesia en la nube** (decisiones 55, 57 a 59) | En curso: la prueba del hosting está hecha y la 35 (usuarios y el Orden rehecho) también (1.41.0); sigue la 36. Llevan dentro lo que dejó anotado la auditoría (fase 9): las sesiones sin límite, ya resuelto en la 35 (como mucho 500 guardadas); los enlaces que se siguen dentro de las carpetas, las direcciones del propio equipo en Páginas web y un video aceptado por su extensión sin ffmpeg, en la 36, antes de abrir Manna a internet |
 | **Fase 33, parte 3**: el pase en vivo de las presentaciones dentro de Manna, con DeckCraft | Espera la respuesta de DeckCraft; si no llega, el camino B hacia el 31 de octubre (decisión 52). Al cerrarse, PowerPoint sale de Manna y con él la S25 (probar PowerPoint en vivo en Windows); hasta entonces, eso se prueba en el PC de Leidy |
 | **Fase 41: organizar la interfaz desde el superadministrador** (la idea I5) | Se planea después de la 39 (ver la fase) |
 
@@ -1620,6 +1620,8 @@ Desde el 2026-10-25 **todo lo pendiente de Manna está aquí**, en cuatro grupos
 | S48 | **Avisar si una página que va en su propia ventana tapa las capas** (Kahoot y las que no se dejan mostrar dentro de Manna) | Al ponerla al aire con una capa a la vista, sus mandos dirían «Hay una capa a la vista: la página la tapa» y ofrecerían apagar las capas. Pequeña |
 | S41 | **«Letras sin música» en un proyector 16:9 sin franjas** (en la iglesia, los lados se ven negros) | Las diapositivas del himnario son 4:3: a cada lado, una extensión desenfocada de la propia diapositiva, como el fondo del Escenario, en lugar de negro. Que gaste poco: una sola imagen pequeña y desenfocada por diapositiva, sin animar; se mide en el PC de Leidy. Pequeña |
 | S50 | **Escribe y busca** (idea del dueño del 2026-10-24, «buscador siempre activo») | Con un módulo abierto, en el escritorio, lo que se teclea va a su buscador sin tener que pulsarlo antes. No con el cursor siempre en el buscador: en el celular saldría el teclado todo el rato y dejarían de funcionar los atajos. **Por decidir**: B y C (Negro, Solo fondo) son letras: o pasan a llevar una tecla más (Mayús), o la búsqueda empieza con «/». Pequeña |
+| S51 | **Al abrir Manna, poner en uso el orden de hoy** (sugerencia tras la fase 35) | Hoy, al abrir Manna ningún orden queda en uso y quien opera elige uno en «Órdenes». Si hay un solo orden con la fecha de ese día, se pondría en uso solo. Pequeña |
+| S52 | **Al quitar a un usuario, sus órdenes pasan al administrador** (sugerencia tras la fase 35) | Hoy se quedan como de «Alguien que ya no está»: solo los ve el administrador, que puede usarlos o borrarlos. Pasarlos a su nombre evitaría que se pierdan de vista. Pequeña |
 
 ### 3. Tareas del dueño
 
