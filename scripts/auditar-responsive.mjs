@@ -19,7 +19,7 @@
 //     abre la capa con todos los mandos (fase 25)
 //   - el cajón lleva una sola fila de cabecera (la del módulo, con ampliar y cerrar a la vista), salvo Medios, que
 //     lleva dos por sus categorías (fase 25)
-//   - Biblia (también comparando dos versiones) y Orden (también el Mapa del culto) caben en el cajón ancho, en el
+//   - Biblia (también comparando dos versiones) y Orden (también sus órdenes por semana) caben en el cajón ancho, en el
 //     estrecho de 440 px y en el celular: se miden por su cajón, no por la pantalla
 //   - la tarjeta de un televisor y su control remoto caben, con teclas para el dedo
 //   - la biblioteca de imágenes deja a la vista su acción principal, y los mandos de una imagen
@@ -110,12 +110,14 @@ const SCREENS = [
   { name: 'Biblia en el cajón más pequeño', url: '/control#biblia', prefs: { 'cajon.ancho': false, 'cajon.medida': 300, 'cajon.completo': false, 'cajon.alto': 0.95, 'cajon.lado': 0.95 }, primary: '.abar .btn.primary', content: '.col-verses' },
   { name: 'Orden en el cajón más pequeño', url: '/control#orden', prefs: { 'cajon.ancho': false, 'cajon.medida': 300, 'cajon.completo': false, 'cajon.alto': 0.95, 'cajon.lado': 0.95 }, content: '.olist', longTitles: true },
   { name: 'Himnario en el cajón más pequeño', url: '/control#himnario', prefs: { 'cajon.ancho': false, 'cajon.medida': 300, 'cajon.completo': false, 'cajon.alto': 0.95, 'cajon.lado': 0.95 }, content: '.hymns-body', settle: 700 },
-  // El Mapa del culto, la cita rápida y el enlace de YouTube solo están con el cajón completo (en el celular).
-  { name: 'Orden: mapa del culto', url: '/control#orden', prefs: { 'orden.vista': 'mapa', 'cajon.completo': true }, content: '.omap' },
-  // Órdenes guardados (fase 23): la ventana abierta, con el orden sin nombre y dos guardados (uno con un nombre muy largo).
-  // El ejemplo trae uno solo («Orden del culto»); se duplica con otro nombre si aún no hay dos.
-  { name: 'Orden: órdenes guardados', url: '/control#orden', inside: '.modal', settle: 900,
-    prepare: `(async () => { const s = await (await fetch('/api/state')).json(); if (s.order.saved.length < 2) await fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'order.duplicate', payload: { id: s.order.saved[0].id, name: 'Culto del sábado por la tarde con un nombre muy largo para ver cómo se corta en el celular' } }) }); await new Promise((r) => setTimeout(r, 400)); document.querySelector('.ws[data-module=orden] .order-switch').click(); })()` },
+  // «Órdenes» (fase 35): por semanas, con uno de nombre muy largo y otro de la semana pasada, marcado favorito.
+  // El ejemplo trae uno solo («Orden del culto»); se crean los otros si aún no están, y se vuelve a abrir el de ejemplo
+  // (crear uno lo abre), para que las demás pantallas del Orden sigan mostrando el suyo.
+  { name: 'Orden: órdenes por semana', url: '/control#orden', prefs: { 'orden.vista': 'ordenes', 'cajon.completo': true }, content: '.obrowse', inside: '.order-saved', settle: 900,
+    prepare: `(async () => { const s = await (await fetch('/api/state')).json(); const send = (type, payload) => fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, payload }) }).then((r) => r.json()); if (s.orders.list.length < 3) { await send('order.create', { name: 'Culto del sábado por la tarde con un nombre muy largo para ver cómo se corta en el celular' }); const d = new Date(Date.now() - 7 * 86400000); const { result } = await send('order.create', { name: 'Santa Cena', date: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }); await send('order.favorite', { id: result.id, on: true }); } await send('order.open', { id: s.order.active }); })()` },
+  // La ventana de «Nuevo orden»: fecha y nombre.
+  { name: 'Orden: nuevo orden', url: '/control#orden', prefs: { 'orden.vista': 'ordenes', 'cajon.completo': true }, inside: '.modal', settle: 700,
+    prepare: `document.querySelector('.obrowse-head .btn').click()` },
   // Citas de un texto o documento (fase 27): una lista larga, por páginas, con una dudosa; «Añadir» siempre a la vista.
   { name: 'Orden: citas de un documento', url: '/control#orden', inside: '.citas-where + .review-actions', settle: 1800,
     prepare: `(async () => { const w = (ms) => new Promise((r) => setTimeout(r, ms)); document.querySelector('.ws[data-module=orden] .order-add').click(); await w(300); [...document.querySelectorAll('.menu button')].find((b) => b.textContent.includes('Citas de un texto')).click(); await w(300); document.querySelector('.review-text').value = Array.from({ length: 48 }, (_, i) => 'Leemos con atención lo que dice Salmos ' + (i + 1) + ':1 sobre la alabanza' + (i % 12 === 11 ? '\\f' : '')).join('\\n') + '\\nFíjense en el v. 3.'; [...document.querySelectorAll('.review-actions .btn')].find((b) => b.textContent.includes('Buscar')).click(); })()` },
@@ -216,8 +218,8 @@ const MEASURE = (screen, touch, narrow) => {
   out.sinDesborde = document.documentElement.scrollWidth <= vw + 1 && document.body.scrollWidth <= vw + 1;
   // Nada se desplaza de lado si no tiene nada al lado (lo vio el dueño en el Orden del celular): ningún panel con
   // desplazamiento horizontal cuyo contenido le sobre. Las tiras que se deslizan a propósito (el dock, las pestañas,
-  // lo reciente, «A continuación», el Mapa del culto, las secciones de Ajustes) quedan fuera.
-  const SIDEWAYS_OK = '.dockbar, .media-cats, .hymn-views, .chips, .story-next, .omap-scroll, .omap, .search-scope, .recent, .crumbs, .set-nav';
+  // lo reciente, «A continuación», las secciones de Ajustes) quedan fuera.
+  const SIDEWAYS_OK = '.dockbar, .media-cats, .hymn-views, .chips, .story-next, .search-scope, .recent, .crumbs, .set-nav';
   const sideways = [...document.querySelectorAll('body *')].filter((el) => {
     if (!shown(el) || el.closest(SIDEWAYS_OK) || el.closest('[hidden]')) return false;
     const x = getComputedStyle(el).overflowX;

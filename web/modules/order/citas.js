@@ -61,7 +61,7 @@ export function openCitas({ text = '' } = {}) {
 
   // ---- La lista para revisar ----
   function showList({ items, dropped, pages }, name) {
-    const inOrder = (state.order?.items || []).filter((i) => i.kind === 'verses').map((i) => i.data.ref);
+    const inOrder = (state.orders?.items || []).filter((i) => i.kind === 'verses').map((i) => i.data.ref);
     const rows = items.map((item) => {
       const already = item.choices[0].order.every((r) => inOrder.some((o) => sameRef(o, r)));
       const check = h('input', { type: 'checkbox', checked: (item.confidence === 'segura' || item.checked) && !already, 'aria-label': `Añadir ${item.choices[0].label}`, onchange: () => update() });
@@ -102,7 +102,7 @@ export function openCitas({ text = '' } = {}) {
     }
 
     // Adónde van: una sección nueva con el nombre del documento, una que ya existe o el final del orden; y en qué versión.
-    const sections = (state.order?.items || []).filter((i) => i.kind === 'section');
+    const sections = (state.orders?.items || []).filter((i) => i.kind === 'section');
     const where = h('select', { class: 'input', 'aria-label': 'Dónde', onchange: () => { title.hidden = where.value !== 'new'; } },
       h('option', { value: 'new' }, 'En una sección nueva'),
       ...sections.map((s) => h('option', { value: s.id }, `Al final de «${s.title}»`)),

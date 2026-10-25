@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { migrateLegacy, moveItem, neighbor, renameItem } from '../server/modules/order/logic.js';
+import { dayOf, migrateLegacy, moveItem, neighbor, renameItem, serviceName, uniqueName, validDay } from '../server/modules/order/logic.js';
 
 const items = [
   { id: 's1', kind: 'section', title: 'Apertura' },
@@ -78,4 +78,19 @@ test('renameItem en una sección solo cambia el título y no admite dejarlo vac�
   const section = { id: 's', kind: 'section', title: 'Apertura' };
   assert.deepEqual(renameItem(section, 'Alabanza'), { id: 's', kind: 'section', title: 'Alabanza' });
   assert.deepEqual(renameItem(section, ''), section);
+});
+
+test('la fecha de un orden: el día del culto, y el nombre que se le propone (fase 35)', () => {
+  assert.equal(dayOf(new Date(2026, 10, 1, 23, 59).getTime()), '2026-11-01');
+  assert.equal(serviceName('2026-11-01'), 'Culto del domingo 1 de nov.');
+  assert.equal(serviceName('2026-10-31'), 'Culto del sábado 31 de oct.');
+  assert.equal(serviceName('2026-09-02'), 'Culto del miércoles 2 de sept.');
+  for (const day of ['2026-11-01', '2028-02-29']) assert.ok(validDay(day), day);
+  for (const day of ['2026-02-30', '2026-13-01', '01/11/2026', '', '2026-1-1']) assert.ok(!validDay(day), day);
+});
+
+test('uniqueName numera el nombre si ya está, sin contar mayúsculas', () => {
+  assert.equal(uniqueName('Culto', []), 'Culto');
+  assert.equal(uniqueName('Culto', ['culto']), 'Culto (2)');
+  assert.equal(uniqueName('Culto', ['Culto', 'Culto (2)']), 'Culto (3)');
 });

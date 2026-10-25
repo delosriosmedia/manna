@@ -8,7 +8,7 @@ import { plainAddress } from './listener.js';
 
 const PING_MS = 10_000;
 
-export function createRealtime({ store, router }) {
+export function createRealtime({ store, router, sessions }) {
   const clients = new Set();
   let serial = 0;
 
@@ -37,8 +37,11 @@ export function createRealtime({ store, router }) {
     store.set('conexiones', { porRol: counts, sonido: soundClient() });
   }
 
+  // Lo de cada persona (store.personal) se le manda a cada conexión según quién entró, mirado en cada envío: así vale
+  // también si le cambian las funciones o cierra su sesión.
   store.on('change', (ns, state) => {
-    for (const c of clients) send(c.res, 'patch', { ns, state });
+    const personal = store.personal(ns);
+    for (const c of clients) send(c.res, 'patch', { ns, state: personal ? store.view(ns, sessions.fromRequest(c.req)) : state });
   });
 
   router.route('GET', '/api/events', (ctx) => {
@@ -51,10 +54,10 @@ export function createRealtime({ store, router }) {
     });
     res.write('retry: 1500\n\n');
     serial += 1;
-    const client = { res, id: `c${serial}`, able: true, local: ctx.isLocal, role: (ctx.query.get('rol') || 'otro').slice(0, 20), ip: plainAddress(ctx.ip) };
+    const client = { req, res, id: `c${serial}`, able: true, local: ctx.isLocal, role: (ctx.query.get('rol') || 'otro').slice(0, 20), ip: plainAddress(ctx.ip) };
     clients.add(client);
     send(res, 'hello', { id: client.id, local: client.local });
-    send(res, 'state', store.snapshot());
+    send(res, 'state', store.snapshotFor(ctx.session));
     send(res, 'ping', { t: Date.now() });
     publishCounts();
     req.on('close', () => {

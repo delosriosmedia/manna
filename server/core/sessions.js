@@ -7,6 +7,9 @@ const MAX_FAILS = 5;
 const LOCK_MS = 60_000;
 // Por usuario (fase 35): tras 5 PIN equivocados, ese usuario espera 15 minutos, desde cualquier dispositivo.
 const USER_LOCK_MS = 15 * 60_000;
+// Cada dispositivo que entra deja una sesión (también cada pantalla de proyección): se guardan como mucho estas, y al
+// pasarse se olvidan las más viejas (lo anotó la auditoría de la fase 9).
+const MAX_SESSIONS = 500;
 // Lo de Ajustes es solo del administrador de la iglesia, aunque la función lo permita (fase 35).
 const ADMIN_ONLY = new Set(['system.admin', 'system.display', 'projection.style', 'users.manage']);
 
@@ -85,6 +88,11 @@ export function createSessions({ storage, roles }) {
     if (ctx.session) delete store.data.list[ctx.session.id];
     const id = crypto.randomBytes(24).toString('hex');
     store.data.list[id] = { role: roleId, user: user?.id || null, created: Date.now() };
+    const ids = Object.keys(store.data.list);
+    if (ids.length > MAX_SESSIONS) {
+      ids.sort((a, b) => store.data.list[a].created - store.data.list[b].created);
+      for (const old of ids.slice(0, ids.length - MAX_SESSIONS)) delete store.data.list[old];
+    }
     store.save();
     ctx.res.setHeader('Set-Cookie', `${COOKIE}=${id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000`);
     return { role: roleId, user: user ? { id: user.id, name: user.name, admin: user.admin } : null };

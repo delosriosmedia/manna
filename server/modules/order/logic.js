@@ -6,6 +6,30 @@ import { cleanName } from '../../core/names.js';
 
 const isContent = (item) => item.kind !== 'section' && item.steps > 0;
 
+// La fecha de un orden (fase 35) es el día del culto, «AAAA-MM-DD» con la hora del equipo principal.
+const two = (n) => String(n).padStart(2, '0');
+export const dayOf = (ms = Date.now()) => {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
+};
+export const validDay = (day) => /^\d{4}-\d{2}-\d{2}$/.test(day) && dayOf(new Date(`${day}T12:00`).getTime()) === day;
+
+// El nombre que se propone para un orden: «Culto del sábado 1 de nov.».
+const DAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const MONTHS = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sept.', 'oct.', 'nov.', 'dic.'];
+export function serviceName(day) {
+  const d = new Date(`${day}T12:00`);
+  return `Culto del ${DAYS[d.getDay()]} ${d.getDate()} de ${MONTHS[d.getMonth()]}`;
+}
+
+// base, o «base (2)», «base (3)»… si ya está entre names (sin contar mayúsculas).
+export function uniqueName(base, names) {
+  const taken = new Set(names.map((n) => n.toLowerCase()));
+  let name = base;
+  for (let n = 2; taken.has(name.toLowerCase()); n += 1) name = `${base} (${n})`;
+  return name;
+}
+
 // Mueve un elemento a otra posición. Devuelve una lista nueva (o la misma si no hay cambio).
 export function moveItem(items, id, toIndex) {
   const from = items.findIndex((i) => i.id === id);

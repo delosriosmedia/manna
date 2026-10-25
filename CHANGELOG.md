@@ -4,11 +4,18 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.41.0 — 2026-10-25
+
 - **Usuarios**: cada persona entra con su nombre y su PIN. Desde un celular o un computador, al elegir una función sale la lista de quienes pueden usarla; cada uno toca su nombre y escribe su PIN. Quien ya entró cambia de función sin volver a escribirlo, y «Entrar como otra persona» cambia de persona. El equipo principal entra sin PIN, como administrador.
 - **Ajustes → Usuarios** (solo el administrador): añadir a alguien con su nombre, su PIN y las funciones que puede usar (o hacerlo administrador), cambiarlo, cambiarle el PIN y quitarlo. Cambiar el PIN o quitar a alguien cierra los dispositivos donde había entrado.
 - Ajustes y la conexión por internet son ahora solo del administrador.
 - El PIN de antes pasa a ser el del «Administrador»: se entra con él la primera vez. «Dispositivos» ya no muestra ni cambia el PIN.
 - Cinco PIN equivocados seguidos dejan a esa persona 15 minutos sin poder entrar, desde cualquier dispositivo.
+- **Cada orden del culto es de quien lo crea**: tiene nombre, dueño y fecha desde el principio. Cada persona ve y cambia solo los suyos; el administrador, todos. El que está en uso lo ven todos en la cola del culto, pero solo lo cambian su dueño y el administrador. Ya no hay orden sin nombre.
+- **El cajón Orden, rehecho**: tres pestañas. «Este orden» es el que tienes abierto, y ahí va lo que añades desde la Biblia, el Himnario o Medios; si no está en uso, un aviso lo dice con «Usar este orden». «Órdenes» los muestra por semanas, de domingo a sábado, con esta semana arriba; «Nuevo orden» pide la fecha y propone el nombre del día («Culto del sábado 1 de nov.»). «Favoritos» guarda los que se repiten, marcados con la estrella.
+- Sale el **Mapa del culto** y sale **Duplicar**: un orden que se repite se marca como favorito y se vuelve a usar tal cual.
+- Manna guarda como mucho 500 sesiones (cada dispositivo que entra deja una): al pasarse, olvida las más viejas, que tendrían que volver a entrar.
+- Al actualizar, los órdenes guardados pasan a ser del administrador, y el orden sin nombre, si tenía algo, pasa a ser uno más con el nombre del día.
 
 ## 1.40.0 — 2026-10-25
 

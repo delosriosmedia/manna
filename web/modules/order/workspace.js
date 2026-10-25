@@ -21,17 +21,36 @@ function describe(item) {
 
 // Módulo Orden del culto: la lista de todo lo que se va a proyectar, en orden, venga del
 // módulo que venga. A la izquierda, la lista; a la derecha (o debajo del elegido, si el cajón es
-// estrecho), los pasos del elemento elegido. La otra vista, el «Mapa del culto», lo enseña de un
-// vistazo: una columna por elemento, cuántos pasos tiene y por dónde va.
-// Con canEdit se puede añadir, reordenar y quitar; sin él (función "Control del orden"), solo proyectar.
+// estrecho), los pasos del elemento elegido.
+// Cada orden tiene nombre, dueño y fecha (fase 35). Con canEdit hay tres pestañas: «Este orden» (el que esta persona
+// tiene abierto: ahí va lo que añade, y se proyecta desde él si está en uso), «Órdenes» (los suyos, o todos si es el
+// administrador, por semanas de domingo a sábado) y «Favoritos» (los que se repiten). Sin canEdit (función «Control
+// del orden»), solo el que está en uso, para proyectar.
 // Los tipos que suenan: su elemento ofrece «Escuchar en este dispositivo».
 const SOUNDS = new Set(['song', 'video', 'audio', 'youtube']);
 
-// El nombre que se propone al guardar un orden: el día, la fecha y la hora («Sábado 18/10/26 19:30»).
-const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-const two = (n) => String(n).padStart(2, '0');
-const nameForNow = (d = new Date()) => `${DAYS[d.getDay()]} ${two(d.getDate())}/${two(d.getMonth() + 1)}/${two(d.getFullYear() % 100)} ${two(d.getHours())}:${two(d.getMinutes())}`;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+// Fechas de los órdenes: «AAAA-MM-DD», el día del culto. El nombre que se propone es el del servidor
+// (server/modules/order/logic.js): «Culto del sábado 1 de nov.».
+const DAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const MONTHS = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sept.', 'oct.', 'nov.', 'dic.'];
+const two = (n) => String(n).padStart(2, '0');
+const dayOf = (d = new Date()) => `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
+const dateOf = (day) => new Date(`${day}T12:00`);
+const serviceName = (day) => { const d = dateOf(day); return `Culto del ${DAYS[d.getDay()]} ${d.getDate()} de ${MONTHS[d.getMonth()]}`; };
+const shortDate = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+const dayLabel = (day) => { const d = dateOf(day); return `${DAYS[d.getDay()].slice(0, 3)}. ${shortDate(d)}`; };
+// El domingo de su semana (las semanas van de domingo a sábado), como «AAAA-MM-DD».
+const weekOf = (day) => { const d = dateOf(day); d.setDate(d.getDate() - d.getDay()); return dayOf(d); };
+function weekLabel(start) {
+  const weeks = Math.round((dateOf(start) - dateOf(weekOf(dayOf()))) / (7 * 86_400_000));
+  const end = dateOf(start);
+  end.setDate(end.getDate() + 6);
+  const span = `${shortDate(dateOf(start))} – ${shortDate(end)}`;
+  const name = { 0: 'Esta semana', 1: 'La semana que viene', [-1]: 'La semana pasada' }[weeks];
+  return name ? `${name} · ${span}` : `Del ${span}`;
+}
 
 function mount(el, ctx) {
   let items = [];
@@ -42,22 +61,27 @@ function mount(el, ctx) {
   let collapsed = false;  // el usuario recogió el detalle a propósito: no se vuelve a abrir solo
   let opened = false;     // ya se mostró el orden por primera vez
   let wide = false;       // el cajón deja sitio a la columna de los pasos
-  let view = prefs.get('orden.vista') === 'mapa' ? 'mapa' : 'lista';
+  const TABS = [['este', 'Este orden'], ['ordenes', 'Órdenes'], ['favoritos', 'Favoritos']];
+  let view = ctx.canEdit && TABS.some(([id]) => id === prefs.get('orden.vista')) ? prefs.get('orden.vista') : 'este';
+  let editable = false;   // el orden que se ve es de esta persona (o es el administrador)
+  let viewing = null;     // { id, name, ownerName, date } del orden que se ve
+  let inUseHere = false;  // el que se ve es el que está en uso: se proyecta desde él
 
   const list = h('div', { class: 'olist' });
-  const map = h('div', { class: 'omap' });
+  const browse = h('div', { class: 'obrowse' });
+  const note = h('div', { class: 'order-note', role: 'status', hidden: true });
   const summary = h('small', {});
-  const viewTabs = [['lista', 'Lista'], ['mapa', 'Mapa del culto']].map(([id, label]) =>
-    h('button', { class: 'btn', role: 'tab', dataset: { view: id }, onclick: () => setView(id) }, label));
+  const viewTabs = ctx.canEdit ? TABS.map(([id, label]) =>
+    h('button', { class: 'btn', role: 'tab', dataset: { view: id }, onclick: () => setView(id) }, label)) : [];
   const detail = h('div', { class: 'odetail' });
   const side = h('div', { class: 'oside' });
   // Mandos del elemento que está al aire. Se crean una vez y se colocan en su detalle.
   const liveControls = h('div', {});
   createLiveControls(liveControls);
-  // El orden en uso («Sin nombre» o el suyo); con permiso de editar, abre «Órdenes guardados».
+  // El orden que se ve; con permiso de editar, lleva a «Órdenes».
   const orderName = h('span', {});
   const switcher = ctx.canEdit
-    ? h('button', { class: 'btn order-switch', 'aria-haspopup': 'dialog', title: 'Órdenes guardados', onclick: () => openOrders() }, icon('folder-simple', 16), orderName, icon('caret-down', 14))
+    ? h('button', { class: 'btn order-switch', title: 'Órdenes', onclick: () => setView('ordenes') }, icon('folder-simple', 16), orderName, icon('caret-down', 14))
     : h('span', { class: 'order-switch' }, orderName);
   const quick = h('input', {
     type: 'text', placeholder: 'Añadir una cita rápida: jn 3 16', autocomplete: 'off', 'aria-label': 'Añadir una cita al orden',
@@ -77,13 +101,16 @@ function mount(el, ctx) {
       !ctx.canEdit && h('span', { class: 'spacer' }),
       ctx.canEdit && h('button', { class: 'btn order-add', 'aria-label': 'Añadir', onclick: (e) => openAddMenu(e.currentTarget) }, icon('plus', 15), h('span', {}, 'Añadir')),
       ctx.canEdit && h('button', { class: 'icon-btn', 'aria-label': 'Más opciones', onclick: (e) => menu(e.currentTarget, [
-        { label: 'Vaciar el orden', icon: 'trash', onclick: confirmClear },
+        { label: 'Nuevo orden', icon: 'plus', onclick: () => newOrder() },
+        { label: 'Vaciar el orden', icon: 'trash', disabled: !editable || !items.length, onclick: confirmClear },
       ]) }, icon('dots-three', 18))),
     h('div', { class: 'order-bar', role: 'tablist', 'aria-label': 'Vista' }, ...viewTabs, summary),
-    h('div', { class: 'order-grid' }, list, map, side));
+    note,
+    h('div', { class: 'order-grid' }, list, browse, side));
 
   const run = (type, payload) => guard(() => action(type, payload))();
-  const show = (id, step) => run('order.show', step === undefined ? { id } : { id, step });
+  // Se proyecta desde el orden que está en uso; desde otro, primero se pone en uso.
+  const show = (id, step) => (inUseHere ? run('order.show', step === undefined ? { id } : { id, step }) : use(viewing));
   const content = () => items.filter((i) => i.kind !== 'section');
 
   // ---- Añadir ----
@@ -134,44 +161,72 @@ function mount(el, ctx) {
     toast(`Añadido: ${item.title}`);
   });
 
-  // ---- Órdenes guardados (fase 23 de docs/PLAN.md) ----
-  // Solo se guarda el que tiene nombre; el sin nombre se vacía al cerrar Manna. El que está en uso es el de la cola
-  // para todos los dispositivos, y cada cambio queda en él.
-  let ordersBox = null;
-  const ordersList = h('div', { class: 'orders' });
-  function openOrders() {
-    ordersBox = dialog('Órdenes guardados', ordersList,
-      h('p', { class: 'muted orders-note' }, 'Solo se guarda el orden que tiene nombre, y cada cambio queda guardado solo. El orden sin nombre se vacía al cerrar Manna.'),
-      h('div', { class: 'row', style: 'justify-content: flex-end;' }, h('button', { class: 'btn', onclick: () => startNew() }, icon('plus', 15), 'Nuevo orden')));
-    renderOrders();
+  // ---- Órdenes (fases 23 y 35) ----
+  // Cada uno tiene nombre, dueño y fecha. El que está en uso es el de la cola para todos los dispositivos; el que se
+  // ve aquí es el que esta persona tiene abierto, y cada cambio queda en él.
+  const me = ctx.user;
+  function orderRow(o) {
+    const using = o.id === state.order?.active;
+    const open = o.id === state.orders?.editing;
+    return h('div', { class: `order-saved${using ? ' on' : ''}${open ? ' open' : ''}`, dataset: { id: o.id } },
+      h('button', { class: 'order-open', 'aria-label': `Abrir ${o.name}`, onclick: () => openOrder(o) },
+        h('span', { class: 'item-text' }, h('strong', {}, o.name),
+          h('small', {}, [dayLabel(o.date), o.owner !== me?.id && o.ownerName, plural(o.count, 'elemento', 'elementos')].filter(Boolean).join(' · ')))),
+      h('button', { class: `icon-btn sm order-star${o.favorite ? ' on' : ''}`, 'aria-pressed': String(o.favorite), 'aria-label': o.favorite ? `Quitar ${o.name} de favoritos` : `Añadir ${o.name} a favoritos`,
+        onclick: () => run('order.favorite', { id: o.id, on: !o.favorite }) }, icon('star', 16)),
+      using ? h('span', { class: 'badge' }, 'En uso') : h('button', { class: 'btn', onclick: () => use(o) }, 'Usar'),
+      h('button', { class: 'icon-btn sm', 'aria-label': `Opciones de ${o.name}`, onclick: (e) => menu(e.currentTarget, [
+        { label: 'Cambiar el nombre o la fecha', icon: 'pencil-simple', onclick: () => editOrder(o) },
+        '-',
+        { label: 'Eliminar', icon: 'trash', onclick: () => confirmDelete(o) },
+      ]) }, icon('dots-three', 16)));
   }
-  function renderOrders() {
-    if (!ordersBox?.el.isConnected) return;
-    const o = state.order || {};
-    const row = ({ id = null, name, count, updated }) => {
-      const using = (o.active || null) === id;
-      return h('div', { class: `order-saved${using ? ' on' : ''}`, dataset: { id: id || '' } },
-        h('span', { class: 'item-text' }, h('strong', {}, name || 'Sin nombre'),
-          h('small', {}, [plural(count, 'elemento', 'elementos'), id ? whenLabel(updated) : 'se vacía al cerrar Manna'].join(' · '))),
-        using ? h('span', { class: 'badge' }, 'En uso') : h('button', { class: 'btn', onclick: () => use(id, name ? `«${name}»` : 'el orden sin nombre') }, 'Usar'),
-        !id && using && h('button', { class: 'btn primary', onclick: () => saveDraft() }, 'Guardar con un nombre'),
-        id && h('button', { class: 'icon-btn sm', 'aria-label': `Opciones de ${name}`, onclick: (e) => menu(e.currentTarget, [
-          { label: 'Cambiar el nombre', icon: 'pencil-simple', onclick: () => askTitle({ title: 'Cambiar el nombre', value: name, placeholder: name, onSave: (next) => run('order.renameOrder', { id, name: next }) }) },
-          { label: 'Duplicar', icon: 'copy', note: 'Una copia con otro nombre', onclick: () => askTitle({ title: 'Duplicar el orden', value: `${name} (copia)`, placeholder: name, onSave: (next) => run('order.duplicate', { id, name: next }) }) },
-          '-',
-          { label: 'Eliminar', icon: 'trash', onclick: () => confirmDelete(id, name) },
-        ]) }, icon('dots-three', 16)));
-    };
-    ordersList.replaceChildren(row({ count: o.draft || 0 }), ...(o.saved || []).map(row));
+  // «Órdenes»: por semanas, de domingo a sábado, la más nueva arriba. «Favoritos»: por nombre.
+  function renderBrowse() {
+    if (view === 'este') return;
+    const all = state.orders?.list || [];
+    const head = h('div', { class: 'obrowse-head' }, h('button', { class: 'btn', onclick: () => newOrder() }, icon('plus', 15), 'Nuevo orden'));
+    if (view === 'favoritos') {
+      const favs = all.filter((o) => o.favorite).sort((x, y) => x.name.localeCompare(y.name, 'es'));
+      browse.replaceChildren(head, favs.length ? h('div', { class: 'orders' }, ...favs.map(orderRow))
+        : h('div', { class: 'empty' }, h('strong', {}, 'Sin favoritos'), 'Marca con la estrella los órdenes que se repiten (la Santa Cena, el culto de jóvenes) para tenerlos aquí.'));
+      return;
+    }
+    if (!all.length) {
+      browse.replaceChildren(head, h('div', { class: 'empty' }, h('strong', {}, me?.admin ? 'Aún no hay órdenes' : 'Aún no tienes órdenes'), 'Crea uno con «Nuevo orden», o añade algo desde la Biblia o el Himnario: va a uno nuevo, con el nombre del día.'));
+      return;
+    }
+    const weeks = new Map();
+    for (const o of [...all].sort((x, y) => x.date.localeCompare(y.date) || x.updated - y.updated)) {
+      const start = weekOf(o.date);
+      if (!weeks.has(start)) weeks.set(start, []);
+      weeks.get(start).push(o);
+    }
+    browse.replaceChildren(head, ...[...weeks].sort(([x], [y]) => y.localeCompare(x)).map(([start, rows]) =>
+      h('section', { class: 'orders-week', dataset: { week: start } }, h('h3', {}, weekLabel(start)), h('div', { class: 'orders' }, ...rows.map(orderRow)))));
   }
-  // then: lo que se hace después de guardarlo (empezar uno nuevo).
-  const saveDraft = (then = null) => askTitle({
-    title: 'Guardar con un nombre', value: nameForNow(), placeholder: nameForNow(),
-    hint: 'Queda en «Órdenes guardados» y sigue en uso. Cada cambio se guarda solo.',
-    onSave: guard(async (name) => {
-      await action('order.save', { name });
-      if (then) await then();
-    }),
+  // Pide nombre y fecha: para uno nuevo (o null) o para cambiar los de uno.
+  function askOrder({ title, o = null, onSave }) {
+    const date = h('input', { class: 'input', type: 'date', value: o?.date || dayOf(), 'aria-label': 'Fecha', required: true, oninput: () => { name.placeholder = serviceName(date.value || dayOf()); } });
+    const name = h('input', { class: 'input', maxLength: 60, value: o?.name || '', placeholder: serviceName(o?.date || dayOf()), 'aria-label': 'Nombre' });
+    const box = dialog(title, h('form', { onsubmit: guard(async (e) => { e.preventDefault(); await onSave({ name: name.value.trim(), date: date.value }); box.close(); }) },
+      h('div', { class: 'order-form' },
+        h('label', { class: 'order-field' }, h('span', {}, 'Fecha del culto'), date),
+        h('label', { class: 'order-field' }, h('span', {}, 'Nombre'), name)),
+      !o && h('p', { class: 'muted' }, 'Sin nombre, se llama como el día. Es tuyo: solo lo ven y lo cambian tú y el administrador.'),
+      h('div', { class: 'row', style: 'justify-content: flex-end;' },
+        h('button', { class: 'btn', type: 'button', onclick: () => box.close() }, 'Cancelar'),
+        h('button', { class: 'btn primary' }, o ? 'Guardar' : 'Crear'))));
+    name.focus();
+  }
+  const newOrder = () => askOrder({ title: 'Nuevo orden', onSave: async ({ name, date }) => {
+    await action('order.create', { name, date });
+    setView('este');
+  } });
+  const editOrder = (o) => askOrder({ title: 'Cambiar el nombre o la fecha', o, onSave: ({ name, date }) => action('order.renameOrder', { id: o.id, name: name || o.name, date }) });
+  const openOrder = guard(async (o) => {
+    await action('order.open', { id: o.id });
+    setView('este');
   });
   // Lo que cambia para todos al dejar el orden en uso.
   // buttons(close): los botones de la ventana, además de «Cancelar».
@@ -183,27 +238,18 @@ function mount(el, ctx) {
         h('button', { class: 'btn', onclick: close }, 'Cancelar'),
         ...buttons(close)));
   };
-  function use(id, label) {
-    ask('Cambiar de orden', `Todos los dispositivos verán ${label} en la cola del culto. Lo que está al aire sigue al aire.`, (close) => [
+  function use(o) {
+    if (!o?.id) return;
+    ask('Cambiar de orden', `Todos los dispositivos verán «${o.name}» en la cola del culto. Lo que está al aire sigue al aire.`, (close) => [
       h('button', { class: 'btn primary', onclick: guard(async () => {
-        const { removed } = await action('order.use', id ? { id } : {});
+        const { removed } = await action('order.use', { id: o.id });
         close();
         if (removed) toast(`Se quitaron ${plural(removed, 'elemento que ya no está', 'elementos que ya no están')} en la biblioteca.`);
       }) }, 'Usar este orden')]);
   }
-  function startNew() {
-    const o = state.order || {};
-    const lost = o.draft ? `El orden sin nombre tiene ${plural(o.draft, 'elemento', 'elementos')} y se vaciará. ` : '';
-    const kept = o.active ? `«${o.name}» queda guardado. ` : '';
-    if (!lost && !kept) return toast('Ya estás en un orden nuevo, sin nombre.');
-    ask('Nuevo orden', `${lost}${kept}Todos los dispositivos verán la cola vacía.`, (close) => [
-      lost && !o.active && h('button', { class: 'btn', onclick: () => { close(); saveDraft(() => action('order.new')); } }, 'Guardarlo antes'),
-      h('button', { class: `btn ${lost ? 'danger' : 'primary'}`, onclick: () => { run('order.new'); close(); } }, lost ? 'Vaciarlo y empezar' : 'Empezar uno nuevo'),
-    ].filter(Boolean));
-  }
-  function confirmDelete(id, name) {
-    ask('Eliminar el orden', `«${name}» se borra de los órdenes guardados.${state.order?.active === id ? ' Como está en uso, la cola pasa al orden sin nombre.' : ''}`, (close) => [
-      h('button', { class: 'btn danger', onclick: () => { run('order.deleteOrder', { id }); close(); } }, 'Eliminar')]);
+  function confirmDelete(o) {
+    ask('Eliminar el orden', `«${o.name}» se borra.${state.order?.active === o.id ? ' Como está en uso, la cola del culto queda vacía.' : ''}`, (close) => [
+      h('button', { class: 'btn danger', onclick: () => { run('order.deleteOrder', { id: o.id }); close(); } }, 'Eliminar')]);
   }
 
   // Cualquier elemento puede llevar un nombre propio; el de su contenido sigue a la vista debajo.
@@ -228,13 +274,14 @@ function mount(el, ctx) {
   }
 
   function renderList() {
+    const rows = content();
+    summary.textContent = rows.length ? `${plural(rows.length, 'elemento', 'elementos')} · ${rows.reduce((sum, i) => sum + (i.steps || 1), 0)} pasos` : '';
     if (!items.length) {
       list.replaceChildren(h('div', { class: 'empty' },
-        h('strong', {}, 'El orden del culto está vacío'),
+        h('strong', {}, viewing?.id ? 'Este orden está vacío' : 'Ningún orden en uso'),
         ctx.canEdit ? 'Añade pasajes desde la Biblia, o escribe una cita arriba y pulsa Enter.' : 'Se prepara desde un dispositivo con control completo.',
         ctx.canEdit && h('p', { style: 'margin-top: 14px;' }, h('button', { class: 'btn', onclick: () => ctx.go('biblia') }, icon('book-open-text', 16), 'Ir a la Biblia'))));
       side.hidden = true;
-      renderMap();
       return;
     }
     const liveIndex = items.findIndex((i) => i.id === live?.orderId);
@@ -244,15 +291,15 @@ function mount(el, ctx) {
     const focusedId = focusedRow?.dataset.id;
     const focusedPart = focusedRow && document.activeElement !== focusedRow ? document.activeElement.getAttribute('aria-label') : null;
     list.replaceChildren(...items.map((item, index) => {
-      const more = ctx.canEdit && h('button', { class: 'icon-btn sm', 'aria-label': 'Opciones', onclick: (e) => { e.stopPropagation(); rowMenu(e.currentTarget, item, index); } }, icon('dots-three', 16));
+      const more = editable && h('button', { class: 'icon-btn sm', 'aria-label': 'Opciones', onclick: (e) => { e.stopPropagation(); rowMenu(e.currentTarget, item, index); } }, icon('dots-three', 16));
       if (item.kind === 'section') {
-        return h('div', { class: 'osection', dataset: { id: item.id }, draggable: ctx.canEdit }, h('span', {}, item.title), more);
+        return h('div', { class: 'osection', dataset: { id: item.id }, draggable: editable }, h('span', {}, item.title), more);
       }
       n += 1;
       const isLive = index === liveIndex;
       return h('div', {
         class: `orow${isLive ? ' live' : ''}${liveIndex > index ? ' past' : ''}${item.id === selectedId ? ' selected' : ''}`,
-        dataset: { id: item.id }, draggable: ctx.canEdit, title: item.title,
+        dataset: { id: item.id }, draggable: editable, title: item.title,
         // Con el teclado se llega con Tab, e Intro o Espacio hacen lo mismo que un clic.
         role: 'button', tabindex: '0', 'aria-expanded': String(item.id === selectedId), 'aria-current': isLive ? 'true' : null,
         onkeydown: (e) => {
@@ -265,7 +312,7 @@ function mount(el, ctx) {
         onclick: () => (item.id === selectedId ? collapse() : select(item.id)),
         ondblclick: () => { if (item.id !== selectedId) select(item.id); show(item.id); },
       },
-      ctx.canEdit && h('span', { class: 'grip', 'aria-hidden': 'true' }, icon('dots-six-vertical', 16)),
+      editable && h('span', { class: 'grip', 'aria-hidden': 'true' }, icon('dots-six-vertical', 16)),
       h('span', { class: 'num' }, String(n)),
       kindBadge(item.kind),
       h('span', { class: 'item-text' }, h('strong', {}, item.title), h('small', {}, describe(item))),
@@ -280,59 +327,21 @@ function mount(el, ctx) {
       (part || row)?.focus({ preventScroll: true });
     }
     placeDetail();
-    renderMap();
-  }
-
-  // ---- Mapa del culto ----
-  // Una columna por elemento (sin secciones): su número y su tipo, cuántos pasos tiene y si ya pasó
-  // (marca cian) o está al aire (el paso, en rojo). Debajo, los pasos del elegido, para ir a uno.
-  function renderMap() {
-    const rows = content();
-    summary.textContent = rows.length ? `${rows.length} ${rows.length === 1 ? 'elemento' : 'elementos'} · ${rows.reduce((sum, i) => sum + (i.steps || 1), 0)} pasos` : '';
-    if (view !== 'mapa') return;
-    if (!rows.length) {
-      map.replaceChildren(h('div', { class: 'empty' }, h('strong', {}, 'El orden del culto está vacío'), 'Aquí se verá de un vistazo, con cuántos pasos tiene cada elemento y por dónde va.'));
-      return;
-    }
-    const at = rows.findIndex((i) => i.id === live?.orderId);
-    const focus = rows.find((i) => i.id === selectedId) || rows[at] || null;
-    const cells = (fn) => rows.map((item, i) => fn(item, i));
-    const grid = h('div', { class: 'omap-grid', style: `grid-template-columns: 64px repeat(${rows.length}, minmax(48px, 1fr)); min-width: ${64 + rows.length * 52}px` },
-      h('span', { class: 'omap-label' }, 'Elemento'),
-      ...cells((item, i) => h('button', {
-        class: `omap-item${i === at ? ' live' : ''}${item.id === focus?.id ? ' on' : ''}`, dataset: { id: item.id }, title: item.title, 'aria-label': `${i + 1}. ${item.title}`,
-        onclick: () => select(item.id), ondblclick: () => show(item.id),
-      }, kindBadge(item.kind), h('strong', {}, String(i + 1)))),
-      h('span', { class: 'omap-label' }, 'Pasos'),
-      ...cells((item) => h('span', { class: 'omap-cell' }, String(item.steps || 1))),
-      h('span', { class: 'omap-label' }, 'Hecho'),
-      ...cells((item, i) => (i < at ? h('span', { class: 'omap-cell omap-mark done', title: 'Ya pasó' }, icon('check', 14))
-        : i === at ? h('span', { class: 'omap-cell omap-mark' }, h('b', { title: 'Al aire' }, String((live.step ?? 0) + 1)))
-          : h('span', { class: 'omap-cell omap-mark' }, '·'))));
-    const now = focus && live?.orderId === focus.id ? (live.step ?? -1) : -1;
-    const steps = focus
-      ? h('div', { class: 'omap-steps' }, h('strong', {}, `Pasos de «${focus.title}»`),
-        h('div', { class: 'omap-cells' }, ...Array.from({ length: Math.min(focus.steps || 1, MAX_SLIDES) }, (_, k) => h('button', {
-          class: `step-cell${k === now ? ' on' : k < now ? ' done' : ''}`, 'aria-label': `Paso ${k + 1}`, onclick: () => show(focus.id, k),
-        }, String(k + 1)))),
-        h('p', { class: 'muted' }, 'Un toque elige un elemento; doble toque lo proyecta. Un paso lo proyecta desde ahí.'))
-      : h('p', { class: 'muted' }, 'Toca un elemento para ver sus pasos.');
-    const scroll = map.querySelector('.omap-scroll')?.scrollLeft || 0;
-    map.replaceChildren(h('div', { class: 'omap-scroll' }, grid), steps);
-    map.querySelector('.omap-scroll').scrollLeft = scroll;
   }
 
   function setView(id) {
     view = id;
-    prefs.set('orden.vista', id);
+    if (ctx.canEdit) prefs.set('orden.vista', id);
     viewTabs.forEach((b) => {
       b.classList.toggle('on', b.dataset.view === id);
       b.setAttribute('aria-selected', String(b.dataset.view === id));
     });
-    list.hidden = id !== 'lista';
-    map.hidden = id !== 'mapa';
+    list.hidden = id !== 'este';
+    browse.hidden = id === 'este';
+    summary.hidden = id !== 'este';
+    renderNote();
     placeDetail();
-    renderMap();
+    renderBrowse();
   }
 
   // ---- Detalle: los pasos del elemento seleccionado ----
@@ -340,7 +349,7 @@ function mount(el, ctx) {
   function placeDetail() {
     wide = el.clientWidth >= WIDE;
     const row = list.querySelector('.orow.selected');
-    side.hidden = !wide || view !== 'lista';
+    side.hidden = !wide || view !== 'este';
     detail.classList.toggle('inline', !wide);
     if (wide) side.replaceChildren(detail);
     else if (row) row.after(detail);
@@ -352,7 +361,6 @@ function mount(el, ctx) {
       r.classList.toggle('selected', r.dataset.id === selectedId);
       r.setAttribute('aria-expanded', String(r.dataset.id === selectedId));
     });
-    renderMap();
   };
 
   function collapse() {
@@ -426,7 +434,7 @@ function mount(el, ctx) {
   });
 
   function renderDetail(item) {
-    const shape = item && loaded && JSON.stringify([item.id, item.title, item.subtitle, item.steps, items.indexOf(item), items.length, live?.orderId === item.id, state.projection.styles]);
+    const shape = item && loaded && JSON.stringify([item.id, item.title, item.subtitle, item.steps, items.indexOf(item), items.length, live?.orderId === item.id, editable, state.projection.styles]);
     if (shape && shape === detailShape && loadedShown === loaded) {
       markLiveStep(item);
       return;
@@ -443,7 +451,7 @@ function mount(el, ctx) {
     const listenButton = ctx.listen && SOUNDS.has(item.kind) && h('button', { class: 'btn odetail-listen', 'aria-label': 'Escuchar en este dispositivo', onclick: () => listen(item) }, icon('speaker-high', 16), 'Escuchar');
     // En celular la fila no lleva el botón de opciones (el ancho es para el título): van aquí.
     const index = items.indexOf(item);
-    const tools = ctx.canEdit && h('div', { class: 'odetail-tools' },
+    const tools = editable && h('div', { class: 'odetail-tools' },
       h('button', { class: 'btn', onclick: () => rename(item) }, icon('pencil-simple', 16), 'Nombre'),
       h('button', { class: 'btn', disabled: index === 0, onclick: () => run('order.move', { id: item.id, toIndex: index - 1 }) }, icon('arrow-up', 16), 'Subir'),
       h('button', { class: 'btn', disabled: index === items.length - 1, onclick: () => run('order.move', { id: item.id, toIndex: index + 1 }) }, icon('arrow-down', 16), 'Bajar'),
@@ -495,7 +503,7 @@ function mount(el, ctx) {
       t.row.classList.add(t.after ? 'drop-after' : 'drop-before');
     });
     list.addEventListener('drop', (e) => {
-      const t = dragId && target(e);
+      const t = dragId && editable && target(e);
       clearMarks();
       if (!t) return;
       e.preventDefault();
@@ -511,12 +519,33 @@ function mount(el, ctx) {
     });
   }
 
+  // Bajo las pestañas: si lo que se ve no está en uso, o es de otra persona, se dice (y cómo resolverlo).
+  function renderNote() {
+    const inUse = state.order || {};
+    const parts = view !== 'este' || !ctx.canEdit ? null
+      : !viewing?.id ? ['No tienes ningún orden abierto. Lo que añadas va a uno nuevo, con el nombre del día.', h('button', { class: 'btn', onclick: () => setView('ordenes') }, 'Ver los órdenes')]
+        : !editable ? [`Este orden es de ${viewing.ownerName}: solo lo cambian ${viewing.ownerName} o el administrador.`, h('button', { class: 'btn', onclick: () => newOrder() }, icon('plus', 15), 'Nuevo orden')]
+          : !inUseHere ? [inUse.active ? `No está en uso: la cola del culto muestra «${inUse.name}».` : 'No está en uso: la cola del culto está vacía.', h('button', { class: 'btn', onclick: () => use(viewing) }, 'Usar este orden')]
+            : null;
+    note.hidden = !parts;
+    note.replaceChildren(...(parts ? [h('span', {}, parts[0]), parts[1]] : []));
+  }
+
   // ---- Estado compartido ----
-  subscribe('order', (o) => {
-    items = o.items;
-    orderName.textContent = o.name || 'Sin nombre';
-    if (ctx.canEdit) switcher.setAttribute('aria-label', `Órdenes guardados (en uso: ${orderName.textContent})`);
-    renderOrders();
+  // Con permiso de editar se ve el orden que esta persona tiene abierto (espacio `orders`, solo suyo); si no tiene
+  // ninguno, o sin permiso, el que está en uso.
+  function refresh() {
+    const inUse = state.order || {};
+    const mine = (ctx.canEdit && state.orders) || {};
+    const open = mine.editing && mine.list?.find((o) => o.id === mine.editing);
+    editable = Boolean(open);
+    viewing = open || (inUse.active ? { id: inUse.active, name: inUse.name, ownerName: inUse.owner } : null);
+    items = open ? mine.items : inUse.items || [];
+    inUseHere = Boolean(viewing?.id) && viewing.id === inUse.active;
+    orderName.textContent = viewing?.name || 'Ningún orden';
+    if (ctx.canEdit) switcher.setAttribute('aria-label', `Órdenes (abierto: ${orderName.textContent})`);
+    renderNote();
+    renderBrowse();
     if (!items.some((i) => i.id === selectedId)) selectedId = null;
     renderList();
     const first = selectedId || (!collapsed && (live?.orderId || content()[0]?.id));
@@ -524,7 +553,9 @@ function mount(el, ctx) {
     if (first && items.some((i) => i.id === first)) select(first, { reveal: !opened && first === live?.orderId && 'center' });
     else renderDetail(null);
     opened = true;
-  });
+  }
+  subscribe('order', refresh);
+  subscribe('orders', refresh);
 
   subscribe('projection', (p) => {
     const next = p.mode === 'live' ? p.item?.source : null;

@@ -163,15 +163,15 @@ Solo cuentan los Manna con el mismo nombre en la red (`manna.local`); abrir dos 
 - **En un televisor**: su navegador suele convertir la dirección en una página segura (`https`). Manna atiende de las dos formas; escribe la dirección completa, por ejemplo `192.168.1.14:8000/proyeccion` (está en **Dispositivos → ¿Es un televisor?**). Si el televisor muestra un aviso de seguridad, elige "Avanzado" y "Continuar": la página es tu propio equipo. Para pantalla completa, pulsa OK en su control.
 - Con dos Manna en la misma red, el segundo se llama `manna-2.local`.
 
-### Órdenes del culto guardados
+### Órdenes del culto
 
-Al abrir Manna, el orden del culto empieza vacío y **sin nombre**. Solo se guarda el que tiene nombre; el sin nombre se vacía al cerrar Manna (si Manna se reinicia, o se cortó y vuelve a abrirse antes de 15 minutos, conserva lo que tenía).
+Cada orden tiene **nombre, dueño y fecha** desde que se crea (la fecha es el día del culto). Cada persona ve y cambia solo los suyos; el **administrador** los ve, cambia y borra todos. El que está **en uso** es el de la cola del culto, que ven todos los que operan; solo lo cambian su dueño y el administrador. Al apagar Manna ninguno queda en uso (salvo si Manna se reinicia, o se cortó y vuelve a abrirse antes de 15 minutos); los órdenes quedan guardados.
 
-1. En **Orden**, junto al título, el nombre del orden en uso («Sin nombre») abre **Órdenes guardados**.
-2. **Guardar con un nombre** lo deja en la lista; el nombre que se propone es el día, la fecha y la hora («Sábado 18/10/26 19:30»). Sigue en uso, y cada cambio queda guardado solo.
-3. **Nuevo orden** empieza otro vacío (si el sin nombre tenía algo, avisa y ofrece guardarlo antes).
-4. **Usar** pone otro en uso: todos los dispositivos lo ven en la cola del culto, que muestra su nombre. Lo que está al aire sigue al aire. Si algo de ese orden ya no está en la biblioteca, se quita y se avisa.
-5. En el menú (⋯) de un orden guardado: **Cambiar el nombre**, **Duplicar** (para preparar el de la semana siguiente a partir de este) y **Eliminar**.
+1. **Orden** tiene tres pestañas: **Este orden** (el que tienes abierto: lo que añades desde la Biblia, el Himnario o Medios va ahí), **Órdenes** y **Favoritos**.
+2. **Órdenes** los muestra por semanas, de domingo a sábado: esta semana arriba y las anteriores debajo. **Nuevo orden** pide la fecha (hoy) y propone el nombre del día («Culto del sábado 1 de nov.»). Si añades algo sin tener ninguno abierto, va a uno nuevo con ese nombre.
+3. Tocar un orden lo abre en «Este orden». Si no está en uso, un aviso lo dice, con **Usar este orden**: todos los dispositivos lo ven en la cola del culto, que muestra su nombre. Lo que está al aire sigue al aire. Si algo de ese orden ya no está en la biblioteca, se quita y se avisa. Para proyectar desde un orden, tiene que estar en uso.
+4. La **estrella** marca los que se repiten (la Santa Cena, el culto de jóvenes): quedan en **Favoritos**. Se vuelven a usar tal cual, sin copias.
+5. En el menú (⋯) de un orden: **Cambiar el nombre o la fecha** y **Eliminar**.
 
 La función «Control del orden» ve el nombre del orden en uso, pero no cambia de orden.
 

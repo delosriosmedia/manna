@@ -157,3 +157,17 @@ test('al pasar a usuarios (fase 35), el PIN único de antes es el del administra
   assert.ok(!again.users.check(again.users.list()[0].id, '123456'));
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('las sesiones guardadas tienen un límite: al pasarlo se van las más viejas (fase 35)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-sesiones-'));
+  const list = Object.fromEntries(Array.from({ length: 505 }, (_, i) => [`s${i}`, { role: 'proyeccion', user: null, created: 1000 + i }]));
+  fs.writeFileSync(path.join(dir, 'sesiones.json'), JSON.stringify({ list }));
+  const storage = createStorage(dir);
+  const sessions = createSessions({ storage, roles: [{ id: 'proyeccion', permissions: [] }] });
+  sessions.open({ isLocal: false, internet: false, ip: '192.0.2.9', session: null, res: { setHeader() {} } }, { role: 'proyeccion' });
+  storage.flushAll();
+  const kept = Object.keys(JSON.parse(fs.readFileSync(path.join(dir, 'sesiones.json'), 'utf8')).list);
+  assert.equal(kept.length, 500);
+  assert.ok(!kept.includes('s0') && !kept.includes('s5') && kept.includes('s6') && kept.includes('s504'), 'se van las más viejas');
+  fs.rmSync(dir, { recursive: true, force: true });
+});

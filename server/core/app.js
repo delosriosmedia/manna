@@ -52,7 +52,7 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
   const sessions = createSessions({ storage, roles: ROLES });
   const BLOCKED = 'Este Manna no funciona mientras haya otro en la red: usa ese, o apágalo y pulsa «Volver a comprobar».';
   const router = createRouter({ webDir: path.join(rootDir, 'web'), sessions, refuse: () => (app.blocked ? BLOCKED : null) });
-  const realtime = createRealtime({ store, router });
+  const realtime = createRealtime({ store, router, sessions });
   const jobs = createJobs({ store });
   const actions = new Map();
   const kinds = new Map();
@@ -142,7 +142,7 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
     return { result: (await def.handler(payload || {}, ctx)) ?? null };
   });
 
-  router.route('GET', '/api/state', () => store.snapshot());
+  router.route('GET', '/api/state', (ctx) => store.snapshotFor(ctx.session));
 
   let server;
   const extraServers = [];

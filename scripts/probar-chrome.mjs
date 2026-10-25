@@ -1036,27 +1036,6 @@ try {
     for (const id of [one, next, three]) await run(`await ${post('order.remove', { id })}`);
   }
 
-  console.log('\n1. Interfaz · Orden: Mapa del culto');
-  {
-    const om = `document.querySelector('.ws[data-module=orden]')`;
-    const col = (title) => `[...${om}.querySelectorAll('.omap-item')].find(c => c.title.includes(${JSON.stringify(title)}))`;
-    await run(`await ${post('order.show', { id: 'ID' })}`.replace('"ID"', JSON.stringify(juan)));
-    await goTo('orden');
-    await sleep(500);
-    await click(`${om}.querySelector('[data-view=mapa]')`);
-    await sleep(300);
-    const content = (await live()).order.length - 2;
-    check('el Mapa del culto pone una columna por elemento (sin secciones) y marca la que está al aire', await run(`return !${om}.querySelector('.omap').hidden && ${om}.querySelector('.olist').hidden && ${om}.querySelectorAll('.omap-item').length === ${content} && ${om}.querySelector('.omap-item.live').title === 'Juan 3:19' && /^${content} elementos · \\d+ pasos$/.test(${om}.querySelector('.order-bar small').textContent)`));
-    await tapEl(col('Salmos 23'));
-    check('un toque en una columna enseña sus pasos, sin proyectar', await run(`return ${col('Salmos 23')}.classList.contains('on') && ${om}.querySelector('.omap-steps strong').textContent.startsWith('Pasos de «Salmos 23') && ${om}.querySelectorAll('.omap-cells .step-cell').length === 3`) && (await live()).ref === 'Juan 3:19');
-    await tapEl(`${om}.querySelector('.omap-cells .step-cell[aria-label="Paso 2"]')`);
-    check('un paso del mapa lo proyecta, y lo anterior queda marcado como hecho', (await live()).ref === 'Salmos 23:2' && await run(`return ${col('Salmos 23')}.classList.contains('live') && ${om}.querySelectorAll('.omap-mark.done').length === 1 && ${om}.querySelector('.omap-mark b').textContent === '2'`));
-    await tapEl(col('Juan 3:19'), 2);
-    check('doble toque en una columna la proyecta', (await live()).ref === 'Juan 3:19');
-    await click(`${om}.querySelector('[data-view=lista]')`);
-    check('y «Lista» vuelve a la lista', await run(`return !${om}.querySelector('.olist').hidden && ${om}.querySelector('.omap').hidden`));
-  }
-
   }
 
   // ---- Grupo «biblioteca» (1): imágenes, videos y audios ----
@@ -3366,7 +3345,8 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     await run(`return await ${post('order.add', { kind: 'song', data: { number: 5, track: 'vocal' } })}`);
     await goTo('orden');
     await sleep(1000);
-    await click(`[...document.querySelectorAll('.olist .orow')].find((r) => r.textContent.includes(${JSON.stringify(hymnTitle(5))}))`);
+    // Es su orden (el de Rut), con el himno solo: el cajón ya lo abre, y otro toque lo recogería.
+    await run(`const r = [...document.querySelectorAll('.olist .orow')].find((x) => x.textContent.includes(${JSON.stringify(hymnTitle(5))})); if (r.getAttribute('aria-expanded') !== 'true') r.click();`);
     await sleep(800);
     await tapEl(`document.querySelector('.odetail [aria-label="Escuchar en este dispositivo"]')`);
     await sleep(1200);
@@ -3481,146 +3461,113 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await chrome.send('Page.navigate', { url: `${local}/control?fin=${Date.now()}#orden` });
   await sleep(2500);
 
-  // ---- Órdenes guardados (fase 23): el servidor acaba de arrancar de nuevo (sin apagarse), así que el orden sin nombre empieza vacío ----
-  console.log('\n5. Órdenes guardados');
+  // ---- Órdenes (fases 23 y 35): cada uno con nombre, dueño y fecha; el cajón los lleva por semanas ----
+  console.log('\n5. Órdenes');
   {
-    const sw = `document.querySelector('.ws[data-module=orden] .order-switch')`;
+    const ws = `document.querySelector('.ws[data-module=orden]')`;
+    const sw = `${ws}.querySelector('.order-switch')`;
+    const note = `${ws}.querySelector('.order-note')`;
     const queueName = `document.querySelector('.queue-head .queue-name')`;
     const other = `document.querySelector('#otro').contentDocument`;
-    const orderNow = () => run(`const o = (await (await fetch('/api/state')).json()).order; return JSON.stringify({ name: o.name, active: o.active, draft: o.draft, items: o.items.length, saved: o.saved.map((s) => s.name + ':' + s.count) })`).then(JSON.parse);
     const topModal = `[...document.querySelectorAll('.modal')].at(-1)`;
-    const rowOf = (name) => `[...document.querySelectorAll('.order-saved')].find((r) => r.querySelector('strong').textContent === ${JSON.stringify(name)})`;
-    const rowBtn = (name, label) => click(`[...${rowOf(name)}.querySelectorAll('.btn')].find((b) => b.textContent.trim() === ${JSON.stringify(label)})`);
+    const tab = (id) => click(`${ws}.querySelector('[data-view=${id}]')`);
+    const rowOf = (name) => `[...${ws}.querySelectorAll('.order-saved')].find((r) => r.querySelector('strong').textContent === ${JSON.stringify(name)})`;
+    const rowMenu = async (name, label) => { await click(`${rowOf(name)}.querySelector('[aria-label^="Opciones de"]')`); await sleep(300); await menuItem(label); await sleep(400); };
     const inTop = (label) => click(`[...${topModal}.querySelectorAll('.btn')].find((b) => b.textContent.trim() === ${JSON.stringify(label)})`);
-    const rowMenu = async (name, label) => { await click(`${rowOf(name)}.querySelector('.icon-btn')`); await sleep(300); await menuItem(label); await sleep(400); };
-    const typeName = (value) => run(`${topModal}.querySelector('input').value = ${JSON.stringify(value)};`);
-    const addCards = async (n) => { for (let i = 0; i < n; i += 1) await run(`return await ${post('order.add', { kind: 'testcard', data: {} })}`); await sleep(400); };
-    // El nombre que propone «Guardar con un nombre»: «Sábado 18/10/26 19:30».
-    const two = (n) => String(n).padStart(2, '0');
-    const stamp = (d) => `${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][d.getDay()]} ${two(d.getDate())}/${two(d.getMonth() + 1)}/${two(d.getFullYear() % 100)} ${two(d.getHours())}:${two(d.getMinutes())}`;
+    const field = (label, value) => run(`const i = ${topModal}.querySelector('input[aria-label=${label}]'); i.value = ${JSON.stringify(value)}; i.dispatchEvent(new Event('input'));`);
+    const stateNow = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ name: s.order.name, active: s.order.active, items: s.order.items.length, editing: s.orders.editing, list: s.orders.list.map((o) => o.name + ':' + o.count + ':' + o.date + (o.favorite ? ':★' : '')) })`).then(JSON.parse);
+    const names = (expected) => run(`return ${queueName}.textContent === ${JSON.stringify(expected)} && ${other}.querySelector('.queue-head .queue-name').textContent === ${JSON.stringify(expected)}`);
+    const day = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const today = day(new Date());
+    // El nombre que propone «Nuevo orden»: el del día («Culto del sábado 1 de nov.»).
+    const proposal = `Culto del ${['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'][new Date().getDay()]} ${new Date().getDate()} de ${['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sept.', 'oct.', 'nov.', 'dic.'][new Date().getMonth()]}`;
+    // Uno en uso al empezar, para ver que lo nuevo no lo cambia.
+    const first = await run(`const r = await fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'order.create', payload: { name: 'Culto de la mañana' } }) }); return (await r.json()).result.id`);
+    await run(`return await ${post('order.use', { id: 'ID' })}`.replace('"ID"', JSON.stringify(first)));
+    await run(`return await ${post('order.add', { kind: 'testcard', data: {} })}`);
     // Otra pestaña de control (otro dispositivo): su cola tiene que cambiar con la del primero.
     await run(`const f = document.createElement('iframe'); f.id = 'otro'; f.src = '/control#orden'; f.style.cssText = 'position:fixed;left:0;bottom:0;width:1100px;height:600px;z-index:99;border:0;visibility:hidden;pointer-events:none'; document.body.append(f);`);
     await until(`document.querySelector('#otro').contentDocument.querySelector('.queue-head')`, 30);
-    await sleep(500);
-    const names = (expected) => run(`return ${queueName}.textContent === ${JSON.stringify(expected)} && ${other}.querySelector('.queue-head .queue-name').textContent === ${JSON.stringify(expected)} && ${sw}.textContent.trim() === ${JSON.stringify(expected || 'Sin nombre')}`);
-    const hidden = () => run(`return ${queueName}.getClientRects().length === 0 && getComputedStyle(${other}.querySelector('.queue-head .queue-name')).display === 'none'`);
-    let now = await orderNow();
-    check('al empezar, el orden sin nombre está en uso: la cabecera lo dice y la cola no muestra ningún nombre, en las dos pestañas', now.active === null && now.saved.length === 0 && await run(`return ${sw}.tagName === 'BUTTON'`) && await names('') && await hidden(), JSON.stringify(now));
-    await addCards(2);
-    await run(`return await ${post('order.addSection', { title: 'Mensaje' })}`);
-    await sleep(300);
-    await click(sw);
-    await sleep(500);
-    check('el botón de la cabecera abre «Órdenes guardados»: el sin nombre, en uso, con los elementos que tiene y «Guardar con un nombre»', await run(`const r = ${rowOf('Sin nombre')}; return ${topModal}.querySelector('h2').textContent === 'Órdenes guardados' && document.querySelectorAll('.order-saved').length === 1 && r.dataset.id === '' && r.classList.contains('on') && r.querySelector('.badge').textContent === 'En uso' && r.querySelector('small').textContent === '2 elementos · se vacía al cerrar Manna' && [...r.querySelectorAll('.btn')].map((b) => b.textContent.trim()).join() === 'Guardar con un nombre' && !r.querySelector('.icon-btn')`));
-    const askedAt = [stamp(new Date())];
-    await rowBtn('Sin nombre', 'Guardar con un nombre');
-    await sleep(400);
-    askedAt.push(stamp(new Date()));
-    const proposal = await run(`return ${topModal}.querySelector('input').value`);
-    check('propone un nombre con el día, la fecha y la hora («Sábado 18/10/26 19:30»)', /^(Domingo|Lunes|Martes|Miércoles|Jueves|Viernes|Sábado) \d\d\/\d\d\/\d\d \d\d:\d\d$/.test(proposal) && askedAt.includes(proposal), `${proposal} · ${askedAt.join(' / ')}`);
-    await modalButton('Guardar');
-    await sleep(700);
-    now = await orderNow();
-    check('«Guardar» deja el orden con ese nombre, sigue en uso y lo ven las dos pestañas (cabecera y cola)', now.name === proposal && Boolean(now.active) && now.draft === 0 && now.items === 3 && now.saved.join() === `${proposal}:2` && await names(proposal), JSON.stringify(now));
-    check('en la lista, el guardado queda en uso (con ⋯) y el sin nombre vuelve a estar vacío y con «Usar»', await run(`const a = ${rowOf(proposal)}; const d = ${rowOf('Sin nombre')}; return a.classList.contains('on') && a.querySelector('.badge').textContent === 'En uso' && Boolean(a.querySelector('.icon-btn')) && ![...a.querySelectorAll('.btn')].some((b) => b.textContent.trim() === 'Usar') && !d.classList.contains('on') && [...d.querySelectorAll('.btn')].map((b) => b.textContent.trim()).join() === 'Usar' && d.querySelector('small').textContent.startsWith('0 elementos')`));
-    const first = proposal;
-
-    // Nuevo orden, con el guardado en uso: no se pierde nada.
-    await modalButton('Nuevo orden');
-    await sleep(400);
-    check('«Nuevo orden» con un guardado en uso dice que queda guardado y no habla de vaciar nada', await run(`const t = ${topModal}.querySelector('p').textContent; return ${topModal}.querySelector('h2').textContent === 'Nuevo orden' && t.includes('«${first}» queda guardado') && !t.includes('se vaciará') && [...${topModal}.querySelectorAll('.btn')].map((b) => b.textContent.trim()).join() === 'Cancelar,Empezar uno nuevo'`));
-    await inTop('Empezar uno nuevo');
+    await goTo('orden');
     await sleep(600);
-    now = await orderNow();
-    check('«Empezar uno nuevo» pone en uso el sin nombre, vacío, y el guardado sigue ahí; la cola de la otra pestaña también se vacía', now.active === null && now.items === 0 && now.saved.join() === `${first}:2` && await names('') && await hidden(), JSON.stringify(now));
+    check('el cajón trae «Este orden», «Órdenes» y «Favoritos», y ya no el Mapa del culto', await run(`return [...${ws}.querySelectorAll('.order-bar [role=tab]')].map((b) => b.textContent).join() === 'Este orden,Órdenes,Favoritos' && !${ws}.querySelector('.omap, [data-view=mapa]')`));
+    await tab('ordenes');
+    await sleep(400);
+    check('«Órdenes» los agrupa por semana, con esta semana arriba, y marca el que está en uso', await run(`const w = ${ws}.querySelector('.orders-week'); return w.querySelector('h3').textContent.startsWith('Esta semana · ') && ${rowOf('Culto de la mañana')}.classList.contains('on') && ${rowOf('Culto de la mañana')}.querySelector('.badge').textContent === 'En uso'`));
 
-    // Nuevo orden, con elementos en el sin nombre: «Guardarlo antes».
-    await addCards(2);
-    await modalButton('Nuevo orden');
+    // Nuevo orden: fecha de hoy y el nombre del día propuesto; queda abierto, pero no cambia la cola.
+    await click(`${ws}.querySelector('.obrowse-head .btn')`);
     await sleep(400);
-    check('«Nuevo orden» con elementos sin guardar avisa de que se vaciarán y ofrece «Guardarlo antes»', await run(`const t = ${topModal}.querySelector('p').textContent; return t.includes('tiene 2 elementos y se vaciará') && [...${topModal}.querySelectorAll('.btn')].map((b) => b.textContent.trim()).join() === 'Cancelar,Guardarlo antes,Vaciarlo y empezar'`));
-    await inTop('Guardarlo antes');
-    await sleep(400);
-    await typeName('Culto de la tarde');
-    await modalButton('Guardar');
+    check('«Nuevo orden» pide la fecha (hoy) y propone el nombre del día', await run(`const m = ${topModal}; return m.querySelector('h2').textContent === 'Nuevo orden' && m.querySelector('input[type=date]').value === ${JSON.stringify(today)} && m.querySelector('input[aria-label=Nombre]').placeholder === ${JSON.stringify(proposal)}`), proposal);
+    await field('Nombre', 'Culto de prueba');
+    await inTop('Crear');
     await sleep(800);
-    now = await orderNow();
-    check('«Guardarlo antes» lo guarda con el nombre que se escriba y empieza uno nuevo, vacío', now.active === null && now.items === 0 && now.draft === 0 && now.saved.join() === `${first}:2,Culto de la tarde:2` && await names(''), JSON.stringify(now));
-    await addCards(1);
-    await modalButton('Nuevo orden');
+    let now = await stateNow();
+    check('lo crea y lo abre en «Este orden»; la cola sigue con el que estaba en uso, y lo dice', now.name === 'Culto de la mañana' && now.list.includes(`Culto de prueba:0:${today}`) && await run(`return ${ws}.querySelector('[data-view=este]').classList.contains('on') && ${sw}.textContent.trim() === 'Culto de prueba' && !${note}.hidden && ${note}.textContent.includes('No está en uso: la cola del culto muestra «Culto de la mañana»')`) && await names('Culto de la mañana'), JSON.stringify(now));
+    for (let i = 0; i < 2; i += 1) await run(`return await ${post('order.add', { kind: 'testcard', data: {} })}`);
+    await sleep(500);
+    now = await stateNow();
+    check('lo que se añade va al orden abierto, no al que está en uso', now.items === 1 && now.list.includes(`Culto de prueba:2:${today}`) && await run(`return ${ws}.querySelectorAll('.olist .orow').length === 2`), JSON.stringify(now));
+    await click(`${note}.querySelector('.btn')`);
     await sleep(400);
-    await inTop('Vaciarlo y empezar');
-    await sleep(600);
-    now = await orderNow();
-    check('«Vaciarlo y empezar» deja el sin nombre vacío sin tocar los guardados', now.active === null && now.items === 0 && now.draft === 0 && now.saved.length === 2, JSON.stringify(now));
-    await modalButton('Nuevo orden');
-    await sleep(400);
-    check('y con el sin nombre ya vacío, «Nuevo orden» solo lo dice, sin pedir nada', (await text('#toast')).includes('Ya estás en un orden nuevo') && await run(`return document.querySelectorAll('.modal').length === 1`), await text('#toast'));
-
-    // Usar otro orden: pide confirmación, y la cola de las dos pestañas cambia y muestra su nombre.
-    await rowBtn(first, 'Usar');
-    await sleep(400);
-    check('«Usar» pide confirmación y dice qué cambia para todos', await run(`const t = ${topModal}.querySelector('p').textContent; return ${topModal}.querySelector('h2').textContent === 'Cambiar de orden' && t.includes('«${first}»') && t.includes('Todos los dispositivos')`));
+    check('«Usar este orden» pide confirmación y dice qué cambia para todos', await run(`const t = ${topModal}.querySelector('p').textContent; return ${topModal}.querySelector('h2').textContent === 'Cambiar de orden' && t.includes('«Culto de prueba»') && t.includes('Todos los dispositivos')`));
     await inTop('Cancelar');
     await sleep(300);
-    check('«Cancelar» no cambia nada', (await orderNow()).active === null && await run(`return document.querySelectorAll('.modal').length === 1`));
-    await rowBtn(first, 'Usar');
+    check('«Cancelar» no cambia nada', (await stateNow()).name === 'Culto de la mañana');
+    await click(`${note}.querySelector('.btn')`);
     await sleep(400);
     await inTop('Usar este orden');
-    await sleep(700);
-    now = await orderNow();
-    check('«Usar este orden» lo pone en la cola de las dos pestañas, con su nombre y sus elementos', now.name === first && now.items === 3 && await names(first) && await run(`return !(${queueName}.getClientRects().length === 0) && ${rowOf(first)}.classList.contains('on')`), JSON.stringify(now));
-    await rowBtn('Sin nombre', 'Usar');
-    await sleep(400);
-    check('«Usar» el sin nombre lo dice así', await run(`return ${topModal}.querySelector('p').textContent.includes('el orden sin nombre')`));
-    await inTop('Usar este orden');
-    await sleep(700);
-    now = await orderNow();
-    check('y la cola vuelve al sin nombre: sin nombre y vacía, en las dos pestañas', now.active === null && now.items === 0 && await names('') && await hidden(), JSON.stringify(now));
+    await sleep(800);
+    check('al usarlo, la cola de las dos pestañas lo muestra, con su nombre, y el aviso se va', (await stateNow()).name === 'Culto de prueba' && await names('Culto de prueba') && await run(`return ${note}.hidden`));
 
-    // Cambiar el nombre y duplicar.
-    await rowMenu('Culto de la tarde', 'Cambiar el nombre');
-    check('«Cambiar el nombre» propone el nombre de ahora', await run(`return ${topModal}.querySelector('h2').textContent === 'Cambiar el nombre' && ${topModal}.querySelector('input').value === 'Culto de la tarde'`));
-    await typeName('Culto vespertino');
-    await modalButton('Guardar');
-    await sleep(700);
-    now = await orderNow();
-    check('el nombre cambia en la lista y en el servidor', now.saved.join() === `${first}:2,Culto vespertino:2` && await run(`return Boolean(${rowOf('Culto vespertino')}) && !${rowOf('Culto de la tarde')}`), JSON.stringify(now));
-    await rowMenu(first, 'Duplicar');
-    check('«Duplicar» propone «nombre (copia)»', await run(`return ${topModal}.querySelector('h2').textContent === 'Duplicar el orden' && ${topModal}.querySelector('input').value === ${JSON.stringify(`${first} (copia)`)}`));
-    await modalButton('Guardar');
-    await sleep(700);
-    now = await orderNow();
-    check('la copia queda guardada con sus elementos y no se pone en uso', now.saved.join() === `${first}:2,Culto vespertino:2,${first} (copia):2` && now.active === null && await run(`return Boolean(${rowOf(`${first} (copia)`)}) && !${rowOf(`${first} (copia)`)}.classList.contains('on')`), JSON.stringify(now));
-
-    // Eliminar el que está en uso: la cola pasa al sin nombre.
-    await rowBtn(`${first} (copia)`, 'Usar');
+    // Favoritos y cambiar el nombre o la fecha.
+    await tab('ordenes');
     await sleep(400);
-    await inTop('Usar este orden');
+    await click(`${rowOf('Culto de prueba')}.querySelector('.order-star')`);
+    await sleep(500);
+    check('la estrella lo marca como favorito', (await stateNow()).list.includes(`Culto de prueba:2:${today}:★`) && await run(`return ${rowOf('Culto de prueba')}.querySelector('.order-star').getAttribute('aria-pressed') === 'true'`));
+    await tab('favoritos');
+    await sleep(300);
+    check('«Favoritos» solo trae los marcados', await run(`return [...${ws}.querySelectorAll('.order-saved strong')].map((s) => s.textContent).join() === 'Culto de prueba'`));
+    const week = new Date();
+    week.setDate(week.getDate() - 7);
+    await rowMenu('Culto de prueba', 'Cambiar el nombre o la fecha');
+    check('«Cambiar el nombre o la fecha» trae los de ahora', await run(`const m = ${topModal}; return m.querySelector('input[aria-label=Nombre]').value === 'Culto de prueba' && m.querySelector('input[type=date]').value === ${JSON.stringify(today)}`));
+    await field('Nombre', 'Culto vespertino');
+    await field('Fecha', day(week));
+    await inTop('Guardar');
     await sleep(700);
-    await rowMenu(`${first} (copia)`, 'Eliminar');
-    check('«Eliminar» pide confirmación y, si está en uso, avisa de que la cola pasa al sin nombre', await run(`const t = ${topModal}.querySelector('p').textContent; return ${topModal}.querySelector('h2').textContent === 'Eliminar el orden' && t.includes('Como está en uso') && t.includes('orden sin nombre')`));
+    await tab('ordenes');
+    await sleep(400);
+    check('el nombre cambia, y con la fecha pasa a «La semana pasada»', (await stateNow()).list.includes(`Culto vespertino:2:${day(week)}:★`) && await run(`const w = ${rowOf('Culto vespertino')}.closest('.orders-week'); return w.querySelector('h3').textContent.startsWith('La semana pasada · ') && w !== ${ws}.querySelector('.orders-week')`) && await names('Culto vespertino'));
+
+    // Abrir otro desde la lista.
+    await click(`${rowOf('Culto de la mañana')}.querySelector('.order-open')`);
+    await sleep(700);
+    check('tocar un orden lo abre en «Este orden», sin cambiar la cola', (await stateNow()).editing === first && await run(`return ${ws}.querySelector('[data-view=este]').classList.contains('on') && ${sw}.textContent.trim() === 'Culto de la mañana' && ${ws}.querySelectorAll('.olist .orow').length === 1 && !${note}.hidden`) && await names('Culto vespertino'));
+
+    // Eliminar el que está en uso: la cola queda vacía.
+    await tab('ordenes');
+    await sleep(300);
+    await rowMenu('Culto vespertino', 'Eliminar');
+    check('«Eliminar» pide confirmación y, si está en uso, avisa de que la cola queda vacía', await run(`const t = ${topModal}.querySelector('p').textContent; return ${topModal}.querySelector('h2').textContent === 'Eliminar el orden' && t.includes('Como está en uso, la cola del culto queda vacía')`));
     await inTop('Eliminar');
     await sleep(700);
-    now = await orderNow();
-    check('al eliminar el que estaba en uso, la cola pasa al sin nombre (en las dos pestañas) y los demás siguen guardados', now.active === null && now.items === 0 && now.saved.join() === `${first}:2,Culto vespertino:2` && await names('') && await hidden() && await run(`return !${rowOf(`${first} (copia)`)} && ${rowOf('Sin nombre')}.classList.contains('on')`), JSON.stringify(now));
-    await click(`document.querySelector('.modal-header .icon-btn')`);
-    await sleep(300);
+    now = await stateNow();
+    check('al eliminarlo, la cola de las dos pestañas queda vacía y los demás siguen', now.active === null && now.items === 0 && !now.list.some((o) => o.startsWith('Culto vespertino')) && now.list.some((o) => o.startsWith('Culto de la mañana')) && await run(`return ${queueName}.getClientRects().length === 0 && !${rowOf('Culto vespertino')}`), JSON.stringify(now));
     await run(`document.querySelector('#otro').remove()`);
 
-    // Sin permiso de editar («Control del orden») solo se ve el nombre del orden en uso.
-    const vesperId = await run(`return (await (await fetch('/api/state')).json()).order.saved.find((o) => o.name === 'Culto vespertino').id`);
-    await run(`return await ${post('order.use', { id: vesperId })}`);
+    // Sin permiso de editar («Control del orden») solo se ve el nombre del orden en uso, sin pestañas.
+    await run(`return await ${post('order.use', { id: 'ID' })}`.replace('"ID"', JSON.stringify(first)));
     await chrome.send('Page.navigate', { url: `${local}/orden?x=${Date.now()}#orden` });
     await sleep(2500);
-    check('en «Control del orden» no hay botón ni ventana: solo se ve el nombre del orden en uso', await run(`const e = document.querySelector('.order-switch'); e.click(); return e.tagName === 'SPAN' && e.textContent.trim() === 'Culto vespertino' && !document.querySelector('button.order-switch') && !document.querySelector('.modal')`));
+    check('en «Control del orden» no hay botón ni pestañas: solo se ve el nombre del orden en uso', await run(`const e = document.querySelector('.order-switch'); e.click(); return e.tagName === 'SPAN' && e.textContent.trim() === 'Culto de la mañana' && !document.querySelector('button.order-switch, .order-bar [role=tab]') && !document.querySelector('.modal')`));
     await chrome.send('Page.navigate', { url: `${local}/control?fin2=${Date.now()}#orden` });
     await sleep(2500);
   }
   console.log('\n5. Orden del culto: secciones, quitar y vaciar');
   const ord = `document.querySelector('.ws[data-module=orden]')`;
   const orderRows = () => run(`return ${ord}.querySelectorAll('.orow').length`);
-  await run(`return await ${post('order.use', {})}`);
   await run(`return await ${post('order.clear', {})}`);
   for (let i = 0; i < 2; i += 1) await run(`return await ${post('order.add', { kind: 'testcard', data: {} })}`);
   await sleep(500);

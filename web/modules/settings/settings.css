@@ -73,7 +73,7 @@ html.touch .disk-gap { width: var(--tap); }
 .user-row .item-text strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .user-row .item-text small { color: var(--ink-3); font-size: 12px; }
 .user-row .icon-btn[aria-label^="Quitar"]:not(:disabled):hover { color: var(--live-ink); }
-.user-form { display: grid; gap: 12px; min-width: min(360px, 80vw); }
+.user-form { display: grid; gap: 12px; }
 .user-field { display: grid; gap: 6px; }
 .user-field > span:first-child, .user-functions legend { color: var(--ink-3); font-size: 12px; font-weight: 600; }
 .user-functions { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }

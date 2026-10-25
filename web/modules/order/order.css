@@ -5,18 +5,33 @@
 .oside { min-height: 0; overflow-y: auto; border-left: 1px solid var(--line); }
 .order-bar { display: flex; align-items: center; gap: 6px; padding: 8px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
 .order-bar small { margin-left: auto; color: var(--ink-3); font-size: 12px; white-space: nowrap; }
-/* El orden en uso, junto al título: abre «Órdenes guardados» (fase 23). */
+/* El orden que se ve, junto al título: lleva a «Órdenes» (fases 23 y 35). */
 .order-switch { min-width: 0; max-width: 300px; }
 .order-switch > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 span.order-switch { color: var(--ink-3); }
 .orders { display: grid; gap: 8px; }
 .order-saved { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-lg); }
 .order-saved.on { border-color: var(--accent); background: var(--accent-soft); }
-.order-saved .item-text { flex: 1 1 180px; min-width: 0; display: grid; gap: 1px; }
+.order-saved.open { box-shadow: inset 3px 0 0 var(--accent); }
+.order-open { flex: 1 1 180px; min-width: 0; min-height: var(--control); display: flex; align-items: center; text-align: left; }
+.order-saved .item-text { flex: 1; min-width: 0; display: grid; gap: 1px; }
 .order-saved .item-text strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .order-saved .item-text small { color: var(--ink-3); font-size: 12px; }
 .order-saved .badge { background: var(--accent); color: var(--on-accent); }
-.orders-note { margin: 12px 0; font-size: 12px; }
+.order-star { color: var(--ink-3); }
+.order-star.on { color: var(--accent); }
+/* Bajo las pestañas, el aviso de que lo que se ve no está en uso o es de otra persona (fase 35). */
+.order-note { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 8px 20px 0; padding: 8px 12px; border-radius: var(--r); background: var(--accent-soft); color: var(--ink-2); font-size: 13px; flex-shrink: 0; }
+.order-note[hidden] { display: none; }
+.order-note > span { flex: 1 1 220px; min-width: 0; }
+/* «Órdenes» (por semanas, la más nueva arriba) y «Favoritos». */
+.obrowse { grid-column: 1 / -1; min-height: 0; overflow-y: auto; padding: 12px 20px 24px; }
+.obrowse-head { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.orders-week { margin-bottom: 18px; }
+.orders-week h3 { margin: 0 0 8px; color: var(--ink-3); font-size: 12px; font-weight: 600; }
+.order-form { display: grid; gap: 12px; margin-bottom: 12px; }
+.order-field { display: grid; gap: 6px; }
+.order-field > span { color: var(--ink-3); font-size: 12px; font-weight: 600; }
 /* La cabecera va en una fila (con ampliar y cerrar): con el cajón de menos de 800 px, el selector del orden ocupa el
    sitio del nombre del módulo; con menos de 600, la cita rápida baja a otra fila. */
 .ws[data-module='orden'] .ws-head { flex-wrap: wrap; }
@@ -37,22 +52,6 @@ span.order-switch { color: var(--ink-3); }
   .order-add span { display: none; }
 }
 
-/* Mapa del culto: una columna por elemento; se desliza de lado si no caben. */
-.omap { grid-column: 1 / -1; min-height: 0; overflow-y: auto; padding: 14px 20px 24px; }
-.omap-scroll { overflow-x: auto; padding-bottom: 6px; }
-.omap-grid { display: grid; gap: 4px; }
-.omap-label { align-self: center; color: var(--ink-3); font-size: 11px; }
-.omap-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; border-radius: var(--r); border: 1px solid var(--line); background: var(--s1); }
-.omap-item:hover { border-color: var(--line-2); }
-.omap-item.on { border-color: var(--accent); background: var(--accent-soft); }
-.omap-item.live { border-color: var(--live); background: var(--live-soft); }
-.omap-item strong { font: 600 12px var(--mono); }
-.omap-cell { display: grid; place-items: center; min-height: 34px; font: 600 13px var(--mono); }
-.omap-mark { color: var(--ink-4); }
-.omap-mark.done { color: var(--accent); }
-.omap-mark b { display: grid; place-items: center; min-width: 28px; height: 28px; border-radius: var(--r-sm); background: var(--live-strong); color: var(--on-live); }
-.omap-steps { display: grid; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
-.omap-cells { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .osection { display: flex; align-items: center; gap: 10px; padding: 14px 6px 6px 10px; min-height: 40px; color: var(--ink-3); font-size: 12px; font-weight: 500; }
 .osection > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -97,13 +96,14 @@ span.order-switch { color: var(--ink-3); }
 @container cajon (max-width: 999px) {
   .order-grid { display: block; overflow-y: auto; }
   .olist { overflow: visible; padding: 8px 12px 24px; }
-  .omap { overflow: visible; }
+  .obrowse { overflow: visible; }
 }
 /* Cajón estrecho (el de 440 px, el del celular). */
 @container cajon (max-width: 599px) {
   .olist { padding: 4px 8px 20px; }
   .order-bar { padding: 8px 12px; }
-  .omap { padding: 12px 12px 20px; }
+  .order-note { margin: 8px 12px 0; }
+  .obrowse { padding: 12px 12px 20px; }
   .orow { padding: 10px 4px 10px 6px; gap: 8px; }
   .orow .grip, .orow > .icon-btn[aria-label='Opciones'] { display: none; }
   .odetail.inline .odetail-tools { display: flex; }
@@ -114,9 +114,9 @@ span.order-switch { color: var(--ink-3); }
   .slides { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
 }
 
-/* Cajón reducido del celular: solo la lista para pasar el culto. La cita rápida, «Añadir», el menú y el Mapa del
-   culto, al ampliarlo. */
-.compact .ws[data-module='orden'] .ws-head, .compact .ws[data-module='orden'] .order-bar, .compact .ws[data-module='orden'] .omap { display: none; }
+/* Cajón reducido del celular: solo la lista para pasar el culto. La cita rápida, «Añadir», el menú y los órdenes,
+   al ampliarlo. */
+.compact .ws[data-module='orden'] .ws-head, .compact .ws[data-module='orden'] .order-bar, .compact .ws[data-module='orden'] .obrowse { display: none; }
 .compact .ws[data-module='orden'] .olist[hidden] { display: block; }
 .compact .ws[data-module='orden'] .odetail.inline .odetail-tools { display: none; }
 
