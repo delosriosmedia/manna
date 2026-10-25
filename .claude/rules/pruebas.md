@@ -79,6 +79,10 @@ Además de sus comprobaciones, `scripts/probar-chrome.mjs` vigila toda la sesió
 
 **Regla**: una orden o un botón nuevos no están hechos hasta que la prueba en Chrome los pulsa. Probar la ruta por HTTP no basta: el fallo del fondo estaba en la pantalla, no en el servidor.
 
+## En un Windows de pruebas
+
+Si hay un Windows de pruebas por SSH (ver `CLAUDE.local.md`), lo que solo pasa en Windows (PowerPoint, el reconocimiento de texto, el instalador, DeckCraft) se prueba allí: en carpetas temporales (`MANNA_DATA`, `MANNA_BASE`, `MANNA_DOCUMENTOS`, `MANNA_DESTINO`), con `MANNA_SIN_VENTANA=1` y `MANNA_NO_OPEN=1`, y al terminar se cierran sus procesos y se borra todo. Por SSH no hay escritorio: ventanas, pantallas y sonido no se pueden probar así.
+
 ## Honestidad al informar
 
 Decir explícitamente qué se probó y qué no. Lo que no se pueda probar en el equipo de desarrollo (segunda pantalla, Windows, celular real) se anota en la tabla "Probado y sin probar" de `docs/ESTADO.md`.

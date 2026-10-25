@@ -147,4 +147,5 @@ test('el PIN es de 4 cifras: uno más largo de antes se cambia por uno nuevo al 
   fs.writeFileSync(path.join(dir, 'sesiones.json'), JSON.stringify({ pin: '0420', list: {} }));
   createSessions({ storage: createStorage(dir), roles: [] });
   assert.equal(JSON.parse(fs.readFileSync(path.join(dir, 'sesiones.json'), 'utf8')).pin, '0420', 'uno de 4 cifras se queda');
+  fs.rmSync(dir, { recursive: true, force: true });
 });

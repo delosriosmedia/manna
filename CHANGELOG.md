@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- Probado en un Windows de verdad (sin cambios en la app): convertir presentaciones con PowerPoint y con DeckCraft, leer el texto de un PDF hecho de imágenes y actualizar una instalación de la 1.34.
+
 ## 1.38.0 — 2026-10-25
 
 - **Presentaciones de PowerPoint sin PowerPoint**: con **DeckCraft**, un programa libre que Manna instala desde la revisión del equipo, un PowerPoint se convierte en diapositivas sin abrir ninguna ventana ni pedir permisos, igual en Windows y en Mac, y sin las diapositivas ocultas. Si DeckCraft no está, lo convierte PowerPoint, como hasta ahora.
