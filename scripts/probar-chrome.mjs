@@ -2668,6 +2668,26 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
         }
         check('la capa queda encima de una imagen, una presentación, un video y un audio que suenan', covered.length === 0, covered.join(', ') || under.join(', '));
 
+        // Encenderla y apagarla desde la barra de abajo, sin abrir «Capas» (pedido del dueño, 2026-10-25); en el celular,
+        // desde «Historias».
+        const sw = (where) => `document.querySelector('${where} .layer-switch[data-n="2"]')`;
+        const flips = async (where) => {
+          await click(sw(where));
+          await sleep(600);
+          const off = (await layersNow())[1].visible === false && await run(`return getComputedStyle(${layerOf(2)}).visibility === 'hidden' && !${sw(where)}.classList.contains('on') && ${sw(where)}.getAttribute('aria-pressed') === 'false'`);
+          await click(sw(where));
+          await sleep(600);
+          return off && (await layersNow())[1].visible === true && await run(`return getComputedStyle(${layerOf(2)}).visibility === 'visible' && ${sw(where)}.classList.contains('on')`);
+        };
+        check('en la barra de abajo, una ficha por capa con algo: la 2, encendida, con su número', await until(`${sw('.tb-layers')}?.classList.contains('on')`, 10)
+          && await run(`return document.querySelectorAll('.tb-layers .layer-switch').length === 1 && ${sw('.tb-layers')}.querySelector('.ls-n').textContent === '2' && ${sw('.tb-layers')}.getClientRects().length > 0`));
+        check('un clic en ella la apaga en la proyección y otro la enciende', await flips('.tb-layers'));
+        await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
+        await sleep(800);
+        check('en el celular, en «Historias», con su nombre, y también la enciende y la apaga', await run(`const b = ${sw('.story-layers')}; return b?.getClientRects().length > 0 && b.querySelector('.ls-name').getClientRects().length > 0 && b.textContent.includes('Palabra del concurso')`) && await flips('.story-layers'));
+        await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+        await sleep(800);
+
         // Lo que está al aire cambia por debajo; la capa sigue y no se recarga, también con «Negro» y «Solo fondo».
         await run(`${layerOf(2)}.querySelector('iframe').dataset.marca = 'sigue'`);
         await run(`return await ${post('projection.show', { kind: 'testcard', data: {} })}`);

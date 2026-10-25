@@ -281,7 +281,8 @@ Lo que pongas en una capa queda **encima de todo lo que se proyecte**, también 
 
 1. En **Páginas web**, elige la página y pulsa **Capa** → la capa que quieras. También desde **Capas** → **Poner aquí**.
 2. En **Capas**, el ojo la oculta o la muestra sin recargarla; **…** → **Recargar** la carga de nuevo y **Quitar** la quita. Arriba, junto a «Al aire», una pastilla dice cuántas hay a la vista.
-3. La página se carga una vez y se queda: lo que muestra lo decide ella. Si no hay internet, la capa espera oculta y se carga sola cuando vuelva, sin que nadie recargue nada.
+3. Para encenderlas y apagarlas durante el culto no hace falta abrir **Capas**: en la barra de abajo, junto a **Siguiente**, cada capa con algo tiene su botón con su número (en cian, encendida); un clic la enciende o la apaga. En el celular están en la pantalla principal, bajo «Al aire / Solo fondo / Negro». Solo en **Control completo**.
+4. La página se carga una vez y se queda: lo que muestra lo decide ella. Si no hay internet, la capa espera oculta y se carga sola cuando vuelva, sin que nadie recargue nada.
 
 Una página con fondo transparente se ve transparente solo si su fondo lo es de verdad (y no declara un esquema oscuro, `color-scheme: dark`). Mientras haya una capa a la vista, una presentación de PowerPoint va como imágenes (PowerPoint, en su propia ventana, la taparía); al ocultar la capa vuelve a pasarla PowerPoint.
 

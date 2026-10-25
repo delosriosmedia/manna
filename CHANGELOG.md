@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Capas desde la barra de abajo**: cada capa que tiene algo lleva su botón junto a «Siguiente» (en el celular, bajo «Al aire / Solo fondo / Negro»): un clic la enciende o la apaga, sin abrir el cajón «Capas». Solo en Control completo.
+
 ## 1.38.1 — 2026-10-25
 
 - **Capas**: lo que va en una capa (un reloj, una página) ya se ve encima de un himno o un video que suenan. Antes el video lo tapaba: solo asomaba un momento al encender la pantalla de proyección y se veía cuando el himno terminaba.

@@ -248,6 +248,15 @@ html.touch .tb-extra :is(.btn, .tool-chip):has(> .lbl) { width: max(32px, var(--
 .tool-chip { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; font-weight: 600; }
 html.touch .tool-chip { height: var(--control); padding: 0 14px; }
 .tool-chip[hidden] { display: none; }
+/* Encender y apagar las capas (escenario.js, Control completo): una ficha por capa con algo, con el icono de lo que
+   lleva y su número; encendida, en cian. En «Historias», también su nombre. */
+.layer-switches { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.layer-switches[hidden] { display: none; }
+.ls-head { display: inline-flex; color: var(--ink-3); padding: 0 2px; }
+.layer-switch { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 32px; padding: 0 9px; font: 600 13px/1 var(--mono); }
+html.touch .layer-switch { height: max(32px, var(--tap)); min-width: var(--tap); }
+.layer-switch:not(.on) { color: var(--ink-3); }
+.layer-switch .ls-name { display: none; }
 .scene-bg[data-tool] { touch-action: none; user-select: none; -webkit-user-select: none; }
 .scene-bg[data-tool='point'] { cursor: crosshair; }
 .scene-bg[data-tool='move'] { cursor: grab; }
@@ -442,6 +451,9 @@ body.full .shell { height: calc(100dvh / var(--zoom)); display: flex; flex-direc
   .seg-btn { flex: 1; min-height: 38px; border-radius: var(--r-pill); color: var(--ink-2); font-weight: 600; }
   .seg-btn.on { background: var(--s3); color: var(--ink); }
   .seg-btn.on[data-mode='live'] { background: var(--live-strong); color: var(--on-live); }
+  .story-layers { padding: 4px 4px 4px 10px; border-radius: var(--r-pill); background: var(--glass-1); border: 1px solid var(--glass-line); }
+  .story-layers .layer-switch { flex: 1 1 0; min-width: 0; min-height: 38px; }
+  .story-layers .ls-name { display: inline; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 13px/1.2 var(--font); }
   .story-volume { display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 12px; border-radius: var(--r-pill); background: var(--glass-1); border: 1px solid var(--glass-line); }
   .story-volume > .volume { flex: 1; min-width: 0; }
   .story-volume.big { flex-wrap: wrap; }

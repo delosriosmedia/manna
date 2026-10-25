@@ -54,17 +54,32 @@ export function createEscenario(ctx) {
     chips.push(el);
     return el;
   };
-  subscribe('layers', ({ slots }) => {
-    // En el equipo principal, la proyección de fondo dibuja las capas ligeras (la hora, un temporizador) para ver
-    // dónde caen; una página no se carga aquí (correría dos veces en el mismo equipo).
-    if (ctx.isLocal) stage.setLayers(slots.map((s) => (s.kind === 'web' ? { n: s.n } : s)));
-    const shown = slots.filter((s) => s.kind && s.visible);
-    for (const chip of chips) {
-      chip.hidden = !shown.length;
-      chip.lastChild.textContent = shown.length;
-      chip.title = `En capas, encima de lo que se proyecta: ${shown.map((s) => `${s.n}. ${s.title}`).join(' · ')}`;
+  // Encenderlas y apagarlas sin ir a «Capas» (pedido del dueño, 2026-10-25): una ficha por capa con algo, en la barra
+  // de abajo (en el celular, en «Historias»), encendida en cian. Solo en Control completo, como el cajón «Capas».
+  const switchSets = [];
+  const layerSwitches = (cls) => {
+    if (ctx.role !== 'control') return null;
+    const el = h('div', { class: `layer-switches ${cls}`, role: 'group', 'aria-label': 'Capas', hidden: true });
+    switchSets.push(el);
+    return el;
+  };
+  let switchShape = '';
+  function paintSwitches(slots) {
+    const loaded = slots.filter((s) => s.kind);
+    const shape = JSON.stringify(loaded.map((s) => [s.n, s.kind, s.title, s.visible]));
+    if (shape === switchShape) return;
+    switchShape = shape;
+    for (const set of switchSets) {
+      const focused = set.contains(document.activeElement) ? document.activeElement.dataset.n : null;
+      set.hidden = !loaded.length;
+      set.replaceChildren(h('span', { class: 'ls-head', title: 'Capas: encima de lo que se proyecta' }, icon('stack', 15)), ...loaded.map((s) => h('button', {
+        class: `chip layer-switch${s.visible ? ' on' : ''}`, dataset: { n: s.n }, 'aria-pressed': String(s.visible),
+        'aria-label': `Capa ${s.n}: ${s.title}`, title: `Capa ${s.n}: ${s.title}. ${s.visible ? 'A la vista: un clic la apaga' : 'Apagada: un clic la enciende'}`,
+        onclick: guard(() => action('layers.visible', { n: s.n, visible: !s.visible })),
+      }, icon(kindOf(s.kind)?.icon || 'stack', 14), h('span', { class: 'ls-n' }, String(s.n)), h('span', { class: 'ls-name' }, s.title))));
+      if (focused) set.querySelector(`[data-n="${focused}"]`)?.focus({ preventScroll: true });
     }
-  });
+  }
   const caption = h('strong', { class: 'scene-caption' });
   const power = ctx.role === 'control' && ctx.isLocal ? createDisplayToggle({ compact: true }) : null;
   power?.classList.add('scene-power', 'glass');
@@ -218,6 +233,7 @@ export function createEscenario(ctx) {
     h('div', { class: 'tb-main' },
       h('button', { class: 'btn round', 'aria-label': 'Anterior', title: 'Anterior (←)', onclick: step(-1) }, icon('caret-left', 18)),
       h('button', { class: 'btn primary next', onclick: step(1) }, 'Siguiente', icon('caret-right', 18)),
+      layerSwitches('tb-layers'),
       barExtra,
       h('div', { class: 'tb-volume' }, noSound, volume.el),
       more));
@@ -267,6 +283,7 @@ export function createEscenario(ctx) {
     h('p', { class: 'story-hint' }, 'Toca la imagen: a la derecha avanza, a la izquierda vuelve.'),
     toolSet(),
     h('div', { class: 'story-modes', role: 'group', 'aria-label': 'Qué se ve en la proyección' }, ...modes),
+    layerSwitches('story-layers'),
     h('div', { class: `story-volume${ctx.role === 'alabanza' ? ' big' : ''}` }, storyVolume.el),
     h('div', { class: 'story-next' }, h('div', { class: 'story-next-head' }, h('strong', {}, 'A continuación'), h('small', {}, 'Toca: marca · ▶ o doble toque: proyecta')), carousel));
 
@@ -326,6 +343,19 @@ export function createEscenario(ctx) {
     if (prepared && p.mode === 'live' && src?.orderId === prepared.orderId && (prepared.step ?? 0) === (src?.step ?? 0)) prepared = null;
     renderQueue();
     renderStory(p);
+  });
+  // Después de hacer todas las piezas: subscribe avisa enseguida si el estado ya está.
+  subscribe('layers', ({ slots }) => {
+    // En el equipo principal, la proyección de fondo dibuja las capas ligeras (la hora, un temporizador) para ver
+    // dónde caen; una página no se carga aquí (correría dos veces en el mismo equipo).
+    if (ctx.isLocal) stage.setLayers(slots.map((s) => (s.kind === 'web' ? { n: s.n } : s)));
+    const shown = slots.filter((s) => s.kind && s.visible);
+    for (const chip of chips) {
+      chip.hidden = !shown.length;
+      chip.lastChild.textContent = shown.length;
+      chip.title = `En capas, encima de lo que se proyecta: ${shown.map((s) => `${s.n}. ${s.title}`).join(' · ')}`;
+    }
+    paintSwitches(slots);
   });
   subscribe('order', (o) => {
     queueName.textContent = o.name || '';
