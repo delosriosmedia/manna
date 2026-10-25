@@ -52,6 +52,7 @@ import { writeFakeDeckCraft } from './lib/deckcraft-falso.mjs';
 import { HYMN_FACTS, hymnTitle, seedHymnal } from './lib/himnario-falso.mjs';
 import { examplePoster } from './lib/png.mjs';
 import { checkContract, sourceFiles } from './lib/codigo.mjs';
+import { startFakeR2 } from './lib/r2-falso.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const QUICK = process.argv.includes('rapido');
@@ -3456,7 +3457,12 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   if (inGroup('red')) {
     console.log('\n6. La nube: administrar y preparar el culto');
     const cloudPort = PORT + 2;
-    const cloudServer = startServer(null, { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'clave-de-alta-de-prueba', PORT: String(cloudPort), MANNA_DATA: path.join(tmp, 'nube') });
+    // Su himnario y sus biblias, en un R2 de mentira con los de la prueba (la nube los copia al arrancar).
+    const r2dir = path.join(tmp, 'r2');
+    fs.cpSync(hymnal.dir, path.join(r2dir, 'Himnario'), { recursive: true });
+    fs.cpSync(bibles, path.join(r2dir, 'Biblias'), { recursive: true });
+    const fakeR2 = await startFakeR2(r2dir);
+    const cloudServer = startServer(null, { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'clave-de-alta-de-prueba', PORT: String(cloudPort), MANNA_DATA: path.join(tmp, 'nube'), ...fakeR2.env });
     const cloud = `http://localhost:${cloudPort}`;
     try {
       let cloudUp = false;
@@ -3528,13 +3534,19 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       await sleep(700);
       check('Medios añade al orden un video de YouTube por su enlace', (await text('#toast')).startsWith('«Canto de entrada» añadido al orden del culto'));
       await goTo('himnario');
+      check('el himnario de la nube lleva su nota de uso', await until(`document.querySelector('.ws[data-module=himnario] .hymn-note')?.textContent.includes('no comercial')`, 15));
       check('el himnario se lee y un himno se añade al orden', await until(`document.querySelector('.ws[data-module=himnario] .hymn')`, 25)
         && await run(`document.querySelector('.ws[data-module=himnario] .hymn').click(); await new Promise((r) => setTimeout(r, 400)); const b = [...document.querySelectorAll('.hymn-bar .btn')].find((x) => x.textContent.includes('Añadir')); b.click(); await new Promise((r) => setTimeout(r, 700)); return /^Himno \\d+ añadido al orden/.test(document.querySelector('#toast').textContent)`));
+      await tapEl(`document.querySelector('.hymn-bar .hymn-listen')`);
+      check('un himno se escucha en el dispositivo, pedido a R2 con un enlace que caduca', await until(`document.querySelector('.preview-bar audio')?.currentTime > 0.5`, 25)
+        && fakeR2.requests.some((r) => r.method === 'GET' && r.key.startsWith('Himnario/videos/') && r.signed), JSON.stringify(fakeR2.requests.slice(-3)));
+      await tapEl(`document.querySelector('.preview-bar .pv-close')`);
       await goTo('orden');
       check('el orden los tiene, y desde aquí no se proyecta', await until(`[...document.querySelectorAll('.orow')].some((r) => r.textContent.includes('Canto de entrada'))`, 15)
         && (await run(`return await ${post('projection.show', { kind: 'testcard', data: {} })}`)) === 403);
     } finally {
       await stopServer(cloudServer);
+      await fakeR2.stop();
     }
   }
 

@@ -335,10 +335,12 @@ server/
                         grandes y subidas, cliente WebSocket, estado compartido, tiempo real,
                         sesiones, almacenamiento, reloj de reproducción, tareas con avance,
                         programas del equipo (detección e instalación), carpetas de contenido
-                        y búsqueda de texto por niveles (la usan la Biblia y el himnario)
+                        y búsqueda de texto por niveles (la usan la Biblia y el himnario); en la nube,
+                        R2 (firma, subir, pedir y enlaces que caducan)
   modules/
     system/             sesiones, direcciones de red
-    users/              usuarios: crear, cambiar, cambiar el PIN y quitar (las cuentas, en core/users.js)
+    users/              usuarios: crear, cambiar, cambiar el PIN y la contraseña, quitar y la clave de alta
+                        (las cuentas, en core/users.js)
     bible/              lectura de .xmm/.xml, libros, citas, búsqueda y comparación de dos versiones
     projection/         contenido en vivo, mandos en vivo, volumen, estilos, segunda pantalla,
                         imagen de prueba
@@ -376,7 +378,8 @@ Contenido/              lo de tu iglesia: biblias, himnos en video y letras (no 
 data/                   ajustes, usuarios (PIN como huella), orden del culto, fondos, programas instalados por Manna
                         y archivos temporales de este equipo (no se sube)
 test/                   pruebas (npm test)
-scripts/                pruebas en un Chrome real, auditoría de pantallas, logo e iconos
+scripts/                pruebas en un Chrome real, auditoría de pantallas, logo e iconos, y subir a R2 el himnario y
+                        las biblias de la nube (subir-r2.mjs)
 docs/ESTADO.md          estado actual: qué funciona, qué falta probar, qué sigue
 docs/PLAN.md            plan de trabajo en curso, por fases, y lista de la auditoría final
 CHANGELOG.md            historial de cambios por versión

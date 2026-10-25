@@ -226,8 +226,19 @@ export default function setup(app) {
   }
 
   // ---- Arranque y vigilancia ----
-  app.mount('/himnos/', () => videosDir);
-  app.mount('/himnos-letras/', () => slidesDir);
+  if (app.r2) {
+    // En la nube (fase 36), los videos y las diapositivas están en R2: quien entró recibe un enlace que caduca en una hora.
+    const toR2 = (ctx, key) => {
+      ctx.require('hymns.read');
+      ctx.res.writeHead(302, { Location: app.r2.link(key), 'Cache-Control': 'no-store' });
+      ctx.res.end();
+    };
+    app.route('GET', '/himnos/:file', (ctx) => toR2(ctx, `Himnario/videos/${ctx.params.file}`));
+    app.route('GET', '/himnos-letras/:dir/:file', (ctx) => toR2(ctx, `Himnario/diapositivas/${ctx.params.dir}/${ctx.params.file}`));
+  } else {
+    app.mount('/himnos/', () => videosDir);
+    app.mount('/himnos-letras/', () => slidesDir);
+  }
   const watch = () => [watchFolder(videosDir, load), watchFolder(lyricsDir, load), watchFolder(slidesDir, load)];
   let stops = watch();
   app.onContent(() => {

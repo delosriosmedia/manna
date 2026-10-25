@@ -4,6 +4,11 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.45.0 — 2026-10-25
+
+- **El himnario y las biblias, en la nube** (fase 36, parte 3): están en un depósito privado de Cloudflare R2. En «Preparar el culto», el Himnario los lee de ahí, y «Escuchar» trae el himno con un enlace que dura una hora, solo para quien entró. El Himnario de la nube lleva la nota «uso y estudio personal, investigación y pruebas; no comercial».
+- Para quien instala la nube: `scripts/subir-r2.mjs` sube desde el equipo de desarrollo lo que falte del himnario y de las biblias (se puede cortar y repetir).
+
 ## 1.44.0 — 2026-10-25
 
 - **Preparar el culto desde casa** (en la nube, fase 36): una función nueva con cinco pestañas, Orden, Biblia, Himnario, Medios y Textos, a la izquierda en el computador y abajo en el celular. Cada usuario entra con su nombre y su PIN y prepara sus órdenes; en lugar de «Proyectar», todo se añade al orden. Un himno se puede escuchar en el propio dispositivo antes de añadirlo.

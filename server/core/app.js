@@ -12,6 +12,7 @@ import { setupTools } from './tools.js';
 import { loadCertificate } from './cert.js';
 import { createListener } from './listener.js';
 import { codeSignature } from './build.js';
+import { bucketFromEnv } from './r2.js';
 import { ROLES } from '../roles.js';
 
 // Puertos a intentar, en orden. Sin puerto fijado se prefiere el 80, que permite entrar sin
@@ -74,6 +75,8 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
     // mediaDir: carpeta donde la iglesia copia a mano sus videos y audios (Contenido/Medios), o null.
     // hymnsDir: carpeta del himnario (Contenido/Himnario, con videos/ y letras/), o null.
     rootDir, dataDir, biblesDir, mediaDir, hymnsDir, uploadsDir, tmpDir, cloud,
+    // En la nube, el depósito de R2 con el himnario y las biblias (fase 36, parte 3), si el hosting tiene sus claves.
+    r2: cloud ? bucketFromEnv() : null,
     // La carpeta de contenido de la iglesia (con Biblias, Himnario y Medios), o null. Se cambia con Manna abierto
     // (fase 29): setContent apunta las tres a la nueva y avisa a los módulos que lo pidieron con onContent.
     contentDir,

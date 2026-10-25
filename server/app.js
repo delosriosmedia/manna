@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { createApp, portCandidates } from './core/app.js';
 import { logToFile } from './core/log.js';
+import { mirror } from './core/r2.js';
 
 import system from './modules/system/index.js';
 import users from './modules/users/index.js';
@@ -185,6 +186,11 @@ async function run() {
 // navegador, «un solo Manna a la vez»). Al desplegar, el hosting arranca dos procesos casi a la vez: aquí no se mira si ya
 // hay otro abierto. Apagar y reiniciar solo terminan el proceso; el hosting lo vuelve a arrancar.
 async function runInCloud(app) {
+  // El himnario y las biblias vienen de R2 a la carpeta de datos (core/r2.js, mirror), ya abierta la nube: listar R2
+  // tarda unos 20 s. Mientras, atiende con lo que ya tenía y, al terminar, vuelve a leer (como al cambiar la carpeta de
+  // contenido, fase 29). Sin conexión, sigue con lo que tenía.
+  const dir = app.r2 && path.join(app.dataDir, 'contenido');
+  if (dir) app.setContent(dir);
   for (const setup of MODULES.filter((m) => m !== tv && m !== internet)) await setup(app);
   app.shutdown = async () => {
     await app.close();
@@ -193,6 +199,12 @@ async function runInCloud(app) {
   app.restart = app.shutdown;
   const port = await app.listen();
   console.log(`Manna en modo nube, en el puerto ${port}.`);
+  if (dir) {
+    mirror(app.r2, dir).then((n) => {
+      console.log(`Contenido de R2: ${n} archivos nuevos.`);
+      if (n) app.setContent(dir);
+    }, (err) => console.error('No se pudo leer el contenido de R2:', err?.message || err));
+  }
   process.on('SIGINT', app.shutdown);
   process.on('SIGTERM', app.shutdown);
 }

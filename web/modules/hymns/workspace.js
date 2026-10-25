@@ -108,8 +108,11 @@ function mount(el, ctx) {
     return undefined;
   });
 
-  el.replaceChildren(h('div', { class: 'ws-head' }, h('h1', {}, 'Himnario'),
-    h('label', { class: 'search' }, icon('magnifying-glass', 16), input), views, notesButton), h('div', { class: 'hymns-main' }, body, card), bar);
+  el.replaceChildren(...[h('div', { class: 'ws-head' }, h('h1', {}, 'Himnario'),
+    h('label', { class: 'search' }, icon('magnifying-glass', 16), input), views, notesButton),
+    // En la nube (preparar el culto, sin proyección), la condición con la que está ahí el himnario (decisión 55).
+    !ctx.canProject && h('p', { class: 'hymn-note' }, 'Himnario para uso y estudio personal, investigación y pruebas; no comercial.'),
+    h('div', { class: 'hymns-main' }, body, card), bar].filter(Boolean));
 
   // ---- Elegir ----
   function select(n, { reveal = false } = {}) {
