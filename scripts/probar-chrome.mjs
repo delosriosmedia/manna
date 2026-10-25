@@ -3557,6 +3557,21 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     check('al eliminarlo, la cola de las dos pestañas queda vacía y los demás siguen', now.active === null && now.items === 0 && !now.list.some((o) => o.startsWith('Culto vespertino')) && now.list.some((o) => o.startsWith('Culto de la mañana')) && await run(`return ${queueName}.getClientRects().length === 0 && !${rowOf('Culto vespertino')}`), JSON.stringify(now));
     await run(`document.querySelector('#otro').remove()`);
 
+    // Caben 20 órdenes por iglesia: con 5 o menos libres, el cajón pide limpiar los antiguos.
+    const extra = [];
+    for (let n = (await stateNow()).list.length; n < 16; n += 1) {
+      extra.push(await run(`return (await (await fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'order.create', payload: { name: 'Relleno ${n}' } }) })).json()).result.id`));
+    }
+    await tab('este');
+    await sleep(500);
+    check('con 4 órdenes libres de 20, el cajón pide limpiar los antiguos, con un botón a «Órdenes»', await run(`const f = ${ws}.querySelector('.order-full'); return !f.hidden && f.textContent.startsWith('Quedan 4 órdenes libres de 20.') && f.textContent.includes('Limpia los órdenes antiguos')`), await run(`return ${ws}.querySelector('.order-full').textContent`));
+    await click(`${ws}.querySelector('.order-full .btn')`);
+    await sleep(400);
+    check('«Ver los órdenes» lleva a «Órdenes», donde ya no hace falta el botón', await run(`return ${ws}.querySelector('[data-view=ordenes]').classList.contains('on') && !${ws}.querySelector('.order-full .btn')`));
+    for (const id of extra) await run(`return await ${post('order.deleteOrder', { id: 'ID' })}`.replace('"ID"', JSON.stringify(id)));
+    await sleep(400);
+    check('al borrar los que sobran, el aviso se va', await run(`return ${ws}.querySelector('.order-full').hidden`));
+
     // Sin permiso de editar («Control del orden») solo se ve el nombre del orden en uso, sin pestañas.
     await run(`return await ${post('order.use', { id: 'ID' })}`.replace('"ID"', JSON.stringify(first)));
     await chrome.send('Page.navigate', { url: `${local}/orden?x=${Date.now()}#orden` });

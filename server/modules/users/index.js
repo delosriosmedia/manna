@@ -28,6 +28,8 @@ export default function setup(app) {
     if (id && id === ctx?.session?.user?.id) throw new HttpError(409, 'No puedes quitarte a ti mismo: pídeselo a otro administrador.');
     users.remove(id);
     sessions.closeUser(id);
+    // Sus órdenes pasan a quien lo quita (o al primer administrador), para que no queden sin dueño (S52).
+    app.services.order?.reassign(id, ctx?.session?.user?.id || users.firstAdmin().id);
     publish();
   });
 }

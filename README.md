@@ -165,7 +165,7 @@ Solo cuentan los Manna con el mismo nombre en la red (`manna.local`); abrir dos 
 
 ### Órdenes del culto
 
-Cada orden tiene **nombre, dueño y fecha** desde que se crea (la fecha es el día del culto). Cada persona ve y cambia solo los suyos; el **administrador** los ve, cambia y borra todos. El que está **en uso** es el de la cola del culto, que ven todos los que operan; solo lo cambian su dueño y el administrador. Al apagar Manna ninguno queda en uso (salvo si Manna se reinicia, o se cortó y vuelve a abrirse antes de 15 minutos); los órdenes quedan guardados.
+Cada orden tiene **nombre, dueño y fecha** desde que se crea (la fecha es el día del culto). Cada persona ve y cambia solo los suyos; el **administrador** los ve, cambia y borra todos. El que está **en uso** es el de la cola del culto, que ven todos los que operan; solo lo cambian su dueño y el administrador. Al apagar Manna ninguno queda en uso (salvo si Manna se reinicia, o se cortó y vuelve a abrirse antes de 15 minutos); los órdenes quedan guardados. Al abrirlo, si hay un solo orden con la fecha de ese día, ese pasa solo a la cola. **Caben 20 órdenes por iglesia**: cuando quedan 5 o menos libres, el cajón pide limpiar los antiguos, y al llegar a 20 no se puede crear otro hasta borrar alguno. Si se quita a un usuario, sus órdenes pasan al administrador.
 
 1. **Orden** tiene tres pestañas: **Este orden** (el que tienes abierto: lo que añades desde la Biblia, el Himnario o Medios va ahí), **Órdenes** y **Favoritos**.
 2. **Órdenes** los muestra por semanas, de domingo a sábado: esta semana arriba y las anteriores debajo. **Nuevo orden** pide la fecha (hoy) y propone el nombre del día («Culto del sábado 1 de nov.»). Si añades algo sin tener ninguno abierto, va a uno nuevo con ese nombre.

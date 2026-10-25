@@ -8,12 +8,15 @@ import { dayOf, migrateLegacy, moveItem, neighbor, renameItem, serviceName, uniq
 const MAX_STEPS_SHOWN = 200;
 const BEAT_MS = 60_000;
 const KEEP_MS = 15 * 60_000; // el mismo margen con que se recupera lo que estaba al aire (projection/live.js)
+// Cuántos órdenes guarda cada iglesia (pedido del dueño, 2026-10-25): por defecto 20; lo cambiará el superadministrador
+// (fase 39) en `limit` de data/orden.json. Al quedar WARN_LEFT o menos, el cajón avisa de que hay que limpiar.
+const LIMIT = 20;
 
 // Módulo Orden del culto: la lista ordenada de todo lo que se va a proyectar en la reunión.
 // Aquí confluyen los demás módulos: cada uno aporta elementos de su tipo (ver app.kind).
 //
 // Órdenes (fases 23 y 35 de docs/PLAN.md), en data/orden.json:
-//   { saved: [{ id, name, owner, date, favorite, items, updated }], active, editing: { usuario: orden }, alive, version }
+//   { saved: [{ id, name, owner, date, favorite, items, updated }], active, editing: { usuario: orden }, limit, alive, version }
 // Cada orden tiene nombre, dueño (quien lo creó) y fecha (el día del culto) desde que se crea. `active` es el que está
 // en uso: el de la cola del culto, que ven todos los que operan (espacio `order`). Un orden lo cambian su dueño y el
 // administrador; el administrador ve todos y los demás, solo los suyos (el espacio `orders` se filtra por quien mira).
@@ -54,9 +57,15 @@ export default function setup(app) {
     delete data.draft;
     Object.assign(data, { editing: {}, version: 2 });
   }
+  if (!Number.isInteger(data.limit) || data.limit < 1) data.limit = LIMIT;
   if (!legacy && process.env.MANNA_REINICIO !== '1' && !(Date.now() - (data.alive || 0) < KEEP_MS)) data.active = null;
   const find = (id) => data.saved.find((o) => o.id === id) || null;
   if (!find(data.active)) data.active = null;
+  // Al abrir Manna sin nada en uso, si hay un solo orden con la fecha de hoy, ese pasa a la cola (S51).
+  if (!data.active) {
+    const today = data.saved.filter((o) => o.date === dayOf());
+    if (today.length === 1) data.active = today[0].id;
+  }
   data.alive = Date.now();
   saved.save();
   const beat = setInterval(() => { data.alive = Date.now(); saved.save(); }, BEAT_MS);
@@ -99,6 +108,8 @@ export default function setup(app) {
         })) : [],
         editing: editing?.id || null,
         items: editing?.items || [],
+        total: data.saved.length,
+        limit: data.limit,
       };
     },
   });
@@ -145,6 +156,9 @@ export default function setup(app) {
   };
   // Sin nombre, el del día («Culto del sábado 1 de nov.»). Con nada en uso, el nuevo pasa a ser el de la cola.
   const create = (owner, { name, date } = {}) => {
+    if (data.saved.length >= data.limit) {
+      throw new HttpError(409, `Ya hay ${data.limit} órdenes, el máximo de esta iglesia. Para crear otro, borra los antiguos que ya no se necesiten (los de otras personas los borra el administrador).`);
+    }
     const day = date == null || date === '' ? dayOf() : cleanDay(date);
     const named = name != null && cleanName(name, 60);
     const created = {
@@ -186,6 +200,16 @@ export default function setup(app) {
         changed = true;
       }
       if (changed) save();
+    },
+    // Los órdenes de un usuario que se quita pasan a otro (el administrador que lo quita), con otro nombre si choca (S52).
+    reassign(from, to) {
+      const theirs = data.saved.filter((o) => o.owner === from);
+      for (const o of theirs) {
+        o.name = uniqueName(o.name, data.saved.filter((x) => x.owner === to).map((x) => x.name));
+        o.owner = to;
+      }
+      delete data.editing[from];
+      if (theirs.length) save();
     },
     neighbor(id, step, delta) {
       const target = neighbor(items(), id, step, delta);
@@ -261,7 +285,7 @@ export default function setup(app) {
     const o = create(ownerOf(ctx), { name, date });
     openFor(ctx, o);
     save();
-    return { id: o.id, name: o.name };
+    return { id: o.id, name: o.name, left: data.limit - data.saved.length };
   });
   // Abre un orden en el cajón de quien lo pide (solo en el suyo): lo que añada va ahí.
   app.action('order.open', { permission: 'order.edit' }, ({ id }, ctx) => {

@@ -30,6 +30,8 @@ function describe(item) {
 const SOUNDS = new Set(['song', 'video', 'audio', 'youtube']);
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+// Con estos órdenes libres o menos (de los 20 que caben por iglesia), el cajón pide limpiar los antiguos.
+const WARN_LEFT = 5;
 
 // Fechas de los órdenes: «AAAA-MM-DD», el día del culto. El nombre que se propone es el del servidor
 // (server/modules/order/logic.js): «Culto del sábado 1 de nov.».
@@ -70,6 +72,8 @@ function mount(el, ctx) {
   const list = h('div', { class: 'olist' });
   const browse = h('div', { class: 'obrowse' });
   const note = h('div', { class: 'order-note', role: 'status', hidden: true });
+  // Cuando quedan pocos órdenes libres (hay un máximo por iglesia), el aviso de limpiar los antiguos.
+  const full = h('div', { class: 'order-note order-full', role: 'status', hidden: true });
   const summary = h('small', {});
   const viewTabs = ctx.canEdit ? TABS.map(([id, label]) =>
     h('button', { class: 'btn', role: 'tab', dataset: { view: id }, onclick: () => setView(id) }, label)) : [];
@@ -105,7 +109,7 @@ function mount(el, ctx) {
         { label: 'Vaciar el orden', icon: 'trash', disabled: !editable || !items.length, onclick: confirmClear },
       ]) }, icon('dots-three', 18))),
     h('div', { class: 'order-bar', role: 'tablist', 'aria-label': 'Vista' }, ...viewTabs, summary),
-    note,
+    note, full,
     h('div', { class: 'order-grid' }, list, browse, side));
 
   const run = (type, payload) => guard(() => action(type, payload))();
@@ -220,8 +224,9 @@ function mount(el, ctx) {
     name.focus();
   }
   const newOrder = () => askOrder({ title: 'Nuevo orden', onSave: async ({ name, date }) => {
-    await action('order.create', { name, date });
+    const { left } = await action('order.create', { name, date });
     setView('este');
+    if (left <= WARN_LEFT) toast(left ? `Quedan ${plural(left, 'orden libre', 'órdenes libres')}: limpia los órdenes antiguos que ya no necesites.` : 'Ya no caben más órdenes: limpia los antiguos que ya no necesites.');
   } });
   const editOrder = (o) => askOrder({ title: 'Cambiar el nombre o la fecha', o, onSave: ({ name, date }) => action('order.renameOrder', { id: o.id, name: name || o.name, date }) });
   const openOrder = guard(async (o) => {
@@ -529,6 +534,11 @@ function mount(el, ctx) {
             : null;
     note.hidden = !parts;
     note.replaceChildren(...(parts ? [h('span', {}, parts[0]), parts[1]] : []));
+    const { total = 0, limit = Infinity } = state.orders || {};
+    const left = limit - total;
+    full.hidden = !ctx.canEdit || left > WARN_LEFT;
+    full.replaceChildren(...[h('span', {}, `${left > 0 ? `Quedan ${plural(left, 'orden libre', 'órdenes libres')} de ${limit}.` : `Ya hay ${limit} órdenes, el máximo: no se pueden crear más.`} Limpia los órdenes antiguos que ya no necesites${me?.admin ? '' : ' (los de otras personas los borra el administrador)'}.`),
+      view !== 'ordenes' && h('button', { class: 'btn', onclick: () => setView('ordenes') }, 'Ver los órdenes')].filter(Boolean));
   }
 
   // ---- Estado compartido ----

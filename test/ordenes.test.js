@@ -172,34 +172,69 @@ test('en el tiempo real, cada conexión recibe solo sus órdenes', async (t) => 
   await m.close();
 });
 
-test('al apagar Manna nada queda en uso, salvo en un reinicio o tras un corte de menos de 15 minutos; los órdenes quedan', async (t) => {
+test('al apagar Manna nada queda en uso, salvo en un reinicio, tras un corte de menos de 15 minutos o si hay un solo orden de hoy', async (t) => {
   const m = await open(t, 'cerrar');
   await m.run('order.create', { name: 'Guardado' });
   await m.run('order.add', card);
+  await m.run('order.create', { name: 'De otro día', date: '2026-01-04' });
   await m.close();
 
   const again = await open(t, 'cerrar', { MANNA_REINICIO: '1' });
   assert.deepEqual([again.order().name, again.order().items.length], ['Guardado', 1], 'reiniciar no cambia nada');
+  await again.run('order.use', { id: (await (await again.person()).state()).orders.list.find((o) => o.name === 'De otro día').id });
   await again.close();
 
+  // Apagado y vuelto a abrir: con un solo orden de hoy, ese pasa a la cola (S51).
   const later = await open(t, 'cerrar');
-  assert.deepEqual([later.order().active, later.order().items], [null, []], 'apagado y vuelto a abrir, nada en uso');
-  const { orders } = await (await later.person()).state();
-  assert.deepEqual(orders.list.map((o) => [o.name, o.count]), [['Guardado', 1]]);
-  await later.run('order.use', { id: orders.list[0].id });
+  assert.deepEqual([later.order().name, later.order().items.length], ['Guardado', 1], 'el único de hoy queda en uso');
+  await later.run('order.create', { name: 'Otro de hoy' });
   await later.close();
+  const twice = await open(t, 'cerrar');
+  assert.deepEqual([twice.order().active, twice.order().items], [null, []], 'con dos de hoy, nada en uso: elige quien opera');
+  const { orders } = await (await twice.person()).state();
+  assert.deepEqual(orders.list.map((o) => [o.name, o.count]), [['Guardado', 1], ['De otro día', 0], ['Otro de hoy', 0]]);
+  await twice.run('order.use', { id: orders.list[1].id });
+  await twice.close();
 
   // Un corte (no pasó por el apagado): si vuelve antes de 15 minutos, sigue en uso lo que estaba.
   const cut = (minutes) => {
     const saved = JSON.parse(fs.readFileSync(file('cerrar'), 'utf8'));
-    fs.writeFileSync(file('cerrar'), JSON.stringify({ ...saved, active: saved.saved[0].id, alive: Date.now() - minutes * 60_000 }));
+    fs.writeFileSync(file('cerrar'), JSON.stringify({ ...saved, active: saved.saved[1].id, alive: Date.now() - minutes * 60_000 }));
   };
   cut(5);
   const soon = await open(t, 'cerrar');
-  assert.equal(soon.order().name, 'Guardado');
+  assert.equal(soon.order().name, 'De otro día');
   await soon.close();
   cut(20);
   const late = await open(t, 'cerrar');
   assert.equal(late.order().active, null);
-  await late.close();
+});
+
+test('caben 20 órdenes por iglesia: el cajón lo sabe, y el siguiente no se crea', async (t) => {
+  const m = await open(t, 'maximo');
+  const admin = await m.person();
+  let left;
+  for (let i = 1; i <= 20; i += 1) ({ result: { left } } = await admin.send('order.create', { name: `Culto ${i}` }));
+  assert.equal(left, 0);
+  const { orders } = await admin.state();
+  assert.deepEqual([orders.total, orders.limit], [20, 20]);
+  const over = await admin.send('order.create', { name: 'Uno más' });
+  assert.deepEqual([over.status, over.error.startsWith('Ya hay 20 órdenes, el máximo')], [409, true]);
+  await admin.send('order.open', { id: orders.list[0].id });
+  await admin.send('order.deleteOrder', { id: orders.list[0].id });
+  assert.equal((await admin.send('order.add', card)).status, 200, 'lo que se añade sin orden abierto va a uno nuevo, que ya cabe');
+  assert.equal((await admin.state()).orders.total, 20);
+});
+
+test('al quitar a un usuario, sus órdenes pasan al administrador que lo quita (S52)', async (t) => {
+  const m = await open(t, 'quitar');
+  const admin = await m.person();
+  await admin.send('order.create', { name: 'Alabanza' });
+  const { result: { id: ana } } = await admin.send('users.create', { name: 'Ana', pin: '2468', functions: ['alabanza'] });
+  const anaIn = await m.person(ana, '2468', 'alabanza');
+  await anaIn.send('order.create', { name: 'Alabanza' });
+  await anaIn.send('order.create', { name: 'Jóvenes' });
+  assert.equal((await admin.send('users.remove', { id: ana })).status, 200);
+  const list = (await admin.state()).orders.list.map((o) => `${o.name}:${o.ownerName}`).sort();
+  assert.deepEqual(list, ['Alabanza (2):Administrador', 'Alabanza:Administrador', 'Jóvenes:Administrador']);
 });

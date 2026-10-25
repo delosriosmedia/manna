@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Caben 20 órdenes del culto por iglesia.** Cuando quedan 5 o menos libres, el cajón Orden pide limpiar los antiguos que ya no se necesiten, y al llegar a 20 no se puede crear otro hasta borrar alguno. Más adelante, el superadministrador podrá cambiar ese máximo.
+- **Al abrir Manna**, si hay un solo orden con la fecha de ese día, ese pasa solo a la cola del culto.
+- **Al quitar a un usuario**, sus órdenes pasan al administrador que lo quita, en vez de quedarse sin dueño.
+
 ## 1.41.0 — 2026-10-25
 
 - **Usuarios**: cada persona entra con su nombre y su PIN. Desde un celular o un computador, al elegir una función sale la lista de quienes pueden usarla; cada uno toca su nombre y escribe su PIN. Quien ya entró cambia de función sin volver a escribirlo, y «Entrar como otra persona» cambia de persona. El equipo principal entra sin PIN, como administrador.
