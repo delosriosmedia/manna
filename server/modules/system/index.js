@@ -30,7 +30,8 @@ export default function setup(app) {
   // update: hay una versión nueva en GitHub ({ version }) o null (versions.js).
   store.register('system', { name: 'Manna', version, build: app.build, stale: false, addresses: [], port: null, altPort: null, secure: false, securePort: null, hostname: null, nameUrl: null, blocked: null, update: null, content: contentState(app) });
   app.onContent(() => store.set('system', { content: contentState(app) }));
-  watchVersions(app, version);
+  // En la nube, la versión la decide el despliegue (decisión 58), y no hay red local donde anunciarse.
+  if (!app.cloud) watchVersions(app, version);
 
   const responder = createResponder({ base: networkName() });
   let announced = null;
@@ -148,8 +149,10 @@ export default function setup(app) {
   let timer = null;
   store.on('listening', () => {
     if (app.blocked) setInterval(recheck, RIVAL_MS).unref();
-    timer = setInterval(refresh, REFRESH_MS);
-    timer.unref();
+    if (!app.cloud) {
+      timer = setInterval(refresh, REFRESH_MS);
+      timer.unref();
+    }
     codeTimer = setInterval(checkCode, Number(process.env.MANNA_REVISAR_CODIGO_MS) || CODE_CHECK_MS);
     codeTimer.unref();
   });

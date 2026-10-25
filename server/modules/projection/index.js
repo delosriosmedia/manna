@@ -376,7 +376,7 @@ export default function setup(app) {
 
   // Solo para pruebas y demostraciones: MANNA_SIN_VENTANA=1 hace como si no hubiera segunda
   // pantalla, para que un Manna de prueba no abra su proyección (ni suene) en el proyector de verdad.
-  const windowless = Boolean(process.env.MANNA_SIN_VENTANA);
+  const windowless = Boolean(process.env.MANNA_SIN_VENTANA) || app.cloud;
 
   // Deja la ventana en el estado correcto: abierta solo si está encendida Y hay segunda pantalla.
   async function reconcile() {

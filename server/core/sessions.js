@@ -94,7 +94,9 @@ export function createSessions({ storage, roles }) {
       for (const old of ids.slice(0, ids.length - MAX_SESSIONS)) delete store.data.list[old];
     }
     store.save();
-    ctx.res.setHeader('Set-Cookie', `${COOKIE}=${id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000`);
+    // Por https (el túnel, el hosting de la nube), la cookie solo viaja cifrada.
+    const secure = ctx.req?.socket.encrypted || ctx.req?.headers['x-forwarded-proto'] === 'https' ? '; Secure' : '';
+    ctx.res.setHeader('Set-Cookie', `${COOKIE}=${id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${secure}`);
     return { role: roleId, user: user ? { id: user.id, name: user.name, admin: user.admin } : null };
   }
 

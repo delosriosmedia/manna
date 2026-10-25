@@ -37,6 +37,18 @@ export function framable(header) {
   return !ancestors || /(^|\s)\*(\s|$)/.test(ancestors[1]);
 }
 
+// ¿Es del propio equipo o de la red local? Esas solo las agrega el equipo principal (auditoría de la fase 9, cerrado en la
+// 36): desde fuera, Manna no se pone a pedir direcciones de la red de la iglesia.
+// shortcut: se mira la dirección escrita, no la IP a la que lleva su nombre; si hiciera falta, resolverla antes de pedirla.
+export function isLocalPage(address) {
+  const host = new URL(address).hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  if (host === 'localhost' || /\.(localhost|local)$/.test(host) || host === '::1' || /^(fc|fd|fe80)/.test(host)) return true;
+  const ip = /^(\d+)\.(\d+)\.\d+\.\d+$/.exec(host);
+  if (!ip) return false;
+  const [a, b] = [Number(ip[1]), Number(ip[2])];
+  return a === 127 || a === 10 || a === 0 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254);
+}
+
 // La dirección que escribe la persona, completa ("canva.com/…" → "https://canva.com/…").
 export function parseAddress(text) {
   const raw = String(text ?? '').trim();
@@ -105,8 +117,10 @@ export default function setup(app) {
   });
 
   // ---- Agregar ----
-  app.action('web.add', { permission: 'web.edit' }, async ({ url, name }) => {
+  app.action('web.add', { permission: 'web.edit' }, async ({ url, name }, ctx) => {
     const address = parseAddress(url);
+    // ctx falta cuando la pide otro módulo (app.run): eso es del propio Manna.
+    if (ctx && !ctx.isLocal && isLocalPage(address)) throw new HttpError(403, 'Una página del propio equipo o de la red de la iglesia solo se agrega desde el equipo principal.');
     let response;
     try {
       // Como un navegador: algunos sitios no responden igual a un programa.

@@ -11,7 +11,7 @@ import system from '../server/modules/system/index.js';
 import users from '../server/modules/users/index.js';
 import projection from '../server/modules/projection/index.js';
 import order from '../server/modules/order/index.js';
-import web, { framable, parseAddress } from '../server/modules/web/index.js';
+import web, { framable, isLocalPage, parseAddress } from '../server/modules/web/index.js';
 import { makePng } from '../scripts/lib/png.mjs';
 
 // El servidor de verdad, con sus módulos, atendido por HTTP en este equipo. Usa datos temporales
@@ -58,6 +58,15 @@ test.after(async () => {
 });
 
 // ---- Archivos grandes ----
+
+test('un enlace simbólico que lleva fuera de una carpeta servida no se sirve (fase 36)', { skip: process.platform === 'win32' && 'en Windows, crear enlaces pide permisos' }, async () => {
+  const outside = path.join(tmp, 'fuera-secreto.txt');
+  fs.writeFileSync(outside, 'secreto');
+  fs.symlinkSync(outside, path.join(main.app.uploadsDir, 'enlace.txt'));
+  const res = await main.request('/media/enlace.txt');
+  assert.equal(res.status, 404);
+  await res.arrayBuffer();
+});
 
 test('un archivo se puede pedir por trozos, como hace un video al saltar', async () => {
   const bytes = Buffer.from(Array.from({ length: 1000 }, (_, i) => i % 251));
@@ -297,6 +306,19 @@ test('lo que llega por un túnel o un proxy de este equipo no cuenta como el equ
   assert.equal((await (await main.request('/api/session')).json()).isLocal, true);
 });
 
+test('en modo nube nadie es el equipo principal: lo que llega del propio servidor también pide usuario y PIN (fase 36)', async () => {
+  const cloud = await start('nube', { MANNA_NUBE: '1' });
+  try {
+    assert.equal(cloud.app.cloud, true);
+    assert.equal((await (await cloud.request('/api/session')).json()).isLocal, false);
+    const login = await cloud.request('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'control' }) });
+    assert.notEqual(login.status, 200, 'sin usuario ni PIN no entra');
+    assert.equal((await cloud.send('system.shutdown')).status, 401, 'ni se puede apagar');
+  } finally {
+    await cloud.stop();
+  }
+});
+
 test('desde internet nada se ve sin PIN, ni la pantalla de proyección', async () => {
   const tunnel = { 'Cf-Connecting-Ip': '203.0.113.9', 'X-Forwarded-For': '203.0.113.9' };
   const outside = (url, options = {}) => fetch(new URL(url, main.base), { ...options, headers: { ...options.headers, ...tunnel } });
@@ -473,6 +495,9 @@ test('una dirección se agrega y se reconoce si se deja mostrar dentro de la pro
   assert.equal(parseAddress('canva.com/x'), 'https://canva.com/x');
   assert.equal(parseAddress(' http://localhost:3000/a '), 'http://localhost:3000/a');
   for (const bad of ['hola', '', 'ftp://sitio.com', null]) assert.throws(() => parseAddress(bad), /dirección de la página/, String(bad));
+  // Del propio equipo o de la red local: solo desde el equipo principal (fase 36).
+  for (const near of ['http://localhost:3000/', 'http://127.0.0.1/', 'http://192.168.1.1/', 'http://10.0.0.5/', 'http://172.20.0.1/', 'http://169.254.1.1/', 'http://manna.local/', 'http://[::1]/']) assert.equal(isLocalPage(near), true, near);
+  for (const far of ['https://www.canva.com/x', 'http://172.32.0.1/', 'http://8.8.8.8/']) assert.equal(isLocalPage(far), false, far);
   const headers = (h) => (name) => h[name] ?? null;
   assert.equal(framable(headers({})), true);
   assert.equal(framable(headers({ 'x-frame-options': 'deny' })), false);

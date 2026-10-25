@@ -48,10 +48,13 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
     settings.save();
     settings.flush();
   }
+  // Modo nube (fase 36): el mismo programa en el hosting (`MANNA_NUBE=1`). Nadie es «el equipo principal», no hay
+  // certificado propio (el `https` lo pone el hosting) y los módulos dejan fuera lo que es del equipo de la iglesia.
+  const cloud = Boolean(process.env.MANNA_NUBE);
   const store = new Store();
   const sessions = createSessions({ storage, roles: ROLES });
   const BLOCKED = 'Este Manna no funciona mientras haya otro en la red: usa ese, o apágalo y pulsa «Volver a comprobar».';
-  const router = createRouter({ webDir: path.join(rootDir, 'web'), sessions, refuse: () => (app.blocked ? BLOCKED : null) });
+  const router = createRouter({ webDir: path.join(rootDir, 'web'), sessions, cloud, refuse: () => (app.blocked ? BLOCKED : null) });
   const realtime = createRealtime({ store, router, sessions });
   const jobs = createJobs({ store });
   const actions = new Map();
@@ -70,7 +73,7 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
   const app = {
     // mediaDir: carpeta donde la iglesia copia a mano sus videos y audios (Contenido/Medios), o null.
     // hymnsDir: carpeta del himnario (Contenido/Himnario, con videos/ y letras/), o null.
-    rootDir, dataDir, biblesDir, mediaDir, hymnsDir, uploadsDir, tmpDir,
+    rootDir, dataDir, biblesDir, mediaDir, hymnsDir, uploadsDir, tmpDir, cloud,
     // La carpeta de contenido de la iglesia (con Biblias, Himnario y Medios), o null. Se cambia con Manna abierto
     // (fase 29): setContent apunta las tres a la nueva y avisa a los módulos que lo pidieron con onContent.
     contentDir,
@@ -163,7 +166,7 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
   // El certificado se crea la primera vez y se guarda con los datos. Si no se puede, Manna sigue
   // solo con http: nada de esto debe impedir el arranque.
   async function certificate() {
-    if (process.env.MANNA_SIN_HTTPS) return null;
+    if (process.env.MANNA_SIN_HTTPS || cloud) return null;
     try {
       const ips = Object.values(os.networkInterfaces()).flat().filter((n) => n?.family === 'IPv4').map((n) => n.address);
       return await loadCertificate(path.join(dataDir, 'certificado'), { names: ['localhost', `${networkName()}.local`], ips });

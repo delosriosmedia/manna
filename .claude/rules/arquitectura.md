@@ -88,6 +88,8 @@ Un contenido con muchos pasos no publica su lista en el estado: Diapositivas pub
 
 ## Arranque y apagado
 
+- **Modo nube** (fase 36, `MANNA_NUBE=1`, `app.cloud`): el mismo programa en el hosting de Hostinger. Se carga por `server/inicio.cjs` (LiteSpeed usa `require()` y Manna es un módulo ES), abre un servidor `http` corriente en el `PORT` del hosting (que pone el `https`; sin certificado propio), no carga televisores ni túnel, no mira si ya hay otro Manna (al desplegar arrancan dos procesos a la vez), no se anuncia en la red, no pregunta por versiones nuevas, no revisa los programas del equipo ni abre el navegador, y la proyección va sin ventana (`runInCloud` en `server/app.js`). **Nadie es «el equipo principal»** (`ctx.isLocal` siempre falso, `core/router.js`): todo pide usuario y PIN.
+
 - El usuario abre Manna con un icono que ejecuta `node server/index.js --segundo-plano`, con el Node.js que instaló el instalador en `Programa/node` (o, en una instalación anterior a la 1.35, el del equipo). No hay ventana: la interfaz es el control en el navegador.
 - Antes de abrir el navegador, `app.tools.scan()` revisa los programas del equipo. Si falta alguno que no sea opcional, Manna se abre en `/requisitos` (revisión del equipo) en vez de en `/control`. Es solo un aviso: ninguna página se bloquea.
 - Pulsar el icono con Manna ya abierto no crea otra copia: `server/app.js` reconoce su propia instalación por `ajustes.json → id` (el mismo que devuelve `GET /api/ping`) y solo abre el control.

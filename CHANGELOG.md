@@ -4,6 +4,11 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.43.0 — 2026-10-25
+
+- **Más seguro desde fuera de la iglesia** (antes de abrir Manna a internet): desde un celular o por la conexión por internet ya no se puede agregar una página web del propio equipo o de la red de la iglesia (solo desde el equipo principal); un archivo que en realidad lleva fuera de su carpeta no se sirve; y, entrando por `https`, la sesión solo viaja cifrada.
+- Por dentro, Manna ya sabe funcionar en la nube (fase 36): todavía no se usa.
+
 ## 1.42.0 — 2026-10-25
 
 - **Caben 20 órdenes del culto por iglesia.** Cuando quedan 5 o menos libres, el cajón Orden pide limpiar los antiguos que ya no se necesiten, y al llegar a 20 no se puede crear otro hasta borrar alguno. Más adelante, el superadministrador podrá cambiar ese máximo.

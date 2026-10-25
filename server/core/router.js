@@ -185,7 +185,7 @@ function sendFile(req, res, file) {
 // refuse(): con un texto, se rechaza (409) todo lo que no es una lectura, salvo abrir sesión, el aviso del sonido y
 // las órdenes (que filtra la propia ruta de órdenes). Lo usa el bloqueo de «otro Manna en la red».
 const OPEN_WHILE_REFUSED = new Set(['/api/session', '/api/events/sound', '/api/action']);
-export function createRouter({ webDir, sessions, refuse = () => null }) {
+export function createRouter({ webDir, sessions, cloud = false, refuse = () => null }) {
   const routes = [];
   const mounts = []; // carpetas de contenido servidas bajo un prefijo: { prefix: '/media/', dir }
 
@@ -211,6 +211,10 @@ export function createRouter({ webDir, sessions, refuse = () => null }) {
   function serveFrom(req, res, baseDir, relPath) {
     const file = path.join(baseDir, relPath);
     if (!file.startsWith(baseDir + path.sep)) return false;
+    // Un enlace simbólico que lleve fuera de la carpeta no se sigue (auditoría de la fase 9, cerrado en la 36).
+    let real;
+    try { real = fs.realpathSync(file); } catch { return false; }
+    if (!real.startsWith(fs.realpathSync(baseDir) + path.sep)) return false;
     return sendFile(req, res, file);
   }
 
@@ -228,7 +232,8 @@ export function createRouter({ webDir, sessions, refuse = () => null }) {
   async function handle(req, res) {
     const url = new URL(req.url, 'http://localhost');
     const internet = FORWARDED.some((name) => name in req.headers);
-    const isLocal = LOOPBACK.has(req.socket.remoteAddress) && !internet;
+    // En la nube no hay equipo principal: lo que llega del propio servidor también pide ingreso.
+    const isLocal = !cloud && LOOPBACK.has(req.socket.remoteAddress) && !internet;
     const reads = req.method === 'GET' || req.method === 'HEAD';
     const session = sessions.fromRequest(req);
     try {

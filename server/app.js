@@ -98,6 +98,7 @@ async function run() {
     contentDir: CONTENT,
   };
   let app = createApp(options);
+  if (app.cloud) return runInCloud(app);
 
   const running = await findRunning(app);
   // El que está abierto arrancó con otro código (Manna se actualizó mientras tanto): se cierra y
@@ -178,6 +179,22 @@ async function run() {
   process.on('SIGINT', app.shutdown);
   process.on('SIGTERM', app.shutdown);
   process.on('SIGHUP', app.shutdown);
+}
+
+// Modo nube (fase 36): en el hosting, sin nada del equipo de la iglesia (televisores, túnel, revisión de programas,
+// navegador, «un solo Manna a la vez»). Al desplegar, el hosting arranca dos procesos casi a la vez: aquí no se mira si ya
+// hay otro abierto. Apagar y reiniciar solo terminan el proceso; el hosting lo vuelve a arrancar.
+async function runInCloud(app) {
+  for (const setup of MODULES.filter((m) => m !== tv && m !== internet)) await setup(app);
+  app.shutdown = async () => {
+    await app.close();
+    process.exit(0);
+  };
+  app.restart = app.shutdown;
+  const port = await app.listen();
+  console.log(`Manna en modo nube, en el puerto ${port}.`);
+  process.on('SIGINT', app.shutdown);
+  process.on('SIGTERM', app.shutdown);
 }
 
 // Sin ventana no hay dónde leer un error de arranque: se muestra en una página.
