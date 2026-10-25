@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- Pruebas: la de PowerPoint en vivo que fallaba a veces en Windows ya no lee a medias el aviso de que alguien pasó la diapositiva.
+
 ## 1.39.0 — 2026-10-25
 
 - **Capas desde la barra de abajo**: cada capa que tiene algo lleva su botón junto a «Siguiente» (en el celular, bajo «Al aire / Solo fondo / Negro»): un clic la enciende o la apaga, sin abrir el cajón «Capas». Solo en Control completo.

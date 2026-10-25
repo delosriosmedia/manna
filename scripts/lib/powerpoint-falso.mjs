@@ -60,7 +60,9 @@ if (process.env.MANNA_PPT_MODO === 'vivo') {
   process.stdin.on('end', () => { fs.appendFileSync(log, JSON.stringify({ order: 'cerrar' }) + '\\n'); process.exit(0); });
   setInterval(() => {
     let moved;
-    try { moved = fs.readFileSync(log + '.mover', 'utf8').trim(); fs.rmSync(log + '.mover'); } catch { return; }
+    try { moved = fs.readFileSync(log + '.mover', 'utf8').trim(); } catch { return; }
+    if (!moved) return; // aún se está escribiendo: en Windows se puede leer vacío (falló así en GitHub, 1.37.0 y 1.39.0)
+    fs.rmSync(log + '.mover', { force: true });
     if (moved === 'parado') { at = 0; reply('parado', '', ''); } else if (moved === 'fin') { at = total; click = clicks[at] || 0; reply('fin', '', ''); }
     else { at = Number(moved); click = 0; reply('diapositiva', at, ''); }
   }, 100);
