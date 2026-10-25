@@ -4,6 +4,9 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.48.0 — 2026-10-25
+
+- **Lo preparado en casa llega a la iglesia, y al revés** (fase 37): con el equipo emparejado, los órdenes, los textos y los himnos favoritos van y vienen entre el equipo y su nube; con los dos encendidos, un cambio llega al otro lado en unos segundos. Sin internet, el equipo sigue igual y se pone al día al volver. Si un mismo orden se cambió en los dos sitios sin conexión, queda el cambio más reciente, y su dueño (y el administrador) lo ven en un aviso en el cajón Orden.
 ## 1.47.0 — 2026-10-25
 
 - **Los usuarios, en la nube** (fase 37): emparejado, el equipo de la iglesia tiene los usuarios de su nube, y cada uno entra con su PIN aunque no haya internet. Se crean, se cambian y se quitan en «Administrar la iglesia»; en Ajustes → Usuarios del equipo se ven, con el enlace para cambiarlos. Al emparejar un equipo por primera vez, sus usuarios suben a la nube; si alguno se llama como uno de la nube, pasa a ser ese, con sus órdenes.

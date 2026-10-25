@@ -12,6 +12,8 @@ const MAX_TEXTS = 500;
 export default function setup(app) {
   const { store } = app;
   const saved = app.storage('textos', { texts: [] });
+  // Lo borrado, con su hora, para que la nube no lo vuelva a traer (fase 37).
+  saved.data.deleted ||= [];
 
   // Los más recientes (o recién cambiados), primero.
   const publish = () => store.set('texts', { list: [...saved.data.texts].sort((a, b) => b.updated - a.updated) });
@@ -49,8 +51,21 @@ export default function setup(app) {
   app.action('texts.remove', { permission: 'texts.edit' }, ({ id }) => {
     if (!find(id)) throw new HttpError(404, 'Ese texto ya no existe.');
     saved.data.texts = saved.data.texts.filter((t) => t.id !== id);
+    saved.data.deleted.push({ id, at: Date.now() });
     commit();
   });
+
+  // La sincronización con la nube (fase 37, parte 4; core/sync.js): lo que hay y lo borrado, y ponerlo como quedó.
+  app.services.texts = {
+    sync: {
+      export: () => ({ records: structuredClone(saved.data.texts), deleted: [...saved.data.deleted] }),
+      apply({ records, deleted }) {
+        saved.data.texts = records.filter((t) => typeof t.id === 'string' && typeof t.text === 'string');
+        saved.data.deleted = deleted;
+        commit();
+      },
+    },
+  };
 
   // ---- Tipo de contenido ----
   // data = { id }. Cada parte es un paso; el elemento entero se ve de una vez (si cabe, se reduce la letra).

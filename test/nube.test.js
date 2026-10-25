@@ -8,6 +8,9 @@ import { fileURLToPath } from 'node:url';
 import { createApp } from '../server/core/app.js';
 import system from '../server/modules/system/index.js';
 import users from '../server/modules/users/index.js';
+import order from '../server/modules/order/index.js';
+import texts from '../server/modules/texts/index.js';
+import hymns from '../server/modules/hymns/index.js';
 import cloud from '../server/modules/cloud/index.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -21,9 +24,14 @@ test.after(async () => {
 // Un Manna de verdad (la nube o un equipo de la iglesia) atendiendo en este equipo, con su cliente y su cookie.
 async function serve(name, env = {}) {
   Object.assign(process.env, env);
-  const app = createApp({ rootDir: ROOT, dataDir: path.join(tmp, name), biblesDir: path.join(tmp, `${name}-biblias`) });
+  // Un himnario de mentira de un solo himno (el nombre del video basta para que exista).
+  const hymnsDir = path.join(tmp, `${name}-himnario`);
+  fs.mkdirSync(path.join(hymnsDir, 'videos'), { recursive: true });
+  fs.writeFileSync(path.join(hymnsDir, 'videos', '001 Canción de prueba.mp4'), 'x');
+  const app = createApp({ rootDir: ROOT, dataDir: path.join(tmp, name), biblesDir: path.join(tmp, `${name}-biblias`), hymnsDir });
   for (const key of Object.keys(env)) delete process.env[key];
-  for (const setup of [system, users, cloud]) await setup(app);
+  for (const setup of [system, users, order, texts, hymns, cloud]) await setup(app);
+  app.services.hymns.reload();
   const server = http.createServer(app.handle);
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -117,7 +125,52 @@ test('emparejar con un código de «Administrar», el equipo oficial y el bloque
   await b.app.services.cloud.check();
   assert.equal(b.app.blocked?.replaced, true, 'ahora el bloqueado es el otro');
 
+  // ---- Parte 4: los órdenes, los textos y los favoritos, en los dos sentidos ----
+  await nube.call('/api/session', { role: 'preparacion', user: anaThere, pin: '1234' }); // Ana prepara desde casa
+  const orders = async (s) => (await s.state()).orders.list.map((o) => o.name).sort();
+  const textList = async (s) => (await s.state()).texts.list.map((x) => x.text).sort();
+  const cultoA = (await a.send('order.create', { name: 'Culto A' })).result.id;
+  await a.send('texts.save', { style: 'normal', text: 'Texto de la iglesia' });
+  await a.app.services.cloud.sync();
+  assert.deepEqual(await orders(nube), ['Culto A'], 'lo de la iglesia llega a la nube');
+  assert.deepEqual(await textList(nube), ['Texto de la iglesia']);
+  const cultoB = (await nube.send('order.create', { name: 'Culto B' })).result.id;
+  await nube.send('texts.save', { style: 'normal', text: 'Texto de la nube' });
+  assert.equal((await nube.send('hymns.favorite', { number: 1, on: true })).status, 200);
+  await a.app.services.cloud.sync();
+  assert.deepEqual(await orders(a), ['Culto A', 'Culto B'], 'y lo de la nube, a la iglesia');
+  assert.deepEqual(await textList(a), ['Texto de la iglesia', 'Texto de la nube']);
+  assert.deepEqual((await a.state()).hymns.favorites, [1]);
+  // Lo borrado en un lado no vuelve del otro.
+  assert.equal((await a.send('order.deleteOrder', { id: cultoB })).status, 200);
+  await a.app.services.cloud.sync();
+  assert.deepEqual(await orders(nube), ['Culto A']);
+  await a.app.services.cloud.sync();
+  assert.deepEqual(await orders(a), ['Culto A'], 'ni a la segunda');
+  // Cambiado en los dos lados sin juntarse: gana el último, y su dueño (y el administrador) lo ven en un aviso.
+  await a.send('order.renameOrder', { id: cultoA, name: 'Culto A en la iglesia' });
+  await new Promise((resolve) => { setTimeout(resolve, 5); });
+  await nube.send('order.renameOrder', { id: cultoA, name: 'Culto A en la nube' });
+  await a.app.services.cloud.sync();
+  assert.deepEqual([await orders(a), await orders(nube)], [['Culto A en la nube'], ['Culto A en la nube']]);
+  const notice = (await a.state()).orders.conflicts;
+  assert.deepEqual(notice.map((c) => [c.id, c.name, c.where]), [[cultoA, 'Culto A en la nube', 'la nube']]);
+  assert.equal((await nube.state()).orders.conflicts.length, 1, 'el aviso sale en los dos lados');
+  assert.equal((await a.send('order.dismissConflict', { id: cultoA })).status, 200);
+  assert.deepEqual((await a.state()).orders.conflicts, []);
+  // La nube contesta la pregunta «¿cambió algo?» en cuanto cambia.
+  const key = JSON.parse(fs.readFileSync(path.join(a.app.dataDir, 'nube.json'), 'utf8'));
+  a.app.storage.flushAll();
+  const { cloudData } = JSON.parse(fs.readFileSync(path.join(a.app.dataDir, 'nube.json'), 'utf8'));
+  const t0 = Date.now();
+  const waiting = fetch(`${nube.base}/api/nube/esperar?v=${cloudData}`, { headers: { authorization: `Bearer ${key.token}` } }).then((r) => r.json());
+  await new Promise((resolve) => { setTimeout(resolve, 300); });
+  await nube.send('texts.save', { style: 'normal', text: 'Otro texto de la nube' });
+  const answer = await waiting;
+  assert.ok(answer.version && answer.version !== cloudData && Date.now() - t0 < 5000, 'contesta enseguida, con la huella nueva');
+
   // Diez intentos fallidos anulan el código.
+  await nube.call('/api/session', { role: 'administrar', user: anaThere, password: 'contraseña de prueba' });
   const last = await code();
   for (let i = 0; i < 10; i += 1) await a.send('cloud.pair', { url: nube.base, code: other(last) });
   const late = await a.send('cloud.pair', { url: nube.base, code: last });

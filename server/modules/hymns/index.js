@@ -275,9 +275,22 @@ export default function setup(app) {
     const { number: n } = find(number);
     const rest = saved.data.favorites.filter((x) => x !== n);
     saved.data.favorites = on ? [...rest, n].sort((a, b) => a - b) : rest;
+    saved.data.favoritesUpdated = Date.now();
     saved.save();
     store.set('hymns', { favorites: [...saved.data.favorites] });
   });
+  // La sincronización con la nube (fase 37, parte 4): la lista entera, con la hora de su último cambio.
+  app.services.hymns.sync = {
+    export: () => ({ records: [{ id: 'favoritos', list: [...saved.data.favorites], updated: saved.data.favoritesUpdated || 0 }], deleted: [] }),
+    apply({ records }) {
+      const r = records.find((x) => x.id === 'favoritos');
+      if (!r || !Array.isArray(r.list)) return;
+      saved.data.favorites = r.list.filter(Number.isInteger).sort((a, b) => a - b);
+      saved.data.favoritesUpdated = r.updated;
+      saved.save();
+      store.set('hymns', { favorites: [...saved.data.favorites] });
+    },
+  };
 
   // Leer el himnario (la lista, buscar, la letra) es de quien proyecta y de quien prepara el culto (fase 36): hymns.read.
   app.route('GET', '/api/hymns', (ctx) => {

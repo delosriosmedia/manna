@@ -155,6 +155,8 @@ const UNTOUCHED = {
   'GET /api/nube/estado': 'la pide el equipo de la iglesia a su nube cada minuto, no la interfaz',
   'GET /api/nube/usuarios': 'la pide el equipo de la iglesia a su nube para traer los usuarios, no la interfaz',
   'POST /api/nube/usuarios': 'la pide el equipo de la iglesia a su nube al emparejarse, para subir los suyos; no la interfaz',
+  'POST /api/nube/sincronizar': 'la pide el equipo de la iglesia a su nube para juntar órdenes, textos y favoritos; no la interfaz',
+  'GET /api/nube/esperar': 'la deja hecha el equipo de la iglesia para enterarse de lo que cambia en su nube; no la interfaz',
   'bible.rescan': 'no tiene botón: la carpeta de biblias se vigila sola',
   'projection.clear': 'no tiene botón: "Solo fondo" y "Negro" cubren su uso',
   'projection.display': 'necesita una segunda pantalla de verdad',
@@ -3468,7 +3470,8 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     fs.cpSync(hymnal.dir, path.join(r2dir, 'Himnario'), { recursive: true });
     fs.cpSync(bibles, path.join(r2dir, 'Biblias'), { recursive: true });
     const fakeR2 = await startFakeR2(r2dir);
-    const cloudServer = startServer(null, { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'clave-de-alta-de-prueba', PORT: String(cloudPort), MANNA_DATA: path.join(tmp, 'nube'), ...fakeR2.env });
+    const startCloud = () => startServer(null, { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'clave-de-alta-de-prueba', PORT: String(cloudPort), MANNA_DATA: path.join(tmp, 'nube'), ...fakeR2.env });
+    let cloudServer = startCloud();
     // Por 127.0.0.1: la cookie de la sesión va por nombre de equipo, y así no pisa la del equipo de la iglesia (localhost).
     const cloud = `http://127.0.0.1:${cloudPort}`;
     try {
@@ -3581,6 +3584,26 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       check('emparejado, Ajustes → Usuarios trae los de la nube y lleva a «Administrar la iglesia» para cambiarlos', await until(`[...${usersSection}.querySelectorAll('.user-row strong')].some((s) => s.textContent.startsWith('Beto'))`, 25)
         && await run(`const s = ${usersSection}; return s.querySelector('p.muted:not([hidden]) a')?.href.endsWith('/administrar') && ![...s.querySelectorAll('button')].some((b) => b.offsetParent && /Añadir usuario|Cambiar a/.test(b.textContent + (b.getAttribute('aria-label') || '')))`),
         await run(`return ${usersSection}?.textContent.slice(0, 300)`));
+      // Los órdenes (parte 4): el de Beto, preparado en la nube, llega al equipo. Cambiado en los dos lados sin conexión
+      // (la nube apagada mientras tanto), gana el último y el equipo lo avisa en el cajón Orden.
+      const betoOrder = `(await (await fetch('/api/state')).json()).orders.list.find((o) => o.ownerName === 'Beto')`;
+      check('el orden preparado en la nube llega al equipo de la iglesia', await until(betoOrder, 25));
+      const betoId = await run(`return ${betoOrder}.id`);
+      await stopServer(cloudServer);
+      await run(`return await ${post('order.renameOrder', { id: betoId, name: 'Cambiado en la iglesia' })}`);
+      await sleep(2500);
+      const cloudOrders = path.join(tmp, 'nube', 'orden.json');
+      const stored = JSON.parse(fs.readFileSync(cloudOrders, 'utf8'));
+      Object.assign(stored.saved.find((o) => o.id === betoId), { name: 'Cambiado en la nube', updated: Date.now() + 1000 });
+      fs.writeFileSync(cloudOrders, JSON.stringify(stored));
+      cloudServer = startCloud();
+      await chrome.send('Page.navigate', { url: `${local}/control#orden` });
+      const conflictNote = `[...document.querySelectorAll('.order-conflicts .order-note')].find((n) => n.textContent.includes('Cambiado en la nube'))`;
+      check('cambiado en los dos lados sin conexión: gana el último y el cajón Orden lo avisa', await until(conflictNote, 50)
+        && (await run(`return ${betoOrder}.name`)) === 'Cambiado en la nube', await run(`return document.querySelector('.order-conflicts')?.textContent || 'sin aviso'`));
+      await click(`${conflictNote}.querySelector('.btn')`);
+      check('«Entendido» cierra el aviso', await until(`!${conflictNote}`, 15));
+
       // Otro equipo (uno de mentira, con un código nuevo) pasa a ser el oficial: este se entera y queda bloqueado.
       const secondCode = await adminCode();
       const other = await fetch(`${cloud}/api/nube/emparejar`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Prueba': '1' }, body: JSON.stringify({ code: secondCode, id: 'f'.repeat(16), name: 'Equipo de prueba', confirm: true }) });

@@ -1,4 +1,4 @@
-// Arma el paquete de la nube (fase 36, parte 6): solo lo que necesita el hosting (package.json, server/ y web/; las
+// Arma el paquete de la nube (fase 36, parte 6): solo lo que necesita el hosting (package.json, server/ y web/ del último commit; las
 // biblias y el himnario vienen de R2), en un .zip con la versión y la hora en el nombre: el hosting gasta cada archivo
 // subido al compilarlo, y para repetir hace falta otro nombre. Con «probar», además lo abre como el hosting (con
 // require() de server/inicio.cjs, en modo nube, con su puerto y contra un R2 de mentira) y comprueba que abre el puerto
@@ -29,7 +29,8 @@ const out = path.join(ROOT, 'data', 'despliegue');
 const zip = path.join(out, `manna-${version}-${stamp}.zip`);
 fs.mkdirSync(out, { recursive: true });
 fs.rmSync(zip, { force: true });
-const made = spawnSync('zip', ['-q', '-r', '-X', zip, ...PARTS, '-x', '*.DS_Store'], { cwd: ROOT, encoding: 'utf8' });
+// Lo que está en el último commit, no lo que haya a medio hacer en la carpeta: se despliega lo publicado.
+const made = spawnSync('git', ['archive', '--format=zip', '-o', zip, 'HEAD', ...PARTS], { cwd: ROOT, encoding: 'utf8' });
 if (made.status !== 0) {
   console.error(`No se pudo armar el paquete: ${made.stderr || made.error?.message}`);
   process.exit(1);

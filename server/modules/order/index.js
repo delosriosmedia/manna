@@ -58,6 +58,10 @@ export default function setup(app) {
     Object.assign(data, { editing: {}, version: 2 });
   }
   if (!Number.isInteger(data.limit) || data.limit < 1) data.limit = LIMIT;
+  // Para la nube (fase 37, parte 4): lo borrado, con su hora (para que no vuelva), y los avisos de un orden cambiado en
+  // los dos lados sin conexión (decisión 63, C).
+  data.deleted ||= [];
+  data.conflicts ||= [];
   if (!legacy && process.env.MANNA_REINICIO !== '1' && !(Date.now() - (data.alive || 0) < KEEP_MS)) data.active = null;
   const find = (id) => data.saved.find((o) => o.id === id) || null;
   if (!find(data.active)) data.active = null;
@@ -108,6 +112,8 @@ export default function setup(app) {
         })) : [],
         editing: editing?.id || null,
         items: editing?.items || [],
+        // Los avisos de conflicto, para el dueño de ese orden y para el administrador.
+        conflicts: session?.user ? data.conflicts.filter((c) => session.user.admin || c.owner === session.user.id) : [],
         total: data.saved.length,
         limit: data.limit,
       };
@@ -207,9 +213,27 @@ export default function setup(app) {
       for (const o of theirs) {
         o.name = uniqueName(o.name, data.saved.filter((x) => x.owner === to).map((x) => x.name));
         o.owner = to;
+        o.updated = Date.now();
       }
       delete data.editing[from];
       if (theirs.length) save();
+    },
+    // La sincronización con la nube (fase 37, parte 4; core/sync.js). Lo que está en uso y lo que cada uno tiene
+    // abierto es de cada lado y no viaja.
+    sync: {
+      export: () => ({ records: structuredClone(data.saved), deleted: [...data.deleted] }),
+      apply({ records, deleted }, conflicts = []) {
+        data.saved = records.filter((o) => typeof o.id === 'string' && typeof o.name === 'string' && Array.isArray(o.items));
+        data.deleted = deleted;
+        if (!find(data.active)) data.active = null;
+        for (const [user, open] of Object.entries(data.editing)) if (!find(open)) delete data.editing[user];
+        const at = Date.now();
+        for (const c of conflicts) {
+          const o = find(c.id);
+          if (o) data.conflicts = [...data.conflicts.filter((x) => x.id !== c.id), { id: c.id, name: o.name, owner: o.owner, at, where: c.where }].slice(-20);
+        }
+        save();
+      },
     },
     neighbor(id, step, delta) {
       const target = neighbor(items(), id, step, delta);
@@ -295,7 +319,8 @@ export default function setup(app) {
   // Lo pone en uso: es el que ven todos en la cola del culto. Lo que ya no está en la biblioteca se quita.
   app.action('order.use', { permission: 'order.edit' }, ({ id }, ctx) => {
     const o = visible(id, ctx);
-    const kept = o.items.filter(exists);
+    // En la nube no se quita nada: lo que no conoce (las imágenes y los videos de la iglesia) sí existe allí.
+    const kept = app.cloud ? o.items : o.items.filter(exists);
     const removed = o.items.length - kept.length;
     o.items = kept;
     data.active = o.id;
@@ -306,17 +331,23 @@ export default function setup(app) {
   app.action('order.renameOrder', { permission: 'order.edit' }, ({ id, name, date }, ctx) => {
     const o = visible(id, ctx);
     const next = { name: name === undefined ? o.name : orderName(name, o.owner, o), date: date === undefined ? o.date : cleanDay(date) };
-    Object.assign(o, next);
+    Object.assign(o, next, { updated: Date.now() });
     save();
   });
   // Favoritos: los órdenes que se repiten, en su pestaña del cajón (fase 35).
   app.action('order.favorite', { permission: 'order.edit' }, ({ id, on }, ctx) => {
-    visible(id, ctx).favorite = on === true;
+    Object.assign(visible(id, ctx), { favorite: on === true, updated: Date.now() });
+    save();
+  });
+  // Cerrar el aviso de un orden cambiado en los dos lados (decisión 63, C).
+  app.action('order.dismissConflict', { permission: 'order.edit' }, ({ id }) => {
+    data.conflicts = data.conflicts.filter((c) => c.id !== id);
     save();
   });
   app.action('order.deleteOrder', { permission: 'order.edit' }, ({ id }, ctx) => {
     visible(id, ctx);
     data.saved = data.saved.filter((o) => o.id !== id);
+    data.deleted.push({ id, at: Date.now() });
     if (data.active === id) data.active = null;
     for (const [user, open] of Object.entries(data.editing)) if (open === id) delete data.editing[user];
     save();

@@ -74,6 +74,8 @@ function mount(el, ctx) {
   const note = h('div', { class: 'order-note', role: 'status', hidden: true });
   // Cuando quedan pocos órdenes libres (hay un máximo por iglesia), el aviso de limpiar los antiguos.
   const full = h('div', { class: 'order-note order-full', role: 'status', hidden: true });
+  // Un orden cambiado en la iglesia y en la nube a la vez, sin conexión (fase 37, decisión 63): quedó el último cambio.
+  const conflicts = h('div', { class: 'order-conflicts' });
   const summary = h('small', {});
   const viewTabs = ctx.canEdit ? TABS.map(([id, label]) =>
     h('button', { class: 'btn', role: 'tab', dataset: { view: id }, onclick: () => setView(id) }, label)) : [];
@@ -109,7 +111,7 @@ function mount(el, ctx) {
         { label: 'Vaciar el orden', icon: 'trash', disabled: !editable || !items.length, onclick: confirmClear },
       ]) }, icon('dots-three', 18))),
     h('div', { class: 'order-bar', role: 'tablist', 'aria-label': 'Vista' }, ...viewTabs, summary),
-    note, full,
+    note, full, conflicts,
     h('div', { class: 'order-grid' }, list, browse, side));
 
   const run = (type, payload) => guard(() => action(type, payload))();
@@ -531,13 +533,16 @@ function mount(el, ctx) {
     const parts = view !== 'este' || !ctx.canEdit ? null
       : !viewing?.id ? ['No tienes ningún orden abierto. Lo que añadas va a uno nuevo, con el nombre del día.', h('button', { class: 'btn', onclick: () => setView('ordenes') }, 'Ver los órdenes')]
         : !editable ? [`Este orden es de ${viewing.ownerName}: solo lo cambian ${viewing.ownerName} o el administrador.`, h('button', { class: 'btn', onclick: () => newOrder() }, icon('plus', 15), 'Nuevo orden')]
-          : !inUseHere ? [inUse.active ? `No está en uso: la cola del culto muestra «${inUse.name}».` : 'No está en uso: la cola del culto está vacía.', h('button', { class: 'btn', onclick: () => use(viewing) }, 'Usar este orden')]
+          : !inUseHere && ctx.canProject ? [inUse.active ? `No está en uso: la cola del culto muestra «${inUse.name}».` : 'No está en uso: la cola del culto está vacía.', h('button', { class: 'btn', onclick: () => use(viewing) }, 'Usar este orden')]
             : null;
     note.hidden = !parts;
     note.replaceChildren(...(parts ? [h('span', {}, parts[0]), parts[1]] : []));
     const { total = 0, limit = Infinity } = state.orders || {};
     const left = limit - total;
     full.hidden = !ctx.canEdit || left > WARN_LEFT;
+    conflicts.replaceChildren(...(ctx.canEdit ? state.orders?.conflicts || [] : []).map((c) => h('div', { class: 'order-note', role: 'status' },
+      h('span', {}, `«${c.name}» se cambió en la iglesia y en la nube a la vez, sin conexión entre ellas: quedó el cambio más reciente, el de ${c.where}.`),
+      h('button', { class: 'btn', onclick: guard(() => action('order.dismissConflict', { id: c.id })) }, 'Entendido'))));
     full.replaceChildren(...[h('span', {}, `${left > 0 ? `Quedan ${plural(left, 'orden libre', 'órdenes libres')} de ${limit}.` : `Ya hay ${limit} órdenes, el máximo: no se pueden crear más.`} Limpia los órdenes antiguos que ya no necesites${me?.admin ? '' : ' (los de otras personas los borra el administrador)'}.`),
       view !== 'ordenes' && h('button', { class: 'btn', onclick: () => setView('ordenes') }, 'Ver los órdenes')].filter(Boolean));
   }

@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { HttpError } from '../../core/router.js';
 import { cleanName } from '../../core/names.js';
+import { mergeSets, setVersion } from '../../core/sync.js';
 
 // El equipo oficial y su nube (fase 37, partes 1 y 2; decisión 63). El mismo módulo en los dos lados:
 // - en la nube (app.cloud), «Administrar la iglesia» da un código de 6 cifras que dura 10 minutos; con él, un equipo
@@ -15,11 +16,20 @@ import { cleanName } from '../../core/names.js';
 // Los usuarios (parte 3, decisión 63) viven en la nube: al emparejarse por primera vez, el equipo sube los suyos (los
 // que tengan el nombre de uno de la nube pasan a ser ese, con sus órdenes); después el equipo guarda una copia (para
 // dejar entrar sin internet) y la trae cuando cambia, y ahí ya no se cambian.
+// Los órdenes, los textos y los favoritos del himnario (parte 4, core/sync.js) van en los dos sentidos: el equipo manda
+// lo suyo, la nube lo junta con lo suyo (de cada uno gana el último cambio) y le devuelve el resultado. Con los dos
+// encendidos, un cambio llega al otro lado en segundos: el del equipo, a los 2 s; el de la nube, porque el equipo le
+// deja hecha una pregunta («avísame si algo cambia») que ella contesta en cuanto cambia.
 // El equipo llama siempre a la nube (está detrás del router de la iglesia); la nube nunca lo llama a él.
 
 const CODE_MS = 10 * 60_000;
 const CODE_TRIES = 10; // fallos con un mismo código antes de anularlo
 const ONLINE_MS = 150_000; // sin noticias del equipo en 2,5 minutos, se da por apagado
+const WAIT_MS = 25_000; // lo que la nube espera, como mucho, a que algo cambie antes de contestar
+const PUSH_MS = 2000; // un cambio del equipo sale a los 2 s (si llegan varios seguidos, juntos)
+// Lo que se sincroniza y el módulo que lo tiene (cada uno ofrece sync: { export, apply }).
+const SETS = { orders: (app) => app.services.order?.sync, texts: (app) => app.services.texts?.sync, favorites: (app) => app.services.hymns?.sync };
+const exportAll = (app) => Object.fromEntries(Object.entries(SETS).map(([name, of]) => [name, of(app)?.export()]).filter(([, set]) => set));
 const CHECK_MS = 60_000;
 const hash = (text) => crypto.createHash('sha256').update(String(text)).digest('hex');
 // La huella de la lista de usuarios: si cambia, el equipo trae la lista.
@@ -106,11 +116,53 @@ function cloudSide(app) {
       o.version = String(ctx.req.headers['x-manna-version'] || o.version).slice(0, 20);
       saved.save();
       publish();
-      return { official: true, church: host(ctx), users: versionOf(users.records()) };
+      return { official: true, church: host(ctx), users: versionOf(users.records()), data: versionNow() };
     }
     const former = saved.data.former.find((f) => same(mine, f.tokenHash));
     if (former) return { official: false, replaced: { by: former.by, at: former.replaced }, church: host(ctx) };
     throw new HttpError(401, 'La nube no reconoce este equipo: vuelve a emparejarlo.');
+  });
+
+  // Lo que se sincroniza: el equipo manda lo suyo y la última vez que se pusieron de acuerdo; la nube lo junta con lo
+  // suyo, se queda el resultado y se lo devuelve, con los conflictos (decisión 63, C).
+  const versionNow = () => setVersion(exportAll(app));
+  app.route('POST', '/api/nube/sincronizar', async (ctx) => {
+    official(ctx);
+    const { since, sets } = await ctx.json();
+    const out = {};
+    let conflicts = [];
+    for (const [name, of] of Object.entries(SETS)) {
+      const service = of(app);
+      if (!service || !sets?.[name]) continue;
+      const mine = service.export();
+      const merged = mergeSets(mine, sets[name], { since: Number(since) || 0 });
+      const found = name === 'orders' ? merged.conflicts.map((c) => ({ id: c.id, where: c.kept === 'mine' ? 'la nube' : 'la iglesia' })) : [];
+      if (setVersion({ x: mine }) !== setVersion({ x: merged }) || found.length) service.apply({ records: merged.records, deleted: merged.deleted }, found);
+      out[name] = { records: merged.records, deleted: merged.deleted };
+      conflicts = conflicts.concat(found);
+    }
+    return { sets: out, conflicts, version: versionNow() };
+  });
+  // «Avísame si algo cambia»: contesta en cuanto lo sincronizado cambia, o a los 25 s con lo mismo.
+  const waiting = new Set();
+  app.route('GET', '/api/nube/esperar', async (ctx) => {
+    official(ctx);
+    const seen = String(ctx.query.get('v') || '');
+    if (versionNow() !== seen) return { version: versionNow() };
+    return new Promise((resolve) => {
+      const done = () => { waiting.delete(done); clearTimeout(timer); resolve({ version: versionNow() }); };
+      const timer = setTimeout(done, WAIT_MS);
+      waiting.add(done);
+      ctx.req.on('close', () => { waiting.delete(done); clearTimeout(timer); });
+    });
+  });
+  let last = null;
+  store.on('change', (ns) => {
+    if (!['orders', 'texts', 'hymns'].includes(ns) || !waiting.size) return;
+    const now = versionNow();
+    if (now === last) return;
+    last = now;
+    for (const done of [...waiting]) done();
   });
 
   // Los usuarios: la copia del equipo, y los que sube el equipo la primera vez que se empareja.
@@ -133,7 +185,7 @@ function cloudSide(app) {
 function churchSide(app) {
   const { store } = app;
   const { version } = JSON.parse(fs.readFileSync(path.join(app.rootDir, 'package.json'), 'utf8'));
-  const saved = app.storage('nube', { url: '', token: '', church: '', paired: 0, replaced: null, usersUp: false, users: '' });
+  const saved = app.storage('nube', { url: '', token: '', church: '', paired: 0, replaced: null, usersUp: false, users: '', syncedAt: 0, synced: '', cloudData: '' });
   // status: off (sin emparejar), on, offline (sin conexión con la nube), unknown (la nube no lo reconoce), replaced.
   store.register('cloud', { church: saved.data.token ? saved.data.church : '', url: saved.data.token ? saved.data.url : '', paired: saved.data.token ? saved.data.paired : 0,
     status: saved.data.replaced ? 'replaced' : saved.data.token ? 'offline' : 'off', lastSeen: null, error: null });
@@ -173,6 +225,66 @@ function churchSide(app) {
     app.services.users?.publish();
   }
 
+  // Los órdenes, los textos y los favoritos: manda lo suyo, recibe lo juntado y lo vuelve a juntar con lo de aquí (por si
+  // algo cambió mientras tanto). Una sincronización a la vez; si se pide otra durante, se hace al terminar.
+  let syncing = null;
+  let again = false;
+  const live = () => Boolean(saved.data.token) && !saved.data.replaced;
+  function syncData() {
+    if (!live()) return Promise.resolve();
+    if (syncing) { again = true; return syncing; }
+    syncing = (async () => {
+      const sentAt = Date.now();
+      const res = await ask('POST', '/api/nube/sincronizar', { since: saved.data.syncedAt, sets: exportAll(app) });
+      for (const [name, of] of Object.entries(SETS)) {
+        const service = of(app);
+        if (!service || !res.sets?.[name]) continue;
+        const here = service.export();
+        const merged = mergeSets(here, res.sets[name]);
+        const found = name === 'orders' ? res.conflicts || [] : [];
+        if (setVersion({ x: here }) !== setVersion({ x: merged }) || found.length) service.apply({ records: merged.records, deleted: merged.deleted }, found);
+      }
+      Object.assign(saved.data, { syncedAt: sentAt, synced: setVersion(exportAll(app)), cloudData: res.version });
+      saved.save();
+    })().finally(() => {
+      syncing = null;
+      if (again) { again = false; syncData().catch(() => {}); }
+    });
+    return syncing;
+  }
+  // Un cambio de aquí sale a los 2 s (si de verdad cambió algo desde la última vez).
+  let pushTimer = null;
+  store.on('change', (ns) => {
+    if (!['orders', 'texts', 'hymns'].includes(ns) || !live()) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(() => {
+      if (setVersion(exportAll(app)) !== saved.data.synced) syncData().catch(() => {});
+    }, PUSH_MS);
+    pushTimer.unref?.();
+  });
+  // Lo de la nube llega en cuanto cambia: el equipo le deja hecha la pregunta y la repite al recibir la respuesta.
+  let waitingFor = null;
+  async function waitLoop() {
+    if (waitingFor) return;
+    waitingFor = new AbortController();
+    const { signal } = waitingFor;
+    while (live() && !signal.aborted) {
+      try {
+        const res = await fetch(`${saved.data.url}/api/nube/esperar?v=${encodeURIComponent(saved.data.cloudData)}`, {
+          headers: { authorization: `Bearer ${saved.data.token}`, 'x-manna-version': version }, signal: AbortSignal.any([signal, AbortSignal.timeout(WAIT_MS + 15_000)]),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || String(res.status));
+        if (body.version && body.version !== saved.data.cloudData) await syncData();
+      } catch {
+        if (signal.aborted) break;
+        await new Promise((resolve) => { setTimeout(resolve, 30_000).unref?.(); });
+      }
+    }
+    waitingFor = null;
+  }
+  app.onClose(() => waitingFor?.abort());
+
   async function check() {
     if (!saved.data.token || saved.data.replaced) return;
     try {
@@ -189,14 +301,17 @@ function churchSide(app) {
         return restartAs(blocked());
       }
       if (body.users && body.users !== saved.data.users) await syncUsers();
+      // Por si se perdió un aviso: si la nube o el equipo tienen algo distinto de lo último que se juntó.
+      if (body.data !== saved.data.cloudData || setVersion(exportAll(app)) !== saved.data.synced) await syncData();
       set({ status: 'on', lastSeen: Date.now(), error: null });
+      waitLoop();
     } catch {
       set({ status: 'offline', error: null });
     }
   }
   // Emparejado (y no sustituido), los usuarios se cambian en la nube (decisión 63).
   const managedBy = () => (saved.data.token && !saved.data.replaced ? saved.data.church : null);
-  app.services.cloud = { blocked, check, managedBy };
+  app.services.cloud = { blocked, check, managedBy, sync: syncData };
   store.on('listening', () => {
     check();
     const timer = setInterval(check, Number(process.env.MANNA_NUBE_COMPROBAR_MS) || CHECK_MS);
