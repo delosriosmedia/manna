@@ -249,6 +249,7 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 ## Decisiones tomadas
 
+- **2026-10-25 · Funciones para el celular** (decisión 56): se cancela la fase 19 y se retira su propuesta. La misma investigación se hará otra vez desde cero, a futuro y sin fecha (fase 40).
 - **2026-10-25 · Manna Iglesia en la nube** (decisión 55): se levanta el límite «siempre red local, sin nube», aunque el culto sigue sin depender de internet. Un subdominio por iglesia (`nv.manna-iglesia.es`) con `/preparacion`; un solo equipo oficial por iglesia; el himnario y las biblias en Cloudflare R2, con la nota de uso personal y no comercial; copias en Google Drive; la nube en el hosting de Hostinger tras una prueba; usuarios con nombre y PIN, un administrador por iglesia y un superadministrador. Fases 35 a 39 de `docs/PLAN.md`.
 - **2026-10-25 · Fase 34 rehecha** (decisión 54): las capas no se tocan desde el orden del culto, solo desde «Capas» y la barra de abajo; los versículos en una capa van con fondo, a pantalla completa, para tapar un momento la presentación del predicador sin cambiar lo que está al aire; la barra de capas, al estilo Dynamic Island, con una burbuja aparte para los botones de un temporizador o un cronómetro.
 - **2026-10-25 · Capas desde la barra de abajo** (decisión 53): encenderlas y apagarlas sin abrir el cajón «Capas», con botones siempre a la vista abajo, solo en Control completo.
@@ -325,10 +326,6 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 En `docs/PLAN.md`, sección 11.
 
-### 0 bis. Funciones especializadas para el celular (fase 19)
-
-**Aplazada** por el dueño el 2026-10-17 (decisión 43). La propuesta está en `docs/funciones-celular.md`. Hacen falta las catorce decisiones de su sección 10: qué funciones, Sonido aparte o no, qué pasa con «Control completo» en el celular, el PIN, Atril sin PIN, qué entra primero de lo nuevo, y el orden de construcción. La simulación (`docs/funciones-celular.html`) se rehízo el 2026-10-17 con más capacidades por función. Con ellas se añaden las fases que construyan lo aprobado.
-
 ### 0 ter. Bandeja de ideas (`docs/ideas.md`)
 
 Ideas del dueño aún sin compromiso. **I1 e I2** (citas de un texto pegado o de un documento Word o PDF al orden) ya están hechas: fase 27, 1.32.0. Ninguna otra idea pendiente.
@@ -356,8 +353,8 @@ Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron*
 - **Fase 25 (Escenario más compacto)**: hecha el 2026-10-17 (con la 24, en la 1.29.0).
 - **Fase 27** (citas de un texto o documento al orden): hecha el 2026-10-18 (1.32.0). Falta medirla con 3 o 4 sermones nuevos del dueño (ver «Problemas conocidos»).
 - **Fases 28 a 30** (YouTube en lote, carpeta de contenido, instalador de un solo archivo): aprobadas el 2026-10-18 (decisión 48). Hechas la 28 (1.33.0), la 29 (1.34.0) y la 30 (1.35.0).
-- **Lo que sigue**: las fases 35 a 39, Manna Iglesia en la nube (decisión 55). Empiezan por la prueba del hosting, que necesita el permiso del dueño para crear el sitio, y por la 35 (usuarios y el Orden rehecho), que no depende de la nube. Siguen pendientes las pruebas del dueño en la iglesia (fase 9, para la 2.0); la fase 19 (funciones para el celular) sigue aplazada y la 3 (televisores), en pausa hasta el final.
-- **Fase 19** (funciones especializadas para el celular): aplazada. La propuesta sigue en `docs/funciones-celular.md`.
+- **Lo que sigue**: las fases 35 a 39, Manna Iglesia en la nube (decisión 55). Empiezan por la prueba del hosting, que necesita el permiso del dueño para crear el sitio, y por la 35 (usuarios y el Orden rehecho), que no depende de la nube. Siguen pendientes las pruebas del dueño en la iglesia (fase 9, para la 2.0); la 3 (televisores), en pausa hasta el final, y la 40 (funciones para el celular, desde cero), a futuro.
+- **Fase 19** (funciones especializadas para el celular): cancelada el 2026-10-25 (decisión 56); su propuesta se retiró. La misma investigación se hará otra vez desde cero, a futuro (fase 40).
 - **Fase 9** (auditoría, sección 8 de `docs/PLAN.md`): hecha la parte de código (1.18.0); la del equipo real son las pruebas del dueño, y al pasarlas se publica la 2.0.
 - **Pruebas del dueño en el equipo real**: la lista, con lo que falta de cada versión, está en una página con casillas (https://claude.ai/artifact/LFoR7BN5hs5ZffgvdbrMJg, privada del dueño). Es solo una comodidad: lo que resulte se pasa a la tabla «Probado y sin probar» de este documento, que es el registro. Cubre instalar y actualizar en Windows, la revisión del equipo, el Firewall, el proyector, el PIN, el sonido, un video 4K, el Himnario y las letras sin música, Páginas web (Canva, Kahoot), PowerPoint convertido y en vivo con el punto rojo, el Presentador, YouTube, Ajustes (disco y subtítulos), la conexión por internet, celulares reales (Alabanza, Presentador, Escuchar, cajón) y Medios. Fuera de la página quedan `manna.local` con un router real y celulares Android antiguos.
 - **Reiniciar el Manna que esté abierto** (aviso «Manna se actualizó» → «Reiniciar ahora») para que valga la corrección de seguridad, y **cambiar el PIN** en «Dispositivos»: eso cierra las sesiones que se abrieron por el túnel sin PIN. Después, **encender la conexión por internet en Ajustes** (el dominio propio que ya había se conserva) y dejar de usar los antiguos «Conectar Internet», que ya no existen.
