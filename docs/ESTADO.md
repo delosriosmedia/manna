@@ -249,9 +249,9 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 ## Decisiones tomadas
 
-- **2026-10-25 · Funciones para el celular** (decisión 56): se cancela la fase 19 y se retira su propuesta. La misma investigación se hará otra vez desde cero, a futuro y sin fecha (fase 40).
 - **2026-10-25 · Versiones por etapas** (decisión 58): una versión nueva llega primero a la iglesia de pruebas y pasa a todas con un botón del superadministrador.
 - **2026-10-25 · Nube: pruebas, versiones y administrador** (decisión 57): una iglesia de pruebas (`pruebas.manna-iglesia.es`) con su propio equipo oficial; la misma versión en todas partes (cada equipo oficial se actualiza solo al encender el servidor); el administrador de cada iglesia entra en línea con usuario y contraseña para gestionar sus usuarios.
+- **2026-10-25 · Funciones para el celular** (decisión 56): se cancela la fase 19 y se retira su propuesta. La misma investigación se hará otra vez desde cero, a futuro y sin fecha (fase 40).
 - **2026-10-25 · Manna Iglesia en la nube** (decisión 55): se levanta el límite «siempre red local, sin nube», aunque el culto sigue sin depender de internet. Un subdominio por iglesia (`nv.manna-iglesia.es`) con `/preparacion`; un solo equipo oficial por iglesia; el himnario y las biblias en Cloudflare R2, con la nota de uso personal y no comercial; copias en Google Drive; la nube en el hosting de Hostinger tras una prueba; usuarios con nombre y PIN, un administrador por iglesia y un superadministrador. Fases 35 a 39 de `docs/PLAN.md`.
 - **2026-10-25 · Fase 34 rehecha** (decisión 54): las capas no se tocan desde el orden del culto, solo desde «Capas» y la barra de abajo; los versículos en una capa van con fondo, a pantalla completa, para tapar un momento la presentación del predicador sin cambiar lo que está al aire; la barra de capas, al estilo Dynamic Island, con una burbuja aparte para los botones de un temporizador o un cronómetro.
 - **2026-10-25 · Capas desde la barra de abajo** (decisión 53): encenderlas y apagarlas sin abrir el cajón «Capas», con botones siempre a la vista abajo, solo en Control completo.
