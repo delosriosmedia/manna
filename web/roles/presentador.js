@@ -9,6 +9,7 @@ const me = await ensureRole('presentador');
 createShell({
   role: 'presentador',
   isLocal: me.isLocal,
+  user: me.user,
   modules: PRESENTADOR_MODULES,
   layout: 'full',
 });

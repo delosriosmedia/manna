@@ -136,16 +136,24 @@ test('una tarea publica su avance, termina o falla, y se puede descartar', async
   jobs.close();
 });
 
-test('el PIN es de 4 cifras: uno más largo de antes se cambia por uno nuevo al arrancar', () => {
+test('al pasar a usuarios (fase 35), el PIN único de antes es el del administrador, guardado como huella', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-pin-'));
-  fs.writeFileSync(path.join(dir, 'sesiones.json'), JSON.stringify({ pin: '123456', list: {} }));
+  fs.writeFileSync(path.join(dir, 'sesiones.json'), JSON.stringify({ pin: '0420', list: { abc: { role: 'control', created: 1 } } }));
   const storage = createStorage(dir);
-  createSessions({ storage, roles: [] });
+  const sessions = createSessions({ storage, roles: [] });
   storage.flushAll();
-  const { pin } = JSON.parse(fs.readFileSync(path.join(dir, 'sesiones.json'), 'utf8'));
-  assert.match(pin, /^\d{4}$/);
-  fs.writeFileSync(path.join(dir, 'sesiones.json'), JSON.stringify({ pin: '0420', list: {} }));
-  createSessions({ storage: createStorage(dir), roles: [] });
-  assert.equal(JSON.parse(fs.readFileSync(path.join(dir, 'sesiones.json'), 'utf8')).pin, '0420', 'uno de 4 cifras se queda');
+  const [admin] = sessions.users.list();
+  assert.deepEqual([admin.name, admin.admin], ['Administrador', true]);
+  assert.ok(sessions.users.check(admin.id, '0420'), 'entra con el PIN de antes');
+  assert.ok(!sessions.users.check(admin.id, '0421'));
+  assert.ok(!fs.readFileSync(path.join(dir, 'usuarios.json'), 'utf8').includes('0420'), 'el PIN no se guarda tal cual');
+  const saved = JSON.parse(fs.readFileSync(path.join(dir, 'sesiones.json'), 'utf8'));
+  assert.equal(saved.pin, undefined);
+  assert.equal(saved.list.abc.user, admin.id, 'las sesiones de antes pasan a ser del administrador');
+  // Un PIN de antes que no era de 4 cifras: el administrador recibe uno nuevo.
+  fs.rmSync(path.join(dir, 'usuarios.json'));
+  fs.writeFileSync(path.join(dir, 'sesiones.json'), JSON.stringify({ pin: '123456', list: {} }));
+  const again = createSessions({ storage: createStorage(dir), roles: [] });
+  assert.ok(!again.users.check(again.users.list()[0].id, '123456'));
   fs.rmSync(dir, { recursive: true, force: true });
 });

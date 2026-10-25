@@ -3123,11 +3123,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await sleep(700);
   check('el QR abre la tarjeta en el mismo sitio: crece desde la píldora y lo de su izquierda se corre', await run(`const c = ${toolsCard}.getBoundingClientRect(); const p = document.querySelector('.topbar-tools').getBoundingClientRect(); return ${toolsCard}.classList.contains('open') && Math.abs(c.right - p.right) < 2 && Math.abs(c.top - p.top) < 2 && c.width >= 340 && c.height > 300 && ${toolsCard}.querySelector('.tools-title').textContent === 'Conectar dispositivos' && document.querySelector('.tool-qr').getAttribute('aria-expanded') === 'true' && !document.querySelector('.modal')`)
     && (await searchLeft()) < before.search && (await pillBox()) === before.pill, `${before.search} → ${await searchLeft()}`);
-  check('"Dispositivos" muestra un solo QR y el PIN, de 4 números', await run(`const i = ${toolsCard}.querySelector('input'); const pin = i.value; i.value = '12a345'; i.dispatchEvent(new Event('input')); const typed = i.value; i.value = pin; return /^\\d{4}$/.test(pin) && document.querySelectorAll('.tools-card .qr').length === 1 && i.maxLength === 4 && typed === '1234'`));
-  await run(`${toolsCard}.querySelector('input').value = '2468';`);
-  await cardButton('Cambiar');
-  await sleep(600);
-  check('el PIN se cambia desde el equipo principal', (await text('#toast')).startsWith('PIN cambiado') && await run(`return (await (await fetch('/api/system/pin')).json()).pin === '2468'`));
+  check('"Dispositivos" muestra un solo QR y ya no el PIN (fase 35: cada persona el suyo, en Ajustes → Usuarios)', await run(`return document.querySelectorAll('.tools-card .qr').length === 1 && !${toolsCard}.querySelector('input') && ${toolsCard}.textContent.includes('Ajustes → Usuarios')`));
   await click(`document.querySelector('.topbar-tools .tool-wifi')`);
   await sleep(500);
   check('con la tarjeta abierta, el wifi cambia lo que dice sin cerrarla', await run(`return ${toolsCard}.classList.contains('open') && ${toolsCard}.querySelector('.tools-title').textContent === 'Conexión por internet' && !${toolsCard}.querySelector('.qr') && document.querySelector('.tool-wifi').getAttribute('aria-expanded') === 'true' && document.querySelector('.tool-qr').getAttribute('aria-expanded') === 'false'`));
@@ -3151,6 +3147,65 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   const stillOpen = await run(`return ${toolsCard}.classList.contains('open')`);
   await sleep(1200);
   check('con el ratón fuera, sigue abierta un momento y a los 2 s se cierra sola', stillOpen && await run(`return !${toolsCard}.classList.contains('open')`));
+
+  // ---- Usuarios (fase 35): Ajustes → Usuarios, del administrador (el equipo principal entra como él) ----
+  await goTo('ajustes');
+  await sleep(400);
+  const users = () => run(`return [...document.querySelectorAll('.user-row')].map(r => r.querySelector('strong').textContent + ': ' + r.querySelector('small').textContent).join(' | ')`);
+  const userButton = (label) => click(`document.querySelector(${JSON.stringify(`.user-row [aria-label="${label}"]`)})`);
+  const addUser = () => click(`[...document.querySelectorAll('.settings .btn')].find(b => b.textContent.includes('Añadir usuario'))`);
+  const userField = (i, value) => run(`const f = document.querySelectorAll('.modal .user-field input')[${i}]; f.value = ${JSON.stringify(value)}; f.dispatchEvent(new Event('input')); return f.value`);
+  const userCheck = (label) => click(`[...document.querySelectorAll('.modal .user-form label')].find(l => l.textContent.startsWith(${JSON.stringify(label)})).querySelector('input')`);
+  check('Ajustes trae «Usuarios» con el administrador, marcado «(tú)», que no puede quitarse a sí mismo', (await users()) === 'Administrador (tú): Administrador · todas las funciones'
+    && await run(`return document.querySelector('.user-row [aria-label="Quitar a Administrador"]').disabled`), await users());
+  await addUser();
+  await sleep(300);
+  check('«Añadir usuario» pide nombre y PIN, y el PIN solo admite 4 números', (await userField(1, '12a345')) === '1234' && await run(`return document.querySelectorAll('.modal .user-field').length === 2`));
+  await userField(0, 'Rut');
+  await userField(1, '2468');
+  await userCheck('Administrador');
+  check('marcado como administrador, tiene todas las funciones', await run(`return [...document.querySelectorAll('.modal .user-functions input')].every(i => i.checked && i.disabled)`));
+  await userCheck('Administrador');
+  for (const f of ['Servicio de alabanza', 'Presentador']) await userCheck(f);
+  await modalButton('Guardar');
+  await sleep(600);
+  check('lo crea con sus funciones', (await users()).includes('Rut: Control completo · Control del orden') && (await text('#toast')) === 'Rut ya puede entrar con su nombre y su PIN.', await users());
+  await addUser();
+  await sleep(300);
+  await userField(0, 'rut');
+  await userField(1, '1111');
+  expectError('Ya hay un usuario que se llama');
+  await modalButton('Guardar');
+  await sleep(500);
+  check('no deja dos con el mismo nombre (sin contar mayúsculas)', (await text('#toast')).startsWith('Ya hay un usuario que se llama «rut»') && await run(`return Boolean(document.querySelector('.modal .user-form'))`));
+  await modalButton('Cancelar');
+  await userButton('Cambiar a Rut');
+  await sleep(300);
+  await userCheck('Presentador');
+  await modalButton('Guardar');
+  await sleep(600);
+  check('«Cambiar» le da otra función (sin pedir su PIN)', (await users()).includes('Rut: Control completo · Control del orden · Presentador') && (await text('#toast')) === 'Cambios guardados.', await users());
+  await userButton('Cambiar el PIN de Rut');
+  await sleep(300);
+  await userField(0, '13');
+  expectError('El PIN debe tener 4 números');
+  await modalButton('Cambiar');
+  await sleep(400);
+  await userField(0, '1357');
+  await modalButton('Cambiar');
+  await sleep(600);
+  check('el PIN se cambia: con menos de 4 números lo dice, y luego lo guarda', (await text('#toast')).startsWith('PIN cambiado. Rut tendrá que entrar de nuevo') && await run(`return !document.querySelector('.modal')`));
+  await addUser();
+  await sleep(300);
+  await userField(0, 'Temporal');
+  await userField(1, '0000');
+  await modalButton('Guardar');
+  await sleep(600);
+  await userButton('Quitar a Temporal');
+  await sleep(300);
+  await modalButton('Quitar');
+  await sleep(600);
+  check('«Quitar» lo saca de la lista, tras preguntarlo', !(await users()).includes('Temporal') && (await text('#toast')) === 'Temporal ya no está en la lista.', await users());
   check('sin errores de JavaScript', !chrome.events.some((e) => e.method === 'Runtime.exceptionThrown'));
   await chrome.send('Page.navigate', { url: `${local}/orden#orden` });
   await sleep(2200);
@@ -3235,23 +3290,28 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     await sleep(4000);
     check('entra por la IP y termina en el nombre', (await chrome.evaluate('location.origin')) === byName, await chrome.evaluate('location.origin'));
 
-    // Por la dirección de la red, este Chrome es «otro dispositivo»: el Inicio pide el PIN con su teclado.
-    console.log('\n2. Inicio y PIN desde otro dispositivo');
+    // Por la dirección de la red, este Chrome es «otro dispositivo»: el Inicio pide el nombre (de una lista) y el PIN
+    // de esa persona con su teclado (fase 35).
+    console.log('\n2. Inicio, nombre y PIN desde otro dispositivo');
     const roleCard = (name) => `[...document.querySelectorAll('.role')].find(b => b.querySelector('strong').textContent === ${JSON.stringify(name)})`;
     check('el Inicio enseña cada función en una tarjeta con su icono, y las de control dicen «Pide PIN»', await run(`const cards = [...document.querySelectorAll('.role')]; return cards.length === 5 && cards.every(c => c.querySelector('.role-icon svg')) && ${roleCard('Control del orden')}.querySelector('.tag').textContent === 'Pide PIN' && ${roleCard('Pantalla de proyección')}.querySelector('.tag').textContent === 'Sin PIN'`));
     const pinKey = (label) => click(`[...document.querySelectorAll('.pin-keys button')].find(b => b.getAttribute('aria-label') === ${JSON.stringify(label)})`);
     await click(roleCard('Control del orden'));
     await sleep(300);
+    check('al elegir la función salen los nombres de quienes pueden usarla', await run(`return [...document.querySelectorAll('.modal .person .name')].map(n => n.textContent).join() === 'Administrador,Rut' && !document.querySelector('.pin-pad')`));
     await chrome.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', windowsVirtualKeyCode: 27 });
     await sleep(300);
-    check('el teclado del PIN se cierra con Esc', await run(`return !document.querySelector('.pin-pad')`));
+    check('la lista de nombres se cierra con Esc', await run(`return !document.querySelector('.modal')`));
     await click(roleCard('Control del orden'));
     await sleep(300);
+    await click(`[...document.querySelectorAll('.modal .person')].find(b => b.textContent.endsWith('Rut'))`);
+    await sleep(300);
+    check('tocar tu nombre abre el teclado del PIN, a tu nombre', await run(`return document.querySelector('.pin-pad p').textContent.startsWith('Rut, escribe tu PIN') && document.querySelectorAll('.modal').length === 1`));
     for (const k of ['1', '2', 'Borrar']) await pinKey(k);
     check('el teclado tiene cuatro puntos, marca cada cifra y borra la última', await run(`return document.querySelectorAll('.pin-dots span').length === 4 && document.querySelectorAll('.pin-dots span.on').length === 1`));
     await pinKey('Borrar');
-    const realPin = JSON.parse(fs.readFileSync(path.join(tmp, 'data', 'sesiones.json'), 'utf8')).pin;
-    const wrongPin = realPin === '1111' ? '2222' : '1111';
+    const realPin = '1357'; // el que le puso Ajustes → Usuarios (paso 1)
+    const wrongPin = '1111';
     for (const k of wrongPin) await pinKey(k);
     await sleep(600);
     check('al teclear la cuarta cifra entra solo: un PIN equivocado lo dice, pone los puntos en rojo y vacía el teclado', await run(`const p = document.querySelector('.pin-pad'); return p.classList.contains('wrong') && p.querySelector('.pin-error').textContent === 'PIN incorrecto.' && !document.querySelector('.pin-dots span.on')`));
@@ -3261,13 +3321,18 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     for (const k of realPin) await pinKey(k);
     await sleep(1500);
     check('con el PIN bueno entra en la función elegida', (await chrome.evaluate('location.pathname')) === '/orden');
+    await chrome.send('Page.navigate', { url: `${byName}/` });
+    await sleep(1500);
+    check('el Inicio dice quién entró, y sus otras funciones ya no piden PIN', await run(`return document.querySelector('#who').textContent.startsWith('Entraste como Rut') && ${roleCard('Control completo')}.querySelector('.tag').textContent === 'Sin PIN' && ${roleCard('Servicio de alabanza')}.querySelector('.tag').textContent === 'Pide PIN'`));
 
     // Desde otro dispositivo (Control completo, en el celular): escuchar antes de añadir, solo en este dispositivo.
     // En el equipo principal estos botones no salen.
     console.log('\n2. Escuchar en otro dispositivo');
-    await run(`return (await fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'control', pin: ${JSON.stringify(realPin)} }) })).status`);
-    await chrome.send('Page.navigate', { url: `${byName}/control?e=${Date.now()}` });
+    await click(roleCard('Control completo'));
     await sleep(2500);
+    check('cambia de función sin volver a escribir el PIN, y sin Ajustes ni wifi (no es administrador)', (await chrome.evaluate('location.pathname')) === '/control'
+      && await run(`return !document.querySelector('.ws[data-module=ajustes]') && document.querySelector('.topbar .brand-mark').tagName === 'SPAN' && !document.querySelector('.tool-wifi') && Boolean(document.querySelector('.tool-qr'))`));
+    check('el servidor tampoco le deja lo del administrador', (await run(`return await ${post('projection.styles', { fontSize: 50 })}`)) === 403 && (await run(`return await ${post('users.create', { name: 'Otro', pin: '9999', functions: ['orden'] })}`)) === 403);
     await run(`return await ${post('projection.show', { kind: 'song', data: { number: 9, track: 'vocal' } })}`);
     await sleep(1500);
     // «Escuchar aquí» se quitó (2026-10-16: en un celular de verdad se oía a saltos). La proyección de fondo de otro

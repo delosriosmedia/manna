@@ -19,14 +19,15 @@ import { chooseContent, contentMissing } from './contenido.js';
 //   hidden  en pausa: existe y se abre por su dirección (#id), pero no sale en el dock
 //   needs   programas del equipo principal que necesita (ver core/needs.js)
 //   mount   dibuja el módulo en el y puede devolver { onShow(), keys(evento) -> true si lo atendió, part(id) }
-// ctx (lo que recibe cada módulo): { role, isLocal, canEdit, go(id, parte?), setPart(id) }
+// ctx (lo que recibe cada módulo): { role, isLocal, user, canEdit, go(id, parte?), setPart(id) }. user es quien entró
+// ({ id, name, admin }, fase 35): Ajustes solo lo tiene el administrador.
 //   setPart  un módulo con pestañas dice en cuál está, para avisar solo de lo que le falta a esa
 //
 // layout 'full' (Presentador): el único módulo ocupa la pantalla entera, sin escenario.
 // topTools: [(ctx) => nodo]: lo que va al final de la barra de arriba (el wifi y el QR del Control completo).
-export function createShell({ role, isLocal, modules, topTools = [], createScene, layout = 'escena' }) {
+export function createShell({ role, isLocal, user = null, modules, topTools = [], createScene, layout = 'escena' }) {
   const canEdit = role === 'control' || role === 'alabanza';
-  const usable = modules.filter((m) => !m.soon);
+  const usable = modules.filter((m) => !m.soon && (m.id !== 'ajustes' || user?.admin));
   const listed = usable.filter((m) => !m.hidden);
   const mounted = new Map(); // id -> { el, api }
   let current = null;
@@ -37,7 +38,7 @@ export function createShell({ role, isLocal, modules, topTools = [], createScene
   const notice = h('div', { class: 'ws-notice', role: 'status', hidden: true });
   const work = h('div', { class: 'work' });
   // go(id, parte): abre un módulo y, si lo admite (part en lo que devuelve su mount), una de sus pestañas.
-  const ctx = { role, isLocal, canEdit, go: (id, part) => { show(id); if (part) current?.api.part?.(part); } };
+  const ctx = { role, isLocal, user, canEdit, go: (id, part) => { show(id); if (part) current?.api.part?.(part); } };
   const scene = full ? null : createScene({ ...ctx, openControls: () => openControls() });
   // Escuchar algo solo en este dispositivo antes de añadirlo ({ url, title }); null en el equipo principal.
   ctx.listen = scene?.preview ? (what) => scene.preview.play(what) : null;

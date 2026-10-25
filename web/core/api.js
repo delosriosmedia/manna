@@ -58,7 +58,7 @@ export async function action(type, payload = {}, options = {}) {
 
 export const session = {
   get: () => api('/api/session'),
-  open: (role, pin) => postJson('/api/session', { role, pin }),
+  open: (role, pin, user) => postJson('/api/session', { role, pin, user }),
 };
 
 // Estado compartido: una copia local de lo que tiene el servidor, por módulo.

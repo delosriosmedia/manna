@@ -64,3 +64,19 @@ html.touch .disk-gap { width: var(--tap); }
 
 /* Carpeta de contenido: la ruta entera, aunque sea larga. */
 .content-path { font-family: var(--mono); font-size: 13px; color: var(--ink); overflow-wrap: anywhere; }
+
+/* Usuarios (fase 35): una fila por persona, con su inicial, sus funciones y tres botones. */
+.user-list { display: grid; margin-bottom: 12px; }
+.user-row { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.user-row .initial { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 13px; }
+.user-row .item-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.user-row .item-text strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-row .item-text small { color: var(--ink-3); font-size: 12px; }
+.user-row .icon-btn[aria-label^="Quitar"]:not(:disabled):hover { color: var(--live-ink); }
+.user-form { display: grid; gap: 12px; min-width: min(360px, 80vw); }
+.user-field { display: grid; gap: 6px; }
+.user-field > span:first-child, .user-functions legend { color: var(--ink-3); font-size: 12px; font-weight: 600; }
+.user-functions { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+.user-functions legend { margin-bottom: 6px; padding: 0; }
+.user-form .row:has(input[type="checkbox"]) { align-items: flex-start; gap: 8px; cursor: pointer; }
+html.touch .user-form .row:has(input[type="checkbox"]) { min-height: var(--tap); align-items: center; }

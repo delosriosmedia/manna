@@ -6,6 +6,7 @@ import { createApp, portCandidates } from './core/app.js';
 import { logToFile } from './core/log.js';
 
 import system from './modules/system/index.js';
+import users from './modules/users/index.js';
 import bible from './modules/bible/index.js';
 import projection from './modules/projection/index.js';
 import order from './modules/order/index.js';
@@ -20,7 +21,7 @@ import layers from './modules/layers/index.js';
 import internet from './modules/internet/index.js';
 
 // Para añadir un módulo nuevo: crea su carpeta en server/modules y agrégalo aquí.
-const MODULES = [system, bible, projection, order, media, slides, hymns, web, texts, time, layers, internet, tv];
+const MODULES = [system, users, bible, projection, order, media, slides, hymns, web, texts, time, layers, internet, tv];
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Instalado con «Instalar Manna», el programa vive en <base>/programa y el instalador apunta en
@@ -164,8 +165,6 @@ async function run() {
   if (BACKGROUND) {
     console.log('==========================================================\n');
   } else {
-    // El PIN no se escribe en el archivo de registro; se ve en el botón "Dispositivos".
-    console.log(`  PIN de control:        ${app.sessions.pin}`);
     console.log('==========================================================');
     console.log('  Deja esta ventana abierta. Ciérrala para apagar Manna.\n');
   }

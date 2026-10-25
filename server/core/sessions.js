@@ -1,79 +1,100 @@
 import crypto from 'node:crypto';
 import { HttpError } from './router.js';
+import { createUsers } from './users.js';
 
 const COOKIE = 'manna_sid';
 const MAX_FAILS = 5;
 const LOCK_MS = 60_000;
+// Por usuario (fase 35): tras 5 PIN equivocados, ese usuario espera 15 minutos, desde cualquier dispositivo.
+const USER_LOCK_MS = 15 * 60_000;
+// Lo de Ajustes es solo del administrador de la iglesia, aunque la función lo permita (fase 35).
+const ADMIN_ONLY = new Set(['system.admin', 'system.display', 'projection.style', 'users.manage']);
 
-// Sesiones por dispositivo: cada una guarda la función (rol) elegida. Los roles con PIN
-// lo piden una vez; el equipo servidor (localhost) nunca necesita PIN.
+// Sesiones por dispositivo: cada una guarda la función (rol) elegida y quién entró (fase 35). Fuera del equipo
+// principal, entrar en una función con PIN pide el nombre (de una lista) y el PIN de esa persona, una vez. El equipo
+// principal entra sin PIN, como el administrador. La pantalla de proyección, sin nadie, salvo desde internet.
 export function createSessions({ storage, roles }) {
-  const store = storage('sesiones', { pin: null, list: {} });
-  // El PIN es de 4 cifras (el teclado entra solo al teclear la cuarta). Uno de otro largo, de antes
-  // del 2026-10-15, se cambia por uno nuevo: se ve en «Dispositivos», en el equipo principal.
-  if (!/^\d{4}$/.test(store.data.pin || '')) {
-    store.data.pin = String(crypto.randomInt(0, 10000)).padStart(4, '0');
+  const store = storage('sesiones', { list: {} });
+  const users = createUsers({ storage, legacyPin: store.data.pin });
+  // Al pasar del PIN único a los usuarios, las sesiones abiertas pasan a ser del administrador.
+  if (users.created) for (const s of Object.values(store.data.list)) s.user = users.created.id;
+  if ('pin' in store.data || users.created) {
+    delete store.data.pin;
     store.save();
   }
   const roleById = new Map(roles.map((r) => [r.id, r]));
-  const fails = new Map(); // ip -> { count, until }
+  const fails = new Map(); // ip o usuario -> { count, until }
 
   function fromRequest(req) {
     const m = /(?:^|;\s*)manna_sid=([a-f0-9]+)/.exec(req.headers.cookie || '');
     const s = m && store.data.list[m[1]];
-    return s ? { id: m[1], ...s } : null;
+    if (!s) return null;
+    const user = s.user ? users.get(s.user) : null;
+    // Un usuario que se quitó ya no tiene sesión.
+    if (s.user && !user) {
+      delete store.data.list[m[1]];
+      store.save();
+      return null;
+    }
+    return { id: m[1], role: s.role, created: s.created, user, admin: Boolean(user?.admin) };
   }
 
   function can(session, permission) {
     const role = session && roleById.get(session.role);
-    return Boolean(role && (role.permissions.includes('*') || role.permissions.includes(permission)));
+    if (!role || !(role.permissions.includes('*') || role.permissions.includes(permission))) return false;
+    return !ADMIN_ONLY.has(permission) || session.admin;
   }
 
-  function checkPin(pin, ip) {
-    const f = fails.get(ip);
-    if (f && f.until > Date.now()) {
-      throw new HttpError(429, `Demasiados intentos. Espera ${Math.ceil((f.until - Date.now()) / 1000)} segundos.`);
-    }
-    const ok = typeof pin === 'string' && pin.length === store.data.pin.length
-      && crypto.timingSafeEqual(Buffer.from(pin), Buffer.from(store.data.pin));
-    if (ok) {
-      fails.delete(ip);
+  function locked(key, ms) {
+    const f = fails.get(key);
+    if (f && f.until > Date.now()) throw new HttpError(429, `Demasiados intentos. Espera ${Math.ceil((f.until - Date.now()) / 1000) > 90 ? `${Math.ceil((f.until - Date.now()) / 60_000)} minutos` : `${Math.ceil((f.until - Date.now()) / 1000)} segundos`}.`);
+    return () => {
+      const count = (f?.count || 0) + 1;
+      fails.set(key, count >= MAX_FAILS ? { count: 0, until: Date.now() + ms } : { count, until: 0 });
+    };
+  }
+
+  function checkPin(user, pin, ip) {
+    const failIp = locked(`ip:${ip}`, LOCK_MS);
+    const failUser = locked(`u:${user.id}`, USER_LOCK_MS);
+    if (users.check(user.id, typeof pin === 'string' ? pin : '')) {
+      fails.delete(`ip:${ip}`);
+      fails.delete(`u:${user.id}`);
       return;
     }
-    const count = (f?.count || 0) + 1;
-    fails.set(ip, count >= MAX_FAILS ? { count: 0, until: Date.now() + LOCK_MS } : { count, until: 0 });
+    failIp();
+    failUser();
     throw new HttpError(401, 'PIN incorrecto.');
   }
 
-  function open(ctx, { role: roleId, pin }) {
+  function open(ctx, { role: roleId, user: userId, pin }) {
     const role = roleById.get(roleId);
     if (!role) throw new HttpError(400, 'Manna no reconoce esa función. Si acabas de actualizarlo, ciérralo y vuelve a abrirlo.');
-    const sameRole = ctx.session?.role === roleId;
-    // Desde internet, también la pantalla de proyección.
-    if ((role.requiresPin || ctx.internet) && !ctx.isLocal && !sameRole) checkPin(pin, ctx.ip);
+    let user = null;
+    if (ctx.isLocal) user = users.firstAdmin();
+    else if (role.requiresPin || ctx.internet) {
+      // Desde internet, también la pantalla de proyección.
+      user = users.get(userId);
+      if (!user) throw new HttpError(400, 'Elige tu nombre en la lista.');
+      if (role.id !== 'proyeccion' && !user.functions.includes(role.id)) {
+        throw new HttpError(403, `${user.name} no puede usar «${role.name}». Se lo da el administrador, en Ajustes → Usuarios.`);
+      }
+      // Quien ya entró con su PIN cambia de función sin volver a escribirlo.
+      if (ctx.session?.user?.id !== user.id) checkPin(user, pin, ctx.ip);
+    }
     if (ctx.session) delete store.data.list[ctx.session.id];
     const id = crypto.randomBytes(24).toString('hex');
-    store.data.list[id] = { role: roleId, created: Date.now() };
+    store.data.list[id] = { role: roleId, user: user?.id || null, created: Date.now() };
     store.save();
     ctx.res.setHeader('Set-Cookie', `${COOKIE}=${id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000`);
-    return { role: roleId };
+    return { role: roleId, user: user ? { id: user.id, name: user.name, admin: user.admin } : null };
   }
 
-  // Cambiar el PIN cierra todas las sesiones menos la de quien lo cambia (keep): los demás
-  // dispositivos escriben el nuevo, y el equipo principal vuelve a entrar solo, sin PIN.
-  function setPin(pin, keep = null) {
-    if (!/^\d{4}$/.test(pin || '')) throw new HttpError(400, 'El PIN debe tener 4 números.');
-    store.data.pin = pin;
-    for (const id of Object.keys(store.data.list)) if (id !== keep) delete store.data.list[id];
+  // Cambiar el PIN de alguien (o quitarlo) cierra sus sesiones, menos la de quien lo cambia (keep).
+  function closeUser(userId, keep = null) {
+    for (const [id, s] of Object.entries(store.data.list)) if (s.user === userId && id !== keep) delete store.data.list[id];
     store.save();
   }
 
-  return {
-    roles,
-    fromRequest,
-    can,
-    open,
-    setPin,
-    get pin() { return store.data.pin; },
-  };
+  return { roles, users, fromRequest, can, open, closeUser };
 }

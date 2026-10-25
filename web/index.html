@@ -32,6 +32,15 @@
     .role-text span { color: var(--ink-2); font-size: 13px; line-height: 1.45; }
     .tag { flex: 0 0 auto; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: var(--r-pill); color: var(--accent-hover); background: var(--accent-soft); white-space: nowrap; }
     .tag.asks { color: #f0bc66; background: rgba(240, 188, 102, 0.12); }
+    #who { margin-top: 10px; color: var(--ink-3); font-size: 13px; }
+    #who button { color: var(--accent); font: inherit; text-decoration: underline; text-underline-offset: 3px; }
+
+    /* Quién eres (fase 35): los nombres de quienes pueden usar esa función, para tocar el tuyo. */
+    .people { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); gap: 10px; }
+    .person { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 8px 12px; text-align: left; border: 1px solid var(--glass-line); border-radius: var(--r); background: rgba(255, 255, 255, 0.04); font-weight: 600; }
+    .person:hover { border-color: rgba(92, 232, 255, 0.45); }
+    .person .initial { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+    .person .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* PIN: un teclado grande, también cómodo en el celular. */
     .pin-pad { display: flex; flex-direction: column; align-items: center; gap: 14px; }
@@ -53,6 +62,7 @@
       <p class="wordmark">MANNA</p>
       <p class="version" id="version"></p>
       <h1>¿Qué vas a hacer hoy?</h1>
+      <p id="who" hidden></p>
     </header>
     <div id="roles"></div>
   </main>

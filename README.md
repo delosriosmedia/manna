@@ -32,7 +32,8 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Mandos en vivo**: lo que está al aire trae sus propios mandos, siempre a la vista en la barra de abajo (en el celular, en su hoja) y en el orden del culto. Con una imagen, una diapositiva o una página al aire, **Señalar** y **Mover** actúan sobre la propia proyección, como en el Presentador. Los tienen las imágenes, los videos, las diapositivas y la **imagen de prueba** (Ajustes → Proyector de este equipo), que sirve para encuadrar el proyector o un televisor y comprobar, con su cronómetro, que todas las pantallas van a la par.
 - **Revisión del equipo**: al abrirse, Manna comprueba que el equipo principal tiene los programas que necesita. Si falta alguno, dice qué módulos se ven afectados y lo instala con un botón. Nunca impide abrir la app.
 - **Preparado para crecer**: cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
-- **Funciones por dispositivo**: cada dispositivo elige al entrar, en una tarjeta por función; desde otro dispositivo, el PIN (4 números) se escribe en un teclado grande en pantalla y entra solo.
+- **Funciones por dispositivo**: cada dispositivo elige al entrar, en una tarjeta por función. Desde otro dispositivo, cada persona toca su nombre en una lista y escribe **su PIN** (4 números) en un teclado grande en pantalla, que entra solo; quien ya entró cambia de función sin volver a escribirlo («Entrar como otra persona», para cambiar de persona). El equipo principal entra sin PIN, como administrador.
+  - **Usuarios** (Ajustes → Usuarios, solo el administrador): cada persona con su nombre, su PIN y las funciones que puede usar; uno o más **administradores**, que además entran en Ajustes y gestionan los usuarios. Al actualizar desde una versión anterior, el PIN de antes pasa a ser el del «Administrador». Cinco PIN equivocados seguidos dejan a esa persona 15 minutos sin poder entrar.
   - **Control completo**: todos los módulos. Pide PIN.
   - **Presentador de diapositivas**: una sola pantalla para pasar una presentación (del orden, de la biblioteca o subida ahí mismo): la diapositiva al aire en grande (en el celular, se pasa tocándola), la siguiente y todas en cuadrícula, con **señalar con el dedo** en la proyección y mover o acercar con los dedos. Pide PIN. También presenta las **páginas web**, con el puntero.
   - **Servicio de alabanza**: Himnario, Medios, Orden y Biblia, con el volumen de Manna siempre a la vista. Proyecta, prepara el orden y sube medios, pero no toca los ajustes. Pide PIN.
@@ -80,7 +81,7 @@ La carpeta Manna tiene solo cuatro cosas:
 | --- | --- |
 | **Instalar Manna en Windows** / **Instalar Manna en Mac** | Para actualizar Manna: ábrelo y lo pone al día. Llevan el icono de Manna con un engranaje (en Windows es un acceso directo; el archivo que se baja de GitHub la primera vez tiene el icono normal de Windows) |
 | **Contenido** | Lo de la iglesia: biblias, himnos y medios (ver «La carpeta de tu iglesia»). **Nunca se reemplaza ni se mueve**: el instalador solo le añade lo que falte (sus instrucciones y la Reina-Valera 1909). Si se eligió otra en Ajustes, esa puede estar en cualquier sitio y la carpeta Manna sigue aquí |
-| **Programa** | El programa, su Node.js (`node`) y sus datos (PIN, orden del culto, lo subido, `datos/manna.log`). No hace falta abrirla. **No la borres** |
+| **Programa** | El programa, su Node.js (`node`) y sus datos (usuarios, orden del culto, lo subido, `datos/manna.log`). No hace falta abrirla. **No la borres** |
 
 - **Para actualizar Manna**, abre el instalador de esa carpeta (o vuelve a bajarlo): si Manna está abierto lo cierra, reemplaza el programa y no toca los datos ni el contenido.
 - Si la carpeta Documentos se sincroniza con **OneDrive o iCloud**, `Programa` va a una carpeta del sistema (`%LOCALAPPDATA%\Manna` o `~/Library/Application Support/Manna`): sus datos cambian a cada rato y pueden pesar gigas. En la carpeta Manna quedan los instaladores y `Contenido`.
@@ -115,7 +116,7 @@ Al actualizar Manna con el instalador, el contenido y los datos no se tocan. Nad
 2. Si cierras la pestaña del control por error, Manna sigue funcionando y la proyección no se interrumpe. Vuelve a pulsar el icono para recuperar el control.
 3. Para conectar otro dispositivo, con él en la misma red wifi:
    - escribe **`manna.local`** en su navegador, o
-   - escanea el código QR de **Dispositivos**: el botón del código QR de la barra de arriba, a la derecha, que se abre ahí mismo con el código y el PIN (o Ajustes → Dispositivos).
+   - escanea el código QR de **Dispositivos**: el botón del código QR de la barra de arriba, a la derecha, que se abre ahí mismo con el código (o Ajustes → Dispositivos). Cada persona entra con su nombre y su PIN, que le da el administrador en Ajustes → Usuarios.
 4. Para apagar Manna: **Ajustes → Apagar Manna** (solo aparece en el equipo principal).
 
 Al cerrar o recargar la pestaña del control, el navegador pide confirmación para evitar cierres por error.
@@ -132,7 +133,7 @@ Si el programa se actualiza con Manna abierto, las pantallas de control muestran
 
 Para usar Manna desde fuera de la iglesia (un celular con datos, otra casa), en el equipo principal: el **wifi de la barra de arriba** (a la derecha, se abre ahí mismo) o **Ajustes → Conexión por internet**, y **Encender**. El wifi cambia de aspecto según el estado (tachado si está apagada, ondas que se encienden mientras conecta, cian si está lista, punto rojo si falla) y, al tocarlo, dice el estado, la dirección y desde cuándo está comprobada. Manna lo recuerda: desde entonces, el icono **Manna** abre también la conexión, y **Apagar Manna** la cierra. La primera vez hace falta cloudflared, el programa de Cloudflare: **Revisar el equipo → Instalar por mí**.
 
-- **Desde internet todo pide el PIN**, también la pantalla de proyección: nadie de fuera ve las biblias, los himnos ni los medios de la iglesia sin él. En la red de la iglesia todo sigue igual.
+- **Desde internet todo pide entrar con nombre y PIN**, también la pantalla de proyección: nadie de fuera ve las biblias, los himnos ni los medios de la iglesia sin él. En la red de la iglesia todo sigue igual.
 - Sin más, la dirección es de prueba (`…trycloudflare.com`) y cambia cada vez que se abre: Ajustes la muestra con un botón para copiarla.
 - **Con un dominio propio**, la dirección es siempre la misma (por ejemplo `https://manna.tuiglesia.org`). En [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) (gratis), *Networks → Tunnels → Create a tunnel* (tipo *Cloudflared*). En *Public Hostname* pon la dirección y, como servicio, `HTTP` y `localhost:80` (o el puerto que muestre Manna). Copia la clave que empieza por `eyJ…` (vale pegar la orden entera) y pégala en **Ajustes → Conexión por internet → Usar un dominio propio**, con la dirección. La clave se guarda solo en el equipo principal y no se vuelve a mostrar.
 - **Encendida** quiere decir que funciona de verdad: cada minuto Manna entra por su propia dirección de internet, como un celular de fuera, y comprueba que contesta él mismo. Mientras no lo consigue, Ajustes dice «Comprobando…» o el problema concreto (por ejemplo, que en Cloudflare el servicio del túnel apunta a otro puerto, o que el mismo túnel está abierto en otro equipo), y si falla varias veces seguidas, Manna rehace la conexión solo.
@@ -335,7 +336,8 @@ server/
                         programas del equipo (detección e instalación), carpetas de contenido
                         y búsqueda de texto por niveles (la usan la Biblia y el himnario)
   modules/
-    system/             sesiones, PIN, direcciones de red
+    system/             sesiones, direcciones de red
+    users/              usuarios: crear, cambiar, cambiar el PIN y quitar (las cuentas, en core/users.js)
     bible/              lectura de .xmm/.xml, libros, citas, búsqueda y comparación de dos versiones
     projection/         contenido en vivo, mandos en vivo, volumen, estilos, segunda pantalla,
                         imagen de prueba
@@ -370,7 +372,7 @@ web/
 DESIGN.md               sistema de diseño de la interfaz
 Contenido/              lo de tu iglesia: biblias, himnos en video y letras (no se sube a GitHub,
                         salvo las instrucciones y la RV1909)
-data/                   ajustes, PIN, orden del culto, fondos, programas instalados por Manna
+data/                   ajustes, usuarios (PIN como huella), orden del culto, fondos, programas instalados por Manna
                         y archivos temporales de este equipo (no se sube)
 test/                   pruebas (npm test)
 scripts/                pruebas en un Chrome real, auditoría de pantallas, logo e iconos

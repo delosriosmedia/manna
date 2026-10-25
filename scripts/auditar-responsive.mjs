@@ -121,6 +121,11 @@ const SCREENS = [
     prepare: `(async () => { const w = (ms) => new Promise((r) => setTimeout(r, ms)); document.querySelector('.ws[data-module=orden] .order-add').click(); await w(300); [...document.querySelectorAll('.menu button')].find((b) => b.textContent.includes('Citas de un texto')).click(); await w(300); document.querySelector('.review-text').value = Array.from({ length: 48 }, (_, i) => 'Leemos con atención lo que dice Salmos ' + (i + 1) + ':1 sobre la alabanza' + (i % 12 === 11 ? '\\f' : '')).join('\\n') + '\\nFíjense en el v. 3.'; [...document.querySelectorAll('.review-actions .btn')].find((b) => b.textContent.includes('Buscar')).click(); })()` },
   // El equipo de la auditoría "no tiene" navegador para la proyección: Ajustes lleva su aviso.
   { name: 'Ajustes, con aviso', url: '/control#ajustes', content: '.settings', inside: '.ws-notice' },
+  // Ajustes → Usuarios (fase 35): la lista con sus botones y la ventana para añadir a alguien.
+  { name: 'Ajustes: usuarios', url: '/control#ajustes', content: '.settings', inside: '.user-row', settle: 500,
+    prepare: `document.querySelector('.user-list').scrollIntoView({ block: 'center' })` },
+  { name: 'Ajustes: nuevo usuario', url: '/control#ajustes', inside: '.modal', settle: 500,
+    prepare: `[...document.querySelectorAll('.settings .btn')].find((b) => b.textContent.includes('Añadir usuario')).click()` },
   // La capa de mandos abierta: su recuadro cabe en la pantalla y trae los mandos de lo que está al aire.
   { name: 'Capa de mandos', url: '/control#orden', show: 'testcard', narrowOnly: true, inside: '.controls-pop', closes: ['.controls-layer', '.controls-pop'], controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   // En el escritorio, «Más mandos» (en la barra de abajo) abre la misma capa, con todos los mandos de lo que está al aire.

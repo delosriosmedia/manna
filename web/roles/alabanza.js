@@ -9,6 +9,7 @@ const me = await ensureRole('alabanza');
 createShell({
   role: 'alabanza',
   isLocal: me.isLocal,
+  user: me.user,
   modules: ALABANZA_MODULES,
   createScene: createEscenario,
 });

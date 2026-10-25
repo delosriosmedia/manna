@@ -164,6 +164,9 @@ export default function setup(app) {
 
   app.route('GET', '/api/session', (ctx) => ({
     role: ctx.session?.role || null,
+    // Quién entró y, para entrar, la lista de nombres con lo que puede usar cada uno (fase 35: siempre de una lista).
+    user: ctx.session?.user ? { id: ctx.session.user.id, name: ctx.session.user.name, admin: ctx.session.user.admin } : null,
+    users: sessions.users.list().map(({ id, name, functions }) => ({ id, name, functions })),
     isLocal: ctx.isLocal,
     internet: ctx.internet,
     roles: publicRoles(ctx.internet),
@@ -189,16 +192,6 @@ export default function setup(app) {
       'Access-Control-Allow-Origin': '*',
     });
     ctx.res.end(JSON.stringify({ app: 'manna', id: settings.data.id, version, build: app.build, name: networkName() }));
-  });
-
-  // El PIN solo se puede ver desde el propio equipo servidor.
-  app.route('GET', '/api/system/pin', (ctx) => {
-    if (!ctx.isLocal) throw new HttpError(403, 'El PIN solo se muestra en el equipo principal.');
-    return { pin: sessions.pin };
-  });
-
-  app.action('system.setPin', { permission: 'system.admin' }, ({ pin }, ctx) => {
-    sessions.setPin(String(pin ?? ''), ctx?.session?.id);
   });
 
   // Botón "Reiniciar Manna": cierra y vuelve a abrir con el código que haya en disco. Es lo que

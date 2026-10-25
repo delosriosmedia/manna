@@ -8,6 +8,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from '../server/core/app.js';
 import system from '../server/modules/system/index.js';
+import users from '../server/modules/users/index.js';
 import projection from '../server/modules/projection/index.js';
 import order from '../server/modules/order/index.js';
 import web, { framable, parseAddress } from '../server/modules/web/index.js';
@@ -23,7 +24,7 @@ async function start(name, env = {}) {
   Object.assign(process.env, env);
   const app = createApp({ rootDir: ROOT, dataDir: path.join(tmp, name), biblesDir: path.join(tmp, `${name}-biblias`) });
   for (const key of Object.keys(env)) delete process.env[key];
-  for (const setup of [system, projection, order, web]) await setup(app);
+  for (const setup of [system, users, projection, order, web]) await setup(app);
   await app.tools.scan();
   const server = http.createServer(app.handle);
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -291,8 +292,7 @@ test('lo que llega por un túnel o un proxy de este equipo no cuenta como el equ
   const outside = (url, options = {}) => fetch(new URL(url, main.base), { ...options, headers: { ...options.headers, ...tunnel } });
   assert.equal((await (await outside('/api/session')).json()).isLocal, false);
   const login = await outside('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'control' }) });
-  assert.equal(login.status, 401, 'sin PIN no entra');
-  assert.notEqual((await outside('/api/system/pin')).status, 200);
+  assert.notEqual(login.status, 200, 'sin usuario ni PIN no entra');
   // Sin esas cabeceras sigue siendo el equipo principal.
   assert.equal((await (await main.request('/api/session')).json()).isLocal, true);
 });
@@ -307,26 +307,66 @@ test('desde internet nada se ve sin PIN, ni la pantalla de proyección', async (
   // La interfaz y lo necesario para entrar, sí; el contenido y el estado, no.
   for (const url of ['/', '/proyeccion', '/core/api.js', '/api/ping']) assert.equal((await outside(url)).status, 200, url);
   for (const url of ['/api/state', '/api/events?rol=proyeccion', '/media/x.jpg', '/paginas/x']) assert.equal((await outside(url)).status, 401, url);
-  // La proyección pide el PIN; con él, entra y ve el estado.
-  const open = (pin) => outside('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'proyeccion', pin }) });
-  assert.equal((await open()).status, 401, 'sin PIN no entra');
-  const { pin } = await (await main.request('/api/system/pin')).json();
-  const entered = await open(pin);
+  // Para entrar, la lista de nombres (sin PIN, solo lo que puede usar cada uno).
+  assert.equal((await main.send('users.create', { name: 'Proyector', pin: '2580', functions: ['orden'] })).status, 200);
+  const listed = (await (await outside('/api/session')).json()).users.find((u) => u.name === 'Proyector');
+  assert.deepEqual(Object.keys(listed).sort(), ['functions', 'id', 'name']);
+  // La proyección pide el PIN de alguien de la lista; con él, entra y ve el estado.
+  const open = (pin) => outside('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'proyeccion', user: listed.id, pin }) });
+  assert.equal((await open('0000')).status, 401, 'con otro PIN no entra');
+  const entered = await open('2580');
   assert.equal(entered.status, 200);
   const cookie = entered.headers.get('set-cookie').split(';')[0];
   assert.equal((await outside('/api/state', { headers: { cookie } })).status, 200, 'con la sesión, sí');
 });
 
-test('cambiar el PIN cierra las demás sesiones, también las abiertas sin PIN', async () => {
-  const other = await fetch(new URL('/api/session', main.base), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'control' }) });
-  const cookie = other.headers.get('set-cookie').split(';')[0];
-  const state = () => fetch(new URL('/api/action', main.base), { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ type: 'projection.mode', payload: { mode: 'clear' } }) }).then((res) => res.status);
-  assert.equal(await state(), 200);
-  for (const wrong of ['123', '12345', '12a4']) assert.equal((await main.send('system.setPin', { pin: wrong })).status, 400, `«${wrong}» no vale: 4 números`);
-  assert.equal(await state(), 200, 'un PIN rechazado no cierra nada');
-  assert.equal((await main.send('system.setPin', { pin: '1357' })).status, 200);
-  assert.equal(await state(), 401, 'la otra sesión ya no vale');
-  assert.equal((await main.send('projection.mode', { mode: 'clear' })).status, 200, 'la de quien lo cambió, sí');
+test('usuarios (fase 35): cada uno entra con su nombre y su PIN en lo que puede usar, y Ajustes es del administrador', async () => {
+  // Desde otro equipo (aquí, por un túnel: el mismo equipo no pide PIN).
+  const away = { 'Cf-Connecting-Ip': '203.0.113.20', 'X-Forwarded-For': '203.0.113.20' };
+  const outside = (url, options = {}) => fetch(new URL(url, main.base), { ...options, headers: { ...options.headers, ...away } });
+  const enter = (role, user, pin, cookie = '') => outside('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ role, user, pin }) });
+  const act = (cookie, type, payload = {}) => outside('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ type, payload }) }).then((res) => res.status);
+  for (const pin of ['123', '12345', '12a4']) assert.equal((await main.send('users.create', { name: 'Mal', pin, functions: ['orden'] })).status, 400, `«${pin}» no vale: 4 números`);
+  assert.equal((await main.send('users.create', { name: 'Ana', pin: '2468', functions: [] })).status, 400, 'sin ninguna función no');
+  const ana = (await main.send('users.create', { name: 'Ana', pin: '2468', functions: ['alabanza'] })).result.id;
+  assert.equal((await main.send('users.create', { name: 'ana', pin: '1111', functions: ['orden'] })).status, 409, 'dos con el mismo nombre no');
+  const beto = (await main.send('users.create', { name: 'Beto', pin: '1357', functions: ['control', 'alabanza'] })).result.id;
+  assert.ok(!JSON.stringify(await main.state()).includes('2468'), 'el PIN no viaja en el estado');
+
+  assert.equal((await enter('control', ana, '2468')).status, 403, 'Ana no puede usar Control completo');
+  assert.equal((await enter('alabanza', ana, '0000')).status, 401, 'con otro PIN no entra');
+  const anaIn = await enter('alabanza', ana, '2468');
+  assert.equal(anaIn.status, 200);
+  assert.equal((await anaIn.json()).user.name, 'Ana');
+  const anaCookie = anaIn.headers.get('set-cookie').split(';')[0];
+  assert.equal(await act(anaCookie, 'projection.mode', { mode: 'clear' }), 200);
+
+  // Beto usa Control completo, pero lo de Ajustes es solo del administrador.
+  const betoIn = await enter('control', beto, '1357');
+  const betoCookie = betoIn.headers.get('set-cookie').split(';')[0];
+  assert.equal(await act(betoCookie, 'projection.mode', { mode: 'clear' }), 200);
+  assert.equal(await act(betoCookie, 'users.create', { name: 'Ciro', pin: '9999', functions: ['orden'] }), 403);
+  assert.equal(await act(betoCookie, 'projection.styles', { fontSize: 50 }), 403);
+  // Ya dentro, cambia de función sin volver a escribir su PIN.
+  assert.equal((await enter('alabanza', beto, undefined, betoCookie)).status, 200);
+
+  // Cambiar el PIN de Ana cierra su sesión; con el nuevo vuelve a entrar.
+  assert.equal((await main.send('users.setPin', { id: ana, pin: '8642' })).status, 200);
+  assert.equal(await act(anaCookie, 'projection.mode', { mode: 'clear' }), 401, 'su sesión ya no vale');
+  assert.equal((await enter('alabanza', ana, '8642')).status, 200);
+
+  // Cinco PIN equivocados y ese usuario espera, también desde otro equipo.
+  for (let i = 0; i < 5; i += 1) await enter('alabanza', ana, '0000');
+  assert.equal((await enter('alabanza', ana, '8642')).status, 429);
+
+  // Siempre queda un administrador, y nadie se quita a sí mismo.
+  const { list } = (await main.state()).users;
+  const admin = list.find((u) => u.admin);
+  assert.equal((await main.send('users.update', { id: admin.id, admin: false })).status, 409);
+  assert.equal((await main.send('users.remove', { id: admin.id })).status, 409);
+  assert.equal((await main.send('users.remove', { id: beto })).status, 200);
+  assert.equal(await act(betoCookie, 'projection.mode', { mode: 'clear' }), 401, 'quien se quitó ya no entra');
+  await main.send('users.remove', { id: ana });
 });
 
 // ---- Revisión del equipo ----

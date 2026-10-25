@@ -55,7 +55,7 @@ const createDevicesButton = (onclick) => h('button', {
 }, icon('qr-mini', 20));
 
 // La barra de arriba del Control completo: ambos en una píldora. A quien entra por internet no se le ofrece el wifi:
-// apagarlo le cortaría a él mismo. Pulsar uno (pedido del dueño, 2026-10-18) agranda la píldora en su sitio hasta
+// apagarlo le cortaría a él mismo; tampoco a quien no es administrador (fase 35), que no puede encenderlo. Pulsar uno (pedido del dueño, 2026-10-18) agranda la píldora en su sitio hasta
 // ser una tarjeta con lo suyo, y lo que hay a su izquierda se corre; se encoge al pulsarlo otra vez, con Esc, al
 // tocar fuera o cuando el ratón lleva 2 s fuera. Con la tarjeta abierta, el otro botón cambia lo que dice.
 // La píldora (.topbar-tools) ocupa su sitio en la barra y crece solo de ancho; la tarjeta (.tools-card) cuelga de
@@ -65,7 +65,7 @@ const LEAVE_MS = 2000;
 export const connectionTools = (me) => (ctx) => {
   const title = h('h2', { class: 'tools-title' });
   const panel = h('div', { class: 'tools-panel' });
-  const wifi = !me.internet && createInternetButton(() => toggle('wifi'));
+  const wifi = !me.internet && Boolean(me.user?.admin) && createInternetButton(() => toggle('wifi'));
   const qr = createDevicesButton(() => toggle('qr'));
   const card = h('div', { class: 'tools-card glass', id: 'tools-card', onpointerenter: () => clearTimeout(leaving),
     onpointerleave: (e) => { if (e.pointerType === 'mouse' && open) leaving = setTimeout(close, LEAVE_MS); } },

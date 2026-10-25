@@ -6,4 +6,4 @@ import { createEscenario } from '../modules/projection/escenario.js';
 // Control del orden: pensado para el celular. Solo proyecta lo que ya está en el orden del culto.
 const me = await ensureRole('orden');
 
-createShell({ role: 'orden', isLocal: me.isLocal, modules: ORDER_ONLY, createScene: createEscenario });
+createShell({ role: 'orden', isLocal: me.isLocal, user: me.user, modules: ORDER_ONLY, createScene: createEscenario });

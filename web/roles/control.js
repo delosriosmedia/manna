@@ -10,6 +10,7 @@ const me = await ensureRole('control');
 createShell({
   role: 'control',
   isLocal: me.isLocal,
+  user: me.user,
   modules: MODULES,
   createScene: createEscenario,
   topTools: [connectionTools(me)],

@@ -4,6 +4,12 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Usuarios**: cada persona entra con su nombre y su PIN. Desde un celular o un computador, al elegir una función sale la lista de quienes pueden usarla; cada uno toca su nombre y escribe su PIN. Quien ya entró cambia de función sin volver a escribirlo, y «Entrar como otra persona» cambia de persona. El equipo principal entra sin PIN, como administrador.
+- **Ajustes → Usuarios** (solo el administrador): añadir a alguien con su nombre, su PIN y las funciones que puede usar (o hacerlo administrador), cambiarlo, cambiarle el PIN y quitarlo. Cambiar el PIN o quitar a alguien cierra los dispositivos donde había entrado.
+- Ajustes y la conexión por internet son ahora solo del administrador.
+- El PIN de antes pasa a ser el del «Administrador»: se entra con él la primera vez. «Dispositivos» ya no muestra ni cambia el PIN.
+- Cinco PIN equivocados seguidos dejan a esa persona 15 minutos sin poder entrar, desde cualquier dispositivo.
+
 ## 1.40.0 — 2026-10-25
 
 - **Versículos en una capa**: en la Biblia, «Capa» pone el pasaje elegido encima de lo que se proyecta, a pantalla completa y con el fondo de Ajustes. Sirve para mostrar un versículo un momento sobre la presentación del predicador sin quitarla: al apagar la capa, la presentación sigue donde iba.

@@ -7,8 +7,8 @@ export async function ensureRole(role) {
   if (current.role === role) return current;
   if (current.isLocal) {
     // Un Manna abierto de antes no conoce una función nueva: se dice, en vez de dejar la página en blanco.
-    await session.open(role).catch((err) => { document.body.textContent = err.message; throw err; });
-    return { ...current, role };
+    const opened = await session.open(role).catch((err) => { document.body.textContent = err.message; throw err; });
+    return { ...current, ...opened };
   }
   location.replace(`/?volver=${encodeURIComponent(location.pathname)}`);
   return new Promise(() => {}); // la página se está yendo

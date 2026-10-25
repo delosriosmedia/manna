@@ -6,6 +6,7 @@ import { chooseContent } from '../../core/contenido.js';
 import { createDisplayToggle, createStylePanel, createTestCardButton, describeDisplay } from '../projection/controls.js';
 import { netText } from '../system/conexion.js';
 import { openDevicesDialog } from '../system/devices.js';
+import { usersBody } from './usuarios.js';
 
 // Módulo Ajustes: lo que se prepara antes de la reunión y no hace falta tener a mano durante ella.
 // Arriba, una fila con sus secciones para ir directo a una; los programas del equipo principal (la
@@ -74,7 +75,9 @@ function mount(el, ctx) {
         displayText, h('div', { class: 'row', style: 'flex-wrap: wrap;' }, createDisplayToggle(), createTestCardButton())),
       section('Dispositivos', 'Dispositivos', 'Celulares, tabletas y otros equipos de la misma red.',
         screens, h('div', { class: 'row' }, h('button', { class: 'btn', onclick: guard(() => openDevicesDialog(ctx.isLocal)) }, icon('qr-code', 16), 'Conectar un dispositivo'))),
-      section('Internet', 'Conexión por internet', 'Para usar Manna desde fuera de la iglesia. Desde internet todo pide el PIN, también la pantalla de proyección.',
+      section('Usuarios', 'Usuarios', 'Quién puede entrar en las funciones de control y en cuáles. Cada persona entra con su nombre y su PIN; el equipo principal entra sin PIN, como administrador.',
+        ...usersBody(ctx.user)),
+      section('Internet', 'Conexión por internet', 'Para usar Manna desde fuera de la iglesia. Desde internet todo pide entrar con nombre y PIN, también la pantalla de proyección.',
         net, netAddress, ctx.isLocal && h('div', { class: 'row', style: 'flex-wrap: wrap;' }, netToggle, netOwn)),
       section('Programas', 'Programas del equipo principal', 'Lo que Manna usa para convertir videos, descargar de YouTube y abrir presentaciones. Ninguno que falte impide abrir Manna.',
         tools, h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => go('/requisitos') }, icon('check-circle', 16), 'Revisar el equipo'))),

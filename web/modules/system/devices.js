@@ -1,5 +1,5 @@
-import { action, api, state } from '../../core/api.js';
-import { h, dialog, guard, toast } from '../../core/dom.js';
+import { state } from '../../core/api.js';
+import { h, dialog } from '../../core/dom.js';
 import qrcode from '../../vendor/qrcode.mjs';
 
 function qr(text) {
@@ -14,7 +14,7 @@ function qr(text) {
 // Lo que se escribe a mano en el navegador: sin "http://", que el navegador pone solo.
 const typed = (url) => url.replace(/^http:\/\//, '');
 
-// "Conectar dispositivos": cómo conectar celulares y otros equipos, y el PIN. Lo que dice (devicesBody) va en la
+// "Conectar dispositivos": cómo conectar celulares y otros equipos. Lo que dice (devicesBody) va en la
 // tarjeta del QR de la barra de arriba (conexion.js) y, desde Ajustes, en una ventana.
 // - Un solo código QR, con la dirección numérica recomendada (funciona en cualquier dispositivo;
 //   al abrirla, la página pasa sola a la dirección con nombre si el dispositivo la entiende).
@@ -61,22 +61,8 @@ export async function devicesBody(isLocal) {
     }
   }
 
-  if (isLocal) {
-    const { pin } = await api('/api/system/pin');
-    // Solo números y 4 cifras, como el teclado del PIN.
-    const input = h('input', { class: 'input', inputMode: 'numeric', pattern: '[0-9]*', maxLength: 4, value: pin, 'aria-label': 'PIN',
-      oninput: () => { input.value = input.value.replace(/\D/g, '').slice(0, 4); } });
-    body.push(
-      h('div', { class: 'label', style: 'margin-top: 16px;' }, 'PIN para las funciones de control'),
-      h('div', { class: 'row' }, input, h('button', { class: 'btn', onclick: guard(async () => {
-        await action('system.setPin', { pin: input.value.trim() });
-        toast('PIN cambiado. Los demás dispositivos deberán escribir el nuevo.');
-      }) }, 'Cambiar')),
-      h('p', { class: 'muted' }, 'La pantalla de proyección no pide PIN. Este equipo tampoco.'),
-    );
-  } else {
-    body.push(h('p', { class: 'muted' }, 'El PIN solo se puede ver y cambiar desde el equipo principal.'));
-  }
+  // Desde la fase 35 cada persona entra con su nombre y su PIN (Ajustes → Usuarios).
+  body.push(h('p', { class: 'muted', style: 'margin-top: 16px;' }, 'Al entrar, cada persona elige su nombre y escribe su PIN. Los da el administrador, en Ajustes → Usuarios. La pantalla de proyección no pide PIN.'));
   return body;
 }
 
