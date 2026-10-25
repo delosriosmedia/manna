@@ -44,13 +44,13 @@ function mount(el, ctx) {
     await action('projection.show', { kind: 'text', data: { id }, step: partsOf(area.value).length > 1 ? 0 : null });
   });
   const show = h('button', { class: 'btn primary', onclick: () => project() }, icon('play', 16), 'Proyectar', h('kbd', {}, '↵'));
-  const add = h('button', { class: 'btn', onclick: guard(async () => {
+  const add = h('button', { class: ctx.canProject ? 'btn' : 'btn primary', onclick: guard(async () => {
     const id = await commit(true);
     if (!id) return;
     await action('order.add', { kind: 'text', data: { id } });
     toast(`«${firstLine(area.value)}» añadido al orden del culto.`);
   }) }, icon('plus', 16), 'Añadir al orden');
-  const bar = h('div', { class: 'abar text-bar' }, where, h('span', { class: 'hint' }, 'Una línea en blanco pasa a otra pantalla'), add, show);
+  const bar = h('div', { class: 'abar text-bar' }, where, h('span', { class: 'hint' }, 'Una línea en blanco pasa a otra pantalla'), add, ctx.canProject && show);
   const fresh = h('button', { class: 'btn', onclick: () => leave(() => { selected = null; open = true; fill(); }) }, icon('plus', 16), 'Nuevo texto');
   el.replaceChildren(h('div', { class: 'ws-head' }, h('h1', {}, 'Textos'), h('span', { class: 'spacer' }), ctx.canEdit && fresh), body, bar);
 
@@ -158,7 +158,8 @@ function mount(el, ctx) {
     onShow: render,
     keys(e) {
       if (e.key !== 'Enter' || !area.value.trim()) return false;
-      project();
+      if (ctx.canProject) project();
+      else add.click();
       return true;
     },
   };

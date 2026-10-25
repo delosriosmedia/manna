@@ -52,7 +52,7 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
   // certificado propio (el `https` lo pone el hosting) y los módulos dejan fuera lo que es del equipo de la iglesia.
   const cloud = Boolean(process.env.MANNA_NUBE);
   const store = new Store();
-  const sessions = createSessions({ storage, roles: ROLES });
+  const sessions = createSessions({ storage, roles: ROLES, cloud });
   const BLOCKED = 'Este Manna no funciona mientras haya otro en la red: usa ese, o apágalo y pulsa «Volver a comprobar».';
   const router = createRouter({ webDir: path.join(rootDir, 'web'), sessions, cloud, refuse: () => (app.blocked ? BLOCKED : null) });
   const realtime = createRealtime({ store, router, sessions });

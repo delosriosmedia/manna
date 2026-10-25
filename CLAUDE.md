@@ -22,7 +22,7 @@ Repositorio: https://github.com/delosriosmedia/manna
 - Auditoría de adaptación a pantallas (celular, tableta, escritorio): `node scripts/auditar-responsive.mjs` (unos 4 min; con palabras, solo esas pantallas y tamaños: `… biblia 360x640 844x390 1280x720`; con `grande`, con la interfaz al tamaño máximo de Ajustes)
 - Los guiones de pruebas en Chrome (`scripts/lib/chrome.mjs`, usan el `WebSocket` integrado) necesitan **Node.js 22 o superior**.
 - Cuántas pruebas correr y cuándo (en cada edición, al terminar un cambio, al cerrar una parte): `.claude/rules/pruebas.md`
-- Demostración con un orden del culto de ejemplo y datos temporales: `node scripts/demo.mjs` (puerto 8123). Con ella, `/vista-previa` muestra la app en el marco de un celular o una tableta
+- Demostración con un orden del culto de ejemplo y datos temporales: `node scripts/demo.mjs` (puerto 8123). Con ella, `/vista-previa` muestra la app en el marco de un celular o una tableta. En modo nube (Preparar el culto y Administrar la iglesia, con la clave de alta `clave-de-prueba`): `MANNA_NUBE=1 MANNA_CLAVE_ALTA=clave-de-prueba PORT=8141 node scripts/demo.mjs`
 
 ## Stack
 

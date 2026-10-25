@@ -42,6 +42,13 @@
     .person .initial { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-weight: 700; }
     .person .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+    /* Contraseña y clave de alta (fase 36, en la nube). */
+    .login-form { display: grid; gap: 12px; }
+    .login-form > p:first-child { color: var(--ink-3); font-size: 13px; }
+    .login-field { display: grid; gap: 6px; }
+    .login-field > span { color: var(--ink-3); font-size: 12px; font-weight: 600; }
+    .login-form .pin-error:empty { display: none; }
+
     /* PIN: un teclado grande, también cómodo en el celular. */
     .pin-pad { display: flex; flex-direction: column; align-items: center; gap: 14px; }
     .pin-pad > p { color: var(--ink-3); text-align: center; font-size: 13px; }

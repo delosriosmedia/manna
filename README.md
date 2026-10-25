@@ -39,6 +39,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
   - **Servicio de alabanza**: Himnario, Medios, Orden y Biblia, con el volumen de Manna siempre a la vista. Proyecta, prepara el orden y sube medios, pero no toca los ajustes. Pide PIN.
   - **Control del orden**: solo pasa el orden del culto, sin editarlo. Pensado para el celular. Pide PIN.
   - **Pantalla de proyección**: espejo de la proyección principal. Sin PIN.
+  - **En la nube** (en construcción, fase 36; todavía no hay ninguna abierta), dos funciones más. **Preparar el culto**: desde casa, cada usuario con su nombre y su PIN, en cinco pestañas (Orden, Biblia, Himnario, Medios y Textos) que añaden al orden en vez de proyectar; en Medios, un video de YouTube por su enlace, que descargará el equipo de la iglesia. **Administrar la iglesia**: el administrador, con su contraseña, crea, cambia y quita los usuarios. La primera vez se entra con la clave de alta que pone quien instala Manna en la nube.
 - **Celular, tableta y escritorio**: en el celular, «Historias»: arriba lo que está en pantalla (tocar a la derecha avanza, a la izquierda vuelve), debajo los modos, el volumen y lo que sigue; los módulos, en el dock de abajo, suben en un cajón reducido con solo lo esencial, que se agranda arrastrando su borde o a pantalla completa con un toque, y se cierra tocando fuera. En el escritorio el cajón estrecho se ensancha arrastrando su borde derecho, y tocar el fondo lo cierra.
 - **Escuchar en el celular**: «Escuchar» en el Himnario (siempre cantado), en Medios y en el Orden lo oye antes de añadirlo, solo en ese dispositivo (con audífonos), sin que lo note lo que suena en la iglesia. (Oír en el celular lo que está al aire se quitó el 2026-10-16: en un celular de verdad se oía a saltos.)
 - **Barra de abajo** (escritorio, con ratón): se aparta sola tras unos segundos sin mover el ratón ni pulsar una tecla, como en un reproductor de video, para que la proyección se vea entera; cualquier movimiento la trae.
@@ -366,7 +367,7 @@ web/
                         reloj, tareas, iconos y estilos base
   modules/              la pantalla de cada módulo (registry.js es la lista) y cómo se dibuja
                         cada tipo de contenido (kinds.js es la lista)
-  roles/                una página por función: control, alabanza, presentador, orden, proyeccion, y la revisión del equipo
+  roles/                una página por función: control, alabanza, presentador, orden, proyeccion, la revisión del equipo y, en la nube, preparacion y administrar
   vendor/               tipografías Sora y Geist Mono, iconos Phosphor, generador de QR y pdf.js (para leer los PDF
                         en el navegador), con sus licencias
 DESIGN.md               sistema de diseño de la interfaz

@@ -8,6 +8,8 @@ import { cleanName } from './names.js';
 // administrador, para que nadie se quede fuera.
 export const FUNCTIONS = ['control', 'alabanza', 'orden', 'presentador'];
 export const validPin = (pin) => /^\d{4}$/.test(pin || '');
+// La del administrador en la nube (fase 36): entra desde internet a gestionar los usuarios, así que no basta un PIN.
+export const PASSWORD_MIN = 10;
 const hash = (pin, salt) => crypto.scryptSync(pin, salt, 32).toString('hex');
 const sealed = (pin) => {
   const salt = crypto.randomBytes(16).toString('hex');
@@ -27,7 +29,7 @@ export function createUsers({ storage, legacyPin = null }) {
   }
 
   const find = (id) => list.find((u) => u.id === id) || null;
-  const view = ({ id, name, admin, functions }) => ({ id, name, admin, functions: admin ? [...FUNCTIONS] : functions });
+  const view = ({ id, name, admin, functions, password }) => ({ id, name, admin, functions: admin ? [...FUNCTIONS] : functions, password: Boolean(password) });
   const cleanFunctions = (value) => {
     const chosen = Array.isArray(value) ? FUNCTIONS.filter((f) => value.includes(f)) : [];
     if (!chosen.length) throw new HttpError(400, 'Elige al menos una función para ese usuario.');
@@ -53,6 +55,21 @@ export function createUsers({ storage, legacyPin = null }) {
       if (!user || !validPin(pin)) return false;
       return crypto.timingSafeEqual(Buffer.from(hash(pin, user.pin.salt), 'hex'), Buffer.from(user.pin.hash, 'hex'));
     },
+    checkPassword(id, password) {
+      const user = find(id);
+      if (!user?.admin || !user.password || typeof password !== 'string' || !password) return false;
+      return crypto.timingSafeEqual(Buffer.from(hash(password, user.password.salt), 'hex'), Buffer.from(user.password.hash, 'hex'));
+    },
+    setPassword(id, password) {
+      const user = find(id);
+      if (!user) throw new HttpError(404, 'Ese usuario ya no está.');
+      if (!user.admin) throw new HttpError(400, 'Solo un administrador tiene contraseña.');
+      if (typeof password !== 'string' || password.length < PASSWORD_MIN) throw new HttpError(400, `La contraseña debe tener al menos ${PASSWORD_MIN} caracteres.`);
+      user.password = sealed(password);
+      store.save();
+    },
+    // ¿Ya hay algún administrador con contraseña? Hasta entonces sirve la clave de alta (decisión 62).
+    hasPassword: () => list.some((u) => u.admin && u.password),
     create({ name, pin, functions, admin = false }) {
       if (!validPin(pin)) throw new HttpError(400, 'El PIN debe tener 4 números.');
       const user = { id: crypto.randomBytes(6).toString('hex'), name: cleanUserName(name), admin: admin === true, functions: admin === true ? [...FUNCTIONS] : cleanFunctions(functions), pin: sealed(pin), added: Date.now() };

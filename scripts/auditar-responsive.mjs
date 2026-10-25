@@ -43,7 +43,8 @@
 //                                                       alguna de esas palabras (sin contar tildes)
 //       node scripts/auditar-responsive.mjs grande      con la interfaz al tamaño máximo de Ajustes (1,08)
 // Si pasa de 12 min, se corta y dice por dónde iba cada Chrome (regla del dueño, 2026-10-18).
-// Reparte los tamaños entre tres Chrome a la vez, cada uno con su servidor (puertos 8124, 8126 y 8128)
+// Reparte los tamaños entre tres Chrome a la vez, cada uno con su servidor (puertos 8124, 8126 y 8128; y, para las
+// pantallas de la nube, otro en modo nube en los 8144, 8146 y 8148)
 // y sus datos temporales. Necesita Node 22 o superior y Chrome o Edge.
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -198,6 +199,16 @@ const SCREENS = [
   { name: 'Televisores', url: '/control#televisores', content: '.tvs', inside: '.tv' },
   { name: 'Televisores: control remoto', url: '/control#televisores', inside: '.modal', settle: 700,
     prepare: `[...document.querySelectorAll('.tv-actions .btn')].find((b) => b.textContent === 'Control remoto').click()` },
+  // Preparar el culto y Administrar la iglesia (fase 36): solo en la nube, con su servidor (cloud: la función con la que se
+  // entra). Sin escenario: tabs cambia el control de lo que está al aire por el de las pestañas.
+  { name: 'Preparar el culto: orden', url: '/preparacion#orden', cloud: 'preparacion', tabs: true, content: '.olist', longTitles: true },
+  { name: 'Preparar el culto: Biblia', url: '/preparacion#biblia', cloud: 'preparacion', tabs: true, primary: '.abar .btn.primary', content: '.col-verses' },
+  { name: 'Preparar el culto: himnario', url: '/preparacion#himnario', cloud: 'preparacion', tabs: true, content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: '.hymn-bar', settle: 700,
+    prepare: `document.querySelector('.ws[data-module=himnario] .hymn')?.click()` },
+  { name: 'Preparar el culto: medios', url: '/preparacion#medios', cloud: 'preparacion', tabs: true, primary: '.media-links .btn.primary', inside: '.yt-add' },
+  { name: 'Preparar el culto: textos', url: '/preparacion#textos', cloud: 'preparacion', tabs: true, content: '.text-editor', primary: '.text-bar .btn.primary', inside: '.text-bar', settle: 600,
+    prepare: `document.querySelector('.text-card[data-id=ejemplo-cita] .text-pick').click()` },
+  { name: 'Administrar la iglesia', url: '/administrar', cloud: 'administrar', tabs: true, inside: '.user-row' },
   { name: 'Inicio', url: '/', plain: '.role' },
   { name: 'Revisión del equipo', url: '/requisitos', plain: '.req' },
 ];
@@ -299,7 +310,9 @@ const MEASURE = (screen, touch, narrow) => {
   } else {
     const drawer = q('.drawer');
     const dr = shown(drawer) ? box(drawer) : null;
-    if (!${JSON.stringify(narrow)}) {
+    if (${JSON.stringify(Boolean(screen.tabs))}) {
+      // Sin escenario ni proyección (pestañas, fase 36): no hay nada al aire que vigilar.
+    } else if (!${JSON.stringify(narrow)}) {
       // Escritorio y tableta horizontal: la barra de estado y los botones de transporte, a la vista y fuera del cajón.
       // Anterior y Siguiente abajo; «Solo fondo» y «Negro» arriba, junto al estado (fase 14).
       const buttons = [...document.querySelectorAll('.tb-main .btn, .scene-modes .mode-btn')].filter(shown);
@@ -346,7 +359,7 @@ const MEASURE = (screen, touch, narrow) => {
   }
   ${screen.marcada ? `{ const f = q('.finder-layer:not([hidden]) .finder'), r = f && q('.finder-row.on'), acts = r && [...r.querySelectorAll('.finder-acts button')].filter(shown);
     out.buscarMarcada = Boolean(r) && acts.length >= 1 && acts.every((b) => { const x = box(b), y = box(f); return x.left >= y.left - 1 && x.right <= y.right + 1 && x.top >= y.top - 1 && x.bottom <= y.bottom + 1; }); }` : ''}
-  ${screen.primary ? `{ const a = q(${JSON.stringify(screen.primary)}); out.accion = inView(a) && topmost(a) && (${JSON.stringify(Boolean(screen.noDock))} || Boolean(a.closest('.drawer'))); }` : ''}
+  ${screen.primary ? `{ const a = q(${JSON.stringify(screen.primary)}); out.accion = inView(a) && topmost(a) && (${JSON.stringify(Boolean(screen.noDock || screen.tabs))} || Boolean(a.closest('.drawer'))); }` : ''}
   ${screen.content ? `{ const c = [...document.querySelectorAll(${JSON.stringify(screen.content)})].find(shown); out.espacioContenido = c ? Math.round(Math.min(box(c).bottom, vh) - Math.max(box(c).top, 0)) : 0; }` : ''}
   ${screen.longTitles ? `{ const t = [...document.querySelectorAll('.orow .item-text strong')].find((e) => e.textContent.length > 60); out.tituloLargo = Boolean(t) && t.scrollHeight <= t.clientHeight + 1; }` : ''}
   ${inside ? `{ const e = q(${JSON.stringify(inside)}); const r = box(e); out.dentro = shown(e) && r.left >= -1 && r.right <= vw + 1 && r.top >= -1 && r.bottom <= vh + 1 && [...e.querySelectorAll('button')].every((b) => !shown(b) || (box(b).left >= r.left - 1 && box(b).right <= r.right + 1)); }` : ''}
@@ -363,7 +376,7 @@ const MEASURE = (screen, touch, narrow) => {
 // Espera a que la pantalla haya terminado de dibujarse (hasta 8 s), en vez de una pausa fija.
 async function ready(chrome, screen) {
   const done = screen.plain ? `document.querySelector(${JSON.stringify(screen.plain)})`
-    : `document.querySelector('.ws:not([hidden])') && (!document.querySelector('.ws:not([hidden]) .picker') || document.querySelector('.ws:not([hidden]) .verse')) && document.querySelector('.scene-caption')?.textContent`;
+    : `document.querySelector('.ws:not([hidden])') && (!document.querySelector('.ws:not([hidden]) .picker') || document.querySelector('.ws:not([hidden]) .verse')) && (${Boolean(screen.tabs)} || document.querySelector('.scene-caption')?.textContent)`;
   for (let i = 0; i < 40; i += 1) {
     await sleep(200);
     if (await chrome.evaluate(`Boolean(${done})`)) break;
@@ -427,9 +440,31 @@ async function worker(list, n) {
     cwd: ROOT, stdio: 'ignore',
     env: { ...process.env, MANNA_NAME: `manna-auditoria-${n + 1}`, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_DATA: data, PORT: String(port), MANNA_HIMNARIO: example.hymnal, MANNA_FALTA: 'navegador,yt-dlp', MANNA_TV_PRUEBA: JSON.stringify(fakeTv.endpoints) },
   }));
+  // La nube (fase 36): otro servidor, en modo nube y con su ejemplo, para «Preparar el culto» y «Administrar la iglesia».
+  // Se abre por 127.0.0.1 y no por localhost: la cookie de la sesión va por nombre de equipo y así no pisa la del otro.
+  const cloudBase = `http://127.0.0.1:${port + 20}`;
+  const cloudData = path.join(tmp, `nube-${n + 1}`);
+  const cloudServer = screens.some((s) => s.cloud) && killOnExit(spawn(process.execPath, ['server/index.js'], {
+    cwd: ROOT, stdio: 'ignore',
+    env: { ...process.env, MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'auditoria', MANNA_NO_OPEN: '1', MANNA_DATA: cloudData, PORT: String(port + 20), MANNA_HIMNARIO: seedExample(cloudData).hymnal },
+  }));
   await sleep(3000);
   const chrome = await startChrome();
   chrome.acceptDialogs = true;
+  // Entra en la nube con esa función (la primera vez crea el administrador con la clave de alta). Cada tamaño, de nuevo y
+  // sin preferencias guardadas.
+  let cloudRole = null;
+  async function cloudLogin(role) {
+    if (cloudRole === role) return;
+    await chrome.send('Page.navigate', { url: `${cloudBase}/api/ping` });
+    await sleep(300);
+    await chrome.evaluate(`(async () => { localStorage.clear(); const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const pass = { pin: '1234', password: 'contraseña de la auditoría' };
+      if ((await (await fetch('/api/session')).json()).alta) await post('/api/session/alta', { clave: 'auditoria', name: 'Ana', ...pass });
+      const user = (await (await fetch('/api/session')).json()).users[0].id;
+      return (await post('/api/session', { role: ${JSON.stringify(role)}, user, ...pass })).status; })()`);
+    cloudRole = role;
+  }
   const setPrefs = (prefs, remove = false) => chrome.evaluate(`for (const [k, v] of Object.entries(${JSON.stringify(prefs)})) ${remove ? "localStorage.removeItem('manna.' + k)" : "localStorage.setItem('manna.' + k, JSON.stringify(v))"}`);
   const showInOrder = (id) => chrome.evaluate(`fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'order.show',payload:{id:${JSON.stringify(id)}}})}).then((r) => r.status)`);
   try {
@@ -444,18 +479,22 @@ async function worker(list, n) {
       // Cada tamaño empieza sin preferencias guardadas, como un dispositivo nuevo: el cajón se abre a su
       // tamaño de partida. Sin esto, cada tamaño heredaba lo que el anterior guardó (el celular pequeño deja el
       // cajón a pantalla completa) y el resultado dependía del orden.
+      await chrome.send('Page.navigate', { url: `${base}/api/ping` });
+      await sleep(300);
       await chrome.evaluate('localStorage.clear()');
+      cloudRole = null;
       // Lo de cada tamaño se escribe de una vez al terminarlo, para que no se mezcle con el de los otros Chrome.
       const lines = [`\n${device.name} (${device.w} × ${device.h})`];
       for (const screen of screens) {
         if ((screen.narrowOnly && !narrow) || (screen.wideOnly && narrow)) continue;
+        if (screen.cloud) await cloudLogin(screen.cloud);
         if (screen.prefs) await setPrefs(screen.prefs);
         if (screen.show) await showInOrder(example[screen.show]);
         if (screen.page) await chrome.evaluate(`fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'projection.show',payload:{kind:'web',data:{id:${JSON.stringify(screen.page)}}}})}).then((r) => r.status)`);
         // La dirección cambia en cada visita para forzar una carga limpia de la página.
         const [pathname, hash = ''] = screen.url.split('#');
         progress[n] = `${device.w}x${device.h} «${screen.name}»`;
-        await chrome.send('Page.navigate', { url: `${base}${pathname}?t=${Date.now()}${BIG ? '&escala=1.08' : ''}${hash ? `#${hash}` : ''}` });
+        await chrome.send('Page.navigate', { url: `${screen.cloud ? cloudBase : base}${pathname}?t=${Date.now()}${BIG ? '&escala=1.08' : ''}${hash ? `#${hash}` : ''}` });
         await ready(chrome, screen);
         if (screen.prepare) { await chrome.evaluate(screen.prepare); await sleep(screen.settle || 500); }
         const result = await chrome.evaluate(`JSON.stringify(${MEASURE(screen, device.touch, narrow)})`);
@@ -492,6 +531,7 @@ async function worker(list, n) {
   } finally {
     chrome.close();
     server.kill();
+    if (cloudServer) cloudServer.kill();
     await fakeTv.stop();
   }
 }

@@ -268,20 +268,21 @@ export default function setup(app) {
     store.set('hymns', { favorites: [...saved.data.favorites] });
   });
 
+  // Leer el himnario (la lista, buscar, la letra) es de quien proyecta y de quien prepara el culto (fase 36): hymns.read.
   app.route('GET', '/api/hymns', (ctx) => {
-    ctx.require('projection.control');
+    ctx.require('hymns.read');
     return { version, hymns: catalog.hymns.map(view), categories: catalog.categories, report: { ...catalog.report, notes: notes() } };
   });
 
   app.route('GET', '/api/hymns/search', (ctx) => {
-    ctx.require('projection.control');
+    ctx.require('hymns.read');
     const limit = Math.min(100, Math.max(1, Number(ctx.query.get('limite')) || 30));
     return search(ctx.query.get('q') || '', { limit });
   });
 
   // La letra de un himno, para leerla en el control. Solo sale de la carpeta de la iglesia.
   app.route('GET', '/api/hymns/:number', (ctx) => {
-    ctx.require('projection.control');
+    ctx.require('hymns.read');
     const hymn = find(ctx.params.number);
     return { ...view(hymn), parts: hymn.parts || [] };
   });

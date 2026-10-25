@@ -64,25 +64,27 @@ function mount(el, ctx) {
   }) }, icon('star', 16), h('span', { class: 'hymn-long' }, 'Favorito'));
   const project = guard(async (step = 0) => {
     const hymn = current();
-    if (!hymn) return;
+    if (!hymn || !ctx.canProject) return;
     if (letras()) await action('projection.show', { kind: 'lyrics', data: { number: hymn.number }, step });
     else await action('projection.show', { kind: 'song', data: { number: hymn.number, track: soundFor(hymn) } });
+  });
+  const add = guard(async () => {
+    const hymn = current();
+    if (!hymn) return;
+    if (letras()) {
+      await action('order.add', { kind: 'lyrics', data: { number: hymn.number } });
+      toast(`Himno ${hymn.number} añadido al orden del culto (letra sin música).`);
+      return;
+    }
+    await action('order.add', { kind: 'song', data: { number: hymn.number, track: soundFor(hymn) } });
+    toast(`Himno ${hymn.number} añadido al orden del culto (${trackName(soundFor(hymn)).toLowerCase()}).`);
   });
   const bar = h('div', { class: 'abar hymn-bar', hidden: true },
     h('span', { class: 'sel-ref' }, number), name,
     h('div', { class: 'hymn-sound', role: 'group', 'aria-label': 'Sonido' }, ...sound),
     lyricsButton, listenButton, favButton,
-    h('button', { class: 'btn hymn-act', onclick: guard(async () => {
-      const hymn = current();
-      if (letras()) {
-        await action('order.add', { kind: 'lyrics', data: { number: hymn.number } });
-        toast(`Himno ${hymn.number} añadido al orden del culto (letra sin música).`);
-        return;
-      }
-      await action('order.add', { kind: 'song', data: { number: hymn.number, track: soundFor(hymn) } });
-      toast(`Himno ${hymn.number} añadido al orden del culto (${trackName(soundFor(hymn)).toLowerCase()}).`);
-    }) }, icon('plus', 16), h('span', {}, 'Añadir', h('span', { class: 'hymn-long' }, ' al orden'))),
-    h('button', { class: 'btn primary hymn-act', onclick: () => project() }, icon('play', 16), 'Proyectar', h('kbd', {}, '↵')));
+    h('button', { class: `btn hymn-act${ctx.canProject ? '' : ' primary'}`, onclick: () => add() }, icon('plus', 16), h('span', {}, 'Añadir', h('span', { class: 'hymn-long' }, ' al orden'))),
+    ctx.canProject && h('button', { class: 'btn primary hymn-act', onclick: () => project() }, icon('play', 16), 'Proyectar', h('kbd', {}, '↵')));
 
   // ---- Ficha del elegido ----
   // Al lado de la rejilla, si el cajón deja sitio (hymns.css): número, título, categoría, duración y letra.
@@ -370,7 +372,7 @@ function mount(el, ctx) {
       }
       const hymn = current();
       if (!hymn) return false;
-      if (e.key === 'Enter') { project(); return true; }
+      if (e.key === 'Enter') { (ctx.canProject ? project : add)(); return true; }
       // ↑ ↓ pasan al himno anterior o al siguiente sin tocar la proyección.
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         const list = found ? rows : book.hymns.map((entry) => entry.number);

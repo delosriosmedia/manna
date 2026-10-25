@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { HttpError } from './router.js';
-import { createUsers } from './users.js';
+import { createUsers, PASSWORD_MIN, validPin } from './users.js';
 
 const COOKIE = 'manna_sid';
 const MAX_FAILS = 5;
@@ -16,7 +16,9 @@ const ADMIN_ONLY = new Set(['system.admin', 'system.display', 'projection.style'
 // Sesiones por dispositivo: cada una guarda la función (rol) elegida y quién entró (fase 35). Fuera del equipo
 // principal, entrar en una función con PIN pide el nombre (de una lista) y el PIN de esa persona, una vez. El equipo
 // principal entra sin PIN, como el administrador. La pantalla de proyección, sin nadie, salvo desde internet.
-export function createSessions({ storage, roles }) {
+export function createSessions({ storage, roles: all, cloud = false }) {
+  // En la nube, solo sus funciones; en el equipo de la iglesia, solo las suyas (fase 36).
+  const roles = all.filter((r) => Boolean(r.nube) === cloud);
   const store = storage('sesiones', { list: {} });
   const users = createUsers({ storage, legacyPin: store.data.pin });
   // Al pasar del PIN único a los usuarios, las sesiones abiertas pasan a ser del administrador.
@@ -57,20 +59,45 @@ export function createSessions({ storage, roles }) {
     };
   }
 
-  function checkPin(user, pin, ip) {
+  function checkSecret(user, secret, ip, check, wrong) {
     const failIp = locked(`ip:${ip}`, LOCK_MS);
     const failUser = locked(`u:${user.id}`, USER_LOCK_MS);
-    if (users.check(user.id, typeof pin === 'string' ? pin : '')) {
+    if (check(user.id, typeof secret === 'string' ? secret : '')) {
       fails.delete(`ip:${ip}`);
       fails.delete(`u:${user.id}`);
       return;
     }
     failIp();
     failUser();
-    throw new HttpError(401, 'PIN incorrecto.');
+    throw new HttpError(401, wrong);
+  }
+  const checkPin = (user, pin, ip) => checkSecret(user, pin, ip, users.check, 'PIN incorrecto.');
+
+  // La clave de alta (decisión 62): en la nube, mientras ningún administrador tenga contraseña, la que el dueño puso en
+  // `MANNA_CLAVE_ALTA` deja crear el primero, con su nombre, su PIN y su contraseña. Después ya no sirve.
+  const altaSecret = process.env.MANNA_CLAVE_ALTA || '';
+  const altaKey = () => (cloud && !users.hasPassword() ? altaSecret : '');
+  function alta(ctx, { clave, name, pin, password }) {
+    const key = altaKey();
+    if (!key) throw new HttpError(409, 'Esta iglesia ya tiene administrador: entra con tu nombre y tu contraseña.');
+    const fail = locked(`ip:${ctx.ip}`, USER_LOCK_MS);
+    const given = Buffer.from(typeof clave === 'string' ? clave : '');
+    if (given.length !== Buffer.byteLength(key) || !crypto.timingSafeEqual(given, Buffer.from(key))) {
+      fail();
+      throw new HttpError(401, 'La clave de alta no es esa.');
+    }
+    // Todo se comprueba antes de cambiar nada: a medias, la clave ya no serviría.
+    if (!validPin(String(pin ?? ''))) throw new HttpError(400, 'El PIN debe tener 4 números.');
+    if (typeof password !== 'string' || password.length < PASSWORD_MIN) throw new HttpError(400, `La contraseña debe tener al menos ${PASSWORD_MIN} caracteres.`);
+    const admin = users.firstAdmin();
+    users.update(admin.id, { name });
+    users.setPin(admin.id, String(pin));
+    users.setPassword(admin.id, password);
+    closeUser(admin.id);
+    return open(ctx, { role: 'administrar', user: admin.id, password });
   }
 
-  function open(ctx, { role: roleId, user: userId, pin }) {
+  function open(ctx, { role: roleId, user: userId, pin, password }) {
     const role = roleById.get(roleId);
     if (!role) throw new HttpError(400, 'Manna no reconoce esa función. Si acabas de actualizarlo, ciérralo y vuelve a abrirlo.');
     let user = null;
@@ -79,11 +106,18 @@ export function createSessions({ storage, roles }) {
       // Desde internet, también la pantalla de proyección.
       user = users.get(userId);
       if (!user) throw new HttpError(400, 'Elige tu nombre en la lista.');
-      if (role.id !== 'proyeccion' && !user.functions.includes(role.id)) {
-        throw new HttpError(403, `${user.name} no puede usar «${role.name}». Se lo da el administrador, en Ajustes → Usuarios.`);
+      if (role.id === 'administrar') {
+        // Siempre con la contraseña: desde internet gestiona a todos.
+        if (!user.admin) throw new HttpError(403, `${user.name} no es administrador de la iglesia.`);
+        checkSecret(user, password, ctx.ip, users.checkPassword, 'Contraseña incorrecta.');
+      } else {
+        // Preparar el culto es de todos los usuarios de la iglesia.
+        if (!['proyeccion', 'preparacion'].includes(role.id) && !user.functions.includes(role.id)) {
+          throw new HttpError(403, `${user.name} no puede usar «${role.name}». Se lo da el administrador, en Ajustes → Usuarios.`);
+        }
+        // Quien ya entró con su PIN cambia de función sin volver a escribirlo.
+        if (ctx.session?.user?.id !== user.id) checkPin(user, pin, ctx.ip);
       }
-      // Quien ya entró con su PIN cambia de función sin volver a escribirlo.
-      if (ctx.session?.user?.id !== user.id) checkPin(user, pin, ctx.ip);
     }
     if (ctx.session) delete store.data.list[ctx.session.id];
     const id = crypto.randomBytes(24).toString('hex');
@@ -106,5 +140,5 @@ export function createSessions({ storage, roles }) {
     store.save();
   }
 
-  return { roles, users, fromRequest, can, open, closeUser };
+  return { roles, users, fromRequest, can, open, closeUser, alta, altaPending: () => Boolean(altaKey()) };
 }

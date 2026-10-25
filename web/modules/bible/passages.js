@@ -56,12 +56,13 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
     selRef,
     h('button', { class: 'icon-btn sm', title: 'Añadir el versículo siguiente a la selección', 'aria-label': 'Añadir un versículo', onclick: () => extend(1) }, icon('plus', 16)),
     selHint,
-    ctx.canEdit && h('button', { class: 'btn', 'aria-label': 'Añadir al orden', onclick: () => addToOrder() }, icon('plus', 15), h('span', {}, 'Añadir al orden')),
+    // Sin proyección (preparar el culto), añadir al orden es lo principal.
+    ctx.canEdit && h('button', { class: ctx.canProject ? 'btn' : 'btn primary', 'aria-label': 'Añadir al orden', onclick: () => addToOrder() }, icon('plus', 15), h('span', {}, 'Añadir al orden')),
     ctx.role === 'control' && Object.assign(layerButton(() => {
       const s = selection();
       return s?.kind === 'verses' ? { kind: s.kind, data: s.data, title: s.passage.reference } : null;
     }), { className: 'btn bible-layer' }),
-    h('button', { class: 'btn primary', onclick: () => project() }, 'Proyectar', h('kbd', {}, '↵')));
+    ctx.canProject && h('button', { class: 'btn primary', onclick: () => project() }, 'Proyectar', h('kbd', {}, '↵')));
 
   let multi = false;     // «Varios» encendido
   let pending = null;    // con «Varios», el primer versículo del tramo, a la espera del último
@@ -450,7 +451,7 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
     },
     api: {
       keys(e) {
-        if (e.key === 'Enter') project();
+        if (e.key === 'Enter') (ctx.canProject ? project : addToOrder)();
         else if (e.key === 'ArrowDown') move(1);
         else if (e.key === 'ArrowUp') move(-1);
         else if (e.key === '/') { searchInput.focus(); searchInput.select(); }

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#05070a">
+  <link rel="icon" type="image/svg+xml" href="/logo.svg">
+  <link rel="alternate icon" type="image/png" href="/icono.png">
+  <link rel="apple-touch-icon" href="/icono-180.png">
+  <meta name="apple-mobile-web-app-title" content="Manna">
+  <title>Manna</title>
+  <script>if (matchMedia('(pointer: coarse)').matches || /[?&]tactil/.test(location.search)) document.documentElement.classList.add('touch');</script>
+  <!-- Tamaño de la interfaz de este dispositivo (Ajustes, 1.31), antes de dibujar nada; ?escala=1.08 lo fuerza (pruebas). -->
+  <script>try { const z = Number(new URLSearchParams(location.search).get('escala')) || JSON.parse(localStorage.getItem('manna.interfaz.tamano')); if (z > 1 && z <= 1.08) document.documentElement.style.setProperty('--zoom', z); } catch {}</script>
+  <link rel="preload" href="/vendor/sora/Sora-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/core/app.css">
+  <link rel="stylesheet" href="/core/shell.css">
+  <link rel="stylesheet" href="/modules/settings/settings.css">
+</head>
+<body>
+  <script type="module" src="/roles/administrar.js"></script>
+</body>
+</html>

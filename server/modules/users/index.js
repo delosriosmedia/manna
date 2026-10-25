@@ -10,6 +10,13 @@ export default function setup(app) {
   const publish = () => store.set('users', { list: users.list() });
   publish();
 
+  // El primer administrador en la nube, con la clave de alta (decisión 62; la comprueba core/sessions.js).
+  app.route('POST', '/api/session/alta', async (ctx) => {
+    const opened = sessions.alta(ctx, await ctx.json());
+    publish();
+    return opened;
+  });
+
   app.action('users.create', { permission: 'users.manage' }, ({ name, pin, functions, admin } = {}) => {
     const user = users.create({ name, pin: String(pin ?? ''), functions, admin });
     publish();
@@ -23,6 +30,12 @@ export default function setup(app) {
   app.action('users.setPin', { permission: 'users.manage' }, ({ id, pin } = {}, ctx) => {
     users.setPin(id, String(pin ?? ''));
     sessions.closeUser(id, ctx?.session?.id);
+  });
+  // La contraseña de un administrador, para entrar en /administrar desde la nube (fase 36). Cierra sus otras sesiones.
+  app.action('users.setPassword', { permission: 'users.manage' }, ({ id, password } = {}, ctx) => {
+    users.setPassword(id, password);
+    sessions.closeUser(id, ctx?.session?.id);
+    publish();
   });
   app.action('users.remove', { permission: 'users.manage' }, ({ id } = {}, ctx) => {
     if (id && id === ctx?.session?.user?.id) throw new HttpError(409, 'No puedes quitarte a ti mismo: pídeselo a otro administrador.');

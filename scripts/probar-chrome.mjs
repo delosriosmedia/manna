@@ -23,7 +23,7 @@
 //
 // Corre en tres grupos a la vez, cada uno con su servidor, su nombre en la red y su Chrome (GROUPS, abajo):
 // «control» (Biblia, orden, escenario, ajustes, PIN, escuchar y salir), «biblioteca» (imágenes, videos y audios,
-// diapositivas, presentador, páginas web y el paso 5) y «red» (pasos 0 y 4, YouTube e himnario). Al final se
+// diapositivas, presentador, páginas web y el paso 5) y «red» (pasos 0, 4 y 6, YouTube e himnario). Al final se
 // junta lo vigilado.
 //
 // Uso:  node scripts/probar-chrome.mjs                 los tres grupos (menos de 3 minutos)
@@ -60,7 +60,7 @@ const QUICK = process.argv.includes('rapido');
 const GROUPS = {
   control: { port: 8123, label: 'Biblia, orden, escenario, ajustes, PIN, escuchar y salir' },
   biblioteca: { port: 8131, label: 'Imágenes, videos, diapositivas, presentador, páginas web y cierre' },
-  red: { port: 8133, label: 'Revisión del equipo, YouTube, himnario y cambio de IP' },
+  red: { port: 8133, label: 'Revisión del equipo, YouTube, himnario, cambio de IP y la nube' },
 };
 const GROUP = process.env.MANNA_PRUEBA_GRUPO || null;
 const inGroup = (name) => GROUP === name;
@@ -3448,6 +3448,94 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     check('«Apagar este Manna» lo cierra, y el primero sigue funcionando', twinClosed && (await fetch(`${local}/api/ping`).then((res) => res.ok, () => false)));
     await chrome.send('Page.navigate', { url: `${local}/control` });
     await sleep(2000);
+  }
+
+  // ---- Grupo «red»: la nube (fase 36) ----
+  // Otro servidor, en modo nube y con su clave de alta: el primer administrador, su contraseña, un usuario nuevo y
+  // preparar el culto con el PIN de ese usuario, sin proyección.
+  if (inGroup('red')) {
+    console.log('\n6. La nube: administrar y preparar el culto');
+    const cloudPort = PORT + 2;
+    const cloudServer = startServer(null, { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'clave-de-alta-de-prueba', PORT: String(cloudPort), MANNA_DATA: path.join(tmp, 'nube') });
+    const cloud = `http://localhost:${cloudPort}`;
+    try {
+      let cloudUp = false;
+      for (let i = 0; i < 60 && !cloudUp; i += 1) {
+        await sleep(250);
+        cloudUp = await fetch(`${cloud}/api/ping`).then((res) => res.ok, () => false);
+      }
+      const roleCard = (name) => click(`[...document.querySelectorAll('#roles .role')].find((b) => b.textContent.includes(${JSON.stringify(name)}))`);
+      const formField = (label, value) => run(`const l = [...document.querySelectorAll('.modal .login-field')].find((f) => f.textContent.startsWith(${JSON.stringify(label)})); const i = l.querySelector('input'); i.value = ${JSON.stringify(value)}; i.dispatchEvent(new Event('input'));`);
+      const submit = () => click(`document.querySelector('.modal .login-form button[type=submit]')`);
+      const switchUser = async (role) => {
+        await chrome.send('Page.navigate', { url: `${cloud}/` });
+        await sleep(1500);
+        await click(`document.querySelector('#who button')`);
+        await roleCard(role);
+        await sleep(400);
+      };
+      await chrome.send('Page.navigate', { url: `${cloud}/` });
+      await sleep(1500);
+      check('en la nube, la portada ofrece solo preparar el culto y administrar', (await run(`return [...document.querySelectorAll('#roles .role strong')].map((s) => s.textContent).join()`)) === 'Preparar el culto,Administrar la iglesia');
+      await roleCard('Administrar la iglesia');
+      await sleep(400);
+      await formField('Clave de alta', 'otra');
+      await formField('Tu nombre', 'Ana');
+      await formField('Tu PIN', '1234');
+      await formField('Tu contraseña', 'contraseña de prueba');
+      await submit();
+      await sleep(600);
+      check('la primera vez pide la clave de alta, y una equivocada no sirve', (await text('.modal .pin-error')) === 'La clave de alta no es esa.');
+      await formField('Clave de alta', 'clave-de-alta-de-prueba');
+      await submit();
+      check('con la buena crea el administrador y entra en «Administrar la iglesia»', await until(`location.pathname === '/administrar' && document.querySelector('.user-row strong')?.textContent === 'Ana (tú)'`, 25));
+      await click(`document.querySelector('.user-row .user-password')`);
+      await sleep(300);
+      await run(`const i = document.querySelector('.modal input[type=password]'); i.value = 'la nueva contraseña'; i.dispatchEvent(new Event('input'));`);
+      await modalButton('Cambiar');
+      await sleep(600);
+      check('«Contraseña» la cambia', (await text('#toast')) === 'Contraseña cambiada.');
+      await click(`[...document.querySelectorAll('.admin-users .btn')].find((b) => b.textContent.includes('Añadir usuario'))`);
+      await sleep(300);
+      await run(`const f = document.querySelectorAll('.modal .user-field input'); f[0].value = 'Beto'; f[1].value = '4321'; for (const i of f) i.dispatchEvent(new Event('input'));`);
+      await modalButton('Guardar');
+      await sleep(600);
+      check('y crea un usuario', (await run(`return [...document.querySelectorAll('.user-row strong')].map((s) => s.textContent).join()`)) === 'Ana (tú),Beto');
+
+      await switchUser('Administrar la iglesia');
+      check('para administrar, solo salen los administradores', (await run(`return [...document.querySelectorAll('.modal .person .name')].map((s) => s.textContent).join()`)) === 'Ana');
+      await click(`document.querySelector('.modal .person')`);
+      await sleep(300);
+      await run(`const i = document.querySelector('.modal input[type=password]'); i.value = 'contraseña de prueba'; i.dispatchEvent(new Event('input'));`);
+      await submit();
+      await sleep(600);
+      check('y entran con la contraseña: la vieja ya no vale', (await text('.modal .pin-error')) === 'Contraseña incorrecta.');
+      await run(`const i = document.querySelector('.modal input[type=password]'); i.value = 'la nueva contraseña'; i.dispatchEvent(new Event('input'));`);
+      await submit();
+      check('con la nueva, sí', await until(`location.pathname === '/administrar'`, 25));
+
+      await switchUser('Preparar el culto');
+      await click(`[...document.querySelectorAll('.modal .person')].find((p) => p.textContent.includes('Beto'))`);
+      await sleep(300);
+      for (const digit of '4321') await click(`document.querySelector('.pin-keys button[aria-label="${digit}"]')`);
+      check('preparar el culto: cualquier usuario, con su PIN', await until(`location.pathname === '/preparacion' && document.querySelector('.dock-item')`, 25));
+      check('cinco pestañas, sin escenario ni «Proyectar»', (await run(`return [...document.querySelectorAll('.dock-item')].map((b) => b.dataset.id).join()`)) === 'orden,biblia,himnario,medios,textos'
+        && await run(`return !document.querySelector('.topbar, .scene-bg') && ![...document.querySelectorAll('button')].some((b) => b.textContent.includes('Proyectar'))`));
+      await goTo('medios');
+      await sleep(400);
+      await run(`const i = document.querySelector('.media-links input'); i.value = 'Canto de entrada: https://youtu.be/dQw4w9WgXcQ'; i.dispatchEvent(new Event('input'));`);
+      await click(`document.querySelector('.media-links button[type=submit]')`);
+      await sleep(700);
+      check('Medios añade al orden un video de YouTube por su enlace', (await text('#toast')).startsWith('«Canto de entrada» añadido al orden del culto'));
+      await goTo('himnario');
+      check('el himnario se lee y un himno se añade al orden', await until(`document.querySelector('.ws[data-module=himnario] .hymn')`, 25)
+        && await run(`document.querySelector('.ws[data-module=himnario] .hymn').click(); await new Promise((r) => setTimeout(r, 400)); const b = [...document.querySelectorAll('.hymn-bar .btn')].find((x) => x.textContent.includes('Añadir')); b.click(); await new Promise((r) => setTimeout(r, 700)); return /^Himno \\d+ añadido al orden/.test(document.querySelector('#toast').textContent)`));
+      await goTo('orden');
+      check('el orden los tiene, y desde aquí no se proyecta', await until(`[...document.querySelectorAll('.orow')].some((r) => r.textContent.includes('Canto de entrada'))`, 15)
+        && (await run(`return await ${post('projection.show', { kind: 'testcard', data: {} })}`)) === 403);
+    } finally {
+      await stopServer(cloudServer);
+    }
   }
 
   // ---- Grupo «biblioteca»: el cierre ----

@@ -51,7 +51,7 @@ const FORWARDED = ['x-forwarded-for', 'x-forwarded-proto', 'forwarded', 'x-real-
 const TOO_BIG = 'El archivo o la petición es demasiado grande.';
 // Desde internet (lo que llega reenviado por el túnel) todo pide sesión, salvo la interfaz misma y lo
 // necesario para entrar con el PIN: así nadie de fuera ve el contenido de la iglesia.
-const OPEN_FROM_INTERNET = new Set(['/api/session', '/api/ping']);
+const OPEN_FROM_INTERNET = new Set(['/api/session', '/api/session/alta', '/api/ping']);
 const LOGIN = 'Escribe el PIN de Manna para entrar.';
 
 function readBody(req, limit) {
@@ -231,9 +231,9 @@ export function createRouter({ webDir, sessions, cloud = false, refuse = () => n
 
   async function handle(req, res) {
     const url = new URL(req.url, 'http://localhost');
-    const internet = FORWARDED.some((name) => name in req.headers);
-    // En la nube no hay equipo principal: lo que llega del propio servidor también pide ingreso.
-    const isLocal = !cloud && LOOPBACK.has(req.socket.remoteAddress) && !internet;
+    // En la nube todo llega de internet, aunque no traiga las cabeceras: no hay equipo principal y todo pide ingreso.
+    const internet = cloud || FORWARDED.some((name) => name in req.headers);
+    const isLocal = !internet && LOOPBACK.has(req.socket.remoteAddress);
     const reads = req.method === 'GET' || req.method === 'HEAD';
     const session = sessions.fromRequest(req);
     try {
@@ -254,7 +254,8 @@ export function createRouter({ webDir, sessions, cloud = false, refuse = () => n
           isLocal,
           internet,
           // Lo que llega por el túnel viene de 127.0.0.1: se usa la dirección que dice Cloudflare (para el bloqueo del PIN).
-          ip: (internet && String(req.headers['cf-connecting-ip'] || '').trim()) || req.socket.remoteAddress,
+          // En la nube, la última que añadió el proxy del hosting: las anteriores las puede escribir cualquiera.
+          ip: (cloud ? String(req.headers['x-forwarded-for'] || '').split(',').pop().trim() : internet && String(req.headers['cf-connecting-ip'] || '').trim()) || req.socket.remoteAddress,
           session,
           async json() {
             if (!/^application\/json/.test(req.headers['content-type'] || '')) throw new HttpError(415, 'Se esperaba JSON.');

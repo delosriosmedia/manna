@@ -4,6 +4,13 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.44.0 — 2026-10-25
+
+- **Preparar el culto desde casa** (en la nube, fase 36): una función nueva con cinco pestañas, Orden, Biblia, Himnario, Medios y Textos, a la izquierda en el computador y abajo en el celular. Cada usuario entra con su nombre y su PIN y prepara sus órdenes; en lugar de «Proyectar», todo se añade al orden. Un himno se puede escuchar en el propio dispositivo antes de añadirlo.
+- En Medios de la nube, un **video de YouTube por su enlace**: va al orden con el nombre que se escriba delante del enlace, y lo descargará el equipo de la iglesia.
+- **Administrar la iglesia** (en la nube): el administrador entra con su contraseña y crea, cambia o quita los usuarios aunque el equipo de la iglesia esté apagado. La primera vez se entra con la **clave de alta** que pone quien instala Manna en la nube: con ella se crea el administrador (nombre, PIN y contraseña), y después ya no sirve.
+- Todavía no hay ninguna nube abierta: falta subir el himnario y desplegarla (las partes 3 y 6 de la fase 36).
+
 ## 1.43.0 — 2026-10-25
 
 - **Más seguro desde fuera de la iglesia** (antes de abrir Manna a internet): desde un celular o por la conexión por internet ya no se puede agregar una página web del propio equipo o de la red de la iglesia (solo desde el equipo principal); un archivo que en realidad lleva fuera de su carpeta no se sirve; y, entrando por `https`, la sesión solo viaja cifrada.

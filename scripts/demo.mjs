@@ -8,7 +8,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { seedExample } from './lib/ejemplo.mjs';
 
-const data = path.join(os.tmpdir(), 'manna-demo');
+// En modo nube (MANNA_NUBE=1, con MANNA_CLAVE_ALTA para el primer administrador), en otra carpeta: no toca la de siempre.
+const data = path.join(os.tmpdir(), process.env.MANNA_NUBE ? 'manna-demo-nube' : 'manna-demo');
 const example = seedExample(data);
 // MANNA_SIN_VENTANA: la demostración no abre su proyección en el proyector de verdad, si lo hay.
 // MANNA_HIMNARIO: el himnario de la demostración es inventado; el de la iglesia no se toca.

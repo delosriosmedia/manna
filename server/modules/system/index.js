@@ -169,8 +169,10 @@ export default function setup(app) {
     role: ctx.session?.role || null,
     // Quién entró y, para entrar, la lista de nombres con lo que puede usar cada uno (fase 35: siempre de una lista).
     user: ctx.session?.user ? { id: ctx.session.user.id, name: ctx.session.user.name, admin: ctx.session.user.admin } : null,
-    users: sessions.users.list().map(({ id, name, functions }) => ({ id, name, functions })),
+    users: sessions.users.list().map(({ id, name, functions, admin }) => ({ id, name, functions, admin })),
     isLocal: ctx.isLocal,
+    // En la nube, mientras falte el primer administrador: /administrar pide la clave de alta (decisión 62).
+    alta: sessions.altaPending(),
     internet: ctx.internet,
     roles: publicRoles(ctx.internet),
     serverId: settings.data.id,

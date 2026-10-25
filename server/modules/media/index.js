@@ -6,6 +6,7 @@ import { EXTENSIONS, IMAGE_TYPES, readImageInfo } from '../../core/images.js';
 import { cleanName } from '../../core/names.js';
 import { applyView, initialView, validFit } from '../../core/view.js';
 import { registerClips } from './library.js';
+import { youtubeId, youtubeLinks } from './youtube.js';
 
 // Módulo Medios: la biblioteca de lo que la iglesia proyecta. Imágenes (aquí), videos, audios y
 // YouTube (library.js), y las categorías (aquí). En la web es una sola pantalla, con todo junto y
@@ -88,6 +89,21 @@ export default function setup(app) {
     },
     live: (content, previous) => initialView(content.fit, previous?.state),
     control: (state, patch) => applyView(state, patch),
+  });
+
+  // Un video de YouTube por su enlace (fase 36): lo añade al orden quien prepara desde la nube, y lo descargará el equipo
+  // de la iglesia (fase 37 o 38). Hasta entonces no se proyecta. data = { link } al añadirlo (lo que acompaña al enlace
+  // en su línea es su nombre) y { videoId, title } guardado.
+  app.kind('ytlink', {
+    label: 'Video de YouTube',
+    describe(data) {
+      const [found] = youtubeLinks(String(data?.link ?? '')).found;
+      const videoId = found?.videoId || (youtubeId(`https://youtu.be/${data?.videoId}`) && data.videoId);
+      if (!videoId) return null;
+      const title = cleanName(found ? found.label : data.title, 120) || 'Video de YouTube';
+      return { title, subtitle: 'Se descarga en la iglesia', steps: 1, data: { videoId, title } };
+    },
+    resolve: () => ({ unavailable: 'Este video se descarga en el equipo de la iglesia y aún no está.' }),
   });
 
   // ---- Subir ----

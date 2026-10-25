@@ -19,26 +19,31 @@ import { chooseContent, contentMissing } from './contenido.js';
 //   hidden  en pausa: existe y se abre por su dirección (#id), pero no sale en el dock
 //   needs   programas del equipo principal que necesita (ver core/needs.js)
 //   mount   dibuja el módulo en el y puede devolver { onShow(), keys(evento) -> true si lo atendió, part(id) }
-// ctx (lo que recibe cada módulo): { role, isLocal, user, canEdit, go(id, parte?), setPart(id) }. user es quien entró
-// ({ id, name, admin }, fase 35): Ajustes solo lo tiene el administrador.
+// ctx (lo que recibe cada módulo): { role, isLocal, user, canEdit, canProject, has(id), go(id, parte?), setPart(id) }. user es quien
+// entró ({ id, name, admin }, fase 35): Ajustes solo lo tiene el administrador. Sin canProject (preparar el culto), los
+// módulos no ofrecen «Proyectar»: añaden al orden.
 //   setPart  un módulo con pestañas dice en cuál está, para avisar solo de lo que le falta a esa
 //
 // layout 'full' (Presentador): el único módulo ocupa la pantalla entera, sin escenario.
+// layout 'pestanas' (Preparar el culto, en la nube; fase 36): sin escenario ni proyección. El dock son las pestañas (a la
+// izquierda; abajo en el celular) y el módulo elegido ocupa el resto. createScene solo da { preview } (escuchar).
 // topTools: [(ctx) => nodo]: lo que va al final de la barra de arriba (el wifi y el QR del Control completo).
 export function createShell({ role, isLocal, user = null, modules, topTools = [], createScene, layout = 'escena' }) {
-  const canEdit = role === 'control' || role === 'alabanza';
+  const canEdit = ['control', 'alabanza', 'preparacion'].includes(role);
   const usable = modules.filter((m) => !m.soon && (m.id !== 'ajustes' || user?.admin));
   const listed = usable.filter((m) => !m.hidden);
   const mounted = new Map(); // id -> { el, api }
   let current = null;
   const full = layout === 'full';
+  const tabs = layout === 'pestanas';
+  const bare = full || tabs; // sin escenario
   const narrow = matchMedia('(max-width: 859px)');
   const landscape = matchMedia('(max-width: 859px) and (max-height: 480px)');
 
   const notice = h('div', { class: 'ws-notice', role: 'status', hidden: true });
   const work = h('div', { class: 'work' });
   // go(id, parte): abre un módulo y, si lo admite (part en lo que devuelve su mount), una de sus pestañas.
-  const ctx = { role, isLocal, user, canEdit, go: (id, part) => { show(id); if (part) current?.api.part?.(part); } };
+  const ctx = { role, isLocal, user, canEdit, canProject: !tabs, has: (id) => usable.some((m) => m.id === id), go: (id, part) => { show(id); if (part) current?.api.part?.(part); } };
   const scene = full ? null : createScene({ ...ctx, openControls: () => openControls() });
   // Escuchar algo solo en este dispositivo antes de añadirlo ({ url, title }); null en el equipo principal.
   ctx.listen = scene?.preview ? (what) => scene.preview.play(what) : null;
@@ -46,7 +51,7 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   // ---- Barra de arriba: la marca, el estado y «Buscar en todo» ----
   // La marca (pedido del dueño, 2026-10-18): el logo abre Ajustes (que ya no está en el dock), la versión al lado y
   // un botón aparte para cambiar la función de este dispositivo. Sin Ajustes (las demás funciones), el logo no es botón.
-  const ROLE_NAMES = { control: 'Control completo', alabanza: 'Servicio de alabanza', orden: 'Control del orden', presentador: 'Presentador' };
+  const ROLE_NAMES = { control: 'Control completo', alabanza: 'Servicio de alabanza', orden: 'Control del orden', presentador: 'Presentador', preparacion: 'Preparar el culto', administrar: 'Administrar la iglesia' };
   const settings = usable.find((m) => m.id === 'ajustes');
   const version = h('small', { class: 'brand-version' });
   subscribe('system', (s) => { version.textContent = s.version || ''; });
@@ -66,11 +71,12 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
 
   // ---- Dock de módulos y cajón ----
   const dockbar = h('nav', { class: 'dockbar glass', 'aria-label': 'Módulos' });
-  const dockButton = (m) => h('button', { class: 'dock-item', dataset: { id: m.id }, title: m.name, 'aria-label': m.name, 'aria-pressed': 'false', onclick: () => (current?.id === m.id && isOpen() ? closeDrawer() : show(m.id)) },
+  const dockButton = (m) => h('button', { class: 'dock-item', dataset: { id: m.id }, title: m.name, 'aria-label': m.name, 'aria-pressed': 'false', onclick: () => (current?.id === m.id && isOpen() && !tabs ? closeDrawer() : show(m.id)) },
     icon(m.icon, 20), h('span', { class: 'dock-name' }, m.name));
   // Ajustes se abre con el logo (arriba), no desde el dock.
   dockbar.append(...listed.filter((m) => m !== settings && m.place !== 'bottom').map(dockButton), h('span', { class: 'dock-fill' }), ...listed.filter((m) => m !== settings && m.place === 'bottom').map(dockButton));
   if (listed.length < 2 && !full) dockbar.classList.add('single');
+  if (tabs) dockbar.setAttribute('aria-label', 'Pestañas');
 
   const drawerTitle = h('h2', {});
   const wideButton = h('button', { class: 'icon-btn sm drawer-wide', onclick: () => setWide(!drawer.classList.contains('wide')) });
@@ -85,7 +91,7 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   const drawer = h('section', { class: 'drawer glass', hidden: true, tabindex: '-1' }, grip, drawerHead, notice, work);
   // En el celular el cajón sube desde abajo y se cierra al tocar fuera.
   const backdrop = h('div', { class: 'drawer-backdrop', hidden: true, onclick: () => closeDrawer() });
-  const isOpen = () => !drawer.hidden;
+  const isOpen = () => tabs || !drawer.hidden; // con pestañas, la elegida está siempre abierta
   // Cada disposición recuerda lo suyo: en el escritorio, cajón ancho o estrecho; en el celular, reducido (se
   // ve lo que está al aire encima, y el módulo enseña solo lo esencial: clase «compact») o a pantalla completa.
   // De partida, ancho en el escritorio y reducido en el celular (decisión del dueño, 2026-10-15), salvo en uno
@@ -346,16 +352,16 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
         el.remove(); // a medio dibujar se quedaría encima del módulo abierto, y otro más en cada intento
         throw err;
       }
-      // Sin escenario (Presentador) no hay barra de arriba: la marca va al principio de la cabecera del módulo.
-      if (full) el.querySelector('.ws-head')?.prepend(brand);
     }
+    // Sin escenario no hay barra de arriba: la marca va al principio de la cabecera del módulo a la vista.
+    if (bare) mounted.get(module.id).el.querySelector('.ws-head')?.prepend(brand);
     for (const [mid, m] of mounted) m.el.hidden = mid !== module.id;
     current = { id: module.id, api: mounted.get(module.id).api };
-    if (!full) paintSize(preferredWide());
+    if (!bare) paintSize(preferredWide());
     drawerTitle.textContent = module.name;
     drawer.setAttribute('aria-label', module.name);
     document.title = `Manna · ${module.name}`;
-    if (!full) openDrawer();
+    if (!bare) openDrawer();
     paintDock();
     history.replaceState(null, '', `#${module.id}`);
     prefs.set(`modulo.${role}`, module.id);
@@ -380,7 +386,7 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
       return;
     }
     if (document.querySelector('.modal-backdrop, .menu')) return;
-    if (e.key === 'Escape' && !full) {
+    if (e.key === 'Escape' && !bare) {
       if (!controlsLayer.hidden) closeControls();
       else if (scene.search?.isOpen()) scene.search.close();
       else if (isOpen()) closeDrawer();
@@ -390,6 +396,7 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
       e.preventDefault();
       return;
     }
+    if (tabs) return; // sin proyección, no hay nada que pasar
     const global = {
       ArrowRight: () => step(1), PageDown: () => step(1),
       ArrowLeft: () => step(-1), PageUp: () => step(-1),
@@ -402,9 +409,11 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
     global();
   });
 
-  document.body.classList.add('app', full ? 'full' : 'escena');
+  document.body.classList.add('app', full ? 'full' : tabs ? 'pestanas' : 'escena');
   if (full) {
     document.body.append(h('div', { class: 'shell' }, work));
+  } else if (tabs) {
+    document.body.append(h('div', { class: 'shell' }, dockbar, work), scene.preview?.bar || '');
   } else {
     const place = () => {
       document.body.classList.toggle('narrow', narrow.matches);
@@ -428,7 +437,7 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
 
   // Se abre el módulo de la dirección (#id); sin ella, el escenario queda a la vista y el cajón cerrado.
   const first = location.hash.slice(1);
-  if (full || first) show(first || prefs.get(`modulo.${role}`) || usable[0].id);
+  if (bare || first) show(first || prefs.get(`modulo.${role}`) || usable[0].id);
   window.addEventListener('hashchange', () => { if (location.hash.slice(1)) show(location.hash.slice(1)); });
   connect(role);
 

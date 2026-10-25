@@ -12,6 +12,7 @@ import users from '../server/modules/users/index.js';
 import projection from '../server/modules/projection/index.js';
 import order from '../server/modules/order/index.js';
 import web, { framable, isLocalPage, parseAddress } from '../server/modules/web/index.js';
+import media from '../server/modules/media/index.js';
 import { makePng } from '../scripts/lib/png.mjs';
 
 // El servidor de verdad, con sus módulos, atendido por HTTP en este equipo. Usa datos temporales
@@ -19,12 +20,12 @@ import { makePng } from '../scripts/lib/png.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-servidor-'));
 
-async function start(name, env = {}) {
+async function start(name, env = {}, extra = []) {
   // Las variables de entorno solo se leen al crear la app: se ponen y se quitan enseguida.
   Object.assign(process.env, env);
   const app = createApp({ rootDir: ROOT, dataDir: path.join(tmp, name), biblesDir: path.join(tmp, `${name}-biblias`) });
   for (const key of Object.keys(env)) delete process.env[key];
-  for (const setup of [system, users, projection, order, web]) await setup(app);
+  for (const setup of [system, users, projection, order, web, ...extra]) await setup(app);
   await app.tools.scan();
   const server = http.createServer(app.handle);
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -319,6 +320,71 @@ test('en modo nube nadie es el equipo principal: lo que llega del propio servido
   }
 });
 
+test('en la nube: la clave de alta, el administrador con contraseña y preparar el culto (fase 36)', async () => {
+  const cloud = await start('nube-alta', { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'clave-de-alta-de-prueba' }, [media]);
+  // Cada cliente con su cookie (el `request` del ayudante lleva la suya).
+  const client = () => {
+    let cookie = '';
+    const call = async (url, body) => {
+      const res = await fetch(cloud.base + url, { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(body) });
+      cookie = res.headers.get('set-cookie')?.split(';')[0] || cookie;
+      return { status: res.status, ...(await res.json()) };
+    };
+    return { call, send: (type, payload = {}) => call('/api/action', { type, payload }), state: async () => (await fetch(`${cloud.base}/api/state`, { headers: { cookie } })).json() };
+  };
+  try {
+    const info = await (await cloud.request('/api/session')).json();
+    assert.deepEqual(info.roles.map((r) => r.id).sort(), ['administrar', 'preparacion'], 'en la nube, solo sus funciones');
+    assert.equal(info.alta, true);
+    assert.equal((await cloud.request('/api/state')).status, 401, 'sin entrar no se ve nada');
+
+    // La clave de alta: una equivocada no sirve; con ella, nada se cambia si falta algo, y crea el primer administrador.
+    const ana = client();
+    const alta = (body) => ana.call('/api/session/alta', { clave: 'clave-de-alta-de-prueba', name: 'Ana', pin: '1234', password: 'contraseña larga', ...body });
+    assert.equal((await alta({ clave: 'otra' })).status, 401);
+    assert.equal((await alta({ password: 'corta' })).status, 400);
+    assert.equal((await alta({ pin: '12' })).status, 400);
+    const opened = await alta();
+    assert.equal(opened.status, 200);
+    assert.deepEqual([opened.role, opened.user.name, opened.user.admin], ['administrar', 'Ana', true]);
+    assert.equal((await (await cloud.request('/api/session')).json()).alta, false, 'ya no se pide');
+    assert.deepEqual((await ana.state()).users.list.map(({ name, admin, password }) => [name, admin, password]), [['Ana', true, true]], 'la lista ya la tiene');
+    assert.equal((await client().call('/api/session/alta', { clave: 'clave-de-alta-de-prueba', name: 'Otro', pin: '9999', password: 'otra contraseña' })).status, 409, 'y no vuelve a servir');
+
+    // El administrador gestiona los usuarios desde /administrar.
+    const created = await ana.send('users.create', { name: 'Beto', pin: '4321', functions: ['orden'] });
+    assert.equal(created.status, 200);
+    const beto = created.result.id;
+    assert.equal((await ana.send('projection.show', { kind: 'testcard', data: {} })).status, 403, 'administrar no proyecta');
+
+    // A /administrar se entra con la contraseña, y solo un administrador.
+    const anaId = opened.user.id;
+    assert.equal((await client().call('/api/session', { role: 'administrar', user: anaId, pin: '1234' })).status, 401, 'el PIN no basta');
+    assert.equal((await client().call('/api/session', { role: 'administrar', user: anaId, password: 'contraseña larga' })).status, 200);
+    assert.equal((await client().call('/api/session', { role: 'administrar', user: beto, pin: '4321' })).status, 403);
+    assert.equal((await client().call('/api/session', { role: 'control', user: beto, pin: '4321' })).status, 400, 'en la nube no hay Control completo');
+
+    // Preparar el culto: cualquier usuario, con su PIN. Añade al orden (también un video de YouTube por su enlace), no proyecta.
+    const b = client();
+    assert.equal((await b.call('/api/session', { role: 'preparacion', user: beto, pin: '0000' })).status, 401);
+    assert.equal((await b.call('/api/session', { role: 'preparacion', user: beto, pin: '4321' })).status, 200);
+    const added = await b.send('order.add', { kind: 'ytlink', data: { link: 'Canto de entrada: https://youtu.be/dQw4w9WgXcQ' } });
+    assert.equal(added.status, 200);
+    assert.deepEqual([added.result.title, added.result.data], ['Canto de entrada', { videoId: 'dQw4w9WgXcQ', title: 'Canto de entrada' }]);
+    assert.equal((await b.send('order.add', { kind: 'ytlink', data: { link: 'https://ejemplo.com/video' } })).status, 404, 'solo enlaces de YouTube');
+    assert.equal((await b.send('projection.show', { kind: 'ytlink', data: added.result.data })).status, 403);
+    assert.equal((await b.send('users.create', { name: 'Carla', pin: '1111', functions: ['orden'] })).status, 403, 'no gestiona usuarios');
+
+    // La contraseña de otro administrador la pone uno que ya lo es.
+    assert.equal((await ana.send('users.update', { id: beto, admin: true })).status, 200);
+    assert.equal((await ana.send('users.setPassword', { id: beto, password: 'corta' })).status, 400);
+    assert.equal((await ana.send('users.setPassword', { id: beto, password: 'la de beto, larga' })).status, 200);
+    assert.equal((await client().call('/api/session', { role: 'administrar', user: beto, password: 'la de beto, larga' })).status, 200);
+  } finally {
+    await cloud.stop();
+  }
+});
+
 test('desde internet nada se ve sin PIN, ni la pantalla de proyección', async () => {
   const tunnel = { 'Cf-Connecting-Ip': '203.0.113.9', 'X-Forwarded-For': '203.0.113.9' };
   const outside = (url, options = {}) => fetch(new URL(url, main.base), { ...options, headers: { ...options.headers, ...tunnel } });
@@ -332,7 +398,7 @@ test('desde internet nada se ve sin PIN, ni la pantalla de proyección', async (
   // Para entrar, la lista de nombres (sin PIN, solo lo que puede usar cada uno).
   assert.equal((await main.send('users.create', { name: 'Proyector', pin: '2580', functions: ['orden'] })).status, 200);
   const listed = (await (await outside('/api/session')).json()).users.find((u) => u.name === 'Proyector');
-  assert.deepEqual(Object.keys(listed).sort(), ['functions', 'id', 'name']);
+  assert.deepEqual(Object.keys(listed).sort(), ['admin', 'functions', 'id', 'name']);
   // La proyección pide el PIN de alguien de la lista; con él, entra y ve el estado.
   const open = (pin) => outside('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'proyeccion', user: listed.id, pin }) });
   assert.equal((await open('0000')).status, 401, 'con otro PIN no entra');

@@ -114,7 +114,8 @@ function mount(el, ctx) {
 
   const run = (type, payload) => guard(() => action(type, payload))();
   // Se proyecta desde el orden que está en uso; desde otro, primero se pone en uso.
-  const show = (id, step) => (inUseHere ? run('order.show', step === undefined ? { id } : { id, step }) : use(viewing));
+  // Sin proyección (preparar el culto), no hay nada que mostrar.
+  const show = (id, step) => (!ctx.canProject ? undefined : inUseHere ? run('order.show', step === undefined ? { id } : { id, step }) : use(viewing));
   const content = () => items.filter((i) => i.kind !== 'section');
 
   // ---- Añadir ----
@@ -123,7 +124,7 @@ function mount(el, ctx) {
       { label: 'Pasaje bíblico', icon: 'book-open-text', onclick: () => ctx.go('biblia') },
       { label: 'Himno', icon: 'music-notes', onclick: () => ctx.go('himnario') },
       { label: 'Medios', icon: 'image', note: 'Imágenes, videos, audios y presentaciones', onclick: () => ctx.go('medios') },
-      { label: 'Página web', icon: 'globe', note: 'Canva, Kahoot…', onclick: () => ctx.go('paginas') },
+      ctx.has('paginas') && { label: 'Página web', icon: 'globe', note: 'Canva, Kahoot…', onclick: () => ctx.go('paginas') },
       { label: 'Sección', icon: 'rows', onclick: () => askTitle({ title: 'Nueva sección', onSave: (title) => run('order.addSection', { title }) }) },
       '-',
       { label: 'Citas de un texto o documento', icon: 'file-text', note: 'Pegar, o un Word o un PDF', onclick: () => openCitas() },
@@ -323,7 +324,7 @@ function mount(el, ctx) {
       h('span', { class: 'item-text' }, h('strong', {}, item.title), h('small', {}, describe(item))),
       isLive
         ? h('span', { class: 'badge live' }, 'Al aire')
-        : h('button', { class: 'icon-btn sm', 'aria-label': `Proyectar ${item.title}`, onclick: (e) => { e.stopPropagation(); show(item.id); } }, icon('play', 14)),
+        : ctx.canProject && h('button', { class: 'icon-btn sm', 'aria-label': `Proyectar ${item.title}`, onclick: (e) => { e.stopPropagation(); show(item.id); } }, icon('play', 14)),
       more);
     }));
     if (focusedId) {

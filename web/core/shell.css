@@ -430,6 +430,13 @@ html.touch .verse-pop .icon-btn.sm { width: var(--tap); }
 /* ---- Presentador: un solo módulo a pantalla completa ---- */
 body.full .shell { height: calc(100dvh / var(--zoom)); display: flex; flex-direction: column; }
 
+/* ---- Preparar el culto (fase 36): las pestañas a la izquierda y el módulo elegido en el resto, en cristal ---- */
+body.pestanas .shell { height: calc(100dvh / var(--zoom)); display: flex; gap: 10px; padding: 10px; background: var(--canvas); }
+body.pestanas .dockbar { position: static; transform: none; flex-shrink: 0; align-self: flex-start; max-height: 100%; gap: 6px; }
+body.pestanas .dock-item { width: 64px; height: auto; min-height: 56px; border-radius: var(--r-lg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 2px; }
+body.pestanas .dock-name { display: block; font-size: 10px; font-weight: 600; white-space: nowrap; }
+body.pestanas .work { border-radius: 22px; background: var(--glass-2); border: 1px solid var(--glass-line); overflow: hidden; }
+
 /* Los avisos generales, sobre las capas. */
 .escena .offline-bar { position: fixed; top: 0; left: 0; right: 0; z-index: var(--z-toast); }
 .escena #toast { bottom: 72px; }
@@ -526,6 +533,11 @@ body.full .shell { height: calc(100dvh / var(--zoom)); display: flex; flex-direc
   .drawer.compact .drawer-head { padding-top: 12px; }
 
   .controls-pop { left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); transform: none; width: auto; max-height: calc(80dvh / var(--zoom)); }
+
+  /* Con pestañas, abajo y de punta a punta. */
+  body.pestanas .shell { flex-direction: column-reverse; gap: 6px; padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); }
+  body.pestanas .dockbar { align-self: stretch; flex-direction: row; justify-content: space-around; overflow-x: auto; }
+  body.pestanas .dock-item { flex: 1; width: auto; min-width: 0; min-height: 48px; }
   .finder-chip { width: 36px; padding: 0; justify-content: center; flex-shrink: 0; }
   .finder-chip :is(span, kbd) { display: none; }
   .finder, .finder.wide { top: 8px; width: calc(calc(100vw / var(--zoom)) - 12px); max-height: calc(calc(100dvh / var(--zoom)) - 20px); }
@@ -566,6 +578,11 @@ body.full .shell { height: calc(100dvh / var(--zoom)); display: flex; flex-direc
   .dockbar { left: 8px; right: auto; top: 50%; bottom: auto; transform: translateY(-50%); flex-direction: column; max-height: calc(calc(100dvh / var(--zoom)) - 16px); overflow-y: auto; }
   .dock-item { min-width: 0; width: 48px; height: 42px; }
   .dock-name { display: none; }
+  /* Con pestañas, a la izquierda: en horizontal sobra ancho y falta altura. */
+  body.pestanas .shell { flex-direction: row; }
+  body.pestanas .dockbar { align-self: flex-start; flex-direction: column; }
+  body.pestanas .dock-item { flex: none; width: 52px; min-height: 42px; }
+  body.pestanas .dock-name { display: none; }
   /* Reducido, se ensancha arrastrando su borde izquierdo (--drawer-left), sin pasar del dock. */
   .drawer, .drawer.wide, body.queue-closed .drawer.wide { left: clamp(68px, var(--drawer-left, calc(46vw / var(--zoom))), calc(60vw / var(--zoom))); right: 8px; top: 8px; bottom: 8px; }
   .drawer-grip { left: 0; right: auto; top: 0; bottom: 0; width: 18px; height: auto; cursor: ew-resize; }

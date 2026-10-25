@@ -360,3 +360,8 @@ video::cue { font-size: calc(5.2cqh * var(--cue, 1)); line-height: 1.3; backgrou
 
 /* Sus mandos al aire (en el control): la cuenta grande. */
 .clk-ctl-digits { flex: 1; font: 600 22px/1.1 var(--mono, ui-monospace, monospace); text-align: center; letter-spacing: -0.02em; }
+
+/* Un video de YouTube por su enlace, que aún no se ha descargado (fase 36): solo su aviso. */
+.ytlink { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 4cqh; padding: 8cqh 8cqw; color: #f59a9c; text-align: center; }
+.ytlink .ic { width: 18cqh; height: 18cqh; }
+.ytlink p { color: #cdd3dd; font-size: 6cqh; line-height: 1.3; }

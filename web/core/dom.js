@@ -109,7 +109,7 @@ export const pageZoom = () => document.documentElement.currentCSSZoom || parseFl
 // Con el teclado: el foco entra en el primero, ↑ ↓ lo mueven, Esc cierra y el foco vuelve al botón.
 export function menu(anchor, items) {
   document.querySelector('.menu')?.remove();
-  const el = h('div', { class: 'menu', role: 'menu' }, ...items.map((item) => (item === '-'
+  const el = h('div', { class: 'menu', role: 'menu' }, ...items.filter(Boolean).map((item) => (item === '-'
     ? h('hr')
     : h('button', {
       role: 'menuitem', disabled: item.disabled,

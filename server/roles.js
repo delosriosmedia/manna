@@ -15,7 +15,7 @@ export const ROLES = [
     description: 'Himnario, medios, orden y Biblia, con el volumen siempre a la vista.',
     path: '/alabanza',
     requiresPin: true,
-    permissions: ['projection.control', 'order.edit', 'media.edit', 'slides.edit', 'jobs.manage', 'hymns.favorite'],
+    permissions: ['projection.control', 'order.edit', 'media.edit', 'slides.edit', 'jobs.manage', 'hymns.favorite', 'hymns.read'],
   },
   {
     id: 'presentador',
@@ -23,7 +23,7 @@ export const ROLES = [
     description: 'Pasa una presentación, señala con el dedo y acerca lo que haga falta.',
     path: '/presentador',
     requiresPin: true,
-    permissions: ['projection.control', 'slides.edit'],
+    permissions: ['projection.control', 'slides.edit', 'hymns.read'],
   },
   {
     id: 'orden',
@@ -31,7 +31,27 @@ export const ROLES = [
     description: 'Solo pasa el orden del culto, sin editarlo. Pensado para el celular.',
     path: '/orden',
     requiresPin: true,
-    permissions: ['projection.control'],
+    permissions: ['projection.control', 'hymns.read'],
+  },
+  // Solo en la nube (fase 36, `nube: true`): preparar el culto desde casa, y administrar los usuarios con contraseña.
+  // En la nube no hay otras; en el equipo de la iglesia, estas no están.
+  {
+    id: 'preparacion',
+    name: 'Preparar el culto',
+    description: 'Los órdenes del culto, con la Biblia, el himnario, los medios y los textos, desde casa.',
+    path: '/preparacion',
+    requiresPin: true,
+    nube: true,
+    permissions: ['order.edit', 'hymns.favorite', 'hymns.read', 'texts.edit'],
+  },
+  {
+    id: 'administrar',
+    name: 'Administrar la iglesia',
+    description: 'Los usuarios de la iglesia. Entra el administrador, con su contraseña.',
+    path: '/administrar',
+    requiresPin: true,
+    nube: true,
+    permissions: ['users.manage'],
   },
   {
     id: 'proyeccion',
