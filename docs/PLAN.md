@@ -809,27 +809,26 @@ Mientras tanto, **un PDF sigue funcionando siempre**, sin nada instalado.
 **Tamaño**: L en total (S + M + L). Va después de la 32; la parte 1 se puede hacer en cuanto el dueño entregue las presentaciones.
 
 **Parte 1 · resultados (2026-10-24)**, en este Mac con `deckcraft-cli` 0.10.0 frente al PowerPoint 16 del Mac (el informe y las comparaciones quedaron fuera del repositorio):
-- **Las 9 presentaciones (149 diapositivas)**: 93 idénticas a la vista, 54 con diferencias leves y **2 graves**: un cuadro de texto denso se monta distinto y una línea queda pisada (DeckCraft no reduce el texto como PowerPoint cuando no cabe, `normAutofit`) o tapada por una foto.
+- **Las 9 presentaciones (149 diapositivas)**: 93 idénticas a la vista, 54 con diferencias leves y **2 graves**: el texto de un cuadro que se ajusta a su contenido (`spAutoFit`) ocupa más líneas que en PowerPoint y pisa el cuadro de al lado o queda bajo una foto. La causa no está confirmada (no es el encogimiento guardado, `normAutofit`, que esas diapositivas no usan): se busca con un ejemplo inventado en la parte 2.
 - **Tiempo**: 12,6 s en total, frente a 41 s de PowerPoint (más lo que tarda sacar las imágenes de su PDF), sin abrir ninguna aplicación.
 - **Leves, casi todas por fuentes**:
-  - Aptos sale como Inter, que mide distinto.
-  - Una fuente de la nube de Microsoft (Amasis) cae en Calibri.
-  - Las viñetas con símbolo («❑») salen como punto.
+  - Aptos sale como Inter, que mide distinto, y una fuente de la nube de Microsoft (Amasis) cae en otra. DeckCraft usa las de Office donde Office las instaló (el equipo de la iglesia las tiene); en este Mac no las encontró.
+  - Las viñetas con símbolo («❑») salen como punto cuando la presentación pide una fuente de símbolos que el equipo no tiene (`Noto Sans Symbols`, habitual en lo que viene de Google Slides); con la fuente, salen bien.
 - **Colores**: DeckCraft da los del archivo; el camino de PowerPoint a PDF los desatura un poco.
 - **Los cuatro casos de prueba**, con presentaciones inventadas:
   - **(a) Diapositiva oculta**: `render --all` la dibuja (PowerPoint la salta). Manna la saltará leyendo `info`.
   - **(b) Animaciones de entrada**: dibuja los elementos visibles, como hasta ahora.
-  - **(c) Efectos que DeckCraft no tiene**: la presentación se abre y se dibuja igual, sin error (requisito del dueño cumplido).
+  - **(c) Efectos que DeckCraft no tiene**: la presentación se abre y se dibuja igual, sin error (requisito del dueño cumplido), y al guardarla los conserva.
   - **(d) Fuente incrustada**: la dibuja con su letra si va como TrueType o como EOT. Falta la que guarda el PowerPoint de Windows, comprimida: el dueño hará una allí.
 - **Windows**: su `.zip` portátil trae `deckcraft-cli.exe` (`packaging/windows/package.ps1` de DeckCraft); falta probarlo en Windows.
 - **Conclusión: la parte 2 es viable.** Las dos diapositivas graves piden ver la vista previa antes de proyectar, mientras DeckCraft no lo resuelva.
-- **Se le propondrá a DeckCraft**:
-  - reducir el texto que no cabe como PowerPoint;
-  - las viñetas con símbolo;
-  - una sustituta de Aptos con sus medidas;
-  - `--skip-hidden` y el ancho en píxeles;
-  - conservar los efectos que no tiene al guardar;
-  - publicar `deckcraft-cli.exe` suelto.
+- **Propuesto a DeckCraft el 2026-10-24** (decisión 52), cada cosa comprobada antes con su programa y con ejemplos inventados:
+  - saltar las diapositivas ocultas al dibujarlas y pedir el ancho en píxeles: https://github.com/storytold/deckcraft/issues/1346;
+  - dibujar la viñeta con otra fuente cuando falta la suya, en vez de un punto: https://github.com/storytold/deckcraft/issues/1347;
+  - para la parte 3, poder empezar el pase en una diapositiva, darle «siguiente», «anterior» e «ir a» y saber en qué diapositiva y paso va (comentario en la propuesta de manejar la versión web desde la página que la contiene, que ya tiene un cambio en curso): https://github.com/storytold/deckcraft/issues/714;
+  - el programa de órdenes para Windows suelto, sin la app (comentario): https://github.com/storytold/deckcraft/issues/100.
+
+  No se propuso lo de los dos cuadros pisados (falta la causa) ni lo de Aptos (DeckCraft ya usa la de Office cuando está).
 
 **Requisitos del dueño** (decisión 51):
 - Una animación que DeckCraft no tenga no puede hacer fallar la presentación: se proyecta igual, con ese elemento sin animar.
@@ -838,7 +837,7 @@ Mientras tanto, **un PDF sigue funcionando siempre**, sin nada instalado.
 **Decidido (decisión 51)**:
 1. DeckCraft: la medición (parte 1), ya; como programa del equipo principal, cuando la medición salga bien.
 2. PowerPoint se quita del todo cuando DeckCraft pase la prueba en el equipo de la iglesia. Hasta entonces sigue como está.
-3. Compilar en GitHub una copia propia de la versión web de DeckCraft, si sus autores no aceptan la mejora: **pendiente**; el dueño pidió que se le explique mejor.
+3. Compilar en GitHub una copia propia de la versión web de DeckCraft (camino B): **sí, solo si sus autores no aceptan la mejora en una o dos semanas** (decisión 52). Primero se les propuso (arriba).
 4. Las presentaciones de la medición son las 9 de `Presentaciones pruebas/`.
 
 ### Fase 34 · Capas en el orden del culto y versículos en una capa — aprobada para después de la 33 (decisión 51)
@@ -984,6 +983,7 @@ Tomadas el 2026-10-04.
 | 39 | Manejar páginas web desde el celular (2026-10-16) | **S40 se descarta por ahora**, aunque la prueba de concepto funcionó. El estudio queda en la sección 11 por si se retoma |
 | 50 | Pruebas en Windows en cada versión (2026-10-18) | **Sí a S47**, tras medirla: en cada versión, un Windows de GitHub corre `npm test` (unos 40 s, a la vez que los instaladores), con tiempo máximo en cada paso. Antes, el dueño pidió el estimado: no quería alargar la publicación |
 | 51 | Capas, tiempo y DeckCraft (2026-10-24) | **Sí a las fases 31, 32 y 33** (de la 33, por ahora la parte 1, la medición) y **se añade la 34**, con las observaciones del dueño: «Negro» y «Solo fondo» no ocultan las capas; la página de una capa se carga una vez y se queda, sin que nadie recargue nada; varios estilos gráficos en Tiempo; el temporizador se queda quieto en cero, con tictac en los últimos 10 s (más marcado en los últimos 5) y una alarma corta y suave; la hora en 12 h por defecto; DeckCraft reemplaza a PowerPoint del todo cuando pase la prueba en el equipo de la iglesia, sin que una animación que no tenga haga fallar la presentación y con las fuentes incrustadas bien. Pendiente de explicar: compilar una copia propia de la versión web de DeckCraft (parte 3) |
+| 52 | DeckCraft y Capas (2026-10-24) | **Sí al camino B** de la fase 33: compilar en GitHub una copia propia de la versión web de DeckCraft, solo si sus autores no aceptan la mejora en una o dos semanas. **Proponerles ya las mejoras** (hecho el mismo día: issues 1346 y 1347 y comentarios en la 714 y la 100 de su repositorio). **El cajón «Capas», solo en Control completo** |
 | 49 | PDF hechos de imágenes (2026-10-18) | Pedido del dueño con un PDF real que Manna rechazaba («no tiene texto»): era de imágenes (hecho con jsPDF). **Se leen con el reconocimiento de texto del sistema** en el equipo principal (Vision en Mac, `Windows.Media.Ocr` en Windows), sin programas de terceros ni modelos de lenguaje propios; cambia lo decidido en la fase 27 (descartar los documentos sin texto) |
 | 48 | YouTube en lote, carpeta de contenido e instalador (2026-10-18) | **Sí a las fases 28, 29 y 30**, en ese orden, con las recomendaciones del asistente y las observaciones del dueño: en la 28, reconocer lo que ya está aunque tenga otro nombre y que el título de YouTube llegue con sus tildes, sin listas de reproducción; en la 29, cambiar la carpeta sin reiniciar y avisar al abrir Manna si no se ha elegido; en la 30, un único archivo con el icono de Manna (`.pkg` en Mac, `.exe` en Windows) que lo hace todo, consola con barra de avance si hace falta, Node.js incluido, sin elegir la carpeta ni firmar |
 | 47 | Citas de un texto o documento (2026-10-18) | **Sí a la fase 27** (I1 e I2 de `docs/ideas.md`), con todas las recomendaciones del asistente: en el Orden, «Añadir» → «Citas de un texto o documento» (y la cita rápida, si se pegan varias); una lista para revisar con las seguras y las de paso marcadas y las dudosas sin marcar; una sección con el nombre del documento; capítulo entero si no hay versículo; repetidas una vez; la versión del documento si está instalada; el orden del documento; documentos largos en grupos. Un documento sin texto se descarta con un aviso. Antes de construir, se mide con 3 o 4 sermones nuevos |
@@ -1441,7 +1441,7 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-18 | S47 aceptada (decisión 50): las pruebas automáticas corren también en un Windows de GitHub en cada versión, en el mismo flujo que los instaladores (`instaladores.yml`, trabajo `pruebas-windows`) | Medido: 47 s, en paralelo; los 4 fallos que dieron eran de las propias pruebas y se corrigieron antes |
 | 2026-10-24 | Se añaden las fases 31 (capas y páginas transparentes), 32 (tiempo), 33 (DeckCraft en vez de PowerPoint) y 34 (capas en el orden y versículos en capa) | Decisión 51; la 31 tiene fecha, por el concurso del Sábado Joven del 31 de octubre |
 | 2026-10-24 | Fase 31: con una capa a la vista, PowerPoint en vivo pasa como imágenes por su cuenta y sus mandos lo dicen («oculta la capa para pasarla con PowerPoint»), en vez de preguntar al proyectar | La presentación se proyecta desde muchos sitios (el orden, «Siguiente», el Presentador, un celular): una pregunta en cada uno sería más código y más interrupciones, y PowerPoint va a dejar paso a DeckCraft (fase 33) |
-| 2026-10-24 | Fase 31: el cajón «Capas» solo está en Control completo; las demás funciones que proyectan pueden usar las órdenes, pero no tienen el cajón | Lo que pidió el dueño es para quien maneja la proyección; se añade a otras funciones si se pide |
+| 2026-10-24 | Fase 31: el cajón «Capas» solo está en Control completo; las demás funciones que proyectan pueden usar las órdenes, pero no tienen el cajón | Lo que pidió el dueño es para quien maneja la proyección; confirmado por el dueño (decisión 52) |
 | 2026-10-24 | Fase 31: la página de una capa no avisa que cargó (`capa-lista` descartado); el equipo principal comprueba que su dirección contesta antes de cargarla y lo reintenta solo cada 15 s | Observación del dueño: nadie debe tener que recargar nada, y la página del concurso no tiene que hacer nada especial |
 
 ## 11. Cambios sugeridos al plan

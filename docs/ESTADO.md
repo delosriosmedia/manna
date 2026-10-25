@@ -243,6 +243,7 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 ## Decisiones tomadas
 
+- **2026-10-24 · DeckCraft y Capas** (decisión 52): compilar una copia propia de la versión web de DeckCraft solo si sus autores no aceptan la mejora en una o dos semanas; las mejoras ya se les propusieron (`docs/PLAN.md`, fase 33). El cajón «Capas», solo en Control completo.
 - **2026-10-24 · Capas, tiempo y DeckCraft** (decisión 51): sí a las fases 31 (tres capas encima de la proyección; «Negro» y «Solo fondo» no las ocultan), 32 (la hora, cronómetros y temporizadores, con varios estilos y tictac y alarma suave al final) y 33 (DeckCraft en vez de PowerPoint; por ahora, medir con 9 presentaciones reales), y se añade la 34 (capas en el orden del culto y versículos en una capa). Detalle en `docs/PLAN.md`.
 - **2026-10-18 · Pruebas en Windows en cada versión** (decisión 50): sí, tras medirlas (unos 40 s, a la vez que los instaladores).
 - **2026-10-18 · Instalador** (fase 30): el `.exe` de Windows se compila en un Windows de GitHub, con archivos de prueba livianos; en Mac, un `.pkg`.
