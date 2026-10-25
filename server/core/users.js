@@ -16,6 +16,15 @@ const sealed = (pin) => {
   return { salt, hash: hash(pin, salt) };
 };
 const key = (name) => name.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+// Una ficha que llega de fuera (la nube o un equipo): solo lo que debe tener, y con la forma que debe tener.
+const hex = (text, n) => typeof text === 'string' && new RegExp(`^[a-f0-9]{${n}}$`).test(text);
+function validRecord(r) {
+  const name = cleanName(r?.name);
+  if (!r || !hex(r.id, 12) || !name || !hex(r.pin?.salt, 32) || !hex(r.pin?.hash, 64)) return null;
+  const admin = r.admin === true;
+  const functions = admin ? [...FUNCTIONS] : FUNCTIONS.filter((f) => Array.isArray(r.functions) && r.functions.includes(f));
+  return { id: r.id, name, admin, functions: functions.length ? functions : ['orden'], pin: { salt: r.pin.salt, hash: r.pin.hash }, added: Number(r.added) || Date.now() };
+}
 
 export function createUsers({ storage, legacyPin = null }) {
   const store = storage('usuarios', { list: [] });
@@ -93,6 +102,34 @@ export function createUsers({ storage, legacyPin = null }) {
       if (!validPin(pin)) throw new HttpError(400, 'El PIN debe tener 4 números.');
       user.pin = sealed(pin);
       store.save();
+    },
+    // La sincronización con la nube (fase 37, parte 3). records: las fichas enteras (con la huella del PIN, sin la de la
+    // contraseña: esa solo le hace falta a la nube).
+    records: () => list.map(({ password, ...user }) => structuredClone(user)),
+    // Junta los de un equipo que se empareja: el que ya está con ese nombre se queda (la nube manda); los demás entran
+    // tal cual. Devuelve { idDelEquipo: idDeLaNube } de los que eran la misma persona con otro identificador.
+    merge(records) {
+      const same = {};
+      for (const r of records.map(validRecord).filter(Boolean)) {
+        const found = list.find((u) => key(u.name) === key(r.name));
+        if (found) {
+          if (found.id !== r.id) same[r.id] = found.id;
+          continue;
+        }
+        if (list.some((u) => u.id === r.id)) r.id = crypto.randomBytes(6).toString('hex');
+        list.push(r);
+      }
+      store.save();
+      return same;
+    },
+    // La copia del equipo: la lista entera de la nube (con al menos un administrador). Devuelve los que ya no están.
+    replace(records) {
+      const next = records.map(validRecord).filter(Boolean);
+      if (!next.some((u) => u.admin)) throw new HttpError(409, 'La lista de la nube no trae ningún administrador.');
+      const gone = list.filter((u) => !next.some((n) => n.id === u.id)).map((u) => u.id);
+      list.splice(0, list.length, ...next);
+      store.save();
+      return gone;
     },
     remove(id) {
       const user = find(id);

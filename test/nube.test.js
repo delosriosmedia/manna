@@ -33,8 +33,13 @@ async function serve(name, env = {}) {
     cookie = res.headers.get('set-cookie')?.split(';')[0] || cookie;
     return { status: res.status, ...(await res.json()) };
   };
+  // Como un celular de la red (con la dirección que pondría un proxy): pide nombre y PIN.
+  const remote = async (url, body) => {
+    const res = await fetch(base + url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '203.0.113.7' }, body: JSON.stringify(body) });
+    return { status: res.status, ...(await res.json()) };
+  };
   const s = {
-    app, base, call,
+    app, base, call, remote,
     send: (type, payload = {}) => call('/api/action', { type, payload }),
     state: () => call('/api/state'),
     stop: async () => { await app.close(); server.close(); },
@@ -52,8 +57,10 @@ test('emparejar con un código de «Administrar», el equipo oficial y el bloque
   const code = async () => (await nube.send('cloud.code')).result.code;
   const other = (c) => (c === '000000' ? '111111' : '000000');
 
-  // Sin emparejar, el equipo funciona como siempre.
+  // Sin emparejar, el equipo funciona como siempre, con sus usuarios: una se llama como la administradora de la nube.
   assert.equal((await a.state()).cloud.status, 'off');
+  const carla = (await a.send('users.create', { name: 'Carla', pin: '2222', functions: ['orden'] })).result.id;
+  const anaHere = (await a.send('users.create', { name: 'ana', pin: '3333', functions: ['alabanza'] })).result.id;
   assert.equal((await b.send('cloud.code')).status, 404, 'el código solo lo da la nube');
   const first = await code();
   assert.match(first, /^\d{6}$/);
@@ -73,6 +80,21 @@ test('emparejar con un código de «Administrar», el equipo oficial y el bloque
   assert.equal((await a.state()).cloud.status, 'on');
   assert.deepEqual((({ name, online }) => ({ name, online }))((await nube.state()).cloud.official), { name: os.hostname(), online: true });
 
+  // Los usuarios (parte 3): los del equipo subieron, y el equipo tiene la lista de la nube. «ana» era Ana, la de la nube.
+  const names = async (s) => (await s.state()).users.list.map((u) => u.name).sort();
+  assert.deepEqual(await names(nube), ['Administrador', 'Ana', 'Carla']);
+  assert.deepEqual(await names(a), ['Administrador', 'Ana', 'Carla']);
+  const anaThere = (await nube.state()).users.list.find((u) => u.name === 'Ana').id;
+  assert.notEqual(anaThere, anaHere);
+  assert.ok((await a.state()).users.list.some((u) => u.id === anaThere), 'en el equipo, Ana es la de la nube');
+  assert.equal((await a.remote('/api/session', { role: 'orden', user: carla, pin: '2222' })).status, 200, 'y cada uno entra con su PIN, también sin internet');
+  // Un alta y una baja en la nube llegan al equipo.
+  const dani = (await nube.send('users.create', { name: 'Dani', pin: '5555', functions: ['orden'] })).result.id;
+  assert.equal((await nube.send('users.remove', { id: carla })).status, 200);
+  await a.app.services.cloud.check();
+  assert.deepEqual(await names(a), ['Administrador', 'Ana', 'Dani']);
+  assert.equal((await a.remote('/api/session', { role: 'orden', user: dani, pin: '5555' })).status, 200);
+
   // Un segundo equipo: primero se pregunta; confirmado, pasa a ser el oficial y el primero queda bloqueado al enterarse.
   const second = await code();
   const asked = await b.send('cloud.pair', { url: nube.base, code: second });
@@ -89,7 +111,9 @@ test('emparejar con un código de «Administrar», el equipo oficial y el bloque
   // Volver a ser el equipo oficial: con otro código, desde la pantalla de bloqueado (la dirección ya la sabe).
   assert.equal((await a.send('cloud.pair', { code: await code(), confirm: true })).status, 200);
   assert.equal(a.app.blocked, null);
-  assert.equal((await a.send('users.create', { name: 'Beto', pin: '4321', functions: ['orden'] })).status, 200);
+  const managed = await a.send('users.create', { name: 'Beto', pin: '4321', functions: ['orden'] });
+  assert.equal(managed.status, 409, 'emparejado, los usuarios se cambian en la nube');
+  assert.match(managed.error, /se cambian ahí/);
   await b.app.services.cloud.check();
   assert.equal(b.app.blocked?.replaced, true, 'ahora el bloqueado es el otro');
 

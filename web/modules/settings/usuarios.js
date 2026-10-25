@@ -18,17 +18,31 @@ const buttons = (box, label, save) => h('div', { class: 'row', style: 'justify-c
   h('button', { class: 'btn primary', onclick: save }, label));
 
 // passwords: en /administrar (la nube, fase 36), cada administrador tiene además su contraseña para entrar ahí.
+// En el equipo emparejado con su nube (fase 37, decisión 63), la lista se ve pero se cambia en la nube: sin botones.
 export function usersBody(me, { passwords = false } = {}) {
   const list = h('div', { class: 'user-list' });
-  subscribe('users', ({ list: users = [] }) => {
-    list.replaceChildren(...users.map((u) => h('div', { class: 'user-row', dataset: { id: u.id } },
+  const managed = h('p', { class: 'muted', hidden: true });
+  const add = h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => edit(null) }, icon('user-plus', 16), 'Añadir usuario'));
+  let users = [];
+  let cloud = null; // { church, url } si los usuarios se cambian en la nube
+  const render = () => list.replaceChildren(...users.map((u) => h('div', { class: 'user-row', dataset: { id: u.id } },
       h('span', { class: 'initial', 'aria-hidden': 'true' }, u.name.slice(0, 1).toUpperCase()),
       h('span', { class: 'item-text' }, h('strong', {}, u.name, u.id === me?.id ? ' (tú)' : ''),
         h('small', {}, u.admin ? `Administrador · todas las funciones${passwords && !u.password ? ' · sin contraseña' : ''}` : u.functions.map((f) => NAMES[f]).join(' · '))),
       passwords && u.admin && h('button', { class: 'btn user-password', 'aria-label': `Cambiar la contraseña de ${u.name}`, onclick: () => changePassword(u) }, 'Contraseña'),
-      h('button', { class: 'icon-btn sm', title: 'Cambiar', 'aria-label': `Cambiar a ${u.name}`, onclick: () => edit(u) }, icon('pencil-simple', 15)),
-      h('button', { class: 'icon-btn sm', title: 'Cambiar el PIN', 'aria-label': `Cambiar el PIN de ${u.name}`, onclick: () => changePin(u) }, icon('key', 15)),
-      h('button', { class: 'icon-btn sm', title: u.id === me?.id ? 'No puedes quitarte a ti mismo' : 'Quitar', 'aria-label': `Quitar a ${u.name}`, disabled: u.id === me?.id, onclick: () => remove(u) }, icon('trash', 15)))));
+      ...(cloud ? [] : [
+        h('button', { class: 'icon-btn sm', title: 'Cambiar', 'aria-label': `Cambiar a ${u.name}`, onclick: () => edit(u) }, icon('pencil-simple', 15)),
+        h('button', { class: 'icon-btn sm', title: 'Cambiar el PIN', 'aria-label': `Cambiar el PIN de ${u.name}`, onclick: () => changePin(u) }, icon('key', 15)),
+        h('button', { class: 'icon-btn sm', title: u.id === me?.id ? 'No puedes quitarte a ti mismo' : 'Quitar', 'aria-label': `Quitar a ${u.name}`, disabled: u.id === me?.id, onclick: () => remove(u) }, icon('trash', 15))]))));
+  subscribe('users', ({ list: all = [] }) => { users = all; render(); });
+  // Solo el equipo de la iglesia tiene `status` en su espacio `cloud`; la nube no.
+  subscribe('cloud', (c) => {
+    cloud = c?.status && !['off', 'replaced'].includes(c.status) ? { church: c.church, url: c.url } : null;
+    managed.hidden = !cloud;
+    add.hidden = Boolean(cloud);
+    if (cloud) managed.replaceChildren(`Este equipo está emparejado con ${cloud.church}: los usuarios se crean, se cambian y se quitan ahí, en `,
+      h('a', { href: `${cloud.url}/administrar`, target: '_blank', rel: 'noopener' }, 'Administrar la iglesia'), '. Aquí se ven, y cada uno entra con su PIN aunque no haya internet.');
+    render();
   });
 
   // Nuevo (user null) o cambiar nombre, funciones y si es administrador. El administrador tiene todas las funciones.
@@ -93,5 +107,5 @@ export function usersBody(me, { passwords = false } = {}) {
       })));
   }
 
-  return [list, h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => edit(null) }, icon('user-plus', 16), 'Añadir usuario'))];
+  return [managed, list, add];
 }

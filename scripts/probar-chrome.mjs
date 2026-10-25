@@ -153,6 +153,8 @@ for (const port of [PORT, ...(inGroup('red') ? [8125] : [])]) {
 const UNTOUCHED = {
   'POST /api/nube/emparejar': 'la pide el equipo de la iglesia a su nube (cloud.pair), no la interfaz',
   'GET /api/nube/estado': 'la pide el equipo de la iglesia a su nube cada minuto, no la interfaz',
+  'GET /api/nube/usuarios': 'la pide el equipo de la iglesia a su nube para traer los usuarios, no la interfaz',
+  'POST /api/nube/usuarios': 'la pide el equipo de la iglesia a su nube al emparejarse, para subir los suyos; no la interfaz',
   'bible.rescan': 'no tiene botón: la carpeta de biblias se vigila sola',
   'projection.clear': 'no tiene botón: "Solo fondo" y "Negro" cubren su uso',
   'projection.display': 'necesita una segunda pantalla de verdad',
@@ -3574,6 +3576,11 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       await until(cloudSection, 25);
       await run(`const s = ${cloudSection}; const [u, c] = s.querySelectorAll('.cloud-form input'); u.value = ${JSON.stringify(cloud)}; c.value = ${JSON.stringify(firstCode)}; s.querySelector('.cloud-form button[type=submit]').click();`);
       check('Ajustes → Nube empareja este equipo como el oficial', await until(`${cloudSection}.textContent.includes('Conectado')`, 25), await run(`return ${cloudSection}?.textContent`));
+      // Los usuarios (parte 3): los de la nube llegan al equipo, y ahí se ven pero no se cambian.
+      const usersSection = `[...document.querySelectorAll('.settings .set')].find((s) => s.querySelector('h2')?.textContent === 'Usuarios')`;
+      check('emparejado, Ajustes → Usuarios trae los de la nube y lleva a «Administrar la iglesia» para cambiarlos', await until(`[...${usersSection}.querySelectorAll('.user-row strong')].some((s) => s.textContent.startsWith('Beto'))`, 25)
+        && await run(`const s = ${usersSection}; return s.querySelector('p.muted:not([hidden]) a')?.href.endsWith('/administrar') && ![...s.querySelectorAll('button')].some((b) => b.offsetParent && /Añadir usuario|Cambiar a/.test(b.textContent + (b.getAttribute('aria-label') || '')))`),
+        await run(`return ${usersSection}?.textContent.slice(0, 300)`));
       // Otro equipo (uno de mentira, con un código nuevo) pasa a ser el oficial: este se entera y queda bloqueado.
       const secondCode = await adminCode();
       const other = await fetch(`${cloud}/api/nube/emparejar`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Prueba': '1' }, body: JSON.stringify({ code: secondCode, id: 'f'.repeat(16), name: 'Equipo de prueba', confirm: true }) });

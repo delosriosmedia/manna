@@ -9,6 +9,12 @@ export default function setup(app) {
   store.register('users', { list: [] });
   const publish = () => store.set('users', { list: users.list() });
   publish();
+  app.services.users = { publish };
+  // Emparejado con su nube (fase 37, decisión 63), en el equipo los usuarios se ven, pero se cambian en la nube.
+  const own = () => {
+    const church = app.services.cloud?.managedBy?.();
+    if (church) throw new HttpError(409, `Este equipo está emparejado con ${church}: los usuarios se cambian ahí, en «Administrar la iglesia».`);
+  };
 
   // El primer administrador en la nube, con la clave de alta (decisión 62; la comprueba core/sessions.js).
   app.route('POST', '/api/session/alta', async (ctx) => {
@@ -18,26 +24,31 @@ export default function setup(app) {
   });
 
   app.action('users.create', { permission: 'users.manage' }, ({ name, pin, functions, admin } = {}) => {
+    own();
     const user = users.create({ name, pin: String(pin ?? ''), functions, admin });
     publish();
     return { id: user.id };
   });
   app.action('users.update', { permission: 'users.manage' }, ({ id, name, functions, admin } = {}) => {
+    own();
     users.update(id, { name, functions, admin });
     publish();
   });
   // Cambiar el PIN de alguien cierra sus sesiones (menos la de quien lo cambia): vuelve a entrar con el nuevo.
   app.action('users.setPin', { permission: 'users.manage' }, ({ id, pin } = {}, ctx) => {
+    own();
     users.setPin(id, String(pin ?? ''));
     sessions.closeUser(id, ctx?.session?.id);
   });
   // La contraseña de un administrador, para entrar en /administrar desde la nube (fase 36). Cierra sus otras sesiones.
   app.action('users.setPassword', { permission: 'users.manage' }, ({ id, password } = {}, ctx) => {
+    own();
     users.setPassword(id, password);
     sessions.closeUser(id, ctx?.session?.id);
     publish();
   });
   app.action('users.remove', { permission: 'users.manage' }, ({ id } = {}, ctx) => {
+    own();
     if (id && id === ctx?.session?.user?.id) throw new HttpError(409, 'No puedes quitarte a ti mismo: pídeselo a otro administrador.');
     users.remove(id);
     sessions.closeUser(id);

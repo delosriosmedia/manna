@@ -12,6 +12,9 @@ import { cleanName } from '../../core/names.js';
 // - en el equipo de la iglesia, Ajustes → Nube empareja, guarda la clave en data/nube.json (nunca en el estado) y
 //   pregunta cada minuto si sigue siendo el oficial. Si ya no lo es, arranca de nuevo bloqueado, como cuando hay otro
 //   Manna en la red (fase 21), hasta que se vuelva a emparejar. Sin internet no se entera y sigue funcionando.
+// Los usuarios (parte 3, decisión 63) viven en la nube: al emparejarse por primera vez, el equipo sube los suyos (los
+// que tengan el nombre de uno de la nube pasan a ser ese, con sus órdenes); después el equipo guarda una copia (para
+// dejar entrar sin internet) y la trae cuando cambia, y ahí ya no se cambian.
 // El equipo llama siempre a la nube (está detrás del router de la iglesia); la nube nunca lo llama a él.
 
 const CODE_MS = 10 * 60_000;
@@ -19,6 +22,8 @@ const CODE_TRIES = 10; // fallos con un mismo código antes de anularlo
 const ONLINE_MS = 150_000; // sin noticias del equipo en 2,5 minutos, se da por apagado
 const CHECK_MS = 60_000;
 const hash = (text) => crypto.createHash('sha256').update(String(text)).digest('hex');
+// La huella de la lista de usuarios: si cambia, el equipo trae la lista.
+const versionOf = (records) => hash(JSON.stringify(records)).slice(0, 16);
 const same = (a, b) => typeof a === 'string' && typeof b === 'string' && a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
 export default function setup(app) {
@@ -80,21 +85,47 @@ function cloudSide(app) {
     return { token, church: host(ctx) };
   });
 
-  // Lo pregunta el equipo cada minuto, con su clave: ¿sigo siendo el oficial?
-  app.route('GET', '/api/nube/estado', (ctx) => {
+  // ¿Lo pide el equipo oficial? Por su clave.
+  const keyOf = (ctx) => {
     const key = /^Bearer ([a-f0-9]{64})$/.exec(ctx.req.headers.authorization || '')?.[1];
-    const mine = key ? hash(key) : '';
+    return key ? hash(key) : '';
+  };
+  const official = (ctx) => {
+    const o = saved.data.official;
+    if (!o || !same(keyOf(ctx), o.tokenHash)) throw new HttpError(401, 'La nube no reconoce este equipo: vuelve a emparejarlo.');
+    return o;
+  };
+  const users = app.sessions.users;
+
+  // Lo pregunta el equipo cada minuto, con su clave: ¿sigo siendo el oficial? Con la huella de los usuarios.
+  app.route('GET', '/api/nube/estado', (ctx) => {
+    const mine = keyOf(ctx);
     const o = saved.data.official;
     if (o && same(mine, o.tokenHash)) {
       o.lastSeen = Date.now();
       o.version = String(ctx.req.headers['x-manna-version'] || o.version).slice(0, 20);
       saved.save();
       publish();
-      return { official: true, church: host(ctx) };
+      return { official: true, church: host(ctx), users: versionOf(users.records()) };
     }
     const former = saved.data.former.find((f) => same(mine, f.tokenHash));
     if (former) return { official: false, replaced: { by: former.by, at: former.replaced }, church: host(ctx) };
     throw new HttpError(401, 'La nube no reconoce este equipo: vuelve a emparejarlo.');
+  });
+
+  // Los usuarios: la copia del equipo, y los que sube el equipo la primera vez que se empareja.
+  app.route('GET', '/api/nube/usuarios', (ctx) => {
+    official(ctx);
+    const list = users.records();
+    return { version: versionOf(list), list };
+  });
+  app.route('POST', '/api/nube/usuarios', async (ctx) => {
+    official(ctx);
+    const { list } = await ctx.json();
+    if (!Array.isArray(list) || list.length > 500) throw new HttpError(400, 'Falta la lista de usuarios.');
+    const same = users.merge(list);
+    app.services.users?.publish();
+    return { same };
   });
 }
 
@@ -102,9 +133,9 @@ function cloudSide(app) {
 function churchSide(app) {
   const { store } = app;
   const { version } = JSON.parse(fs.readFileSync(path.join(app.rootDir, 'package.json'), 'utf8'));
-  const saved = app.storage('nube', { url: '', token: '', church: '', paired: 0, replaced: null });
+  const saved = app.storage('nube', { url: '', token: '', church: '', paired: 0, replaced: null, usersUp: false, users: '' });
   // status: off (sin emparejar), on, offline (sin conexión con la nube), unknown (la nube no lo reconoce), replaced.
-  store.register('cloud', { church: saved.data.token ? saved.data.church : '', paired: saved.data.token ? saved.data.paired : 0,
+  store.register('cloud', { church: saved.data.token ? saved.data.church : '', url: saved.data.token ? saved.data.url : '', paired: saved.data.token ? saved.data.paired : 0,
     status: saved.data.replaced ? 'replaced' : saved.data.token ? 'offline' : 'off', lastSeen: null, error: null });
   const set = (patch) => store.set('cloud', patch);
   // Bloqueado porque otro equipo pasó a ser el oficial (lo lee server/app.js al arrancar).
@@ -115,6 +146,32 @@ function churchSide(app) {
     if (app.restart) setTimeout(() => app.restart(), 300);
     else app.services.network?.publishBlocked(state);
   };
+
+  const ask = (method, route, body) => fetch(`${saved.data.url}${route}`, {
+    method, headers: { authorization: `Bearer ${saved.data.token}`, 'x-manna-version': version, ...(body && { 'content-type': 'application/json' }) },
+    ...(body && { body: JSON.stringify(body) }), signal: AbortSignal.timeout(20_000),
+  }).then(async (res) => {
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(out.error || `La nube respondió ${res.status}.`);
+    return out;
+  });
+  const users = app.sessions.users;
+  // La primera vez, los del equipo suben (el que ya está en la nube con su nombre se queda, y sus órdenes pasan a él);
+  // luego, la lista de la nube pasa a ser la del equipo. Los órdenes de quien ya no está pasan al administrador.
+  async function syncUsers() {
+    if (!saved.data.usersUp) {
+      const { same } = await ask('POST', '/api/nube/usuarios', { list: users.records() });
+      for (const [from, to] of Object.entries(same || {})) app.services.order?.reassign(from, to);
+      saved.data.usersUp = true;
+      saved.save();
+    }
+    const { version: theirs, list } = await ask('GET', '/api/nube/usuarios');
+    const gone = users.replace(list);
+    for (const id of gone) app.services.order?.reassign(id, users.firstAdmin().id);
+    saved.data.users = theirs;
+    saved.save();
+    app.services.users?.publish();
+  }
 
   async function check() {
     if (!saved.data.token || saved.data.replaced) return;
@@ -131,12 +188,15 @@ function churchSide(app) {
         set({ status: 'replaced', error: null });
         return restartAs(blocked());
       }
+      if (body.users && body.users !== saved.data.users) await syncUsers();
       set({ status: 'on', lastSeen: Date.now(), error: null });
     } catch {
       set({ status: 'offline', error: null });
     }
   }
-  app.services.cloud = { blocked, check };
+  // Emparejado (y no sustituido), los usuarios se cambian en la nube (decisión 63).
+  const managedBy = () => (saved.data.token && !saved.data.replaced ? saved.data.church : null);
+  app.services.cloud = { blocked, check, managedBy };
   store.on('listening', () => {
     check();
     const timer = setInterval(check, Number(process.env.MANNA_NUBE_COMPROBAR_MS) || CHECK_MS);
@@ -176,7 +236,8 @@ function churchSide(app) {
     Object.assign(saved.data, { url: base, token: body.token, church: cleanName(body.church, 100) || new URL(base).host, paired: Date.now(), replaced: null });
     saved.save();
     saved.flush();
-    set({ church: saved.data.church, paired: saved.data.paired, status: 'on', lastSeen: Date.now(), error: null });
+    set({ church: saved.data.church, url: base, paired: saved.data.paired, status: 'on', lastSeen: Date.now(), error: null });
+    await syncUsers().catch((err) => console.error('No se pudieron traer los usuarios de la nube:', err.message));
     if (wasBlocked) restartAs(null);
     return { church: saved.data.church };
   });

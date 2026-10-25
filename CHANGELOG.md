@@ -4,6 +4,9 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.47.0 — 2026-10-25
+
+- **Los usuarios, en la nube** (fase 37): emparejado, el equipo de la iglesia tiene los usuarios de su nube, y cada uno entra con su PIN aunque no haya internet. Se crean, se cambian y se quitan en «Administrar la iglesia»; en Ajustes → Usuarios del equipo se ven, con el enlace para cambiarlos. Al emparejar un equipo por primera vez, sus usuarios suben a la nube; si alguno se llama como uno de la nube, pasa a ser ese, con sus órdenes.
 ## 1.46.0 — 2026-10-25
 
 - **El equipo oficial de la iglesia** (fase 37): en «Administrar la iglesia», la pestaña «Equipo» dice cuál es y si está conectado, y «Emparejar un equipo» da un código de 6 cifras que dura 10 minutos. En el equipo de la iglesia, Ajustes → Nube lo empareja con la dirección de la nube y ese código. Si se empareja otro equipo, el anterior queda bloqueado en cuanto se conecta (sin internet sigue funcionando) hasta que se vuelva a emparejar.
