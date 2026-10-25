@@ -294,6 +294,11 @@ const LAYER_PAGE = `<!doctype html><html style="background:transparent"><title>C
 parent.postMessage({ capaCargada: true }, '*');
 addEventListener('message', (e) => { if (e.data && e.data.manna === 'capa') parent.postMessage({ capaVisible: e.data.visible }, '*'); });</script></body></html>`;
 const post = (type, payload = {}) => `fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json','X-Prueba':'1'},body:JSON.stringify(${JSON.stringify({ type, payload })})}).then(r=>r.status)`;
+// Si lo que lleva la capa n (una página o un reloj) queda encima de todo en su centro: con el escenario entero tocable,
+// el toque llega a lo que se pinta arriba. Un video, con su z-index, tapaba las capas (visto en Windows, 2026-10-25).
+const layerOnTop = (doc, n) => `(() => { const d = ${doc}; const l = d.querySelector('.stage-layer[data-n="${n}"]'); const t = l?.querySelector('iframe, .clk'); if (!t) return false;
+  const r = t.getBoundingClientRect(); const s = d.createElement('style'); s.textContent = '.stage, .stage * { pointer-events: auto !important; }'; d.head.append(s);
+  const e = d.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); s.remove(); return l.contains(e); })()`;
 const live = async () => JSON.parse(await run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ mode: s.projection.mode, ref: s.projection.item?.reference, kind: s.projection.item?.kind, order: s.order.items.map(i => i.title), size: s.projection.styles.fontSize, pattern: s.live.state?.pattern, clock: s.live.state?.clock })`));
 // "1:02.5" -> 62.5
 const seconds = (text) => String(text).split(':').reduce((total, part) => total * 60 + Number(part), 0);
@@ -1831,6 +1836,21 @@ try {
     check('en «Capas», su botón lo pone en marcha', (await timersNow()).find((t) => t.id === praise.id).clock.playing === true);
     await click(`document.querySelector('.ws[data-module=capas] .layer-row[data-n="2"] .layer-play')`);
     await sleep(400);
+    // Encima de un himno que suena, también al volver de «Negro» (el dueño vio el 2026-10-25 que el video lo tapaba
+    // y que solo asomaba durante el fundido).
+    if (HAS_FFMPEG) {
+      await run(`return await ${post('projection.show', { kind: 'song', data: { number: 9, track: 'vocal' } })}`);
+      await run(`return await ${post('projection.control', { playing: true })}`);
+      const songOn = await until(`${far}.querySelector('.stage-content .clip-video')`, 15);
+      await sleep(700);
+      const overSong = songOn && await run(`return ${layerOnTop(far, 2)}`);
+      await run(`return await ${post('projection.mode', { mode: 'black' })}`);
+      await sleep(600);
+      await run(`return await ${post('projection.mode', { mode: 'live' })}`);
+      await sleep(900);
+      check('con un himno sonando, el reloj de la capa queda encima, también tras «Negro»', overSong && await run(`return ${layerOnTop(far, 2)}`), `himno al aire: ${songOn}, encima: ${overSong}`);
+      await run(`return await ${post('projection.clear')}`);
+    }
     await run(`return await ${post('layers.clear', { n: 2 })}`);
     await goTo('tiempo');
     await sleep(500);
@@ -2631,6 +2651,22 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
           && await run(`const l = ${layerOf(2)}; const f = l.querySelector('iframe'); return getComputedStyle(f).backgroundColor === 'rgba(0, 0, 0, 0)' && getComputedStyle(l).visibility === 'visible' && getComputedStyle(f).pointerEvents === 'none' && !${layerOf(1)}.querySelector('iframe')`));
         check('la página se carga una vez y Manna le dice que se ve', await until(`document.querySelector('#pantalla').contentWindow.__msgs.some(m => m.capaVisible === true)`, 15) && (await said('capaCargada')).length === 1);
         check('arriba, junto a «Al aire», la pastilla de capas dice que hay 1 encendida', await until(`!${chip}.hidden && ${chip}.textContent.trim() === '1'`, 10) && await run(`return ${chip}.title.includes('Palabra del concurso')`));
+
+        // Encima de todo lo que se proyecte, también de un video o un audio que suenan (con su z-index, el video la tapaba).
+        const lib = await run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ image: s.media.images[0]?.id, slides: s.slides.decks.find(d => d.status === 'ready')?.id, video: s.media.videos[0]?.id, audio: s.media.audios[0]?.id })`).then(JSON.parse);
+        const under = HAS_FFMPEG ? ['testcard', 'image', 'slides', 'video', 'audio'] : ['testcard', 'image', 'slides'];
+        const covered = [];
+        for (const kind of under) {
+          const data = kind === 'testcard' ? {} : { id: lib[kind] };
+          if (kind !== 'testcard' && !lib[kind]) { covered.push(`${kind} (no hay ninguno)`); continue; }
+          await run(`return await ${post('projection.show', { kind, data })}`);
+          if (kind === 'video' || kind === 'audio') await run(`return await ${post('projection.control', { playing: true })}`);
+          const drawn = await until(`${far}.querySelector('.stage-content ${kind === 'video' ? '.clip-view.on-air .clip-video' : kind === 'audio' ? '.clip-view.on-air' : '> *'}')`, 15)
+            && (await run(`return (await (await fetch('/api/state')).json()).projection.item?.kind`)) === kind;
+          await sleep(700); // pasado el fundido: durante él, el video no la tapaba
+          if (!drawn || !await run(`return ${layerOnTop(far, 2)}`)) covered.push(kind);
+        }
+        check('la capa queda encima de una imagen, una presentación, un video y un audio que suenan', covered.length === 0, covered.join(', ') || under.join(', '));
 
         // Lo que está al aire cambia por debajo; la capa sigue y no se recarga, también con «Negro» y «Solo fondo».
         await run(`${layerOf(2)}.querySelector('iframe').dataset.marca = 'sigue'`);

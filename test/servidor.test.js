@@ -463,6 +463,7 @@ test('un archivo HTML se sube, se sirve encerrado y con el puente; lo que no es 
   const served = await fetch(`${main.base}${page.url}`);
   assert.equal(served.status, 200);
   assert.equal(served.headers.get('content-security-policy'), 'sandbox allow-scripts');
+  assert.equal(served.headers.get('content-type'), 'text/html; charset=utf-8', 'las tildes, aunque la página no diga su codificación');
   const body = await served.text();
   assert.ok(body.startsWith(html));
   const bridge = body.slice(html.length);

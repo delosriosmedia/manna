@@ -78,6 +78,7 @@ paths:
 
 ## Detalles que ya dieron problemas
 
+- **Lo que dibuja un tipo no puede subir encima de las capas**: `.stage-content` y cada `.stage-layer` aíslan sus `z-index` (`isolation: isolate`, en `stage.css`). Sin eso, el video (`z-index: 1`) tapaba las capas, salvo durante el fundido de la pantalla, cuando la opacidad lo encerraba (2026-10-25).
 - En la lista de versículos, un clic nunca desplaza la lista (rompería el doble clic). Solo la desplazan el teclado, los botones y las búsquedas.
 - La conexión en tiempo real se suelta en `pagehide` (`web/core/api.js`). Sin eso, tras unas cuantas navegaciones el navegador agota sus seis conexiones por servidor y la app deja de cargar.
 - Dentro de un contenedor flex con desplazamiento, los hijos necesitan `flex-shrink: 0` o los monitores se aplastan.

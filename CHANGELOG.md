@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.38.1 — 2026-10-25
+
+- **Capas**: lo que va en una capa (un reloj, una página) ya se ve encima de un himno o un video que suenan. Antes el video lo tapaba: solo asomaba un momento al encender la pantalla de proyección y se veía cuando el himno terminaba.
+- Una página `.html` subida que no dice su codificación ya muestra bien las tildes.
 - Probado en un Windows de verdad (sin cambios en la app): convertir presentaciones con PowerPoint y con DeckCraft, leer el texto de un PDF hecho de imágenes y actualizar una instalación de la 1.34.
 
 ## 1.38.0 — 2026-10-25

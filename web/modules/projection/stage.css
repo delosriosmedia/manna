@@ -26,6 +26,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Lo de dentro (el video, con z-index) no sale de aquí: si no, tapaba las capas salvo durante el fundido. */
+  isolation: isolate;
 }
 
 .stage-inner {
@@ -90,6 +92,7 @@
   inset: 0;
   pointer-events: none;
 }
+.stage-layer { isolation: isolate; }
 .stage-layer .web-frame { background: transparent; }
 
 /* Puntero del presentador: un punto rojo con halo, como un láser. Su sitio lo pone stage.js. */

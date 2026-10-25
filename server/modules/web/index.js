@@ -143,7 +143,8 @@ export default function setup(app) {
   app.route('GET', '/paginas/:id', (ctx) => {
     let html;
     try { html = fs.readFileSync(fileOf(find(ctx.params.id).id)); } catch { throw new HttpError(404, 'Esa página ya no está.'); }
-    ctx.res.writeHead(200, { 'Content-Type': 'text/html', 'Content-Security-Policy': 'sandbox allow-scripts', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' });
+    // En UTF-8 aunque el archivo no lo diga: si no, el navegador lee las tildes como Windows-1252 («pÃ¡gina»).
+    ctx.res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Security-Policy': 'sandbox allow-scripts', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' });
     ctx.res.end(Buffer.concat([html, Buffer.from(BRIDGE)]));
   });
 
