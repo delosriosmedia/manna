@@ -937,6 +937,52 @@ Lo que la fase 36 tiene que resolver en Manna:
   - las copias en Drive.
 - **39 · Superadministrador** (M): iglesias, administradores, usuarios y métricas; el máximo de órdenes de cada iglesia (20 por defecto, `limit` de su `data/orden.json`; decisión 61).
 
+
+#### Fase 36 · La nube de la iglesia
+
+**Plan detallado (propuesta del 2026-10-25, espera la aprobación del dueño)**
+
+**Meta**: el mismo programa, en «modo nube», primero en `pruebas.manna-iglesia.es` y después en `nv.manna-iglesia.es` (decisión 58). Los usuarios de la iglesia entran con su nombre y su PIN y, en `/preparacion`, preparan sus órdenes y escuchan los himnos con el servidor de la iglesia apagado. Lo preparado llega al equipo de la iglesia en la fase 37 (sincronización); hasta entonces la nube funciona sola. El modo de siempre, en el equipo de la iglesia, no cambia.
+
+**Partes**, cada una con sus pruebas y publicada al cerrarla:
+
+1. **Modo nube** (`MANNA_NUBE=1`):
+   - una entrada `server/inicio.cjs`, porque LiteSpeed carga la aplicación con `require()` (en la prueba del hosting funcionó así);
+   - un servidor `http` corriente en el puerto que da el hosting, que pone él el `https`; sin los puertos 80, 8000 y 443 ni el certificado propio;
+   - sin «Manna ya está abierto» ni «un solo Manna a la vez»: al desplegar, el hosting arranca dos procesos casi a la vez;
+   - sin lo que es del equipo de la iglesia: la proyección y su ventana, los televisores, el túnel, el nombre en la red (mDNS), los programas del equipo (ffmpeg, yt-dlp, DeckCraft, PowerPoint, el navegador), la revisión del equipo, y apagar, reiniciar y actualizar;
+   - **nadie es «el equipo principal»**: toda petición pide ingreso, también la que llegue sin cabeceras de reenvío;
+   - cada iglesia con su carpeta de datos (`MANNA_DATA`), fuera de `public_html`, que sobrevive a los despliegues.
+2. **`/preparacion`**, una función para preparar desde casa, sin escenario ni proyección:
+   - el Orden (los suyos, por semanas y con Favoritos; el administrador, todos);
+   - la Biblia y el Himnario, para añadir al orden, y escuchar un himno antes de añadirlo;
+   - un video de YouTube **por su enlace**: se descarga en la iglesia (fase 37 o 38), porque YouTube bloquea las descargas desde servidores;
+   - de momento, la portada del subdominio lleva a `/preparacion`; la que sabe si el equipo de la iglesia está encendido es de la fase 37.
+3. **El himnario y las biblias en R2**:
+   - un depósito privado con los videos del himnario, sus letras y diapositivas, y las biblias (hoy, unos 5,9 GB: dentro de los 10 GB gratis);
+   - se sube desde este Mac con un guion propio (`scripts/subir-r2.mjs`: la firma de R2 hecha a mano con `node:crypto`, sin dependencias, y solo lo que falta);
+   - la nube guarda en su carpeta de datos las biblias y las letras, que pesan poco y le hacen falta para buscar; los videos los sirve R2 con **enlaces que caducan** (firmados por el servidor, una hora), solo a quien entró;
+   - la nota «uso y estudio personal, investigación y pruebas; no comercial», en el Himnario de `/preparacion` y en el depósito.
+4. **El administrador en línea** (decisión 57): `/administrar`, con usuario y contraseña (guardada con `scrypt`), para crear, cambiar o quitar los usuarios de su iglesia aunque el servidor de la iglesia esté apagado. Los usuarios viven en la nube; el equipo de la iglesia los recibirá en la fase 37.
+5. **Lo que dejó la auditoría, antes de abrir a internet** (decisión 60):
+   - al servir archivos, no seguir un enlace simbólico que salga de su carpeta;
+   - Páginas web no acepta direcciones del propio equipo ni de la red local (en la nube no hay Páginas web);
+   - en la nube no se sube nada (lo subido es de cada iglesia), así que ahí ya no importa el video aceptado por su extensión;
+   - las cookies, con `Secure` detrás del `https` del hosting.
+6. **Desplegar**: `scripts/desplegar.mjs` arma el paquete (solo lo que la nube necesita) y lo sube con el conector de Hostinger, primero a `pruebas.manna-iglesia.es` y, cuando pase, a `nv.manna-iglesia.es`. Cómo se hace y lo que se aprenda queda en una regla nueva, `.claude/rules/nube.md`.
+
+**Pruebas**:
+- automáticas: el modo nube (nadie entra sin ingreso por ser local, sin programas ni proyección, solo `http`), la firma de R2 contra los ejemplos oficiales de AWS, y los permisos de `/preparacion` y `/administrar`;
+- en Chrome, un grupo «nube»: entrar como usuario, preparar un orden, buscar un himno y escucharlo, con un R2 de mentira en este equipo;
+- la auditoría de `/preparacion` y `/administrar` en sus tamaños;
+- y de verdad, en `pruebas.manna-iglesia.es`, desde un celular y desde el PC de Leidy.
+
+**Sin probar al cerrarla**: muchas iglesias a la vez y más de 10 minutos sin visitas (se verá con el uso).
+
+**Lo que hace falta del dueño antes de empezar**:
+- **Activar R2** en Cloudflare: pide una tarjeta en la cuenta aunque no cobre por debajo de 10 GB; eso solo lo puede hacer él. Después, permiso para crear el depósito y su clave de acceso.
+- **Permiso para crear `pruebas.manna-iglesia.es`** (el sitio en Hostinger y su registro en Cloudflare).
+
 ### Fase 40 · Investigación desde cero: funciones especializadas para el celular — en pausa hasta que lo diga el dueño (decisiones 56 y 60)
 
 Decisión 56. El encargo de la fase 19 (cancelada), hecho **otra vez desde cero** cuando el dueño lo pida. No tiene fecha ni va antes de ninguna otra fase.
@@ -1240,7 +1286,7 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 33 DeckCraft | **Partes 1 y 2 hechas** · 2026-10-25 (decisión 51; el dueño pidió seguir tras la medición) | 1.38.0 (parte 2) | Parte 1: 93 de 149 diapositivas idénticas, 54 leves, 2 graves (ver la fase). Parte 2: DeckCraft 0.10.0 como programa del equipo principal (`core/tools.js`, versión fija y huella; «Instalar por mí»), y un PowerPoint lo convierte él si está (`slides/deckcraft.js`: `info` y `render --all`, sin las ocultas, miniaturas en PNG); si no, PowerPoint. Pruebas: `test/deckcraft.test.js` con un DeckCraft de mentira y con el de verdad (también en el Windows de GitHub, que lo descarga en cada versión), presentaciones fabricadas con `scripts/lib/pptx.mjs`, y el paso en Chrome. **Sin probar**: instalarlo y convertir en el equipo de la iglesia. Parte 3: prueba de concepto hecha en este Mac (funciona abrir, empezar y pasar con animaciones; faltan la vista sin presentador y saber en qué diapositiva va); **en espera de la respuesta de DeckCraft** Parte 3: en la hoja de ruta (sección 11); al cerrarse, PowerPoint sale de Manna y con él la S25. |
 | 34 Versículos en una capa y la barra de capas al estilo Dynamic Island | **Hecha** · 2026-10-25 (decisión 54: rehecha al planearla) | 1.40.0 | Parte 1: el tipo `verses` va en una capa (`layer: true`; en la web, `cover`: a pantalla completa con el fondo y el velo de Ajustes, con clases propias que «Negro» y «Solo fondo» no apagan), con «Capa» en la Biblia (Control completo; al comparar, no). Parte 2: la barra de capas como islas que se conservan (`layerSwitches`), con la burbuja que da el tipo (`island(item)`: la cuenta y los botones de un temporizador o un cronómetro) y un muelle sin rebote al aparecer. Pruebas: `test/capas.test.js` (un pasaje en una capa); en Chrome, «Capa» en la Biblia, un pasaje que tapa la presentación al aire y se apaga, y la burbuja del cronómetro; la auditoría con un temporizador en una capa. Fuera de la fase, por decisión del dueño: las capas como pasos del orden. |
 | 35 Usuarios y el Orden rehecho | **Hecha** · 2026-10-25 (decisiones 55 y 59) | 1.41.0 | Parte 1, usuarios: `core/users.js` (nombre, PIN de 4 cifras como huella, funciones, administrador) y módulo `users` (Ajustes → Usuarios); entrar eligiendo el nombre de una lista y escribiendo su PIN; el equipo principal, administrador sin PIN; Ajustes y la conexión por internet, solo del administrador; 5 PIN equivocados bloquean al usuario 15 min; el PIN único de antes pasa al «Administrador»; como mucho 500 sesiones guardadas (lo anotado por la auditoría). Parte 2, cada orden con su dueño: nombre, dueño y fecha desde que se crea (sin orden sin nombre); el estado `orders` se filtra por quien mira (`store.register` con `view`, también en el tiempo real), y lo que cada uno añade va a su orden abierto; el en uso, el de la cola, lo ven todos. Parte 3, el cajón Orden: «Este orden», «Órdenes» por semanas (domingo a sábado) y «Favoritos»; salen el Mapa del culto y «Duplicar» |
-| 36 La nube de la iglesia | **Aprobada** · 2026-10-25 (decisión 55). La prueba del hosting, hecha el mismo día: sirve, con los cambios de la fase (ver la fase) | | `nv.manna-iglesia.es` creado (página de espera), con su registro en Cloudflare |
+| 36 La nube de la iglesia | **Aprobada** · 2026-10-25 (decisión 55). La prueba del hosting, hecha el mismo día: sirve, con los cambios de la fase. **Plan detallado propuesto** el mismo día (ver «Fase 36 · La nube de la iglesia»): espera la aprobación del dueño, R2 activado y el permiso para crear `pruebas.manna-iglesia.es` | | `nv.manna-iglesia.es` creado (página de espera), con su registro en Cloudflare |
 | 37 Sincronización y equipo oficial | **Aprobada** · 2026-10-25 (decisión 55) | | |
 | 38 El himnario en línea en la iglesia y los archivos | **Aprobada** · 2026-10-25 (decisión 55) | | |
 | 39 Superadministrador | **Aprobada** · 2026-10-25 (decisión 55) | | |
