@@ -890,6 +890,30 @@ Pedido del dueño del 2026-10-25: preparar el culto (órdenes, himnos, citas, vi
   - que varios subdominios lleguen a la misma aplicación.
 
   Si algo falla, o cuando haya varias iglesias, un VPS pequeño. Crear el sitio es un paso hacia fuera: se hace con el permiso del dueño.
+- **Una iglesia de pruebas**, `pruebas.manna-iglesia.es`, con sus propios usuarios y su propio equipo oficial (otro equipo del dueño), para probar sin tocar el equipo oficial de Nueva Vida (decisión 56).
+- **La misma versión en todas partes** (decisión 56):
+  - en la nube, un solo programa para todas las iglesias, así que una actualización las pone al día a todas;
+  - el equipo oficial de cada iglesia **se actualiza solo al encender el servidor**, antes de abrirse (16 s en el Windows de pruebas), y nunca mientras está encendido, para no cortar un culto;
+  - la nube no sincroniza con un equipo de una versión anterior.
+- **El administrador de cada iglesia entra en línea** (`nv.manna-iglesia.es/administrar`) con **usuario y contraseña**, aunque el servidor de la iglesia esté apagado, y crea, cambia o quita los usuarios de su iglesia (decisión 56). Los usuarios viven en la nube; el equipo de la iglesia guarda una copia para dejar entrar sin internet.
+
+**Prueba del hosting, hecha el 2026-10-25** en `nv.manna-iglesia.es` (plan Business de Hostinger, Node.js 24, LiteSpeed), con una aplicación mínima que medía lo que necesita Manna:
+
+| Qué | Resultado |
+| --- | --- |
+| Procesos | Uno por subdominio: 10, 40 y 60 peticiones a la vez las atendió el mismo proceso. Un segundo subdominio de la misma aplicación (dominio aparcado) tiene su propio proceso. |
+| Conexión en vivo (SSE) | 3,5 minutos sin cortes: 104 eventos, uno cada 2 s, que llegaron cada 1,9 a 2,1 s (sin acumularse), con 0,1 a 0,2 s de retraso. |
+| Quién llama | El hosting pasa la IP de quien llama (`X-Forwarded-For`) y entrega desde 127.0.0.1: Manna lo trata como de internet y pide PIN. |
+| Datos | En una carpeta fuera del programa (`MANNA_DATA`), sobreviven a un despliegue nuevo. |
+| Subidas | Archivos de 50 y 300 MB, enteros. |
+| Sin uso | Tras 10 minutos sin visitas, el mismo proceso seguía vivo y contestó en 0,4 s. |
+| Certificado | El hosting lo da solo a cada subdominio que apunta a él (en Cloudflare, sin el proxy). |
+
+Lo que la fase 36 tiene que resolver en Manna:
+- **Cómo carga el hosting la aplicación.** LiteSpeed la carga con `require()`, y Manna es un módulo con espera al cargar: hace falta una entrada que lo abra con `import()`.
+- **Cómo abre el puerto.** Espera que la aplicación abra un servidor `http` en sus primeros 3 s, y Manna abre el suyo propio, que atiende `http` y `https` a la vez. En «modo nube» debe abrir un servidor `http` corriente (el hosting ya pone el `https`).
+- **El arranque.** Al arrancar, Manna se cierra si ve otro Manna suyo abierto, y en un despliegue el hosting arranca dos procesos casi a la vez: en «modo nube» eso no debe cerrarlo.
+- **Los datos de cada iglesia.** Como cada subdominio tiene su proceso, cada iglesia tiene su carpeta de datos y solo su proceso la escribe; el superadministrador habla con cada iglesia por su dirección, sin escribir en sus datos.
 
 **Fases** (cada una se planea en detalle al llegar)
 - **35 · Usuarios y el Orden rehecho** (L), en local, sin nube:
@@ -1059,6 +1083,7 @@ Tomadas el 2026-10-04.
 | 53 | Capas desde la barra de abajo (2026-10-25) | Pedido del dueño tras probar las capas: **encenderlas y apagarlas sin abrir el cajón «Capas»**, con botones siempre a la vista abajo. Hecho el mismo día: una ficha por capa con algo junto a «Siguiente» (en el celular, en «Historias»), solo en Control completo, como el cajón. |
 | 54 | Fase 34 rehecha (2026-10-25) | Al planearla: **las capas no se tocan desde el orden del culto**, solo desde «Capas» y la barra de abajo; **los versículos en una capa van con fondo**, a pantalla completa, para tapar un momento la presentación del predicador sin cambiar lo que está al aire; y **la barra de capas, al estilo Dynamic Island**, con una burbuja aparte para los botones de un temporizador o un cronómetro. |
 | 55 | Manna Iglesia en la nube (2026-10-25) | **Se levanta el límite «siempre red local, sin nube»** (el culto sigue sin depender de internet). Un subdominio por iglesia, con `/preparacion`; un solo equipo oficial por iglesia; el himnario y las biblias en **Cloudflare R2**, con la nota de uso personal y no comercial; copias de seguridad en **Google Drive**; la nube en el **hosting de Hostinger**, tras una prueba (un VPS si falla); **usuarios con nombre y PIN**, un **administrador por iglesia** (ve, edita y borra todos sus órdenes) y un **superadministrador**; el equipo oficial entra sin PIN como administrador; el Orden por semanas y con Favoritos, sin el Mapa. Fases 35 a 39. |
+| 56 | Nube: pruebas, versiones y administrador (2026-10-25) | Una **iglesia de pruebas** (`pruebas.manna-iglesia.es`) con su propio equipo oficial; **la misma versión en todas partes**: la nube, un solo programa, y cada equipo oficial se actualiza solo al encender el servidor; el **administrador de cada iglesia entra en línea** con usuario y contraseña, sin el servidor encendido, para gestionar sus usuarios, que viven en la nube. |
 | 56 | Funciones para el celular (2026-10-25) | **Se cancela la fase 19** y se retira su propuesta (las dos versiones). **Se añade la fase 40**: a futuro y sin fecha, la misma investigación otra vez desde cero |
 | 49 | PDF hechos de imágenes (2026-10-18) | Pedido del dueño con un PDF real que Manna rechazaba («no tiene texto»): era de imágenes (hecho con jsPDF). **Se leen con el reconocimiento de texto del sistema** en el equipo principal (Vision en Mac, `Windows.Media.Ocr` en Windows), sin programas de terceros ni modelos de lenguaje propios; cambia lo decidido en la fase 27 (descartar los documentos sin texto) |
 | 48 | YouTube en lote, carpeta de contenido e instalador (2026-10-18) | **Sí a las fases 28, 29 y 30**, en ese orden, con las recomendaciones del asistente y las observaciones del dueño: en la 28, reconocer lo que ya está aunque tenga otro nombre y que el título de YouTube llegue con sus tildes, sin listas de reproducción; en la 29, cambiar la carpeta sin reiniciar y avisar al abrir Manna si no se ha elegido; en la 30, un único archivo con el icono de Manna (`.pkg` en Mac, `.exe` en Windows) que lo hace todo, consola con barra de avance si hace falta, Node.js incluido, sin elegir la carpeta ni firmar |
@@ -1181,7 +1206,7 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 33 DeckCraft | **Partes 1 y 2 hechas** · 2026-10-25 (decisión 51; el dueño pidió seguir tras la medición) | 1.38.0 (parte 2) | Parte 1: 93 de 149 diapositivas idénticas, 54 leves, 2 graves (ver la fase). Parte 2: DeckCraft 0.10.0 como programa del equipo principal (`core/tools.js`, versión fija y huella; «Instalar por mí»), y un PowerPoint lo convierte él si está (`slides/deckcraft.js`: `info` y `render --all`, sin las ocultas, miniaturas en PNG); si no, PowerPoint. Pruebas: `test/deckcraft.test.js` con un DeckCraft de mentira y con el de verdad (también en el Windows de GitHub, que lo descarga en cada versión), presentaciones fabricadas con `scripts/lib/pptx.mjs`, y el paso en Chrome. **Sin probar**: instalarlo y convertir en el equipo de la iglesia. Parte 3: prueba de concepto hecha en este Mac (funciona abrir, empezar y pasar con animaciones; faltan la vista sin presentador y saber en qué diapositiva va); **en espera de la respuesta de DeckCraft** |
 | 34 Versículos en una capa y la barra de capas al estilo Dynamic Island | **Hecha** · 2026-10-25 (decisión 54: rehecha al planearla) | 1.40.0 | Parte 1: el tipo `verses` va en una capa (`layer: true`; en la web, `cover`: a pantalla completa con el fondo y el velo de Ajustes, con clases propias que «Negro» y «Solo fondo» no apagan), con «Capa» en la Biblia (Control completo; al comparar, no). Parte 2: la barra de capas como islas que se conservan (`layerSwitches`), con la burbuja que da el tipo (`island(item)`: la cuenta y los botones de un temporizador o un cronómetro) y un muelle sin rebote al aparecer. Pruebas: `test/capas.test.js` (un pasaje en una capa); en Chrome, «Capa» en la Biblia, un pasaje que tapa la presentación al aire y se apaga, y la burbuja del cronómetro; la auditoría con un temporizador en una capa. Fuera de la fase, por decisión del dueño: las capas como pasos del orden. |
 | 35 Usuarios y el Orden rehecho | **Aprobada** · 2026-10-25 (decisión 55) | | |
-| 36 La nube de la iglesia | **Aprobada** · 2026-10-25 (decisión 55); empieza por la prueba del hosting, con el permiso del dueño para crear el sitio | | |
+| 36 La nube de la iglesia | **Aprobada** · 2026-10-25 (decisión 55). La prueba del hosting, hecha el mismo día: sirve, con los cambios de la fase (ver la fase) | | `nv.manna-iglesia.es` creado (página de espera), con su registro en Cloudflare |
 | 37 Sincronización y equipo oficial | **Aprobada** · 2026-10-25 (decisión 55) | | |
 | 38 El himnario en línea en la iglesia y los archivos | **Aprobada** · 2026-10-25 (decisión 55) | | |
 | 39 Superadministrador | **Aprobada** · 2026-10-25 (decisión 55) | | |
@@ -1543,6 +1568,7 @@ Las sugerencias S9 a S11 son del televisor: quedan para el final de todo, cuando
 
 | # | Sugerencia | Por qué | Qué cambiaría |
 | --- | --- | --- | --- |
+| S49 | **Una versión nueva llega primero a la iglesia de pruebas** y pasa a todas con un botón del superadministrador | Con la actualización automática (decisión 56), un fallo llegaría a todas las iglesias a la vez | La nube y los equipos oficiales siguen la versión que diga la nube, no la última de GitHub: `pruebas` recibe la candidata y las demás la reciben al aprobarla |
 | S48 | **Avisar al proyectar una página que va en su propia ventana con una capa a la vista** (Kahoot y otras que no se dejan mostrar dentro de Manna) | Esa ventana tapa las capas, como PowerPoint en vivo, y hoy no se avisa (problema conocido en `docs/ESTADO.md`) | Al ponerla al aire con una capa encendida, sus mandos dirían «Hay una capa a la vista: la página la tapa» y ofrecerían apagar las capas |
 | S9 | Encender y apagar el televisor desde Manna | Su control por red lo permite (encendido por red y tecla de apagado). No se incluyó para no apagar un televisor por error ni probarlo sin el dueño delante | Dos botones en la tarjeta del televisor. Pequeño; se haría tras la prueba del dueño |
 | S10 | Fase 7: enviar un video de YouTube directamente al televisor | El televisor anuncia su aplicación de YouTube en la red (se vio al explorarlo). Serviría para que el video lo reproduzca el propio televisor, sin pasar por su navegador | Se estudiaría en la fase 7; no cambia el plan todavía |
