@@ -208,7 +208,8 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
           fs.mkdirSync(tmpDir, { recursive: true });
           app.port = ports[i];
           app.secure = Boolean(secure);
-          if (app.port === 80) {
+          // En la nube, un solo puerto: el hosting (Passenger) toma el primero que se abre y no espera otros.
+          if (app.port === 80 && !cloud) {
             if (await listenAlso(ALT_PORT, secure)) app.altPort = ALT_PORT;
             if (secure && await listenAlso(SECURE_PORT, secure)) app.securePort = SECURE_PORT;
           }

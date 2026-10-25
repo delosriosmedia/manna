@@ -7,7 +7,7 @@ Repositorio: https://github.com/delosriosmedia/manna
 ## Antes de empezar a trabajar
 
 1. Lee `docs/ESTADO.md`: qué funciona, qué falta probar y qué sigue. El trabajo en curso sigue `docs/PLAN.md`, fase a fase.
-2. Las reglas detalladas están en `.claude/rules/` (arquitectura, servidor, web, biblias, pruebas, documentación).
+2. Las reglas detalladas están en `.claude/rules/` (arquitectura, servidor, web, biblias, pruebas, documentación y la nube).
 3. Antes de tocar cualquier pantalla, lee `DESIGN.md`: el sistema de diseño de la interfaz.
 
 ## Comandos
@@ -21,6 +21,7 @@ Repositorio: https://github.com/delosriosmedia/manna
 - Pruebas de extremo a extremo en un Chrome real: `node scripts/probar-chrome.mjs` (tres grupos a la vez, unos 4 min; con un nombre, solo ese grupo: `control`, `biblioteca` o `red`; `rapido` se salta los pasos 2 a 4). Usa los puertos 8123, 8125, 8131 y 8133: cierra antes la demostración **y su pestaña** (también la del navegador integrado; ver `.claude/rules/pruebas.md`)
 - Auditoría de adaptación a pantallas (celular, tableta, escritorio): `node scripts/auditar-responsive.mjs` (unos 4 min; con palabras, solo esas pantallas y tamaños: `… biblia 360x640 844x390 1280x720`; con `grande`, con la interfaz al tamaño máximo de Ajustes)
 - Los guiones de pruebas en Chrome (`scripts/lib/chrome.mjs`, usan el `WebSocket` integrado) necesitan **Node.js 22 o superior**.
+- La nube: `node scripts/subir-r2.mjs` sube a R2 el himnario y las biblias que falten (claves en `~/.manna-r2`); `node scripts/desplegar.mjs probar` arma el paquete del hosting y lo prueba como lo abrirá. Cómo se despliega: `.claude/rules/nube.md`
 - Cuántas pruebas correr y cuándo (en cada edición, al terminar un cambio, al cerrar una parte): `.claude/rules/pruebas.md`
 - Demostración con un orden del culto de ejemplo y datos temporales: `node scripts/demo.mjs` (puerto 8123). Con ella, `/vista-previa` muestra la app en el marco de un celular o una tableta. En modo nube (Preparar el culto y Administrar la iglesia, con la clave de alta `clave-de-prueba`): `MANNA_NUBE=1 MANNA_CLAVE_ALTA=clave-de-prueba PORT=8141 node scripts/demo.mjs`
 

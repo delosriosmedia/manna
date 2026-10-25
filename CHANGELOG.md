@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- Para quien despliega la nube: `scripts/desplegar.mjs` arma el paquete del hosting y, con `probar`, lo abre como lo abrirá el hosting antes de subirlo. En la nube, Manna abre un solo puerto.
+
 ## 1.45.0 — 2026-10-25
 
 - **El himnario y las biblias, en la nube** (fase 36, parte 3): están en un depósito privado de Cloudflare R2. En «Preparar el culto», el Himnario los lee de ahí, y «Escuchar» trae el himno con un enlace que dura una hora, solo para quien entró. El Himnario de la nube lleva la nota «uso y estudio personal, investigación y pruebas; no comercial».

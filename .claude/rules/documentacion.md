@@ -20,6 +20,7 @@
 | Formatos o limpieza de biblias | `.claude/rules/biblias.md` y `Contenido/Biblias/LEEME.txt` |
 | Qué pone cada iglesia y en qué formato | `Contenido/LEEME.txt`, el `LEEME.txt` de la subcarpeta y `README.md` ("La carpeta de tu iglesia") |
 | Una idea, una sugerencia o un pendiente nuevo | `docs/PLAN.md`, sección 11, en el grupo que le toque: es la única lista (decisión 60) |
+| La nube: el hosting, cómo se despliega o lo aprendido | `.claude/rules/nube.md` |
 | Un procedimiento repetible | La skill en `.claude/skills/` |
 | Algo queda sin probar o con un problema conocido | `docs/ESTADO.md` |
 | El dueño toma una decisión o fija un límite | `CLAUDE.md` (límites) o `docs/ESTADO.md` (decisiones) |
