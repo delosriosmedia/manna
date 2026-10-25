@@ -85,4 +85,4 @@ Si hay un Windows de pruebas por SSH (ver `CLAUDE.local.md`), lo que solo pasa e
 
 ## Honestidad al informar
 
-Decir explícitamente qué se probó y qué no. Lo que no se pueda probar en el equipo de desarrollo (segunda pantalla, Windows, celular real) se anota en la tabla "Probado y sin probar" de `docs/ESTADO.md`.
+Decir explícitamente qué se probó y qué no. Lo que no se pueda probar en el equipo de desarrollo (segunda pantalla, Windows, celular real) se anota en la tabla "Probado y sin probar" de `docs/ESTADO.md` y se prueba en el PC de Leidy, el equipo oficial de `pruebas.manna-iglesia.es` (decisión 60; ver «En un Windows de pruebas»).

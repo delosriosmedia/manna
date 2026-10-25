@@ -76,6 +76,8 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 ## Probado y sin probar
 
+Desde el 2026-10-25 (decisión 60), lo que esta tabla da por «sin probar» en el equipo de la iglesia o en Windows se prueba en el PC de Leidy, el equipo oficial de la iglesia de pruebas (`pruebas.manna-iglesia.es`), con su segunda pantalla. El equipo de la iglesia será el oficial de `nv.manna-iglesia.es` y no hace falta probar nada solo en él.
+
 | Área | Estado |
 | --- | --- |
 | Interfaz: Biblia, orden del culto (desplegar, recoger, nombre propio), ajustes, dispositivos, versión junto al logo y permisos del rol "Control del orden" | Probado con **165 pruebas automáticas** (`npm test`), **446 comprobaciones en Chrome real** (`scripts/probar-chrome.mjs`, en tres grupos a la vez) y **la auditoría de 9 tamaños sin problemas** (`scripts/auditar-responsive.mjs`), el 2026-10-16, ya con el escenario: cola, «Preparado», cajón, mandos, «Buscar en todo», comparar y «Varios», Mapa del culto, ficha del himno, secciones de Ajustes y, en celular, «Historias» |
@@ -186,12 +188,12 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 - **Una página web que va en su propia ventana** (las que no se dejan mostrar dentro de Manna, como Kahoot) tapa las capas mientras está al aire, y Manna no lo avisa. Lo que se propuso en `docs/capas-y-paginas-transparentes.md` (avisar al proyectarla con una capa a la vista) no está hecho.
 
-- **Lo que dejó anotado la auditoría (fase 9, 2026-10-16)**, de poco riesgo en la red de una iglesia: las sesiones de la pantalla de proyección se guardan sin límite de número; un enlace simbólico dentro de una carpeta de contenido se sigue al servir archivos; Páginas web acepta direcciones del propio equipo (las usan las pruebas); sin ffmpeg, un video subido se acepta por su extensión. En el código quedan duplicados menores que no compensa tocar sin una razón (los diálogos de nombre y borrar en Medios, Diapositivas y Páginas web, cada uno con sus textos; el envío de arrastres de `projection/picture.js`, que podría usar `web/core/sender.js`, y que funciona; dos líneas iguales en Himnario y Medios para notar que se instaló ffmpeg) y algunos colores y radios sueltos en las hojas de estilo. El 2026-10-16, tras revisar el grafo del proyecto (graphify), se unificó lo que era idéntico: `nameFromFile` (`web/core/names.js`), las direcciones de las diapositivas (`web/modules/slides/deck.js`), `cleanName` en el orden del culto, `plainAddress` en el tiempo real y `LOOPBACK`, y se quitó una función sin usar.
+- **Lo que dejó anotado la auditoría (fase 9, 2026-10-16)**, de poco riesgo en la red de una iglesia: las sesiones de la pantalla de proyección se guardan sin límite de número; un enlace simbólico dentro de una carpeta de contenido se sigue al servir archivos; Páginas web acepta direcciones del propio equipo (las usan las pruebas); sin ffmpeg, un video subido se acepta por su extensión. En el código quedan duplicados menores que no compensa tocar sin una razón (los diálogos de nombre y borrar en Medios, Diapositivas y Páginas web, cada uno con sus textos; el envío de arrastres de `projection/picture.js`, que podría usar `web/core/sender.js`, y que funciona; dos líneas iguales en Himnario y Medios para notar que se instaló ffmpeg) y algunos colores y radios sueltos en las hojas de estilo. El 2026-10-16, tras revisar el grafo del proyecto (graphify), se unificó lo que era idéntico: `nameFromFile` (`web/core/names.js`), las direcciones de las diapositivas (`web/modules/slides/deck.js`), `cleanName` en el orden del culto, `plainAddress` en el tiempo real y `LOOPBACK`, y se quitó una función sin usar. **Pasa a las fases 35 y 36** (decisión 60).
 - **YouTube falló en el equipo Windows** (visto por el dueño el 2026-10-16 con la 1.14). Corregido sin probar en Windows (parte 1 de la fase 14): yt-dlp usa el Node de Manna como intérprete de JavaScript (probado en el Mac con `--no-js-runtimes --js-runtimes node:…`: YouTube entrega 1080p), el motivo exacto de un fallo va a `manna.log`, y «Actualizar» ya no deja sin yt-dlp si el nuevo no arranca. Si vuelve a fallar, el registro dirá por qué.
 - **Prueba de Chrome que a veces falla sola**: «al dejar de reproducirse se termina la copia, y llega a lo que está en pantalla sin interrumpirlo» (Medios, videos) falló una vez el 2026-10-14 y pasó al repetir sin cambiar nada. Parece cuestión de tiempos de la prueba; sin investigar.
 - **Prueba automática que falló una vez**: «lo que el navegador ya tiene no se vuelve a enviar, y un archivo cambiado sí» falló una vez el 2026-10-14 y pasó en las dos siguientes. Probablemente el archivo cambia dentro del mismo milisegundo y su huella (tamaño y fecha) no cambia. Sin investigar.
 - **Un archivo borrado justo mientras Manna lo está mirando** (menos de un segundo tras descargarlo de YouTube o reintentarlo) puede dejar un aviso de conversión fallida en la cola del culto. Se quita con su aspa.
-- **Citas de un documento sin medir con sermones nuevos** (fase 27, parte 1): el 2026-10-18 el dueño dijo haber copiado sermones nuevos, pero en «Bosquejos temporales» seguían los mismos once documentos con los que se calibró. Hace falta pasar por el detector 3 o 4 que no haya visto y revisarlos cita por cita; lo que falle se corrige y pasa a prueba con una frase inventada. Tampoco se ha probado un PDF a dos columnas (puede mezclar las líneas), y una cita escrita en palabras («Juan tres dieciséis») no se reconoce. La primera búsqueda carga todas las biblias en memoria: unos 106 MB con 14 versiones (sin medir en el equipo de la iglesia).
+- **Citas de un documento sin medir con sermones nuevos** (fase 27, parte 1): el 2026-10-18 el dueño dijo haber copiado sermones nuevos, pero en «Bosquejos temporales» seguían los mismos once documentos con los que se calibró. Hace falta pasar por el detector 3 o 4 que no haya visto y revisarlos cita por cita; lo que falle se corrige y pasa a prueba con una frase inventada. Tampoco se ha probado un PDF a dos columnas (puede mezclar las líneas), y una cita escrita en palabras («Juan tres dieciséis») no se reconoce. La primera búsqueda carga todas las biblias en memoria: unos 106 MB con 14 versiones (sin medir en el equipo de la iglesia). **En pausa** (decisión 60): hasta hoy funciona bien; si un documento da problemas, el dueño trae esos casos.
 - **Prueba automática que falló dos veces en el Windows de GitHub** (1.37.0 y 1.39.0; al repetirla, pasó): «PowerPoint en vivo: … si alguien la pasa en el equipo, los demás lo ven» (`test/diapositivas.test.js`). Causa probable: el PowerPoint de mentira podía leer vacío, mientras se escribía, el archivo con el que la prueba simula que alguien pasa la diapositiva, y lo tomaba como la 0. Corregido el 2026-10-25 (sin publicar): si lo lee vacío, espera a la siguiente vuelta. Si vuelve a fallar, la causa es otra.
 - **Cancelar la conversión de un PowerPoint en Windows** corta el guion de PowerShell y puede dejar PowerPoint abierto sin ventana. Sin probar (no hay Windows en el equipo de desarrollo).
 
@@ -249,6 +251,7 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 ## Decisiones tomadas
 
+- **2026-10-25 · Lo pendiente, en cuatro grupos** (decisión 60): todo lo pendiente vive en `docs/PLAN.md`, sección 11 (hoja de ruta, listas para hacer, tareas del dueño, y en pausa o a futuro), sin otras listas de ideas. Se eliminan S10, S11 y Electron; las pruebas en un equipo real, en el PC de Leidy con `pruebas.manna-iglesia.es`; la 2.0 será la primera versión de la nube.
 - **2026-10-25 · Cómo se entra y el orden sin nombre** (decisión 59, al planear la fase 35): se entra siempre eligiendo el nombre de una lista; el orden sin nombre desaparece (todo orden tiene nombre y dueño desde que se crea); la cola del culto muestra a todos los que operan el orden que está en uso (solo lo editan su dueño o el administrador); Ajustes, solo para el administrador.
 - **2026-10-25 · Versiones por etapas** (decisión 58): una versión nueva llega primero a la iglesia de pruebas y pasa a todas con un botón del superadministrador.
 - **2026-10-25 · Nube: pruebas, versiones y administrador** (decisión 57): una iglesia de pruebas (`pruebas.manna-iglesia.es`) con su propio equipo oficial; la misma versión en todas partes (cada equipo oficial se actualiza solo al encender el servidor); el administrador de cada iglesia entra en línea con usuario y contraseña para gestionar sus usuarios.
@@ -262,7 +265,7 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 - **2026-10-18 · Instalador** (fase 30): el `.exe` de Windows se compila en un Windows de GitHub, con archivos de prueba livianos; en Mac, un `.pkg`.
 - **2026-10-18 · PDF hechos de imágenes** (decisión 49): sí se leen, con el reconocimiento de texto del propio sistema (Mac y Windows), en vez de descartarlos como se decidió para la fase 27.
 - **2026-10-18 · YouTube en lote, carpeta de contenido e instalador** (decisión 48): sí a las fases 28, 29 y 30, con las observaciones del dueño (en `docs/PLAN.md`).
-- **2026-10-18 · Citas de un texto o documento** (decisión 47): sí a la fase 27 (I1 e I2 de `docs/ideas.md`), con todas las recomendaciones del asistente. Las decisiones están en la bandeja de ideas y la fase, en `docs/PLAN.md`.
+- **2026-10-18 · Citas de un texto o documento** (decisión 47): sí a la fase 27 (I1 e I2; su investigación, en `docs/citas-de-documentos.md`), con todas las recomendaciones del asistente. Las decisiones están en la bandeja de ideas y la fase, en `docs/PLAN.md`.
 - **2026-10-18 · Barra de arriba y Ajustes** (decisión 46, fase 26): la marca con la versión a la izquierda (el logo abre Ajustes, que sale del dock; cambiar de función, en un botón aparte), «Al aire» al centro en su burbuja, «Solo fondo» y «Negro» como iconos junto a la marca, el wifi y el QR que se abren en su sitio, fundidos cortos en lo que se abre, el tamaño de la interfaz por dispositivo (de como estaba a un 8 % más, sin números) y borrar lo subido por categoría con doble confirmación. La versión nueva se busca cada hora, y a mano desde Ajustes. **Regla nueva**: las pruebas largas tienen tiempo máximo y quien las lanza las vigila (en `CLAUDE.md`).
 - **2026-10-17 · Aviso de versión nueva** (decisión 45): Manna mira cada 20 minutos (cada hora desde la 1.31) en GitHub si hay una versión nueva y, solo entonces, lo avisa con un botón que abre el instalador. Es una excepción más a «nada de internet» (en `CLAUDE.md`).
 - **2026-10-17 · Medios en un solo cajón y órdenes guardados** (decisión 43): se aplaza la fase 19. Con prioridad, la fase 22 (Videos vuelve a Medios, todo en un mismo cajón con categorías a las que se arrastra) y la 23 (varios órdenes del culto guardados); después, la 21.
@@ -325,28 +328,7 @@ Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver
 
 ## Decisiones pendientes del dueño
 
-### 0. Sugerencias al plan de la versión 2
-
-En `docs/PLAN.md`, sección 11.
-
-### 0 ter. Bandeja de ideas (`docs/ideas.md`)
-
-Ideas del dueño aún sin compromiso. **I1 e I2** (citas de un texto pegado o de un documento Word o PDF al orden) ya están hechas: fase 27, 1.32.0. Ninguna otra idea pendiente.
-
-### 1. Instaladores compilados (aplazada)
-
-Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron**. Los dispositivos remotos seguirían entrando por navegador. Aplazada el 2026-10-03: se revisará más adelante si es momento de crear compilaciones.
-
-- Incluye su propio navegador y Node: desaparecen los requisitos de Chrome y Node.js.
-- Abre la proyección en la segunda pantalla con funciones nativas, sin Chrome ni `osascript`/PowerShell, y puede impedir que el equipo se duerma.
-- Entregables: instalador `.exe` para Windows (puede crear las reglas del Firewall porque se ejecuta como administrador) y `.dmg` para Mac.
-- El desarrollo diario no cambia: `node server/index.js` y `npm test`. Electron solo interviene al empaquetar.
-- Costes: instaladores de unos 100 MB; añade dependencias de empaquetado (requiere levantar el límite "sin dependencias" para esa parte); el instalador de Windows se compilaría en GitHub Actions; sin certificados de pago, Windows y macOS muestran una advertencia la primera vez.
-- Las biblias pasarían a una carpeta visible del usuario (por ejemplo `Documentos/Manna/Biblias`) con un botón para abrirla.
-
-### 2. Otras
-
-- Licencia del repositorio (hoy no tiene ninguna).
+Todo lo pendiente, también lo que decide el dueño (la licencia del repositorio), está en `docs/PLAN.md`, sección 11, en cuatro grupos (decisión 60). No hay bandeja de ideas aparte: `docs/ideas.md` se borró y la investigación de las citas quedó en `docs/citas-de-documentos.md`.
 
 ## Próximos pasos
 
@@ -358,10 +340,9 @@ Propuesta: empaquetar el servidor como aplicación de escritorio con **Electron*
 - **Fases 28 a 30** (YouTube en lote, carpeta de contenido, instalador de un solo archivo): aprobadas el 2026-10-18 (decisión 48). Hechas la 28 (1.33.0), la 29 (1.34.0) y la 30 (1.35.0).
 - **Lo que sigue**: las fases 35 a 39, Manna Iglesia en la nube (decisión 55). La prueba del hosting está hecha (2026-10-25): el hosting sirve, con los cambios que pide la fase 36; `nv.manna-iglesia.es` existe, con una página de espera. La 35 (usuarios y el Orden rehecho), que no depende de la nube, va por partes: hecha la 1 (usuarios, sin publicar); siguen la 2 (cada orden con su dueño) y la 3 (el cajón Orden por semanas, con Favoritos y sin el Mapa). Siguen pendientes las pruebas del dueño en la iglesia (fase 9, para la 2.0); la 3 (televisores), en pausa hasta el final, y la 40 (funciones para el celular, desde cero), a futuro.
 - **Fase 19** (funciones especializadas para el celular): cancelada el 2026-10-25 (decisión 56); su propuesta se retiró. La misma investigación se hará otra vez desde cero, a futuro (fase 40).
-- **Fase 9** (auditoría, sección 8 de `docs/PLAN.md`): hecha la parte de código (1.18.0); la del equipo real son las pruebas del dueño, y al pasarlas se publica la 2.0.
-- **Pruebas del dueño en el equipo real**: la lista, con lo que falta de cada versión, está en una página con casillas (https://claude.ai/artifact/LFoR7BN5hs5ZffgvdbrMJg, privada del dueño). Es solo una comodidad: lo que resulte se pasa a la tabla «Probado y sin probar» de este documento, que es el registro. Cubre instalar y actualizar en Windows, la revisión del equipo, el Firewall, el proyector, el PIN, el sonido, un video 4K, el Himnario y las letras sin música, Páginas web (Canva, Kahoot), PowerPoint convertido y en vivo con el punto rojo, el Presentador, YouTube, Ajustes (disco y subtítulos), la conexión por internet, celulares reales (Alabanza, Presentador, Escuchar, cajón) y Medios. Fuera de la página quedan `manna.local` con un router real y celulares Android antiguos.
+- **Pruebas en un equipo real** (decisión 60): en el PC de Leidy, con `pruebas.manna-iglesia.es`, cuando exista la iglesia de pruebas. Sustituyen a la parte del equipo real de la fase 9; al pasarlas sale la 2.0, la primera versión de la nube. La página con casillas de las pruebas en la iglesia ya no se usa.
 - **Reiniciar el Manna que esté abierto** (aviso «Manna se actualizó» → «Reiniciar ahora») para que valga la corrección de seguridad, y **cambiar el PIN** del administrador en Ajustes → Usuarios: eso cierra las sesiones que se abrieron por el túnel sin PIN. Después, **encender la conexión por internet en Ajustes** (el dominio propio que ya había se conserva) y dejar de usar los antiguos «Conectar Internet», que ya no existen.
-- **Televisores: al final de todo** (decisión 35). Al llegar, recordarle al dueño todo lo de este punto: la pausa (decisión 19), las sugerencias S9 a S11 y este diagnóstico. **Al retomarlo**, lo primero es el diagnóstico: con Manna abierto, escribir la dirección en el navegador del televisor y mirar en su tarjeta (módulo Televisores) cómo dice Manna que llegó. Si no llegó de ninguna forma, el problema está antes de Manna (el televisor o la red); si llegó y cortó la conexión segura, es el certificado.
+- **Televisores: al final de todo** (decisión 35). Al llegar, recordarle al dueño todo lo de este punto: la pausa (decisión 19), la sugerencia S9 (S10 y S11 se eliminaron, decisión 60) y este diagnóstico. **Al retomarlo**, lo primero es el diagnóstico: con Manna abierto, escribir la dirección en el navegador del televisor y mirar en su tarjeta (módulo Televisores) cómo dice Manna que llegó. Si no llegó de ninguna forma, el problema está antes de Manna (el televisor o la red); si llegó y cortó la conexión segura, es el certificado.
 
 ## Entorno de desarrollo
 

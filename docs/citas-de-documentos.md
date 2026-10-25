@@ -1,10 +1,10 @@
-# Bandeja de ideas
+# Citas de un texto o documento al orden del culto
 
-Ideas del dueño para más adelante, todavía sin compromiso. **No son el plan**: aquí se anotan como llegan y se van puliendo (qué se quiere, para qué, qué hay ya en Manna, qué falta decidir). Cuando una está madura pasa a `docs/PLAN.md` como cambio sugerido (sección 11), y solo entra como fase cuando el dueño la aprueba.
+Lo que se investigó antes de la fase 27 (decisión 47): las ideas del dueño I1 (pegar muchas citas de una vez) e I2 (sacarlas de un documento Word o PDF), que estaban en la antigua bandeja de ideas. Desde la 1.32.0 están en Manna (`server/modules/bible/citas.js`, `web/core/documentos.js` y `web/modules/order/citas.js`); cómo funciona hoy, en `.claude/rules/arquitectura.md` («Citas de un texto o documento»).
 
-Estados: **cruda** (recién anotada), **en desarrollo** (con preguntas en curso), **lista** (para proponerla al plan), **al plan** (ya es una sugerencia o una fase; se deja aquí el enlace), **hecha** (ya está en Manna).
+## Lo que pidió el dueño
 
-## I1 · Varias citas de una vez al orden del culto
+### I1 · Varias citas de una vez al orden del culto
 
 **Estado**: hecha · 2026-10-18: **fase 27** de `docs/PLAN.md` (decisión 47), junto con I2, en la 1.32.0
 
@@ -14,7 +14,7 @@ Estados: **cruda** (recién anotada), **en desarrollo** (con preguntas en curso)
 
 **Lo que ya hay**: la cita rápida del Orden añade una cita (`quickAdd` en `web/modules/order/workspace.js`), con el reconocimiento de citas del servidor (`parseReference` en `server/modules/bible/reference.js`). Ese lector sirve para una cita escrita a propósito, pero **no para un texto libre**: acepta el principio de cualquier nombre («es» → Esdras) y no mira lo que rodea al número.
 
-## I2 · Sacar las citas de un documento Word o PDF
+### I2 · Sacar las citas de un documento Word o PDF
 
 **Estado**: hecha · 2026-10-18: **fase 27** de `docs/PLAN.md` (decisión 47), junto con I1, con quien comparte el detector y la lista para revisar, en la 1.32.0
 
@@ -22,19 +22,7 @@ Estados: **cruda** (recién anotada), **en desarrollo** (con preguntas en curso)
 
 **Decidido por el dueño (2026-10-18)**: un documento sin texto (un PDF escaneado, una foto del papel) se descarta con un aviso; no se intenta leer. Lo importante es que el detector distinga bien qué es una cita y qué no, sin errores.
 
-## I3 · La hora permanente en la pantalla de proyección
-
-**Estado**: al plan · 2026-10-24: **fase 32** de `docs/PLAN.md`, en una capa (fase 31)
-
-**Qué**: poner la hora en la pantalla de proyección de forma permanente: en una esquina, centrada o donde se elija, muy sutil pero visible (nota de voz del dueño, 2026-10-24).
-
-## I4 · Temporizador para las actividades
-
-**Estado**: al plan · 2026-10-24: **fase 32** de `docs/PLAN.md`, con el cronómetro
-
-**Qué**: un módulo de temporizador para contar el tiempo que le queda a cada actividad, con un título de lo que se cuenta y que se vea grande (nota de voz del dueño, 2026-10-24).
-
-## Investigación de I1 e I2 (2026-10-18)
+## La investigación (2026-10-18)
 
 **Conclusión: viable, sin programas ni dependencias nuevas y sin modelos de lenguaje.** Un prototipo lo comprobó con textos de prueba y lo calibró con once documentos reales de la iglesia (abajo). Desde la fase 27 está en Manna (`server/modules/bible/citas.js`, `web/core/documentos.js`) y el prototipo se borró; sus casos y textos inventados son `test/datos/citas/`.
 
