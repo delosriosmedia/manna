@@ -856,6 +856,57 @@ Pedido del dueño del 2026-10-24, rehecho el 2026-10-25 (decisión 54) al planea
 
 **Partes**: 1, versículos en una capa; 2, la barra al estilo Dynamic Island. **Tamaño**: M.
 
+### Fases 35 a 39 · Manna Iglesia: preparar desde casa, y para varias iglesias — aprobadas (decisión 55)
+
+Pedido del dueño del 2026-10-25: preparar el culto (órdenes, himnos, citas, videos) sin esperar a encender el servidor de la iglesia, y que Manna sirva a otras iglesias sin ir a instalarlo en persona. **El culto sigue sin depender de internet**: el equipo oficial de cada iglesia funciona igual sin conexión.
+
+**Cómo queda**
+- **Un subdominio por iglesia**, que crea el dueño (Nueva Vida: `nv.manna-iglesia.es`). Su portada sabe si el equipo oficial de esa iglesia está encendido:
+  - encendido: lleva a él, por la red local si la persona está en la iglesia, o desde fuera por el túnel de Cloudflare si esa iglesia lo activó;
+  - apagado: lo dice y ofrece `/preparacion`.
+- **`/preparacion`**: los usuarios de esa iglesia preparan sus órdenes y escuchan los himnos.
+- **Un solo equipo oficial por iglesia.** Instalar en otro equipo avisa de que el primero dejará de recibir lo preparado; si se confirma, el nuevo pasa a ser el oficial y el anterior queda inhabilitado, salvo que vuelva a reclamarse.
+- **Instalar desde el subdominio**: el instalador sale emparejado con esa iglesia; luego Manna instala ffmpeg, yt-dlp y DeckCraft como hoy. El himnario completo en el equipo es opcional.
+- **El himnario y las biblias, en Cloudflare R2** (gratis hasta 10 GB y sin coste por descargas), con enlaces que caducan y solo para iglesias con ingreso, y la nota «uso y estudio personal, investigación y pruebas; no comercial».
+  - En la iglesia, un himno se baja al momento a una carpeta temporal que se vacía sola, y los del orden se bajan por adelantado al sincronizar.
+  - Las biblias se bajan siempre al equipo (66 MB).
+- **Solo en el equipo de cada iglesia**: lo subido desde el computador o el celular, y lo bajado de YouTube. En la nube, un video de YouTube va solo como enlace (YouTube bloquea las descargas desde servidores) y se baja al encender el servidor de la iglesia.
+- **Copias de seguridad** de la nube en Google Drive (cuenta de Los Ríos Multimedia).
+- **Usuarios**:
+  - el **superadministrador** de todo Manna Iglesia (`admin.manna-iglesia.es`): iglesias, administradores, usuarios y métricas;
+  - el **administrador de cada iglesia**: ve, edita y borra todos los órdenes de su iglesia, y gestiona sus usuarios;
+  - los **usuarios**, con nombre y PIN: ven y editan solo sus órdenes. Cada orden tiene un dueño: sin copias ni conflictos.
+
+  En el equipo oficial, el Control completo entra sin PIN como el administrador de la iglesia; la proyección y los televisores, sin ingreso.
+- **La nube corre en el hosting de Hostinger del dueño** («Unlimited Web Hosting», con Node.js). Primero, una **prueba de un día**:
+  - que aguante la conexión en vivo (SSE);
+  - que los datos sobrevivan a una actualización del programa;
+  - que deje subir archivos grandes;
+  - que varios subdominios lleguen a la misma aplicación.
+
+  Si algo falla, o cuando haya varias iglesias, un VPS pequeño. Crear el sitio es un paso hacia fuera: se hace con el permiso del dueño.
+
+**Fases** (cada una se planea en detalle al llegar)
+- **35 · Usuarios y el Orden rehecho** (L), en local, sin nube:
+  - usuarios con nombre y PIN, el administrador de la iglesia y cada orden con su dueño;
+  - el cajón Orden con los guardados por semana (esta semana arriba, las anteriores debajo, y borrar los que ya no sirven) y una pestaña Favoritos para los que se repiten;
+  - sale el «Mapa del culto».
+- **36 · La nube de la iglesia** (L):
+  - la prueba del hosting;
+  - Manna en «modo nube» (sin proyección, sin programas del equipo, sin anunciarse en la red y siempre con ingreso), en `nv.manna-iglesia.es/preparacion`;
+  - el himnario y las biblias en R2;
+  - YouTube por enlace.
+- **37 · Sincronización y equipo oficial** (L):
+  - emparejar al instalar;
+  - el equipo oficial y el aviso del segundo;
+  - sincronizar usuarios, órdenes y biblioteca: de fondo y en vivo mientras los dos están encendidos, sin que la iglesia espere nunca a la nube;
+  - la portada del subdominio.
+- **38 · El himnario en línea en la iglesia y los archivos** (M):
+  - bajar por adelantado los himnos del orden, con la carpeta temporal, y el himnario completo como opción;
+  - los archivos que van y vienen, en cola por prioridad y con descargas que se reanudan;
+  - las copias en Drive.
+- **39 · Superadministrador** (M): iglesias, administradores, usuarios y métricas.
+
 ### Fase 13 · Rediseño «Escenario» de la interfaz de control
 
 Decisión 32. El diseño se aprobó sobre un lienzo de prototipos navegables (https://claude.ai/artifact/J1nL2fMbgmB3wiUgVZKJW4, privado del dueño). Lo que hace falta para construirlo está aquí; al empezar, `DESIGN.md` se reescribe con ello.
@@ -994,6 +1045,7 @@ Tomadas el 2026-10-04.
 | 52 | DeckCraft y Capas (2026-10-24) | **Sí al camino B** de la fase 33: compilar en GitHub una copia propia de la versión web de DeckCraft, solo si sus autores no aceptan la mejora en una o dos semanas. **Proponerles ya las mejoras** (hecho el mismo día: issues 1346 y 1347 y comentarios en la 714 y la 100 de su repositorio). **El cajón «Capas», solo en Control completo** |
 | 53 | Capas desde la barra de abajo (2026-10-25) | Pedido del dueño tras probar las capas: **encenderlas y apagarlas sin abrir el cajón «Capas»**, con botones siempre a la vista abajo. Hecho el mismo día: una ficha por capa con algo junto a «Siguiente» (en el celular, en «Historias»), solo en Control completo, como el cajón. |
 | 54 | Fase 34 rehecha (2026-10-25) | Al planearla: **las capas no se tocan desde el orden del culto**, solo desde «Capas» y la barra de abajo; **los versículos en una capa van con fondo**, a pantalla completa, para tapar un momento la presentación del predicador sin cambiar lo que está al aire; y **la barra de capas, al estilo Dynamic Island**, con una burbuja aparte para los botones de un temporizador o un cronómetro. |
+| 55 | Manna Iglesia en la nube (2026-10-25) | **Se levanta el límite «siempre red local, sin nube»** (el culto sigue sin depender de internet). Un subdominio por iglesia, con `/preparacion`; un solo equipo oficial por iglesia; el himnario y las biblias en **Cloudflare R2**, con la nota de uso personal y no comercial; copias de seguridad en **Google Drive**; la nube en el **hosting de Hostinger**, tras una prueba (un VPS si falla); **usuarios con nombre y PIN**, un **administrador por iglesia** (ve, edita y borra todos sus órdenes) y un **superadministrador**; el equipo oficial entra sin PIN como administrador; el Orden por semanas y con Favoritos, sin el Mapa. Fases 35 a 39. |
 | 49 | PDF hechos de imágenes (2026-10-18) | Pedido del dueño con un PDF real que Manna rechazaba («no tiene texto»): era de imágenes (hecho con jsPDF). **Se leen con el reconocimiento de texto del sistema** en el equipo principal (Vision en Mac, `Windows.Media.Ocr` en Windows), sin programas de terceros ni modelos de lenguaje propios; cambia lo decidido en la fase 27 (descartar los documentos sin texto) |
 | 48 | YouTube en lote, carpeta de contenido e instalador (2026-10-18) | **Sí a las fases 28, 29 y 30**, en ese orden, con las recomendaciones del asistente y las observaciones del dueño: en la 28, reconocer lo que ya está aunque tenga otro nombre y que el título de YouTube llegue con sus tildes, sin listas de reproducción; en la 29, cambiar la carpeta sin reiniciar y avisar al abrir Manna si no se ha elegido; en la 30, un único archivo con el icono de Manna (`.pkg` en Mac, `.exe` en Windows) que lo hace todo, consola con barra de avance si hace falta, Node.js incluido, sin elegir la carpeta ni firmar |
 | 47 | Citas de un texto o documento (2026-10-18) | **Sí a la fase 27** (I1 e I2 de `docs/ideas.md`), con todas las recomendaciones del asistente: en el Orden, «Añadir» → «Citas de un texto o documento» (y la cita rápida, si se pegan varias); una lista para revisar con las seguras y las de paso marcadas y las dudosas sin marcar; una sección con el nombre del documento; capítulo entero si no hay versículo; repetidas una vez; la versión del documento si está instalada; el orden del documento; documentos largos en grupos. Un documento sin texto se descarta con un aviso. Antes de construir, se mide con 3 o 4 sermones nuevos |
@@ -1114,6 +1166,11 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 32 Tiempo | **Hecha** · 2026-10-25 (decisión 51) | 1.37.0 | Módulo nuevo `time` (cajón «Tiempo» en Control completo) y tipo `clock`: la hora del equipo principal, cronómetros y temporizadores guardados (`data/tiempo.json`) con su reloj en el servidor; cinco estilos (Sencillo, Digital, Tarjeta, Anillo y Barra, que el dueño vio en una captura antes de cerrar la fase), tres tamaños, nueve sitios, sutil o normal y, la hora, 12 o 24 h; vista previa sobre el fondo de Ajustes. Proyectar, capa (también en «Poner aquí» de Capas, con su botón de empezar y ±1 min en el menú) y orden del culto (desde ahí, un temporizador en su principio empieza solo). Al llegar a cero se queda quieto, con tictac en los últimos 10 s (más marcado en los 5 últimos) y alarma suave, con Web Audio en la pantalla que suena. «Buscar en todo» los encuentra; el fondo del control dibuja las capas ligeras. Pruebas al cerrar: 213 automáticas (6 nuevas en `test/tiempo.test.js`), 643 comprobaciones en Chrome con todas las órdenes pulsadas (el sonido, con un sintetizador de mentira) y auditoría de 10 tamaños con la pantalla nueva. **Sin probar**: cómo suenan de verdad por los parlantes de la iglesia, y en Windows |
 | 33 DeckCraft | **Partes 1 y 2 hechas** · 2026-10-25 (decisión 51; el dueño pidió seguir tras la medición) | 1.38.0 (parte 2) | Parte 1: 93 de 149 diapositivas idénticas, 54 leves, 2 graves (ver la fase). Parte 2: DeckCraft 0.10.0 como programa del equipo principal (`core/tools.js`, versión fija y huella; «Instalar por mí»), y un PowerPoint lo convierte él si está (`slides/deckcraft.js`: `info` y `render --all`, sin las ocultas, miniaturas en PNG); si no, PowerPoint. Pruebas: `test/deckcraft.test.js` con un DeckCraft de mentira y con el de verdad (también en el Windows de GitHub, que lo descarga en cada versión), presentaciones fabricadas con `scripts/lib/pptx.mjs`, y el paso en Chrome. **Sin probar**: instalarlo y convertir en el equipo de la iglesia. Parte 3: prueba de concepto hecha en este Mac (funciona abrir, empezar y pasar con animaciones; faltan la vista sin presentador y saber en qué diapositiva va); **en espera de la respuesta de DeckCraft** |
 | 34 Versículos en una capa y la barra de capas al estilo Dynamic Island | **Hecha** · 2026-10-25 (decisión 54: rehecha al planearla) | 1.40.0 | Parte 1: el tipo `verses` va en una capa (`layer: true`; en la web, `cover`: a pantalla completa con el fondo y el velo de Ajustes, con clases propias que «Negro» y «Solo fondo» no apagan), con «Capa» en la Biblia (Control completo; al comparar, no). Parte 2: la barra de capas como islas que se conservan (`layerSwitches`), con la burbuja que da el tipo (`island(item)`: la cuenta y los botones de un temporizador o un cronómetro) y un muelle sin rebote al aparecer. Pruebas: `test/capas.test.js` (un pasaje en una capa); en Chrome, «Capa» en la Biblia, un pasaje que tapa la presentación al aire y se apaga, y la burbuja del cronómetro; la auditoría con un temporizador en una capa. Fuera de la fase, por decisión del dueño: las capas como pasos del orden. |
+| 35 Usuarios y el Orden rehecho | **Aprobada** · 2026-10-25 (decisión 55) | | |
+| 36 La nube de la iglesia | **Aprobada** · 2026-10-25 (decisión 55); empieza por la prueba del hosting, con el permiso del dueño para crear el sitio | | |
+| 37 Sincronización y equipo oficial | **Aprobada** · 2026-10-25 (decisión 55) | | |
+| 38 El himnario en línea en la iglesia y los archivos | **Aprobada** · 2026-10-25 (decisión 55) | | |
+| 39 Superadministrador | **Aprobada** · 2026-10-25 (decisión 55) | | |
 | 15 Himnario corregido y Letras sin música | **Hecha** · 2026-10-16 | 1.17.0 | Categorías en dos niveles (sección y categoría, como el índice del himnario) y la pestaña «Letras sin música»: las diapositivas de cada himno, tipo `lyrics`, que se pasan a mano y tras la última vuelven a la portada del mismo himno. Con el himnario real corregido, en un servidor de prueba: 613 himnos, todos con letra y diapositivas, 46 categorías en 7 secciones, sin avisos. Cierra S7, S29, S30 y S31. Pruebas al cerrar: 160 automáticas, 444 en Chrome (8 nuevas del himnario), auditoría de 9 tamaños sin problemas (con la pestaña nueva). **Sin probar**: el himnario real en Chrome y en Windows, y las letras sin música en el proyector |
 | 14 Ajustes tras la prueba | **Hecha** · 2026-10-16 | 1.16.0 | Parte 1: YouTube con el Node de Manna como intérprete de JavaScript y el motivo de cada fallo en el registro; «Actualizar» ya no rompe el programa que funcionaba; «Escuchar aquí» con un solo reproductor y sincronización tolerante; «Escuchar» del Himnario siempre cantado; el Presentador ya no arrastra la diapositiva con el ratón y pierde el zoom viejo. Parte 2: mandos siempre a la vista en la barra de abajo, «Solo fondo» y «Negro» arriba, «Señalar» y «Mover» también en Control y Orden (`projection/gestures.js`), hoja de mandos del celular con márgenes, Presentador con la anterior y la siguiente debajo. Parte 3: categorías del Himnario más limpias, «Buscar en todo» con más aire, botón de la cola fijo y con forma según su estado, proyección de fondo que se desvanece en los bordes. Parte 4: sin desenfoque con un video al aire, y sin reproducir el video de fondo en los celulares salvo al escuchar. Parte 5: espacio en disco y «Limpiar multimedia temporales» (S24), tamaño de los subtítulos (S23), punto rojo encima del pase de PowerPoint (S39, revisado por Gemini). Pruebas al cerrar: 159 automáticas, 434 en Chrome, auditoría de 9 tamaños sin problemas. **Sin probar en Windows**: YouTube, el punto rojo en PowerPoint y el consumo en un equipo modesto; **ni en un celular real**: «Escuchar aquí» |
 | 12 PowerPoint en vivo | **Hecha** · 2026-10-15 | 1.14.0 | Antes, S37: la prueba en Chrome baja a menos de 3 min (YouTube y el himnario al grupo «red»). PowerPoint en vivo con el original guardado, «Pasar con PowerPoint» / «Pasar como imágenes», «Siguiente» y «Anterior» dados por PowerPoint (con las animaciones), seguimiento de lo que se pase en el equipo y vuelta a las imágenes si falla. Gemini revisó el guion de PowerShell y se aplicaron sus avisos (sección 10). Pruebas al cerrar: 157 automáticas, 427 en Chrome, auditoría de 9 tamaños sin problemas, todo con un PowerPoint de mentira. **El guion de verdad no se ha ejecutado: falta la prueba del dueño en Windows con PowerPoint y el proyector (S25)**. Sigue la fase 9 (auditoría) |
@@ -1263,6 +1320,7 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 
 | Fecha | Cambio | Motivo |
 | --- | --- | --- |
+| 2026-10-25 | Se añaden las fases 35 a 39 (Manna Iglesia: preparar en la nube, para varias iglesias) y se levanta el límite «siempre red local, sin nube» | Decisión del dueño (decisión 55) |
 | 2026-10-25 | Fase 34: sale «Encender capa» y «Apagar capa» como pasos del orden; los versículos en una capa van con fondo, a pantalla completa (no en una franja); entra la barra de capas al estilo Dynamic Island, con los botones del temporizador y del cronómetro | Decisión del dueño al planearla (decisión 54) |
 | 2026-10-25 | Fase 31, ya cerrada: las capas se encienden y se apagan también desde la barra de abajo (en el celular, «Historias»), con una ficha por capa con algo | Pedido del dueño tras probarlas en el Windows (decisión 53) |
 | 2026-10-14 | Fase 11: Páginas web es un módulo propio, no una pestaña de Diapositivas | Su biblioteca y su forma de agregar no se parecen a las de una presentación; así no se acopla a Diapositivas |
