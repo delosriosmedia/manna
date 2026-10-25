@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.40.0 — 2026-10-25
+
+- **Versículos en una capa**: en la Biblia, «Capa» pone el pasaje elegido encima de lo que se proyecta, a pantalla completa y con el fondo de Ajustes. Sirve para mostrar un versículo un momento sobre la presentación del predicador sin quitarla: al apagar la capa, la presentación sigue donde iba.
+- **La barra de capas, al estilo Dynamic Island**: cada capa es una isla negra que brilla en cian si está encendida. La de un temporizador o un cronómetro suelta una burbuja con la cuenta en vivo y sus botones (empezar o pausar, volver al principio y +1 min).
 - Pruebas: la de PowerPoint en vivo que fallaba a veces en Windows ya no lee a medias el aviso de que alguien pasó la diapositiva.
 
 ## 1.39.0 — 2026-10-25

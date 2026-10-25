@@ -93,6 +93,11 @@
   pointer-events: none;
 }
 .stage-layer { isolation: isolate; }
+/* Una capa que tapa (versículos, fase 34): el fondo y el velo de Ajustes, y el texto con el mismo margen que lo que está
+   al aire. Con sus propias clases: «Negro» y «Solo fondo» apagan .stage-bg y .stage-content, no las capas. */
+.layer-bg, .layer-veil, .layer-body { position: absolute; inset: 0; }
+.layer-veil { background: #000; }
+.layer-body { padding: 7cqh 7cqw; display: flex; align-items: center; justify-content: center; }
 .stage-layer .web-frame { background: transparent; }
 
 /* Puntero del presentador: un punto rojo con halo, como un láser. Su sitio lo pone stage.js. */

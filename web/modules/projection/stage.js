@@ -35,7 +35,16 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
   const layers = [];  // por capa: { el, view, key, item }
   let slots = [];
 
-  // Una capa se dibuja con el tipo de su elemento, sin fondo, y se carga una sola vez: ocultarla no la quita (una
+  // El fondo de Ajustes (color, degradado o imagen) y su velo oscuro: el de lo que está al aire y el de una capa que tapa.
+  function paintBackground(back, veil) {
+    back.style.background = styles.backgroundType === 'image' && styles.bgImage
+      ? `url("${styles.bgImage}") center / cover no-repeat`
+      : styles.backgroundType === 'gradient' ? styles.bgGradient : styles.bgColor;
+    veil.style.opacity = styles.overlayOpacity;
+  }
+
+  // Una capa se dibuja con el tipo de su elemento, sin fondo (salvo el que tapa, `cover`: con el de Ajustes, y sus propias
+  // clases, que «Negro» y «Solo fondo» no apagan), y se carga una sola vez: ocultarla no la quita (una
   // página sigue cargada) y cambiar lo que está al aire no la toca. Solo se rehace si cambia su elemento o se recarga
   // (uid). Si deja de estar lista (una página cuya dirección dejó de contestar) se queda como está; lo que aún no se
   // ha cargado espera a que lo esté.
@@ -51,9 +60,17 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
       }
       const def = key && kindOf(slot.kind);
       if (!layer.view && def && slot.ready && styles) {
-        layer.view = def.draw(layer.el, { stage: container, layer: true });
+        let host = layer.el;
+        layer.cover = def.cover ? { back: h('div', { class: 'layer-bg' }), veil: h('div', { class: 'layer-veil' }) } : null;
+        if (layer.cover) {
+          host = h('div', { class: 'layer-body' });
+          layer.el.replaceChildren(layer.cover.back, layer.cover.veil, host);
+        }
+        // El que tapa ajusta su letra en su capa (--fit), no en todo el escenario: lo que está al aire tiene la suya.
+        layer.view = def.draw(host, { stage: layer.cover ? layer.el : container, layer: true });
         layer.key = key;
       }
+      if (layer.cover && layer.view) paintBackground(layer.cover.back, layer.cover.veil);
       layer.item = layer.view ? { ...slot.content, uid: slot.uid } : null;
       if (layer.view) layer.view.update(layer.item, { mode: 'live', styles });
       const on = Boolean(layer.view) && slot.visible;
@@ -88,10 +105,7 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
     styles = next;
     if (slots.length) drawLayers(); // las capas siguen la letra y los colores de Ajustes
     container.dataset.mode = item ? mode : (mode === 'black' ? 'black' : 'clear');
-    bg.style.background = styles.backgroundType === 'image' && styles.bgImage
-      ? `url("${styles.bgImage}") center / cover no-repeat`
-      : styles.backgroundType === 'gradient' ? styles.bgGradient : styles.bgColor;
-    overlay.style.opacity = styles.overlayOpacity;
+    paintBackground(bg, overlay);
     container.style.setProperty('--fs', styles.fontSize);
     container.style.setProperty('--cue', (styles.subtitleSize ?? 100) / 100);
 

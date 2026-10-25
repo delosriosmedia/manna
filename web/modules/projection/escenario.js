@@ -13,6 +13,11 @@ import { createPreview } from './preview.js';
 import { attachGestures } from './gestures.js';
 
 const BAR_IDLE_MS = 2500; // sin mover el ratón ni pulsar una tecla, la barra de abajo se aparta
+// Un muelle sin rebote (como los de Apple: amortiguación 1, respuesta 0,35 s) en 500 ms, para las islas de las capas;
+// donde CSS no tiene linear(), una curva parecida.
+const SPRING = CSS.supports('animation-timing-function', 'linear(0, 1)')
+  ? `linear(${Array.from({ length: 21 }, (_, i) => { const w = (i / 20) * 0.5 * ((2 * Math.PI) / 0.35); return i === 20 ? 1 : (1 - (1 + w) * Math.exp(-w)).toFixed(3); }).join(', ')})`
+  : 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 
 // «Escenario» (fase 13 de docs/PLAN.md): lo que está al aire ocupa el fondo y, encima, en cristal,
 // lo que lo gobierna. Lo coloca core/shell.js; aquí solo se hacen las piezas y se mantienen al día.
@@ -54,30 +59,63 @@ export function createEscenario(ctx) {
     chips.push(el);
     return el;
   };
-  // Encenderlas y apagarlas sin ir a «Capas» (pedido del dueño, 2026-10-25): una ficha por capa con algo, en la barra
-  // de abajo (en el celular, en «Historias»), encendida en cian. Solo en Control completo, como el cajón «Capas».
-  const switchSets = [];
+  // Encenderlas y apagarlas sin ir a «Capas» (pedido del dueño, 2026-10-25): en la barra de abajo (en el celular, en
+  // «Historias»), una «isla» por capa con algo, al estilo de la Dynamic Island (fase 34): la ficha que la enciende o la
+  // apaga (encendida, en cian) y, si su tipo la tiene (island), la burbuja que se desprende de ella con su cuenta y sus
+  // botones (un temporizador). Cada isla se conserva mientras la capa tenga lo mismo; solo en Control completo.
+  const switchSets = []; // { el, isles: Map(n -> { key, wrap, main, name, extra }) }
   const layerSwitches = (cls) => {
     if (ctx.role !== 'control') return null;
-    const el = h('div', { class: `layer-switches ${cls}`, role: 'group', 'aria-label': 'Capas', hidden: true });
-    switchSets.push(el);
+    const el = h('div', { class: `layer-switches ${cls}`, role: 'group', 'aria-label': 'Capas', hidden: true },
+      h('span', { class: 'ls-head', title: 'Capas: encima de lo que se proyecta' }, icon('stack', 15)));
+    switchSets.push({ el, isles: new Map() });
     return el;
   };
-  let switchShape = '';
+  const slotOf = (n) => state.layers?.slots?.[n - 1];
+  const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Al abrir la página las islas ya están; solo crece la de una capa que se carga con la página abierta.
+  function buildIsle(s, grow) {
+    const name = h('span', { class: 'ls-name' });
+    const main = h('button', {
+      class: 'layer-switch', dataset: { n: s.n },
+      onclick: guard(() => action('layers.visible', { n: s.n, visible: !slotOf(s.n)?.visible })),
+    }, icon(kindOf(s.kind)?.icon || 'stack', 14), h('span', { class: 'ls-n' }, String(s.n)), name);
+    const extra = kindOf(s.kind)?.island?.(s.content) || null;
+    const wrap = h('div', { class: 'island', dataset: { n: s.n } }, main, extra?.el);
+    if (grow && !calm()) {
+      wrap.animate([{ transform: 'scale(0.6)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 500, easing: SPRING });
+      // La burbuja se desprende de la ficha, un instante después.
+      extra?.el.animate([{ transform: 'translateX(-40%) scale(0.4)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 500, delay: 90, easing: SPRING, fill: 'backwards' });
+    }
+    return { key: JSON.stringify([s.kind, s.data]), wrap, main, name, extra };
+  }
   function paintSwitches(slots) {
     const loaded = slots.filter((s) => s.kind);
-    const shape = JSON.stringify(loaded.map((s) => [s.n, s.kind, s.title, s.visible]));
-    if (shape === switchShape) return;
-    switchShape = shape;
     for (const set of switchSets) {
-      const focused = set.contains(document.activeElement) ? document.activeElement.dataset.n : null;
-      set.hidden = !loaded.length;
-      set.replaceChildren(h('span', { class: 'ls-head', title: 'Capas: encima de lo que se proyecta' }, icon('stack', 15)), ...loaded.map((s) => h('button', {
-        class: `chip layer-switch${s.visible ? ' on' : ''}`, dataset: { n: s.n }, 'aria-pressed': String(s.visible),
-        'aria-label': `Capa ${s.n}: ${s.title}`, title: `Capa ${s.n}: ${s.title}. ${s.visible ? 'A la vista: un clic la apaga' : 'Apagada: un clic la enciende'}`,
-        onclick: guard(() => action('layers.visible', { n: s.n, visible: !s.visible })),
-      }, icon(kindOf(s.kind)?.icon || 'stack', 14), h('span', { class: 'ls-n' }, String(s.n)), h('span', { class: 'ls-name' }, s.title))));
-      if (focused) set.querySelector(`[data-n="${focused}"]`)?.focus({ preventScroll: true });
+      const grow = Boolean(set.painted);
+      set.painted = true;
+      set.el.hidden = !loaded.length;
+      for (const [n, isle] of set.isles) {
+        if (loaded.some((s) => s.n === n && JSON.stringify([s.kind, s.data]) === isle.key)) continue;
+        isle.extra?.destroy?.();
+        isle.wrap.remove();
+        set.isles.delete(n);
+      }
+      for (const s of loaded) {
+        let isle = set.isles.get(s.n);
+        if (!isle) {
+          isle = buildIsle(s, grow);
+          set.isles.set(s.n, isle);
+          const after = [...set.isles.keys()].filter((n) => n > s.n).sort()[0];
+          set.el.insertBefore(isle.wrap, after ? set.isles.get(after).wrap : null);
+        }
+        isle.wrap.dataset.on = String(s.visible);
+        isle.main.classList.toggle('on', s.visible);
+        isle.main.setAttribute('aria-pressed', String(s.visible));
+        isle.main.setAttribute('aria-label', `Capa ${s.n}: ${s.title}`);
+        isle.main.title = `Capa ${s.n}: ${s.title}. ${s.visible ? 'A la vista: un clic la apaga' : 'Apagada: un clic la enciende'}`;
+        isle.name.textContent = s.title;
+      }
     }
   }
   const caption = h('strong', { class: 'scene-caption' });

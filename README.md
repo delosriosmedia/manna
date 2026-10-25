@@ -277,12 +277,14 @@ Las direcciones **necesitan internet durante el culto**. Los archivos se guardan
 
 ### Capas
 
-Lo que pongas en una capa queda **encima de todo lo que se proyecte**, también con «Negro» y «Solo fondo», hasta que lo quites, aunque Manna se reinicie. Hay tres: la 1 encima de lo que está al aire, la 2 encima de la 1 y la 3 encima de todo. Hoy van en una capa la hora, los cronómetros y temporizadores (desde **Tiempo**) y las páginas web que se dejan mostrar dentro de Manna, como una página con fondo transparente que muestra algo de vez en cuando.
+Lo que pongas en una capa queda **encima de todo lo que se proyecte**, también con «Negro» y «Solo fondo», hasta que lo quites, aunque Manna se reinicie. Hay tres: la 1 encima de lo que está al aire, la 2 encima de la 1 y la 3 encima de todo. Hoy van en una capa la hora, los cronómetros y temporizadores (desde **Tiempo**), las páginas web que se dejan mostrar dentro de Manna, como una página con fondo transparente que muestra algo de vez en cuando, y **los versículos** (desde la **Biblia**).
 
-1. En **Páginas web**, elige la página y pulsa **Capa** → la capa que quieras. También desde **Capas** → **Poner aquí**.
+1. En **Páginas web**, elige la página y pulsa **Capa** → la capa que quieras. También desde **Capas** → **Poner aquí**. Igual en **Tiempo** y en la **Biblia** (con un pasaje elegido; al comparar, no).
 2. En **Capas**, el ojo la oculta o la muestra sin recargarla; **…** → **Recargar** la carga de nuevo y **Quitar** la quita. Arriba, junto a «Al aire», una pastilla dice cuántas hay a la vista.
-3. Para encenderlas y apagarlas durante el culto no hace falta abrir **Capas**: en la barra de abajo, junto a **Siguiente**, cada capa con algo tiene su botón con su número (en cian, encendida); un clic la enciende o la apaga. En el celular están en la pantalla principal, bajo «Al aire / Solo fondo / Negro». Solo en **Control completo**.
+3. Para encenderlas y apagarlas durante el culto no hace falta abrir **Capas**: en la barra de abajo, junto a **Siguiente**, cada capa con algo tiene su botón negro con el icono de lo que lleva y su número (brilla en cian si está encendida); un clic la enciende o la apaga. Si la capa tiene un temporizador o un cronómetro, a su lado sale una burbuja con la cuenta en vivo y sus botones: empezar o pausar, volver al principio y, el temporizador, +1 min (en el celular; en la barra del escritorio, el +1 min queda en **Capas** y en los mandos del temporizador, y en una tableta, solo la cuenta y empezar o pausar). En el celular están en la pantalla principal, bajo «Al aire / Solo fondo / Negro», con el nombre de lo que lleva cada una. Solo en **Control completo**.
 4. La página se carga una vez y se queda: lo que muestra lo decide ella. Si no hay internet, la capa espera oculta y se carga sola cuando vuelva, sin que nadie recargue nada.
+
+**Un versículo en una capa** se ve a pantalla completa, con el fondo y la letra de Ajustes, como al proyectarlo: sirve para mostrar un pasaje un momento **encima de la presentación del predicador sin quitarla**. Lo que está al aire no cambia (el Presentador sigue en su diapositiva) y, al apagar la capa, se ve otra vez la presentación donde iba.
 
 Una página con fondo transparente se ve transparente solo si su fondo lo es de verdad (y no declara un esquema oscuro, `color-scheme: dark`). Mientras haya una capa a la vista, una presentación de PowerPoint va como imágenes (PowerPoint, en su propia ventana, la taparía); al ocultar la capa vuelve a pasarla PowerPoint.
 

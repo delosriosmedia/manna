@@ -404,9 +404,10 @@ async function worker(list, n) {
     { id: 'enlace2', name: 'Concurso bíblico', source: 'url', url: 'https://kahoot.it/', framable: false, added: 2 },
     { id: 'archivo1', name: 'Juego de la iglesia', source: 'file', url: null, framable: true, added: 1 },
   ] }));
-  // Dos capas (fase 31): el archivo, a la vista (la pastilla de capas sale arriba en todas las pantallas), y la dirección
+  // Tres capas (fase 31): el temporizador en marcha (fase 34: su isla de la barra de abajo suelta la burbuja con la cuenta
+  // y sus botones), el archivo, a la vista (la pastilla de capas sale arriba en todas las pantallas), y la dirección
   // larga, oculta y esperando (localhost:9 no contesta).
-  fs.writeFileSync(path.join(data, 'capas.json'), JSON.stringify({ slots: [null, { kind: 'web', data: { id: 'archivo1' }, visible: true }, { kind: 'web', data: { id: 'enlace1' }, visible: false }] }));
+  fs.writeFileSync(path.join(data, 'capas.json'), JSON.stringify({ slots: [{ kind: 'clock', data: { id: 'reloj1' }, visible: true }, { kind: 'web', data: { id: 'archivo1' }, visible: true }, { kind: 'web', data: { id: 'enlace1' }, visible: false }] }));
   // Dos relojes (fase 32): un temporizador con un nombre largo, en marcha, y un cronómetro parado.
   const now = Date.now();
   fs.writeFileSync(path.join(data, 'tiempo.json'), JSON.stringify({ timers: [

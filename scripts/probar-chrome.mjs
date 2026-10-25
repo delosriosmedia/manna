@@ -497,6 +497,18 @@ try {
   await click(`[...document.querySelectorAll('.abar .btn')].find(b => b.textContent.includes('Añadir'))`);
   await sleep(600);
   check('"Añadir al orden" agrega el pasaje', (await live()).order.includes('Juan 3:19'));
+  // Fase 34: «Capa» pone el pasaje en una capa, con el fondo de Ajustes, encima de lo que está al aire, que no cambia.
+  await click(`document.querySelector('.ws[data-module=biblia] .abar .bible-layer')`);
+  await sleep(300);
+  await menuItem('Capa 1');
+  await sleep(800);
+  const inLayer = (await run(`return JSON.stringify((await (await fetch('/api/state')).json()).layers.slots[0])`).then(JSON.parse));
+  check('«Capa» pone el pasaje en una capa, y lo que está al aire no cambia', inLayer.kind === 'verses' && inLayer.title === 'Juan 3:19' && (await live()).ref === 'Juan 3:18', inLayer.title);
+  check('se ve con su fondo encima de lo que está al aire (en el fondo del control), y su isla, sin burbuja, en la barra de abajo',
+    await until(`document.querySelector('.scene-bg .stage-layer[data-n="1"] .layer-bg')?.style.background && document.querySelector('.scene-bg .stage-layer[data-n="1"] .stage-text')?.textContent.trim()`, 10)
+    && await run(`return Boolean(document.querySelector('.tb-layers .island[data-n="1"] .layer-switch.on')) && !document.querySelector('.tb-layers .island[data-n="1"] .island-extra')`));
+  await run(`return await ${post('layers.clear', { n: 1 })}`);
+  await sleep(400);
 
   console.log('\n1. Interfaz · Búsqueda en la Biblia');
   const box = `document.querySelector('.ws[data-module=biblia] .search input')`;
@@ -1836,6 +1848,20 @@ try {
     check('en «Capas», su botón lo pone en marcha', (await timersNow()).find((t) => t.id === praise.id).clock.playing === true);
     await click(`document.querySelector('.ws[data-module=capas] .layer-row[data-n="2"] .layer-play')`);
     await sleep(400);
+    // Fase 34: en la barra de abajo, la isla del cronómetro suelta su burbuja con la cuenta y sus botones (sin +1 min).
+    const bubble = `document.querySelector('.tb-layers .island[data-n="2"] .island-extra')`;
+    check('en la barra de abajo, la isla del cronómetro lleva su burbuja con la cuenta, sin «+1»', await until(bubble, 10)
+      && await run(`const b = ${bubble}; return b.dataset.state === 'paused' && /^\\d+:\\d\\d$/.test(b.querySelector('.ix-digits').textContent) && b.querySelector('.ix-plus').hidden`));
+    await click(`${bubble}.querySelector('.ix-play')`);
+    await sleep(1500);
+    check('su botón lo pone en marcha y la cuenta avanza', (await timersNow()).find((t) => t.id === praise.id).clock.playing === true
+      && await until(`${bubble}.dataset.state === 'running' && ${bubble}.querySelector('.ix-digits').textContent !== '0:00'`, 10));
+    await click(`${bubble}.querySelector('.ix-play')`);
+    await sleep(400);
+    await click(`[...${bubble}.querySelectorAll('.ix-btn')].find(b => b.title === 'Volver al principio')`);
+    await sleep(600);
+    check('lo pausa y lo vuelve al principio', (await timersNow()).find((t) => t.id === praise.id).clock.playing === false && (await timersNow()).find((t) => t.id === praise.id).clock.position === 0
+      && await until(`${bubble}.querySelector('.ix-digits').textContent === '0:00'`, 5));
     // Encima de un himno que suena, también al volver de «Negro» (el dueño vio el 2026-10-25 que el video lo tapaba
     // y que solo asomaba durante el fundido).
     if (HAS_FFMPEG) {
@@ -2667,6 +2693,20 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
           if (!drawn || !await run(`return ${layerOnTop(far, 2)}`)) covered.push(kind);
         }
         check('la capa queda encima de una imagen, una presentación, un video y un audio que suenan', covered.length === 0, covered.join(', ') || under.join(', '));
+
+        // Fase 34: un pasaje en la capa 1, con su fondo, tapa la presentación al aire sin cambiarla; al apagarla, se ve.
+        // Qué recibe un toque abajo a la izquierda, sin la capa 2 (su página ocupa todo el escenario).
+        const hit = `(() => { const d = ${far}; const s = d.createElement('style'); s.textContent = '.stage, .stage * { pointer-events: auto !important; } .stage-layers { pointer-events: none !important; } .stage-layer[data-n="2"] { visibility: hidden !important; }'; d.head.append(s);
+          const r = d.querySelector('.stage').getBoundingClientRect(); const e = d.elementFromPoint(r.left + r.width * 0.1, r.top + r.height * 0.9); s.remove(); return e?.closest('.stage-layer') ? 'capa ' + e.closest('.stage-layer').dataset.n : e?.closest('.stage-content') ? 'al aire' : String(e?.className); })()`;
+        await run(`return await ${post('projection.show', { kind: 'slides', data: { id: lib.slides } })}`);
+        await run(`return await ${post('layers.set', { n: 1, kind: 'verses', data: { versionId: VERSION, ref: { book: 43, chapter: 3, verseStart: 16, verseEnd: 16 } } })}`);
+        const verseShown = await until(`${layerOf(1)}?.querySelector('.layer-bg')?.style.background && ${layerOf(1)}.querySelector('.stage-text')?.textContent.trim()`, 10);
+        const overSlides = await run(`return ${hit}`);
+        await run(`return await ${post('layers.visible', { n: 1, visible: false })}`);
+        await sleep(600);
+        const underIt = await run(`return ${hit}`);
+        check('un pasaje en una capa tapa con su fondo la presentación, que sigue al aire; al apagar la capa, se ve otra vez', verseShown && overSlides === 'capa 1' && underIt === 'al aire' && (await live()).kind === 'slides', `${overSlides} → ${underIt}`);
+        await run(`return await ${post('layers.clear', { n: 1 })}`);
 
         // Encenderla y apagarla desde la barra de abajo, sin abrir «Capas» (pedido del dueño, 2026-10-25); en el celular,
         // desde «Historias».

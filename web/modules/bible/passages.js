@@ -2,6 +2,7 @@ import { action, api, state, subscribe } from '../../core/api.js';
 import { h, guard, marked, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { prefs } from '../../core/prefs.js';
+import { layerButton } from '../../core/capas.js';
 
 const MAX_RECENT = 8;
 const SEARCH_PAUSE_MS = 150; // al escribir, se busca cuando los dedos paran un instante
@@ -56,6 +57,10 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
     h('button', { class: 'icon-btn sm', title: 'Añadir el versículo siguiente a la selección', 'aria-label': 'Añadir un versículo', onclick: () => extend(1) }, icon('plus', 16)),
     selHint,
     ctx.canEdit && h('button', { class: 'btn', 'aria-label': 'Añadir al orden', onclick: () => addToOrder() }, icon('plus', 15), h('span', {}, 'Añadir al orden')),
+    ctx.role === 'control' && Object.assign(layerButton(() => {
+      const s = selection();
+      return s?.kind === 'verses' ? { kind: s.kind, data: s.data, title: s.passage.reference } : null;
+    }), { className: 'btn bible-layer' }),
     h('button', { class: 'btn primary', onclick: () => project() }, 'Proyectar', h('kbd', {}, '↵')));
 
   let multi = false;     // «Varios» encendido

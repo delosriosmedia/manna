@@ -12,6 +12,7 @@ registerKind('verses', {
   wholeUpTo: 6, // un pasaje de hasta seis versículos también se puede proyectar entero
   title: (item) => (item.version ? `${item.reference} (${item.version})` : item.reference),
   key: (item) => `${item.versionId}|${item.reference}`,
+  cover: true, // en una capa, con su fondo: tapa un momento la presentación que está al aire
 
   draw(host, { stage }) {
     const text = h('div', { class: 'stage-text' });

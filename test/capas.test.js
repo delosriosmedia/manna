@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { createApp } from '../server/core/app.js';
 import system from '../server/modules/system/index.js';
 import projection from '../server/modules/projection/index.js';
+import bible from '../server/modules/bible/index.js';
 import web from '../server/modules/web/index.js';
 import layers from '../server/modules/layers/index.js';
 
@@ -15,6 +16,9 @@ import layers from '../server/modules/layers/index.js';
 // nada sale a internet.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-capas-'));
+// Una biblia con textos inventados, para los versículos en una capa (fase 34).
+fs.mkdirSync(path.join(tmp, 'biblias'));
+fs.writeFileSync(path.join(tmp, 'biblias', 'Prueba.xmm'), '<bible><b n="Juan"><c n="3"><v n="16">Texto inventado uno.</v><v n="17">Texto inventado dos.</v></c></b></bible>');
 
 const site = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/html', ...(req.url.startsWith('/no-se-deja') && { 'X-Frame-Options': 'DENY' }) });
@@ -27,7 +31,7 @@ const at = (p) => `http://127.0.0.1:${sitePort}${p}`;
 async function start() {
   process.env.MANNA_CAPAS_REINTENTO_MS = '200';
   const app = createApp({ rootDir: ROOT, dataDir: path.join(tmp, 'datos'), biblesDir: path.join(tmp, 'biblias') });
-  for (const setup of [system, projection, web, layers]) await setup(app);
+  for (const setup of [system, bible, projection, web, layers]) await setup(app);
   delete process.env.MANNA_CAPAS_REINTENTO_MS;
   // app.run no mira permisos: los de layers.* (projection.control) los comprueba el router como los de cualquier orden.
   const run = async (type, payload) => app.run(type, payload);
@@ -68,6 +72,24 @@ test('una página se pone en una capa, se oculta, se recarga y se quita; las dem
     await run('layers.clear', { n: 2 });
     assert.equal(slots()[1].kind, undefined);
     await assert.rejects(run('layers.visible', { n: 2, visible: true }), /está vacía/);
+  } finally {
+    await app.close();
+  }
+});
+
+test('un pasaje va en una capa, con su texto, y lo que está al aire no cambia (fase 34)', async () => {
+  const { app, run, slots } = await start();
+  try {
+    await run('projection.show', { kind: 'testcard', data: {} });
+    const onAir = app.store.get('projection').item.uid;
+    await run('layers.set', { n: 2, kind: 'verses', data: { versionId: 'prueba', ref: { book: 43, chapter: 3, verseStart: 16, verseEnd: 17 } } });
+    assert.ok(await until(() => slots()[1].ready), 'sin nada que esperar, se carga ya');
+    const slot = slots()[1];
+    assert.equal(slot.kind, 'verses');
+    assert.equal(slot.title, 'Juan 3:16-17');
+    assert.deepEqual(slot.content.verses.map((v) => v.text), ['Texto inventado uno.', 'Texto inventado dos.']);
+    assert.equal(app.store.get('projection').item.uid, onAir, 'lo que está al aire sigue igual');
+    assert.equal(app.services.layers.covering(), true, 'tapa (PowerPoint en vivo iría como imágenes)');
   } finally {
     await app.close();
   }

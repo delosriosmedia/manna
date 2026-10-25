@@ -12,7 +12,7 @@ export function layerButton(chosen) {
       const it = chosen();
       if (it) chooseLayer(e.currentTarget, it);
     },
-  }, icon('stack', 16), 'Capa');
+  }, icon('stack', 16), h('span', {}, 'Capa')); // el nombre aparte: en un cajón estrecho queda solo el icono
 }
 
 // El menú de las tres capas, con lo que tiene cada una (lo nuevo lo reemplaza).

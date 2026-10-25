@@ -238,6 +238,14 @@ html.touch .tb-extra .btn, html.touch .tb-extra .tool-chip { height: max(32px, v
 .tb-extra .sec { display: none; }
 @container live (max-width: 479px) { .tb-extra .t2 { display: none; } }
 @container live (max-width: 579px) { .tb-extra .t3 { display: none; } }
+/* Con las islas de las capas al lado (fase 34) queda menos, sobre todo en una tableta con la interfaz agrandada: se van, por
+   este orden, los tiempos de los lados de la barra de avance, la barra de avance, por dónde va la presentación, cuánto
+   está acercada y, con lo mínimo, el mando de acercar y el cambio entre cantado y pista (todo sigue en «Más mandos»). Las islas se quedan siempre. */
+@container live (max-width: 339px) { .tb-extra .clip-time { display: none; } }
+@container live (max-width: 319px) { .tb-extra .clip-seek { display: none; } }
+@container live (max-width: 279px) { .tb-extra .slide-info { display: none; } }
+@container live (max-width: 229px) { .tb-extra .nav-zoom { display: none; } .tb-extra .nav-row { min-width: 60px; } }
+@container live (max-width: 199px) { .tb-extra .song-tracks, .tb-extra .nav-row { display: none; } }
 /* Los botones con texto (.lbl) van solos con su icono (su nombre, en el título): el texto, en «Más mandos». */
 .tb-extra .lbl { display: none; }
 .tb-extra :is(.btn, .tool-chip):has(> .lbl) { width: 32px; padding: 0; justify-content: center; }
@@ -248,15 +256,43 @@ html.touch .tb-extra :is(.btn, .tool-chip):has(> .lbl) { width: max(32px, var(--
 .tool-chip { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; font-weight: 600; }
 html.touch .tool-chip { height: var(--control); padding: 0 14px; }
 .tool-chip[hidden] { display: none; }
-/* Encender y apagar las capas (escenario.js, Control completo): una ficha por capa con algo, con el icono de lo que
-   lleva y su número; encendida, en cian. En «Historias», también su nombre. */
-.layer-switches { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+/* Encender y apagar las capas (escenario.js, Control completo), al estilo de la Dynamic Island (fase 34): una isla
+   negra por capa con algo. La ficha lleva el icono de lo que tiene y su número (en «Historias», también su nombre) y,
+   encendida, brilla en cian; de ella se desprende la burbuja de un temporizador o un cronómetro: la cuenta y sus botones. */
+.layer-switches { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .layer-switches[hidden] { display: none; }
 .ls-head { display: inline-flex; color: var(--ink-3); padding: 0 2px; }
-.layer-switch { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 32px; padding: 0 9px; font: 600 13px/1 var(--mono); }
-html.touch .layer-switch { height: max(32px, var(--tap)); min-width: var(--tap); }
-.layer-switch:not(.on) { color: var(--ink-3); }
+.island { display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; }
+.layer-switch, .island-extra { display: inline-flex; align-items: center; height: 32px; border-radius: var(--r-pill); background: var(--canvas); border: 1px solid var(--glass-line); }
+html.touch :is(.layer-switch, .island-extra) { height: max(32px, var(--tap)); }
+html.touch .layer-switch { min-width: var(--tap); }
+.layer-switch { justify-content: center; gap: 5px; padding: 0 11px 0 9px; color: var(--ink-3); font: 600 13px/1 var(--mono); transition: color 0.25s var(--ease), border-color 0.25s var(--ease), box-shadow 0.25s var(--ease), transform 0.12s var(--ease); }
+.layer-switch:hover { color: var(--ink-2); }
+.layer-switch.on { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 14px var(--accent-soft); }
+/* Respuesta al pulsar, al instante. */
+.layer-switch:active, .ix-btn:active { transform: scale(0.94); }
 .layer-switch .ls-name { display: none; }
+.island-extra { flex-shrink: 0; gap: 1px; padding: 0 3px 0 11px; }
+.ix-digits { flex-shrink: 0; min-width: 4.2ch; margin-right: 4px; color: var(--ink-2); font: 600 13px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.island-extra[data-state='running'] .ix-digits { color: var(--ink); }
+.island-extra[data-state='done'] .ix-digits { color: var(--live-ink); }
+.ix-btn { display: inline-grid; place-items: center; flex-shrink: 0; width: 26px; height: 26px; border-radius: var(--r-pill); color: var(--ink-2); font: 600 11px/1 var(--mono); transition: background-color 0.15s var(--ease), transform 0.12s var(--ease); }
+.ix-btn:hover { background: var(--s3); color: var(--ink); }
+.ix-btn[hidden] { display: none; }
+html.touch .ix-btn { width: var(--tap); height: var(--tap); }
+/* En la barra de abajo, el sitio es de los mandos de lo que está al aire (un himno lleva muchos): sin el icono de capas
+   delante ni el +1 min, que siguen en «Historias», en «Capas» y en los mandos del temporizador. En una tableta, además,
+   la burbuja deja la cuenta y empezar o pausar, y la ficha, solo el número; también en una pantalla táctil, donde los
+   botones son más grandes. */
+.tb-layers .ls-head, .tb-layers .ix-plus { display: none; }
+.tb-layers .layer-switch { gap: 4px; padding: 0 9px 0 8px; }
+html.touch .tb-layers .ix-btn:not(.ix-play), html.touch .tb-layers .layer-switch > .ic { display: none; }
+html.touch .tb-layers .layer-switch { padding: 0 11px; }
+@media (max-width: 1179px) {
+  .tb-layers .ix-btn:not(.ix-play), .tb-layers .layer-switch > .ic { display: none; }
+  .tb-layers .layer-switch { padding: 0 11px; }
+}
+@media (prefers-reduced-motion: reduce) { .layer-switch, .ix-btn { transition: none; } }
 .scene-bg[data-tool] { touch-action: none; user-select: none; -webkit-user-select: none; }
 .scene-bg[data-tool='point'] { cursor: crosshair; }
 .scene-bg[data-tool='move'] { cursor: grab; }
@@ -451,8 +487,10 @@ body.full .shell { height: calc(100dvh / var(--zoom)); display: flex; flex-direc
   .seg-btn { flex: 1; min-height: 38px; border-radius: var(--r-pill); color: var(--ink-2); font-weight: 600; }
   .seg-btn.on { background: var(--s3); color: var(--ink); }
   .seg-btn.on[data-mode='live'] { background: var(--live-strong); color: var(--on-live); }
-  .story-layers { padding: 4px 4px 4px 10px; border-radius: var(--r-pill); background: var(--glass-1); border: 1px solid var(--glass-line); }
+  .story-layers { flex-wrap: wrap; padding: 4px 4px 4px 10px; border-radius: var(--r-lg); background: var(--glass-1); border: 1px solid var(--glass-line); }
+  .story-layers .island { flex: 1 1 auto; min-width: 0; }
   .story-layers .layer-switch { flex: 1 1 0; min-width: 0; min-height: 38px; }
+  .story-layers .island-extra { min-height: 38px; }
   .story-layers .ls-name { display: inline; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 13px/1.2 var(--font); }
   .story-volume { display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 12px; border-radius: var(--r-pill); background: var(--glass-1); border: 1px solid var(--glass-line); }
   .story-volume > .volume { flex: 1; min-width: 0; }

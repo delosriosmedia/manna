@@ -186,4 +186,45 @@ registerKind('clock', {
       },
     };
   },
+
+  // En la barra de capas (escenario.js, fase 34): la burbuja que se desprende de la ficha de un temporizador o un
+  // cronómetro, con su cuenta en vivo y sus botones (el temporizador, también +1 min). La hora no lleva: no se maneja.
+  island(item) {
+    if (!item?.id) return null;
+    const digits = h('span', { class: 'ix-digits' });
+    const toggle = h('button', { class: 'ix-btn ix-play' });
+    const plus = h('button', { class: 'ix-btn ix-plus', title: 'Sumar un minuto', 'aria-label': `Sumar un minuto: ${item.title}`, onclick: () => send('time.adjust', { minutes: 1 }) }, '+1');
+    const el = h('div', { class: 'island-extra', role: 'group', 'aria-label': `${item.title}: su cuenta y sus botones` },
+      digits, toggle,
+      h('button', { class: 'ix-btn', title: 'Volver al principio', 'aria-label': `Volver al principio: ${item.title}`, onclick: () => send('time.reset') }, icon('arrow-counter-clockwise', 14)),
+      plus);
+    const send = (type, extra = {}) => action(type, { id: item.id, ...extra }).catch(() => {});
+    const paint = () => { digits.textContent = readout(item, timerOf(item.id)).text; };
+    const frames = everyFrame(paint);
+    let shown = null;
+    const refresh = () => {
+      const timer = timerOf(item.id);
+      const r = readout(item, timer);
+      const playing = Boolean(timer?.clock.playing) && !r.done;
+      el.dataset.state = !timer ? 'gone' : r.done ? 'done' : playing ? 'running' : 'paused';
+      plus.hidden = timer?.type !== 'timer';
+      if (shown !== playing) {
+        shown = playing;
+        toggle.replaceChildren(icon(playing ? 'pause' : 'play', 14));
+        toggle.title = playing ? 'Pausar' : 'Empezar';
+        toggle.setAttribute('aria-label', `${toggle.title}: ${item.title}`);
+        toggle.onclick = () => send(playing ? 'time.pause' : 'time.start');
+      }
+      paint();
+      if (playing) frames.start(); else frames.stop();
+    };
+    const off = subscribe('time', refresh);
+    return {
+      el,
+      destroy() {
+        frames.stop();
+        off();
+      },
+    };
+  },
 });

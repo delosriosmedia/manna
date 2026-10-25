@@ -97,6 +97,8 @@ export default function setup(app) {
   const single = (ref, n) => ({ ...ref, verseStart: n, verseEnd: n });
   app.kind('verses', {
     label: 'Biblia',
+    // En una capa (fase 34), con fondo: tapa un momento lo que está al aire (la presentación del predicador) sin cambiarlo.
+    layer: true,
     describe(data) {
       const p = library.passage(data?.versionId, data?.ref);
       if (!p) return null;
