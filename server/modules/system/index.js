@@ -84,8 +84,8 @@ export default function setup(app) {
     const pingAt = async (host, port) => {
       try {
         const ping = await (await fetch(`http://${host}:${port}/api/ping`, { signal: AbortSignal.timeout(700) })).json();
-        // Los de antes de la 1.28 no dicen su nombre: son los de nombre «manna».
-        return ping.app === 'manna' && ping.id !== settings.data.id && (ping.name || 'manna') === name ? { port, version: ping.version || '' } : null;
+        // Los de antes de la 1.28 no dicen su nombre: son los de nombre «manna». Una nube (fase 36) no es rival.
+        return ping.app === 'manna' && !ping.cloud && ping.id !== settings.data.id && (ping.name || 'manna') === name ? { port, version: ping.version || '' } : null;
       } catch {
         return null;
       }
@@ -111,6 +111,8 @@ export default function setup(app) {
     if (JSON.stringify(store.get('system').blocked) !== JSON.stringify(found)) store.set('system', { blocked: found });
   };
   function recheck() {
+    // Sustituido por otro equipo oficial (fase 37): no hay nada que mirar, solo volver a emparejarlo.
+    if (app.blocked?.replaced) return { blocked: true };
     checking ||= (async () => {
       let found = await rival();
       if (!found) {
@@ -196,7 +198,7 @@ export default function setup(app) {
       'Cache-Control': 'no-store',
       'Access-Control-Allow-Origin': '*',
     });
-    ctx.res.end(JSON.stringify({ app: 'manna', id: settings.data.id, version, build: app.build, name: networkName() }));
+    ctx.res.end(JSON.stringify({ app: 'manna', id: settings.data.id, version, build: app.build, name: networkName(), ...(app.cloud && { cloud: true }) }));
   });
 
   // Botón "Reiniciar Manna": cierra y vuelve a abrir con el código que haya en disco. Es lo que

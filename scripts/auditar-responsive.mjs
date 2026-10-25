@@ -209,6 +209,8 @@ const SCREENS = [
   { name: 'Preparar el culto: textos', url: '/preparacion#textos', cloud: 'preparacion', tabs: true, content: '.text-editor', primary: '.text-bar .btn.primary', inside: '.text-bar', settle: 600,
     prepare: `document.querySelector('.text-card[data-id=ejemplo-cita] .text-pick').click()` },
   { name: 'Administrar la iglesia', url: '/administrar', cloud: 'administrar', tabs: true, inside: '.user-row' },
+  // El equipo oficial (fase 37): quién es y el botón que da el código para emparejar.
+  { name: 'Administrar la iglesia: equipo', url: '/administrar#equipo', cloud: 'administrar', tabs: true, primary: '.ws[data-module=equipo] .btn.primary' },
   { name: 'Inicio', url: '/', plain: '.role' },
   { name: 'Revisión del equipo', url: '/requisitos', plain: '.req' },
 ];

@@ -151,6 +151,8 @@ for (const port of [PORT, ...(inGroup('red') ? [8125] : [])]) {
 // Lo que el servidor ofrece y esta prueba no puede usar pulsando, con el motivo. Todo lo demás
 // tiene que usarse (ver "Vigilancia de toda la prueba", al final).
 const UNTOUCHED = {
+  'POST /api/nube/emparejar': 'la pide el equipo de la iglesia a su nube (cloud.pair), no la interfaz',
+  'GET /api/nube/estado': 'la pide el equipo de la iglesia a su nube cada minuto, no la interfaz',
   'bible.rescan': 'no tiene botón: la carpeta de biblias se vigila sola',
   'projection.clear': 'no tiene botón: "Solo fondo" y "Negro" cubren su uso',
   'projection.display': 'necesita una segunda pantalla de verdad',
@@ -218,7 +220,7 @@ fs.writeFileSync(fakeInstaller, `import fs from 'node:fs'; fs.writeFileSync(${JS
 function startServer(host, extra = {}) {
   // MANNA_SIN_VENTANA: la prueba no abre su proyección en el proyector de verdad, si lo hay.
   // MANNA_CONVERSION_LENTA: cada conversión tarda en empezar, para poder ver qué pasa mientras tanto.
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared,deckcraft', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, MANNA_CARPETA_PRUEBA: path.join(tmp, 'otra-iglesia'), PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', MANNA_CAPAS_REINTENTO_MS: '500', MANNA_VERSIONES_URL: `http://127.0.0.1:${fakeGithub.address().port}/package.json`, MANNA_VERSIONES_MS: '500', MANNA_ACTUALIZADOR_PRUEBA: fakeInstaller, ...extra };
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared,deckcraft', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, MANNA_CARPETA_PRUEBA: path.join(tmp, 'otra-iglesia'), PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', MANNA_NUBE_COMPROBAR_MS: '1500', MANNA_CAPAS_REINTENTO_MS: '500', MANNA_VERSIONES_URL: `http://127.0.0.1:${fakeGithub.address().port}/package.json`, MANNA_VERSIONES_MS: '500', MANNA_ACTUALIZADOR_PRUEBA: fakeInstaller, ...extra };
   if (host) env.MANNA_HOST = host;
   // killOnExit: si la prueba se corta a medias, el servidor no se queda abierto ocupando el puerto.
   return killOnExit(spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env }));
@@ -3456,6 +3458,8 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   // preparar el culto con el PIN de ese usuario, sin proyección.
   if (inGroup('red')) {
     console.log('\n6. La nube: administrar y preparar el culto');
+    // El Chrome del paso 4 es otro: que también acepte el «¿Salir del sitio?» (tras un toque de verdad, como «Escuchar»).
+    chrome.acceptDialogs = true;
     const cloudPort = PORT + 2;
     // Su himnario y sus biblias, en un R2 de mentira con los de la prueba (la nube los copia al arrancar).
     const r2dir = path.join(tmp, 'r2');
@@ -3463,7 +3467,8 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     fs.cpSync(bibles, path.join(r2dir, 'Biblias'), { recursive: true });
     const fakeR2 = await startFakeR2(r2dir);
     const cloudServer = startServer(null, { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'clave-de-alta-de-prueba', PORT: String(cloudPort), MANNA_DATA: path.join(tmp, 'nube'), ...fakeR2.env });
-    const cloud = `http://localhost:${cloudPort}`;
+    // Por 127.0.0.1: la cookie de la sesión va por nombre de equipo, y así no pisa la del equipo de la iglesia (localhost).
+    const cloud = `http://127.0.0.1:${cloudPort}`;
     try {
       let cloudUp = false;
       for (let i = 0; i < 60 && !cloudUp; i += 1) {
@@ -3544,6 +3549,45 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       await goTo('orden');
       check('el orden los tiene, y desde aquí no se proyecta', await until(`[...document.querySelectorAll('.orow')].some((r) => r.textContent.includes('Canto de entrada'))`, 15)
         && (await run(`return await ${post('projection.show', { kind: 'testcard', data: {} })}`)) === 403);
+
+      // ---- El equipo oficial (fase 37): el de este grupo se empareja con esta nube; luego otro pasa a ser el oficial ----
+      console.log('\n6. La nube: emparejar el equipo oficial');
+      const adminCode = async () => {
+        await chrome.send('Page.navigate', { url: `${cloud}/administrar#equipo` });
+        await until(`document.querySelector('.ws[data-module=equipo] .btn.primary')`, 25);
+        await click(`document.querySelector('.ws[data-module=equipo] .btn.primary')`);
+        await until(`document.querySelector('.modal .pair-code')`, 15);
+        const value = await text('.modal .pair-code');
+        await modalButton('Listo');
+        return value;
+      };
+      await switchUser('Administrar la iglesia');
+      await click(`document.querySelector('.modal .person')`);
+      await sleep(300);
+      await run(`const i = document.querySelector('.modal input[type=password]'); i.value = 'la nueva contraseña'; i.dispatchEvent(new Event('input'));`);
+      await submit();
+      await until(`location.pathname === '/administrar'`, 25);
+      const firstCode = await adminCode();
+      check('«Administrar la iglesia» → Equipo da un código de 6 cifras para emparejar', /^\d{6}$/.test(firstCode));
+      const cloudSection = `[...document.querySelectorAll('.settings .set')].find((s) => s.textContent.includes('Nube de la iglesia'))`;
+      await chrome.send('Page.navigate', { url: `${local}/control#ajustes` });
+      await until(cloudSection, 25);
+      await run(`const s = ${cloudSection}; const [u, c] = s.querySelectorAll('.cloud-form input'); u.value = ${JSON.stringify(cloud)}; c.value = ${JSON.stringify(firstCode)}; s.querySelector('.cloud-form button[type=submit]').click();`);
+      check('Ajustes → Nube empareja este equipo como el oficial', await until(`${cloudSection}.textContent.includes('Conectado')`, 25), await run(`return ${cloudSection}?.textContent`));
+      // Otro equipo (uno de mentira, con un código nuevo) pasa a ser el oficial: este se entera y queda bloqueado.
+      const secondCode = await adminCode();
+      const other = await fetch(`${cloud}/api/nube/emparejar`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Prueba': '1' }, body: JSON.stringify({ code: secondCode, id: 'f'.repeat(16), name: 'Equipo de prueba', confirm: true }) });
+      check('la nube deja que otro equipo pase a ser el oficial', other.ok);
+      await chrome.send('Page.navigate', { url: `${local}/control` });
+      check('el equipo anterior queda bloqueado en todas sus pantallas', await until(`document.querySelector('.blocked')?.textContent.includes('ya no es el oficial') && document.querySelector('.blocked').textContent.includes('Equipo de prueba')`, 40),
+        await run(`return document.querySelector('.blocked')?.textContent || 'sin aviso'`));
+      check('y no acepta órdenes', (await run(`return await ${post('projection.mode', { mode: 'black' })}`)) === 409);
+      const backCode = await adminCode();
+      await chrome.send('Page.navigate', { url: `${local}/control` });
+      await until(`document.querySelector('.blocked input')`, 40);
+      await run(`const i = document.querySelector('.blocked input'); i.value = ${JSON.stringify(backCode)}; document.querySelector('.blocked button[type=submit]').click();`);
+      check('con un código nuevo, vuelve a ser el equipo oficial y se pone en marcha', await until(`!document.querySelector('.blocked') && (await (await fetch('/api/state')).json()).cloud.status === 'on'`, 40),
+        await run(`const s = await fetch('/api/state').then((r) => r.json(), () => null); return JSON.stringify({ aviso: document.querySelector('.blocked')?.textContent?.slice(0, 60), toast: document.querySelector('#toast')?.textContent, nube: s?.cloud, bloqueado: s?.system?.blocked })`));
     } finally {
       await stopServer(cloudServer);
       await fakeR2.stop();

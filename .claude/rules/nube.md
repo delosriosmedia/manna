@@ -33,6 +33,7 @@ Las pone **el dueño** en el panel (Sitio → Node.js → Variables de entorno),
 4. Compilar: `hosting_nodejs_start-build` con `node_version` 24, `app_type` `express`, `entry_file` `server/inicio.cjs`, `package_manager` `npm`, `source_type` `archive` y `source_options.archive_path` el nombre del `.zip`. Antes se puede ver lo que propone con `hosting_nodejs_build-settings-from-archive`. Las operaciones son asíncronas: se consulta `hosting_nodejs_build` hasta `completed`; si falla, `hosting_nodejs_build-logs`.
 5. Comprobar desde aquí: `https://<sitio>/api/ping` dice `"app":"manna"` con la versión; `GET /api/session` trae `preparacion` y `administrar` y, la primera vez, `alta: true`. Pasados unos 30 s (la copia de R2), con un usuario, `/api/hymns` trae los 613 himnos.
 6. El dueño entra en `https://<sitio>/administrar` con la clave de alta, crea su administrador y los usuarios, y prueba `/preparacion` desde un celular y desde el PC de Leidy.
+7. Empareja el equipo oficial: en `/administrar` → Equipo, «Emparejar un equipo»; en el equipo (para `pruebas`, el PC de Leidy), Ajustes → Nube con la dirección del sitio y el código.
 
 ## Lo aprendido
 

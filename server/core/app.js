@@ -55,7 +55,9 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
   const store = new Store();
   const sessions = createSessions({ storage, roles: ROLES, cloud });
   const BLOCKED = 'Este Manna no funciona mientras haya otro en la red: usa ese, o apágalo y pulsa «Volver a comprobar».';
-  const router = createRouter({ webDir: path.join(rootDir, 'web'), sessions, cloud, refuse: () => (app.blocked ? BLOCKED : null) });
+  const REPLACED = 'Este equipo ya no es el oficial de la iglesia: no funciona hasta que se vuelva a emparejar con un código de «Administrar la iglesia».';
+  const refusal = () => (app.blocked?.replaced ? REPLACED : app.blocked ? BLOCKED : null);
+  const router = createRouter({ webDir: path.join(rootDir, 'web'), sessions, cloud, refuse: refusal });
   const realtime = createRealtime({ store, router, sessions });
   const jobs = createJobs({ store });
   const actions = new Map();
@@ -143,7 +145,7 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
     const { type, payload } = await ctx.json();
     const def = actions.get(type);
     if (!def) throw new HttpError(404, `Manna no reconoce la orden «${String(type).slice(0, 60)}». Si acabas de actualizarlo, reinícialo desde Ajustes.`);
-    if (app.blocked && !['system.shutdown', 'system.recheck'].includes(type)) throw new HttpError(409, BLOCKED);
+    if (app.blocked && !['system.shutdown', 'system.recheck', 'cloud.pair'].includes(type)) throw new HttpError(409, refusal());
     ctx.require(def.permission);
     return { result: (await def.handler(payload || {}, ctx)) ?? null };
   });

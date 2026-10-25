@@ -20,9 +20,10 @@ import texts from './modules/texts/index.js';
 import time from './modules/time/index.js';
 import layers from './modules/layers/index.js';
 import internet from './modules/internet/index.js';
+import cloud from './modules/cloud/index.js';
 
 // Para añadir un módulo nuevo: crea su carpeta en server/modules y agrégalo aquí.
-const MODULES = [system, users, bible, projection, order, media, slides, hymns, web, texts, time, layers, internet, tv];
+const MODULES = [system, users, bible, projection, order, media, slides, hymns, web, texts, time, layers, internet, tv, cloud];
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Instalado con «Instalar Manna», el programa vive en <base>/programa y el instalador apunta en
@@ -117,8 +118,10 @@ async function run() {
   for (const setup of MODULES) await setup(app);
   // Un solo Manna a la vez (fase 21): si ya funciona otro con el mismo nombre en este equipo o en la red, este se
   // abre igual (para decirlo en todas sus pantallas) pero no hace nada hasta que el otro se apague.
-  app.services.network.publishBlocked(await app.services.network.rival());
-  if (app.blocked) console.log(`Ya hay otro Manna funcionando (${app.blocked.where}): este espera a que se apague.`);
+  // Lo mismo si otro equipo pasó a ser el oficial de la iglesia (fase 37, decisión 63): hasta que se vuelva a emparejar.
+  app.services.network.publishBlocked(app.services.cloud.blocked() || await app.services.network.rival());
+  if (app.blocked?.replaced) console.log(`Otro equipo es ahora el oficial de ${app.blocked.church}: este no funciona hasta que se vuelva a emparejar.`);
+  else if (app.blocked) console.log(`Ya hay otro Manna funcionando (${app.blocked.where}): este espera a que se apague.`);
 
   // Apagar y reiniciar se dejan listos antes de abrir el puerto: en cuanto Manna responde, sus
   // botones ya tienen que funcionar.

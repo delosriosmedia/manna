@@ -7,6 +7,7 @@ import { createDisplayToggle, createStylePanel, createTestCardButton, describeDi
 import { netText } from '../system/conexion.js';
 import { openDevicesDialog } from '../system/devices.js';
 import { usersBody } from './usuarios.js';
+import { cloudBody } from './nube.js';
 
 // Módulo Ajustes: lo que se prepara antes de la reunión y no hace falta tener a mano durante ella.
 // Arriba, una fila con sus secciones para ir directo a una; los programas del equipo principal (la
@@ -79,6 +80,8 @@ function mount(el, ctx) {
         ...usersBody(ctx.user)),
       section('Internet', 'Conexión por internet', 'Para usar Manna desde fuera de la iglesia. Desde internet todo pide entrar con nombre y PIN, también la pantalla de proyección.',
         net, netAddress, ctx.isLocal && h('div', { class: 'row', style: 'flex-wrap: wrap;' }, netToggle, netOwn)),
+      section('Nube', 'Nube de la iglesia', 'Para preparar el culto desde casa. Este equipo se empareja con la nube de su iglesia con un código que da «Administrar la iglesia»; solo uno puede ser el equipo oficial.',
+        ...cloudBody()),
       section('Programas', 'Programas del equipo principal', 'Lo que Manna usa para convertir videos, descargar de YouTube y abrir presentaciones. Ninguno que falte impide abrir Manna.',
         tools, h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => go('/requisitos') }, icon('check-circle', 16), 'Revisar el equipo'))),
       section('Contenido', 'Carpeta de contenido', 'Las biblias, el himnario y los videos y audios de la iglesia. Al cambiarla, Manna usa la nueva al momento, sin reiniciar; la anterior queda como estaba.',

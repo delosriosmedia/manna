@@ -311,6 +311,7 @@ test('en modo nube nadie es el equipo principal: lo que llega del propio servido
   const cloud = await start('nube', { MANNA_NUBE: '1' });
   try {
     assert.equal(cloud.app.cloud, true);
+    assert.equal((await (await cloud.request('/api/ping')).json()).cloud, true, 'dice que es una nube: un equipo de la iglesia no la toma por otro Manna');
     assert.equal((await (await cloud.request('/api/session')).json()).isLocal, false);
     const login = await cloud.request('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'control' }) });
     assert.notEqual(login.status, 200, 'sin usuario ni PIN no entra');

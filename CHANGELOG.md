@@ -4,6 +4,9 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.46.0 — 2026-10-25
+
+- **El equipo oficial de la iglesia** (fase 37): en «Administrar la iglesia», la pestaña «Equipo» dice cuál es y si está conectado, y «Emparejar un equipo» da un código de 6 cifras que dura 10 minutos. En el equipo de la iglesia, Ajustes → Nube lo empareja con la dirección de la nube y ese código. Si se empareja otro equipo, el anterior queda bloqueado en cuanto se conecta (sin internet sigue funcionando) hasta que se vuelva a emparejar.
 - Para quien despliega la nube: `scripts/desplegar.mjs` arma el paquete del hosting y, con `probar`, lo abre como lo abrirá el hosting antes de subirlo. En la nube, Manna abre un solo puerto.
 
 ## 1.45.0 — 2026-10-25

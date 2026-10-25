@@ -1,5 +1,6 @@
 import { action, subscribe } from './api.js';
 import { h, guard, toast } from './dom.js';
+import { whenLabel } from './time.js';
 
 // Un solo Manna a la vez (fase 21): si ya funciona otro en este equipo o en la red, este no hace nada y lo dice
 // en toda la pantalla, hasta que el otro se apague (entonces se reinicia solo y el aviso se va). buttons: con los
@@ -14,6 +15,11 @@ export function watchBlocked({ buttons = true, isLocal = false } = {}) {
     el?.remove();
     el = null;
     if (!blocked) return;
+    if (blocked.replaced) {
+      el = replacedNotice(blocked, { buttons, isLocal });
+      document.body.append(el);
+      return;
+    }
     const who = blocked.version ? `Manna ${blocked.version}` : 'otro Manna';
     el = h('div', { class: 'blocked', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': 'Ya hay otro Manna funcionando',
       style: 'position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: var(--canvas, #030406); color: var(--ink, #f1f4f8); font-family: var(--font, system-ui, sans-serif);' },
@@ -29,4 +35,25 @@ export function watchBlocked({ buttons = true, isLocal = false } = {}) {
         isLocal && h('button', { class: 'btn danger', onclick: guard(() => action('system.shutdown')) }, 'Apagar este Manna'))));
     document.body.append(el);
   });
+}
+
+// Otro equipo pasó a ser el oficial de la iglesia (fase 37, decisión 63): este no funciona hasta que se vuelva a
+// emparejar con un código nuevo de «Administrar la iglesia» → Equipo.
+function replacedNotice(blocked, { buttons, isLocal }) {
+  const code = h('input', { class: 'input', inputMode: 'numeric', pattern: '[0-9]*', maxLength: 6, autocomplete: 'off', placeholder: '6 números', 'aria-label': 'Código',
+    style: 'max-width: 160px; text-align: center;', oninput: () => { code.value = code.value.replace(/\D/g, '').slice(0, 6); } });
+  return h('div', { class: 'blocked', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': 'Este equipo ya no es el oficial',
+    style: 'position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: var(--canvas, #030406); color: var(--ink, #f1f4f8); font-family: var(--font, system-ui, sans-serif);' },
+  h('div', { style: 'max-width: 520px; display: grid; gap: 14px; text-align: center;' },
+    h('h2', { style: 'margin: 0; font-size: 22px;' }, 'Este equipo ya no es el oficial'),
+    h('p', { style: 'margin: 0;' }, `«${blocked.by}» pasó a ser el equipo oficial de ${blocked.church}${blocked.at ? ` (${whenLabel(blocked.at)})` : ''}.`),
+    h('p', { style: 'margin: 0; opacity: 0.75;' }, 'Este no funciona, para que lo preparado llegue a un solo equipo. Para volver a usarlo, pide un código en «Administrar la iglesia» → Equipo y escríbelo aquí: el otro quedará bloqueado.'),
+    buttons && h('form', { class: 'row', style: 'justify-content: center; flex-wrap: wrap;', onsubmit: (e) => {
+      e.preventDefault();
+      guard(async () => {
+        await action('cloud.pair', { code: code.value, confirm: true });
+        toast('Este equipo vuelve a ser el oficial: Manna se pone en marcha.');
+      })();
+    } }, code, h('button', { class: 'btn primary', type: 'submit' }, 'Volver a ser el equipo oficial')),
+    buttons && isLocal && h('div', { class: 'row', style: 'justify-content: center;' }, h('button', { class: 'btn danger', onclick: guard(() => action('system.shutdown')) }, 'Apagar este Manna'))));
 }

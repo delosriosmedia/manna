@@ -245,7 +245,8 @@ export function createRouter({ webDir, sessions, cloud = false, refuse = () => n
         if (r.method !== req.method) continue;
         const m = r.rx.exec(url.pathname);
         if (!m) continue;
-        if (internet && !session && !OPEN_FROM_INTERNET.has(url.pathname)) throw new HttpError(401, LOGIN);
+        // Lo de /api/nube/ lo pide el equipo de la iglesia a su nube, sin sesión: se autoriza con su código o su clave.
+        if (internet && !session && !OPEN_FROM_INTERNET.has(url.pathname) && !url.pathname.startsWith('/api/nube/')) throw new HttpError(401, LOGIN);
         const params = {};
         r.keys.forEach((k, i) => { params[k] = decodeURIComponent(m[i + 1]); });
         const ctx = {
