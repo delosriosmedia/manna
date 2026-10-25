@@ -60,6 +60,11 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
       layer.el.style.visibility = on ? '' : 'hidden';
       layer.view?.visible?.(on && document.visibilityState === 'visible');
     });
+    liveLayers();
+  }
+  // Lo que suena en una capa (el tictac de un temporizador) suena, como todo, solo en la pantalla que suena.
+  function liveLayers() {
+    for (const layer of layers) layer?.view?.live?.(null, { volume: live?.volume ?? 1, sound, still: thumbnail });
   }
 
   // El tipo dice dónde cae en pantalla un punto de su contenido (locate); el que no sabe, no lo muestra.
@@ -134,11 +139,13 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
     setLive(next) {
       live = next;
       applyLive();
+      liveLayers();
     },
     setSound(value) {
       if (sound === Boolean(value)) return;
       sound = Boolean(value);
       applyLive();
+      liveLayers();
     },
     // ¿Lo dibujado sabe situar un punto? (con eso se puede señalar sobre él)
     pointable: () => Boolean(drawn?.view.locate),

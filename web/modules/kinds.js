@@ -9,3 +9,4 @@ import './slides/kind.js';
 import './hymns/kind.js';
 import './web/kind.js';
 import './texts/kind.js';
+import './time/kind.js';

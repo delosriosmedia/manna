@@ -210,6 +210,7 @@ input[type='file'].input { padding: 6px; height: auto; }
 .kind.k-compare { background: rgba(86, 212, 234, 0.14); color: #7fdcec; }
 .kind.k-web { background: rgba(140, 200, 96, 0.14); color: #a8d77f; }
 .kind.k-text { background: rgba(240, 130, 180, 0.14); color: #f3a3c9; }
+.kind.k-clock { background: rgba(250, 204, 21, 0.14); color: #f5d565; }
 .kind.k-testcard { background: var(--s3); color: var(--ink-2); }
 
 /* Grupo de botones de una sola elección (disposición, vista). */

@@ -1137,7 +1137,7 @@ try {
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await sleep(500);
   const dockNames = `[...document.querySelectorAll('.dockbar .dock-item')].map(b => b.querySelector('.dock-name').textContent).join('|')`;
-  check('en el celular, el dock va abajo con todos los módulos y su nombre, sin «Más» (Ajustes, en el logo de arriba)', await run(`const r = document.querySelector('.dockbar').getBoundingClientRect(); const logo = document.querySelector('.topbar .brand-mark[data-id=ajustes]').getBoundingClientRect(); return ${dockNames} === 'Orden|Biblia|Himnario|Medios|Textos|Páginas web|Capas' && logo.width >= 30 && logo.top >= 0 && logo.bottom <= innerHeight && getComputedStyle(document.querySelector('.dock-name')).display !== 'none' && r.bottom > innerHeight - 30 && r.top > innerHeight / 2 && !document.querySelector('.tabbar') && ![...document.querySelectorAll('.dockbar button')].some(b => b.textContent === 'Más') && document.querySelector('.dock-item.on').dataset.id === 'medios'`), await run(`return ${dockNames}`));
+  check('en el celular, el dock va abajo con todos los módulos y su nombre, sin «Más» (Ajustes, en el logo de arriba)', await run(`const r = document.querySelector('.dockbar').getBoundingClientRect(); const logo = document.querySelector('.topbar .brand-mark[data-id=ajustes]').getBoundingClientRect(); return ${dockNames} === 'Orden|Biblia|Himnario|Medios|Textos|Tiempo|Páginas web|Capas' && logo.width >= 30 && logo.top >= 0 && logo.bottom <= innerHeight && getComputedStyle(document.querySelector('.dock-name')).display !== 'none' && r.bottom > innerHeight - 30 && r.top > innerHeight / 2 && !document.querySelector('.tabbar') && ![...document.querySelectorAll('.dockbar button')].some(b => b.textContent === 'Más') && document.querySelector('.dock-item.on').dataset.id === 'medios'`), await run(`return ${dockNames}`));
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(400);
 
@@ -1732,6 +1732,138 @@ try {
     await modalButton('Eliminar');
     await sleep(600);
     check('un texto se elimina desde su menú', (await textsNow()).length === 1 && await run(`return ${ws}.querySelectorAll('.text-card').length === 1`));
+  }
+
+  console.log('\n1. Interfaz · Tiempo');
+  {
+    // Fase 32: la hora, un temporizador y un cronómetro; su aspecto, proyectarlo, sus mandos, una capa y el orden.
+    // El sonido se comprueba con un sintetizador de mentira en cada página: el tictac y la alarma suenan una vez.
+    const ws = `document.querySelector('.ws[data-module=tiempo]')`;
+    const rowOf = (name) => `[...${ws}.querySelectorAll('.time-row')].find(r => r.querySelector('.item-text strong').textContent === ${JSON.stringify(name)})`;
+    const timersNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).time.timers)`).then(JSON.parse);
+    const airNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).projection.item)`).then(JSON.parse);
+    const far = `document.querySelector('#pantalla').contentDocument`;
+    const liveBtn = (label) => `[...${LIVE}.querySelectorAll('button')].find(b => (b.getAttribute('aria-label') || b.textContent.trim()) === ${JSON.stringify(label)})`;
+    const STUB = `w.__audio = []; w.AudioContext = class { constructor() { this.state = 'running'; this.currentTime = 0; this.destination = {}; } resume() { return Promise.resolve(); }
+      createOscillator() { const o = { type: 'sine', frequency: { setValueAtTime: (f) => { o.f = f; } }, connect: (x) => x, start: () => w.__audio.push({ type: o.type, f: o.f }), stop() {} }; return o; }
+      createGain() { return { gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect: (x) => x }; } };`;
+    await goTo('tiempo');
+    await sleep(600);
+    check('Tiempo muestra la hora del equipo y, sin relojes guardados, invita a crear uno', await run(`return document.title === 'Manna · Tiempo' && ${ws}.querySelectorAll('.time-row').length === 1
+      && /^\\d{1,2}:\\d{2} [ap]\\. m\\.$/.test(${rowOf('Hora')}.querySelector('.time-digits').textContent) && ${ws}.querySelector('.time-empty').textContent.includes('Nuevo')`),
+      await run(`return ${rowOf('Hora')}?.querySelector('.time-digits').textContent`));
+
+    // Un temporizador de 12 s, para oír el final en la prueba.
+    await click(`${ws}.querySelector('.ws-head .btn')`);
+    await sleep(300);
+    await menuItem('Temporizador');
+    await sleep(300);
+    await run(`const m = ${modal}; m.querySelector('input[aria-label=Nombre]').value = 'Anuncios'; m.querySelector('input[aria-label=Minutos]').value = '0'; m.querySelector('input[aria-label=Segundos]').value = '12';`);
+    await modalButton('Guardar');
+    await sleep(700);
+    let timers = await timersNow();
+    const ads = timers.find((t) => t.title === 'Anuncios');
+    check('«Nuevo» → «Temporizador» lo crea con su nombre y su duración, y lo deja elegido', ads?.type === 'timer' && ads.seconds === 12 && ads.sound === true
+      && await run(`return ${rowOf('Anuncios')}.classList.contains('selected') && ${rowOf('Anuncios')}.querySelector('.time-digits').textContent === '0:12'`), JSON.stringify(timers));
+
+    // El aspecto: anillo, mediano, arriba a la derecha; la vista previa lo muestra.
+    await click(`${ws}.querySelector('.time-chips [data-value=anillo]')`);
+    await click(`${ws}.querySelector('.time-chips [data-value=m]')`);
+    await click(`${ws}.querySelector('.time-place[data-value=tr]')`);
+    await sleep(300);
+    check('el estilo, el tamaño y el sitio se eligen, y la vista previa los muestra', await run(`const c = ${ws}.querySelector('.time-preview .clk'); return c?.dataset.style === 'anillo' && c.dataset.size === 'm' && c.dataset.place === 'tr' && c.querySelector('.clk-title').textContent === 'Anuncios'`));
+
+    // La otra pantalla de proyección, con su sintetizador de mentira, y el de esta página.
+    await run(`const w = window; ${STUB}`);
+    await run(`const f = document.createElement('iframe'); f.id = 'pantalla'; f.src = '/proyeccion'; f.style.cssText = 'position:fixed;left:0;bottom:0;width:640px;height:360px;z-index:99;border:0'; document.body.append(f);`);
+    await until(`${far}?.readyState === 'complete'`, 20);
+    await run(`const w = document.querySelector('#pantalla').contentWindow; ${STUB}`);
+
+    await click(`${ws}.querySelector('.time-bar .btn.primary')`);
+    await sleep(800);
+    let air = await airNow();
+    check('«Proyectar» lo pone al aire con su aspecto; desde el módulo no empieza solo', air?.kind === 'clock' && air.id === ads.id && air.style === 'anillo' && air.place === 'tr' && !(await timersNow())[0].clock.playing
+      && await until(`${far}.querySelector('.stage-content .clk[data-style=anillo] .clk-digits')?.textContent === '0:12'`, 10), JSON.stringify(air));
+    await click(liveBtn('Sumar un minuto'));
+    await sleep(500);
+    check('«+1 min» de los mandos al aire le suma un minuto', (await timersNow())[0].clock.duration === 72);
+    await click(liveBtn('Restar un minuto'));
+    await sleep(500);
+    check('y «−1 min» se lo quita', (await timersNow())[0].clock.duration === 12);
+    await click(liveBtn('Empezar'));
+    await sleep(500);
+    check('«Empezar» de los mandos al aire lo pone en marcha', (await timersNow())[0].clock.playing === true && await until(`${LIVE}.querySelector('.clk-ctl-digits')?.textContent !== '0:12'`, 10));
+    // Los últimos 10 segundos: tictac (más marcado en los últimos 5) y, al llegar a cero, la alarma. Suena una sola página.
+    const heardTicks = await until(`(document.querySelector('#pantalla').contentWindow.__audio.length + window.__audio.length) > 0 && ${far}.querySelector('.stage-content .clk')?.dataset.done === '1'`, 45);
+    await sleep(800);
+    const sounds = await run(`return JSON.stringify({ here: window.__audio, far: document.querySelector('#pantalla').contentWindow.__audio })`).then(JSON.parse);
+    const played = sounds.here.length ? sounds.here : sounds.far;
+    const ticks = played.filter((o) => o.type === 'triangle').length;
+    check('en los últimos 10 segundos suena el tictac, y al llegar a cero la alarma, en una sola pantalla', heardTicks && (sounds.here.length === 0 || sounds.far.length === 0)
+      && ticks >= 9 && ticks <= 10 && [880, 1108.73, 1318.51].every((f) => played.some((o) => o.f === f)), `${ticks} tics; aquí ${sounds.here.length}, en la otra ${sounds.far.length}`);
+    check('al llegar a cero se queda quieto en 0:00', await run(`return ${far}.querySelector('.stage-content .clk-digits').textContent === '0:00'`) && await until(`${rowOf('Anuncios')}.querySelector('.time-digits').textContent === '0:00'`, 5));
+    await click(`${rowOf('Anuncios')}.querySelector('[aria-label^="Volver al principio"]')`);
+    await sleep(500);
+    check('«Volver al principio» de la lista lo deja en su duración', (await timersNow())[0].clock.position === 0 && await until(`${rowOf('Anuncios')}.querySelector('.time-digits').textContent === '0:12'`, 5));
+
+    // Un cronómetro, en una capa: con su botón en «Capas».
+    await click(`${ws}.querySelector('.ws-head .btn')`);
+    await sleep(300);
+    await menuItem('Cronómetro');
+    await sleep(300);
+    await run(`${modal}.querySelector('input[aria-label=Nombre]').value = 'Alabanza';`);
+    await modalButton('Guardar');
+    await sleep(700);
+    const praise = (await timersNow()).find((t) => t.title === 'Alabanza');
+    check('«Nuevo» → «Cronómetro» lo crea, en cero', praise?.type === 'stopwatch' && await run(`return ${rowOf('Alabanza')}.querySelector('.time-digits').textContent === '0:00'`));
+    await click(`[...${ws}.querySelectorAll('.time-bar .btn')].find(b => b.textContent.trim() === 'Capa')`);
+    await sleep(300);
+    await menuItem('Capa 2');
+    await sleep(800);
+    check('«Capa» lo pone en una capa: lo dibujan la proyección y, en el equipo principal, el fondo del control', await until(`${far}.querySelector('.stage-layer[data-n="2"] .clk')`, 10)
+      && await until(`document.querySelector('.scene-bg .stage-layer[data-n="2"] .clk')`, 10) && await run(`return document.querySelector('.scene-status .layers-chip').textContent.trim() === '1'`));
+    await goTo('capas');
+    await sleep(500);
+    await click(`document.querySelector('.ws[data-module=capas] .layer-row[data-n="2"] .layer-play')`);
+    await sleep(500);
+    check('en «Capas», su botón lo pone en marcha', (await timersNow()).find((t) => t.id === praise.id).clock.playing === true);
+    await click(`document.querySelector('.ws[data-module=capas] .layer-row[data-n="2"] .layer-play')`);
+    await sleep(400);
+    await run(`return await ${post('layers.clear', { n: 2 })}`);
+    await goTo('tiempo');
+    await sleep(500);
+
+    // Al orden del culto; proyectado desde ahí, empieza solo si está en su principio.
+    await click(`${rowOf('Anuncios')}.querySelector('.time-pick')`);
+    await sleep(300);
+    await click(`[...${ws}.querySelectorAll('.time-bar .btn')].find(b => b.textContent.includes('Añadir al orden'))`);
+    await sleep(600);
+    const orderItem = (await run(`return JSON.stringify((await (await fetch('/api/state')).json()).order.items.find(i => i.kind === 'clock'))`).then(JSON.parse));
+    check('«Añadir al orden» lo añade con su aspecto', orderItem?.title === 'Anuncios' && orderItem.data.style === 'anillo');
+    await run(`return await ${post('order.show', { id: orderItem?.id })}`);
+    await sleep(600);
+    check('proyectado desde el orden, empieza solo', (await timersNow()).find((t) => t.id === ads.id).clock.playing === true);
+    await click(liveBtn('Pausar'));
+    await sleep(400);
+
+    // Cambiar y eliminar desde el menú de cada uno.
+    await click(`${rowOf('Alabanza')}.querySelector('[aria-label^="Opciones"]')`);
+    await sleep(300);
+    await menuItem('Cambiar');
+    await sleep(300);
+    await run(`${modal}.querySelector('input[aria-label=Nombre]').value = 'Alabanza del sábado';`);
+    await modalButton('Guardar');
+    await sleep(600);
+    check('«Cambiar» le cambia el nombre', (await timersNow()).some((t) => t.title === 'Alabanza del sábado'));
+    await click(`${rowOf('Alabanza del sábado')}.querySelector('[aria-label^="Opciones"]')`);
+    await sleep(300);
+    await menuItem('Eliminar');
+    await sleep(300);
+    await modalButton('Eliminar');
+    await sleep(600);
+    check('«Eliminar» lo quita de la lista', !(await timersNow()).some((t) => t.id === praise.id) && await run(`return !${rowOf('Alabanza del sábado')}`));
+    await run(`document.querySelector('#pantalla').remove()`);
+    await run(`return await ${post('projection.mode', { mode: 'clear' })}`);
   }
 
   console.log('\n1. Interfaz · Orden: citas de un texto o documento');

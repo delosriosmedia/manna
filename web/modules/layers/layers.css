@@ -1,13 +1,13 @@
 /* Módulo Capas: las tres capas, la 3 arriba. Cada fila, su número, qué tiene, el ojo y sus opciones. */
 .layers-list { padding: 12px; display: grid; gap: 8px; align-content: start; overflow-y: auto; min-height: 0; }
-.layer-row { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto auto; gap: 10px; align-items: center; min-height: 56px; padding: 8px 8px 8px 10px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); }
-.layer-row.empty-layer { grid-template-columns: auto minmax(0, 1fr) auto; border-style: dashed; background: none; }
+.layer-row { display: flex; gap: 10px; align-items: center; min-height: 56px; padding: 8px 8px 8px 10px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); }
+.layer-row.empty-layer { border-style: dashed; background: none; }
 .layer-row.shown { border-color: var(--accent); }
 .layer-n { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--s3); color: var(--ink-2); font: 600 13px/1 var(--mono); }
 .layer-row.shown .layer-n { background: var(--accent-soft); color: var(--accent); }
-.layer-row .item-text { display: grid; gap: 2px; min-width: 0; }
+.layer-row .item-text { flex: 1; display: grid; gap: 2px; min-width: 0; }
 .layer-row strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .layer-row small { color: var(--ink-3); font-size: 12px; }
 .layer-eye[aria-pressed='true'] { color: var(--accent); }
 .layers-note { padding: 0 14px 14px; font-size: 12px; }
-@container cajon (max-width: 369px) { .layer-row .kind { display: none; } .layer-row { grid-template-columns: auto minmax(0, 1fr) auto auto; } }
+@container cajon (max-width: 369px) { .layer-row .kind { display: none; } }

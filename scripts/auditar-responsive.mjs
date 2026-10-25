@@ -187,6 +187,7 @@ const SCREENS = [
   { name: 'Páginas web: una elegida', url: '/control#paginas', content: '.web-list', primary: '.ws[data-module=paginas] .abar .btn.primary', inside: '.ws[data-module=paginas] .abar', settle: 600,
     prepare: `document.querySelector('.ws[data-module=paginas] .web-pick').click()` },
   { name: 'Capas', url: '/control#capas', content: '.layers-list', inside: '.layer-row', settle: 600 },
+  { name: 'Tiempo', url: '/control#tiempo', content: '.time-body', primary: '.time-bar .btn.primary', inside: '.time-row', settle: 700 },
   { name: 'Televisores', url: '/control#televisores', content: '.tvs', inside: '.tv' },
   { name: 'Televisores: control remoto', url: '/control#televisores', inside: '.modal', settle: 700,
     prepare: `[...document.querySelectorAll('.tv-actions .btn')].find((b) => b.textContent === 'Control remoto').click()` },
@@ -406,6 +407,12 @@ async function worker(list, n) {
   // Dos capas (fase 31): el archivo, a la vista (la pastilla de capas sale arriba en todas las pantallas), y la dirección
   // larga, oculta y esperando (localhost:9 no contesta).
   fs.writeFileSync(path.join(data, 'capas.json'), JSON.stringify({ slots: [null, { kind: 'web', data: { id: 'archivo1' }, visible: true }, { kind: 'web', data: { id: 'enlace1' }, visible: false }] }));
+  // Dos relojes (fase 32): un temporizador con un nombre largo, en marcha, y un cronómetro parado.
+  const now = Date.now();
+  fs.writeFileSync(path.join(data, 'tiempo.json'), JSON.stringify({ timers: [
+    { id: 'reloj1', type: 'timer', title: 'Predicación del sábado por la mañana con un nombre largo', seconds: 2400, sound: true, added: 1, updated: 1, clock: { playing: true, position: 0, at: now, duration: 2400 } },
+    { id: 'reloj2', type: 'stopwatch', title: 'Alabanza', seconds: null, sound: false, added: 2, updated: 2, clock: { playing: false, position: 95, at: now, duration: null } },
+  ] }));
   // El ejemplo se escribe antes de arrancar: el servidor lee el orden y la biblioteca al abrirse.
   const example = seedExample(data);
   const server = killOnExit(spawn(process.execPath, ['server/index.js'], {

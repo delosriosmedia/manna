@@ -1,0 +1,42 @@
+/* Módulo Tiempo: la lista (la hora y los guardados, con su cuenta) y, al lado o debajo, cómo se verá el elegido. */
+.time-body { flex: 1; min-height: 0; overflow-y: auto; display: grid; gap: 14px; align-content: start; padding: 12px; }
+@container cajon (min-width: 640px) { .time-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+.time-list { display: grid; gap: 8px; align-content: start; }
+.time-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 4px; align-items: center; padding-right: 6px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); transition: border-color 0.12s var(--ease); }
+.time-row:hover { border-color: var(--line-2); }
+.time-row.selected { border-color: var(--accent); background: var(--accent-soft); }
+.time-row.live { border-color: var(--live); }
+.time-pick { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 56px; padding: 8px 6px 8px 10px; text-align: left; }
+.time-pick .item-text { display: grid; gap: 2px; min-width: 0; }
+.time-pick strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.time-pick small { display: flex; gap: 6px; align-items: center; color: var(--ink-3); font-size: 12px; }
+.time-pick .badge { font-size: 10px; padding: 1px 6px; }
+.time-row:not(.live) .badge.live { display: none; }
+.time-digits { font: 600 15px/1 var(--mono); letter-spacing: -0.02em; white-space: nowrap; }
+.time-empty { padding: 4px 4px 0; font-size: 12px; }
+
+.time-look { display: grid; gap: 12px; align-content: start; }
+.time-preview { width: 100%; aspect-ratio: 16 / 9; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.time-option { display: grid; gap: 6px; }
+.time-option > span { color: var(--ink-3); font-size: 12px; font-weight: 600; }
+.time-option[hidden] { display: none; }
+.time-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.time-places { display: grid; grid-template-columns: repeat(3, 34px); gap: 4px; }
+.time-place { height: 22px; border: 1px solid var(--line); border-radius: 6px; background: var(--s2); }
+.time-place:hover { border-color: var(--line-2); }
+.time-place.on { border-color: var(--accent); background: var(--accent); }
+html.touch .time-places { grid-template-columns: repeat(3, 44px); }
+html.touch .time-place { height: var(--tap); }
+
+.time-bar .sel-ref { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Ventana para crear o cambiar uno */
+.time-form { display: grid; gap: 12px; min-width: min(360px, 80vw); }
+.time-field { display: grid; gap: 6px; }
+.time-field > span:first-child { color: var(--ink-3); font-size: 12px; font-weight: 600; }
+.time-span { gap: 6px; align-items: center; }
+.time-num { width: 76px; }
+.time-sound { gap: 8px; align-items: flex-start; font-size: 13px; }
+
+/* Cajón reducido del celular: elegir y proyectar; crear y el aspecto, al ampliarlo. */
+.compact .ws[data-module='tiempo'] .time-look { display: none; }

@@ -4,6 +4,12 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.37.0 — 2026-10-25
+
+- **Tiempo**, un módulo nuevo: la **hora**, **cronómetros** y **temporizadores** con su título, para proyectar, poner en una capa o añadir al orden del culto. Cinco estilos (Sencillo, Digital, Tarjeta, Anillo y Barra), tres tamaños, nueve sitios y un aspecto sutil o normal, con su vista previa. En la proyección van sobre el fondo de Ajustes; en una capa, sin fondo.
+- Un temporizador sigue contando aunque no se vea y aunque Manna se reinicie. Al llegar a cero se queda quieto: en los últimos 10 segundos suena un tictac suave (más marcado en los últimos 5) y al final una alarma corta y suave, por la pantalla que suena y con el volumen de Manna. Se puede dejar sin sonido.
+- Empezar, pausar, volver al principio y sumar o restar un minuto, desde la lista, desde los mandos de lo que está al aire y desde Capas. Proyectado desde el orden del culto, un temporizador empieza solo si está en su principio.
+- En el equipo principal, la proyección de fondo del control muestra también la hora o el temporizador que estén en una capa, para ver dónde caen.
 ## 1.36.0 — 2026-10-24
 
 - **Capas**: tres capas que quedan encima de todo lo que se proyecte, también con «Negro» y «Solo fondo», hasta que las quites, aunque Manna se reinicie. Hoy va en una capa una página web que se deje mostrar dentro de Manna: con fondo transparente, se ve encima de videos, versículos, himnos o imágenes. Se pone desde Páginas web («Capa») o desde el cajón nuevo **Capas**, donde el ojo la oculta sin recargarla. Arriba, junto a «Al aire», una pastilla dice cuántas hay a la vista.

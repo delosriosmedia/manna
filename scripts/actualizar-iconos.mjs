@@ -41,6 +41,8 @@ const ICONS = [
   'list-plus',
   // capas (fase 31)
   'stack', 'eye',
+  // tiempo (fase 32)
+  'timer', 'clock', 'hourglass-medium',
 ];
 
 // Iconos propios (a petición del dueño, no son de Phosphor): un QR que se lee desde 14 px y, para «Negro», una

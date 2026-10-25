@@ -21,6 +21,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
   - **Audios**: se suben o se copian a `Contenido/Medios/`, y se gobiernan como un video.
   - **Presentaciones**: las de la iglesia, en PDF o en PowerPoint, convertidas en imágenes. Se recorren con «Siguiente», la barra de abajo muestra la diapositiva que viene y cuántas quedan, y cada una se puede acercar como una imagen. En Windows, un PowerPoint lo puede pasar **el propio PowerPoint en el proyector**, con sus videos y animaciones, y se sigue pasando desde cualquier celular.
 - **Textos**: mensajes (un anuncio, una bienvenida, un motivo de oración) y **citas con su autor**, para proyectarlos con el fondo y la letra de la Biblia. Se guardan para volver a usarlos y se añaden al orden del culto. Una línea en blanco parte un texto largo en pantallas, que se pasan con «Siguiente».
+- **Tiempo**: la hora, cronómetros y temporizadores con su título, en cinco estilos, a la proyección o a una capa. Un temporizador hace un tictac suave en los últimos 10 segundos y una alarma corta al llegar a cero.
 - **Capas**: tres capas que quedan encima de todo lo que se proyecte (también con «Negro» y «Solo fondo») hasta que las quites, por ejemplo una página web transparente que muestra algo de vez en cuando.
 - **Páginas web**: presentaciones y juegos de internet (Canva, Google Slides, Genially, Kahoot) o un archivo HTML propio, a pantalla completa. Una dirección necesita internet durante el culto; si la página no se deja mostrar dentro de Manna, el proyector la abre en su propia ventana. Un archivo HTML se pasa con «Anterior» y «Siguiente» desde cualquier dispositivo.
 - **Fondos**: seis colores y las imágenes que subas, que quedan guardadas junto a ellos en Ajustes.
@@ -266,9 +267,16 @@ Solo «Control completo» crea y cambia textos; las demás funciones los proyect
 
 Las direcciones **necesitan internet durante el culto**. Los archivos se guardan en `data/paginas/` del equipo principal.
 
+### Tiempo
+
+1. En **Tiempo** está siempre la **Hora** (la del equipo principal). Con **Nuevo** creas un **temporizador** (cuenta atrás, con su nombre y lo que dura) o un **cronómetro** (cuenta hacia arriba).
+2. Elige uno y, a la derecha, cómo se verá: **estilo** (Sencillo, Digital, Tarjeta, Anillo o Barra), **tamaño**, **dónde** (las esquinas, los bordes o el centro), **aspecto** (sutil o normal) y, la hora, en 12 o 24 horas. La vista previa lo muestra sobre el fondo de la proyección. Cada dispositivo recuerda cómo lo dejaste.
+3. **Proyectar**, **Capa** (queda encima de todo, por ejemplo la hora pequeña en una esquina durante todo el culto) o **Añadir al orden**. En la proyección va sobre el fondo de Ajustes; en una capa, sin fondo.
+4. **Empezar**, **Pausar**, **Volver al principio** y **±1 min** están en la lista, en los mandos de lo que está al aire y en **Capas**. Un temporizador sigue contando aunque no se vea; proyectado desde el orden del culto, empieza solo si está en su principio. Al llegar a cero se queda quieto: en los últimos 10 segundos suena un tictac suave (más marcado en los últimos 5) y al final una alarma corta, por los parlantes del equipo principal y con el volumen de Manna. Cada temporizador puede ir sin sonido.
+
 ### Capas
 
-Lo que pongas en una capa queda **encima de todo lo que se proyecte**, también con «Negro» y «Solo fondo», hasta que lo quites, aunque Manna se reinicie. Hay tres: la 1 encima de lo que está al aire, la 2 encima de la 1 y la 3 encima de todo. Hoy van en una capa las páginas web que se dejan mostrar dentro de Manna, como una página con fondo transparente que muestra algo de vez en cuando.
+Lo que pongas en una capa queda **encima de todo lo que se proyecte**, también con «Negro» y «Solo fondo», hasta que lo quites, aunque Manna se reinicie. Hay tres: la 1 encima de lo que está al aire, la 2 encima de la 1 y la 3 encima de todo. Hoy van en una capa la hora, los cronómetros y temporizadores (desde **Tiempo**) y las páginas web que se dejan mostrar dentro de Manna, como una página con fondo transparente que muestra algo de vez en cuando.
 
 1. En **Páginas web**, elige la página y pulsa **Capa** → la capa que quieras. También desde **Capas** → **Poner aquí**.
 2. En **Capas**, el ojo la oculta o la muestra sin recargarla; **…** → **Recargar** la carga de nuevo y **Quitar** la quita. Arriba, junto a «Al aire», una pastilla dice cuántas hay a la vista.
@@ -338,6 +346,7 @@ server/
     slides/             presentaciones convertidas en diapositivas (en la web, su grupo de Medios, panel.js, y el Presentador): recibir las páginas de un PDF, pedirle
                         a PowerPoint que exporte las de una presentación o que la pase en vivo (powerpoint.js) y proyectarlas
     texts/              textos y citas para proyectar: guardarlos, partirlos en pantallas (text.js)
+    time/               la hora, cronómetros y temporizadores: guardarlos, sus relojes y cómo se ven (clock.js)
     layers/             las tres capas encima de la proyección: guardarlas y ver si su página contesta
     web/                páginas web y archivos HTML: comprobar si una dirección se deja mostrar
                         dentro de otra página y servir los archivos encerrados

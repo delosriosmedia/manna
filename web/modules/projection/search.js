@@ -66,7 +66,12 @@ async function texts(q) {
 async function pages(q) {
   return byName(q, (state.web?.pages || []).map((p) => ({ kind: 'web', data: { id: p.id }, title: p.name, subtitle: p.subtitle })));
 }
-const SOURCES = [['Biblia', bible], ['Himnario', hymns], ['Videos', videos], ['Medios', media], ['Diapositivas', slides], ['Textos', texts], ['Páginas web', pages]];
+// La hora y los relojes, con su aspecto de siempre (server/modules/time/clock.js).
+async function clocks(q) {
+  return byName(q, [{ kind: 'clock', data: { type: 'hora' }, title: 'Hora', subtitle: 'Reloj' },
+    ...(state.time?.timers || []).map((t) => ({ kind: 'clock', data: { id: t.id }, title: t.title, subtitle: t.type === 'timer' ? 'Temporizador' : 'Cronómetro' }))]);
+}
+const SOURCES = [['Biblia', bible], ['Himnario', hymns], ['Videos', videos], ['Medios', media], ['Diapositivas', slides], ['Textos', texts], ['Tiempo', clocks], ['Páginas web', pages]];
 // Los grupos principales: con sitio (860 px o más), en columnas, uno al lado de otro; los demás, debajo, en filas.
 const MAIN = ['Biblia', 'Himnario', 'Videos'];
 

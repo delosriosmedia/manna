@@ -55,6 +55,9 @@ export function createEscenario(ctx) {
     return el;
   };
   subscribe('layers', ({ slots }) => {
+    // En el equipo principal, la proyección de fondo dibuja las capas ligeras (la hora, un temporizador) para ver
+    // dónde caen; una página no se carga aquí (correría dos veces en el mismo equipo).
+    if (ctx.isLocal) stage.setLayers(slots.map((s) => (s.kind === 'web' ? { n: s.n } : s)));
     const shown = slots.filter((s) => s.kind && s.visible);
     for (const chip of chips) {
       chip.hidden = !shown.length;

@@ -306,3 +306,49 @@ video::cue { font-size: calc(5.2cqh * var(--cue, 1)); line-height: 1.3; backgrou
 .web-card svg { width: 12cqh; height: 12cqh; opacity: 0.55; }
 .web-card strong { font-size: 6cqh; font-weight: 600; text-wrap: balance; }
 .web-card small { font-size: 3.4cqh; opacity: 0.7; }
+
+/* Tiempo (fase 32, web/modules/time/kind.js): la hora, un cronómetro o un temporizador, en uno de nueve sitios, con
+   uno de cinco estilos. --clk-n es el alto de las cifras; --clk-ink y --clk-accent, la letra y el color de las citas de
+   Ajustes. La proyección no carga app.css: las cifras de Geist Mono se declaran aquí. */
+@font-face { font-family: 'Geist Mono'; src: url('/vendor/geist/GeistMono-Variable.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
+.clk { position: absolute; inset: 0; display: grid; padding: 5cqh 4cqw; pointer-events: none; color: var(--clk-ink, #fff); --clk-n: 7cqh; }
+.clk[data-size='m'] { --clk-n: 15cqh; }
+.clk[data-size='l'] { --clk-n: 28cqh; }
+.clk[data-place^='t'] { align-items: start; }
+.clk[data-place^='m'] { align-items: center; }
+.clk[data-place^='b'] { align-items: end; }
+.clk[data-place$='l'] { justify-items: start; }
+.clk[data-place$='c'] { justify-items: center; }
+.clk[data-place$='r'] { justify-items: end; }
+.clk[data-look='sutil'] { opacity: 0.6; }
+.clk-box { display: grid; justify-items: center; gap: calc(var(--clk-n) * 0.1); max-width: 92cqw; line-height: 1; text-align: center; }
+.clk-title { max-width: 100%; overflow: hidden; color: var(--clk-accent, currentColor); font-size: calc(var(--clk-n) * 0.26); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.clk-title[hidden] { display: none; }
+.clk-number { position: relative; display: inline-flex; align-items: baseline; justify-content: center; gap: 0.16em; font-size: var(--clk-n); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.clk-suffix { font-size: 0.38em; font-weight: 600; opacity: 0.85; }
+.clk-suffix[hidden], .clk-ring, .clk-bar { display: none; }
+
+/* Digital: cifras de Geist Mono en una pastilla oscura. */
+.clk[data-style='digital'] .clk-number { padding: 0.1em 0.42em; border-radius: 999px; background: rgba(0, 0, 0, 0.45); font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 500; letter-spacing: -0.02em; text-shadow: none; }
+
+/* Tarjeta: el título arriba, en mayúsculas, y el número grande, en un recuadro oscuro. */
+.clk[data-style='tarjeta'] .clk-box { padding: calc(var(--clk-n) * 0.2) calc(var(--clk-n) * 0.42); border-radius: calc(var(--clk-n) * 0.16); background: rgba(0, 0, 0, 0.5); text-shadow: none; }
+.clk[data-style='tarjeta'] .clk-title { font-size: calc(var(--clk-n) * 0.2); letter-spacing: 0.12em; text-transform: uppercase; }
+.clk[data-style='tarjeta'] .clk-number { font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 600; letter-spacing: -0.03em; }
+
+/* Anillo: las cifras dentro de un anillo que se vacía (un temporizador), se llena en cada minuto (un cronómetro) o en
+   cada hora (la hora). */
+.clk[data-style='anillo'] .clk-number { display: grid; place-items: center; width: calc(var(--clk-n) * 2.5); height: calc(var(--clk-n) * 2.5); font-family: 'Geist Mono', ui-monospace, monospace; font-size: calc(var(--clk-n) * 0.58); font-weight: 600; letter-spacing: -0.03em; }
+.clk[data-style='anillo'] .clk-number > :not(.clk-ring) { position: relative; grid-area: 1 / 1; }
+.clk[data-style='anillo'] .clk-suffix { align-self: end; margin-bottom: 26%; }
+.clk[data-style='anillo'] .clk-ring { display: block; position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); filter: drop-shadow(0 0.3cqh 0.8cqh rgba(0, 0, 0, 0.5)); }
+.clk-track { fill: rgba(0, 0, 0, 0.28); stroke: rgba(255, 255, 255, 0.22); stroke-width: 5; }
+.clk-arc { fill: none; stroke: var(--clk-accent, currentColor); stroke-width: 5; stroke-linecap: round; }
+
+/* Barra: las cifras y debajo una barra fina que se acorta (un temporizador) o avanza. */
+.clk[data-style='barra'] .clk-number { font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 600; letter-spacing: -0.03em; }
+.clk[data-style='barra'] .clk-bar { display: block; width: 100%; min-width: calc(var(--clk-n) * 2.4); height: max(0.5cqh, calc(var(--clk-n) * 0.07)); overflow: hidden; border-radius: 999px; background: rgba(255, 255, 255, 0.22); box-shadow: 0 0.3cqh 0.8cqh rgba(0, 0, 0, 0.4); }
+.clk-bar i { display: block; height: 100%; border-radius: inherit; background: var(--clk-accent, currentColor); transform-origin: left; }
+
+/* Sus mandos al aire (en el control): la cuenta grande. */
+.clk-ctl-digits { flex: 1; font: 600 22px/1.1 var(--mono, ui-monospace, monospace); text-align: center; letter-spacing: -0.02em; }
