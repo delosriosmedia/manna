@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { HttpError } from './router.js';
-import { createUsers, validPin } from './users.js';
+import { cleanName } from './names.js';
+import { createUsers, matches, sealed, validPin } from './users.js';
 
 const COOKIE = 'manna_sid';
 const MAX_FAILS = 5;
@@ -16,9 +17,15 @@ const ADMIN_ONLY = new Set(['system.admin', 'system.display', 'projection.style'
 // Sesiones por dispositivo: cada una guarda la función (rol) elegida y quién entró (fase 35). Fuera del equipo
 // principal, entrar en una función con PIN pide el nombre (de una lista) y el PIN de esa persona, una vez. El equipo
 // principal entra sin PIN, como el administrador. La pantalla de proyección, sin nadie, salvo desde internet.
-export function createSessions({ storage, roles: all, cloud = false }) {
-  // En la nube, solo sus funciones; en el equipo de la iglesia, solo las suyas (fase 36).
-  const roles = all.filter((r) => Boolean(r.nube) === cloud);
+// La contraseña del superadministrador (fase 39, decisión 64): él sí la lleva, no un PIN.
+const PASSWORD_MIN = 10;
+
+export function createSessions({ storage, roles: all, cloud = false, superMode = false }) {
+  // En la nube, solo sus funciones; en el equipo de la iglesia, solo las suyas (fase 36); en el sitio del
+  // superadministrador, solo la suya (fase 39).
+  const roles = all.filter((r) => Boolean(r.nube) === cloud && Boolean(r.super) === superMode);
+  // El superadministrador: una sola cuenta, con su nombre y su contraseña.
+  const account = superMode ? storage('superadmin', { name: '', password: null }) : null;
   const store = storage('sesiones', { list: {} });
   const users = createUsers({ storage, legacyPin: store.data.pin });
   // Al pasar del PIN único a los usuarios, las sesiones abiertas pasan a ser del administrador.
@@ -59,47 +66,68 @@ export function createSessions({ storage, roles: all, cloud = false }) {
     };
   }
 
-  function checkPin(user, pin, ip) {
+  // Cinco fallos bloquean esa IP y esa cuenta (key) un rato.
+  function checkSecret(key, ip, ok, wrong) {
     const failIp = locked(`ip:${ip}`, LOCK_MS);
-    const failUser = locked(`u:${user.id}`, USER_LOCK_MS);
-    if (users.check(user.id, typeof pin === 'string' ? pin : '')) {
+    const failKey = locked(key, USER_LOCK_MS);
+    if (ok()) {
       fails.delete(`ip:${ip}`);
-      fails.delete(`u:${user.id}`);
+      fails.delete(key);
       return;
     }
     failIp();
-    failUser();
-    throw new HttpError(401, 'PIN incorrecto.');
+    failKey();
+    throw new HttpError(401, wrong);
   }
+  const checkPin = (user, pin, ip) => checkSecret(`u:${user.id}`, ip, () => users.check(user.id, typeof pin === 'string' ? pin : ''), 'PIN incorrecto.');
 
   // La clave de alta (decisión 62): en la nube, la que el dueño puso en `MANNA_CLAVE_ALTA` deja crear el primer
-  // administrador, con su nombre y su PIN (decisión 64). Sirve una sola vez.
+  // administrador, con su nombre y su PIN (decisión 64); en el sitio del superadministrador, su cuenta, con su
+  // contraseña. Sirve una sola vez. Para recuperar el acceso de una iglesia, el superadministrador puede darle otra,
+  // que dura una semana (newAlta).
   const altaSecret = process.env.MANNA_CLAVE_ALTA || '';
-  const altaKey = () => (cloud && !users.claimed() ? altaSecret : '');
-  function alta(ctx, { clave, name, pin }) {
-    const key = altaKey();
-    if (!key) throw new HttpError(409, 'Esta iglesia ya tiene administrador: entra con tu nombre y tu PIN.');
+  const envKey = () => (cloud && !(superMode ? account.data.password : users.claimed()) ? altaSecret : '');
+  const recovery = () => (!superMode && store.data.recovery?.until > Date.now() ? store.data.recovery : null);
+  const same = (a, b) => Buffer.byteLength(a) === Buffer.byteLength(b) && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  function alta(ctx, { clave, name, pin, password }) {
+    if (!envKey() && !recovery()) throw new HttpError(409, superMode ? 'El superadministrador ya existe: entra con tu contraseña.' : 'Esta iglesia ya tiene administrador: entra con tu nombre y tu PIN.');
     const fail = locked(`ip:${ctx.ip}`, USER_LOCK_MS);
-    const given = Buffer.from(typeof clave === 'string' ? clave : '');
-    if (given.length !== Buffer.byteLength(key) || !crypto.timingSafeEqual(given, Buffer.from(key))) {
+    const given = typeof clave === 'string' ? clave.trim() : '';
+    if (!((envKey() && same(given, envKey())) || (recovery() && matches(given, recovery())))) {
       fail();
       throw new HttpError(401, 'La clave de alta no es esa.');
     }
     // Todo se comprueba antes de cambiar nada: a medias, la clave ya no serviría.
+    if (superMode) {
+      if (!cleanName(name)) throw new HttpError(400, 'Escribe tu nombre.');
+      if (typeof password !== 'string' || password.length < PASSWORD_MIN) throw new HttpError(400, `La contraseña debe tener al menos ${PASSWORD_MIN} caracteres.`);
+      account.data.name = cleanName(name);
+      account.data.password = sealed(password);
+      account.save();
+      return open(ctx, { role: 'superadmin', password });
+    }
     if (!validPin(String(pin ?? ''))) throw new HttpError(400, 'El PIN debe tener 4 números.');
     const admin = users.firstAdmin();
     users.update(admin.id, { name });
     users.setPin(admin.id, String(pin));
     users.claim();
+    delete store.data.recovery;
     closeUser(admin.id);
     return open(ctx, { role: 'administrar', user: admin.id, pin: String(pin) });
   }
+  function newAlta() {
+    const clave = crypto.randomBytes(5).toString('hex');
+    store.data.recovery = { ...sealed(clave), until: Date.now() + 7 * 86_400_000 };
+    store.save();
+    return clave;
+  }
 
-  function open(ctx, { role: roleId, user: userId, pin }) {
+  function open(ctx, { role: roleId, user: userId, pin, password }) {
     const role = roleById.get(roleId);
     if (!role) throw new HttpError(400, 'Manna no reconoce esa función. Si acabas de actualizarlo, ciérralo y vuelve a abrirlo.');
     let user = null;
-    if (ctx.isLocal) user = users.firstAdmin();
+    if (role.super) checkSecret('super', ctx.ip, () => matches(password, account.data.password), 'Contraseña incorrecta.');
+    else if (ctx.isLocal) user = users.firstAdmin();
     else if (role.requiresPin || ctx.internet) {
       // Desde internet, también la pantalla de proyección.
       user = users.get(userId);
@@ -133,5 +161,7 @@ export function createSessions({ storage, roles: all, cloud = false }) {
     store.save();
   }
 
-  return { roles, users, fromRequest, can, open, closeUser, alta, altaPending: () => Boolean(altaKey()) };
+  // Cuándo entró alguien por última vez (para el superadministrador).
+  const lastUse = () => Math.max(0, ...Object.values(store.data.list).map((s) => s.created || 0));
+  return { roles, users, fromRequest, can, open, closeUser, alta, newAlta, lastUse, altaPending: () => Boolean(envKey() || recovery()), superName: () => account?.data.name || null };
 }

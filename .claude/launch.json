@@ -15,11 +15,26 @@
       "runtimeArgs": [
         "MANNA_NUBE=1",
         "MANNA_CLAVE_ALTA=clave-de-prueba",
+        "MANNA_CLAVE_SUPER=clave-super-de-prueba",
         "PORT=8141",
         "node",
         "scripts/demo.mjs"
       ],
       "port": 8141
+    },
+    {
+      "name": "manna-super",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "MANNA_NUBE=1",
+        "MANNA_SUPER=1",
+        "MANNA_CLAVE_ALTA=clave-de-prueba",
+        "MANNA_CLAVE_SUPER=clave-super-de-prueba",
+        "PORT=8143",
+        "node",
+        "scripts/demo.mjs"
+      ],
+      "port": 8143
     }
   ]
 }

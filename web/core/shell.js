@@ -28,9 +28,13 @@ import { chooseContent, contentMissing } from './contenido.js';
 // layout 'pestanas' (Preparar el culto, en la nube; fase 36): sin escenario ni proyección. El dock son las pestañas (a la
 // izquierda; abajo en el celular) y el módulo elegido ocupa el resto. createScene solo da { preview } (escuchar).
 // topTools: [(ctx) => nodo]: lo que va al final de la barra de arriba (el wifi y el QR del Control completo).
-export function createShell({ role, isLocal, user = null, modules, topTools = [], createScene, layout = 'escena' }) {
+export function createShell({ role, isLocal, user = null, modules, topTools = [], createScene, layout = 'escena', church = null }) {
   const canEdit = ['control', 'alabanza', 'preparacion'].includes(role);
-  const usable = modules.filter((m) => !m.soon && (m.id !== 'ajustes' || user?.admin));
+  // Lo que el superadministrador dejó a esta iglesia (fase 39): sin los módulos apagados y, si los ordenó, en su orden
+  // (el primero es el que se abre cuando este dispositivo no recuerda otro).
+  const arranged = church?.layout?.[role] || [];
+  const rank = (m) => (arranged.includes(m.id) ? arranged.indexOf(m.id) : arranged.length + modules.indexOf(m));
+  const usable = modules.filter((m) => !m.soon && (m.id !== 'ajustes' || user?.admin) && !church?.off?.includes(m.id)).sort((a, b) => rank(a) - rank(b));
   const listed = usable.filter((m) => !m.hidden);
   const mounted = new Map(); // id -> { el, api }
   let current = null;
@@ -51,7 +55,7 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   // ---- Barra de arriba: la marca, el estado y «Buscar en todo» ----
   // La marca (pedido del dueño, 2026-10-18): el logo abre Ajustes (que ya no está en el dock), la versión al lado y
   // un botón aparte para cambiar la función de este dispositivo. Sin Ajustes (las demás funciones), el logo no es botón.
-  const ROLE_NAMES = { control: 'Control completo', alabanza: 'Servicio de alabanza', orden: 'Control del orden', presentador: 'Presentador', preparacion: 'Preparar el culto', administrar: 'Administrar la iglesia' };
+  const ROLE_NAMES = { control: 'Control completo', alabanza: 'Servicio de alabanza', orden: 'Control del orden', presentador: 'Presentador', preparacion: 'Preparar el culto', administrar: 'Administrar la iglesia', superadmin: 'Superadministrador' };
   const settings = usable.find((m) => m.id === 'ajustes');
   const version = h('small', { class: 'brand-version' });
   subscribe('system', (s) => { version.textContent = s.version || ''; });

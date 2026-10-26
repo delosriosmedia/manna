@@ -105,8 +105,21 @@ function cloudSide(app) {
     });
     ctx.res.end(body);
   });
-  // ¿Se instaló con el instalador que bajó ese navegador, y ese equipo sigue siendo el oficial? (La portada.)
-  app.route('GET', '/api/nube/instalado', (ctx) => ({ installed: Boolean(saved.data.official?.install) && saved.data.official.install === ctx.query.get('id') }));
+  // ¿Se instaló con el instalador que bajó ese navegador, y ese equipo sigue siendo el oficial? Con su versión y la de
+  // la nube: si la de la nube es más nueva, la portada ofrece actualizarlo.
+  app.route('GET', '/api/nube/instalado', (ctx) => {
+    const o = saved.data.official;
+    const installed = Boolean(o?.install) && o.install === ctx.query.get('id');
+    return { installed, version: installed ? o.version || null : null, latest: store.get('system')?.version || null };
+  });
+  // El instalador de siempre, sin código: pone al día el Manna ya instalado y no lo vuelve a emparejar.
+  app.route('GET', '/api/nube/actualizador', async (ctx) => {
+    const so = ctx.query.get('so');
+    if (!INSTALLERS[so]) throw new HttpError(400, 'Falta el sistema del equipo.');
+    const body = await installer(so);
+    ctx.res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Length': body.length, 'Cache-Control': 'no-store', 'Content-Disposition': `attachment; filename="${INSTALLERS[so]}"` });
+    ctx.res.end(body);
+  });
 
   // Lo pide el equipo, sin sesión: lo autoriza el código (o el del instalador). Con otro equipo ya oficial, primero
   // pregunta (conflict).
@@ -160,11 +173,13 @@ function cloudSide(app) {
     const mine = keyOf(ctx);
     const o = saved.data.official;
     if (o && same(mine, o.tokenHash)) {
+      // Suspendida por el superadministrador (fase 39): el equipo sigue en local, sin sincronizar.
+      if (app.suspended) return { official: true, suspended: true, church: host(ctx) };
       o.lastSeen = Date.now();
       o.version = String(ctx.req.headers['x-manna-version'] || o.version).slice(0, 20);
       saved.save();
       publish();
-      return { official: true, church: host(ctx), users: versionOf(users.records()), data: versionNow() };
+      return { official: true, church: host(ctx), users: versionOf(users.records()), data: versionNow(), settings: app.services.church?.settings() };
     }
     const former = saved.data.former.find((f) => same(mine, f.tokenHash));
     if (former) return { official: false, replaced: { by: former.by, at: former.replaced }, church: host(ctx) };
@@ -376,6 +391,9 @@ function churchSide(app) {
         set({ status: 'replaced', error: null });
         return restartAs(blocked());
       }
+      if (body.suspended) return set({ status: 'suspended', lastSeen: Date.now(), error: null });
+      // Lo que el superadministrador dejó a esta iglesia (fase 39): módulos, su orden y el máximo de órdenes.
+      if (body.settings) app.services.church?.apply(body.settings);
       if (body.users && body.users !== saved.data.users) await syncUsers();
       // Por si se perdió un aviso: si la nube o el equipo tienen algo distinto de lo último que se juntó.
       if (body.data !== saved.data.cloudData || setVersion(exportAll(app)) !== saved.data.synced) await syncData();

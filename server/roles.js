@@ -53,6 +53,17 @@ export const ROLES = [
     nube: true,
     permissions: ['users.manage'],
   },
+  // Solo en el sitio del superadministrador de Manna Iglesia (fase 39, `super: true`): allí no hay otra.
+  {
+    id: 'superadmin',
+    name: 'Superadministrador',
+    description: 'Las iglesias de Manna Iglesia: su estado, lo que puede usar cada una y el espacio del plan. Con contraseña.',
+    path: '/superadmin',
+    requiresPin: true,
+    nube: true,
+    super: true,
+    permissions: ['super.manage'],
+  },
   {
     id: 'proyeccion',
     name: 'Pantalla de proyección',

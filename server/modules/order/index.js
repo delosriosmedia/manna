@@ -195,6 +195,12 @@ export default function setup(app) {
   // Lo usa el módulo de proyección para avanzar por el orden.
   services.order = {
     has: (id) => items().some((i) => i.id === id),
+    // El máximo de órdenes de la iglesia: lo cambia el superadministrador (fase 39, decisión 61).
+    limit: () => data.limit,
+    setLimit(n) {
+      data.limit = Math.max(1, Math.min(500, Math.round(n)));
+      save();
+    },
     // Quita los elementos cuyo contenido ya no existe (tras «Limpiar multimedia temporales»), de todos los
     // órdenes. Las secciones quedan.
     prune() {

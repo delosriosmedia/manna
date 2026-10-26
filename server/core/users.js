@@ -9,10 +9,12 @@ import { cleanName } from './names.js';
 export const FUNCTIONS = ['control', 'alabanza', 'orden', 'presentador'];
 export const validPin = (pin) => /^\d{4}$/.test(pin || '');
 const hash = (pin, salt) => crypto.scryptSync(pin, salt, 32).toString('hex');
-const sealed = (pin) => {
+// Un PIN o una contraseña, guardado como huella con su sal; y si un texto es el guardado.
+export const sealed = (pin) => {
   const salt = crypto.randomBytes(16).toString('hex');
   return { salt, hash: hash(pin, salt) };
 };
+export const matches = (text, seal) => Boolean(seal) && typeof text === 'string' && crypto.timingSafeEqual(Buffer.from(hash(text, seal.salt), 'hex'), Buffer.from(seal.hash, 'hex'));
 const key = (name) => name.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 // Una ficha que llega de fuera (la nube o un equipo): solo lo que debe tener, y con la forma que debe tener.
 const hex = (text, n) => typeof text === 'string' && new RegExp(`^[a-f0-9]{${n}}$`).test(text);
@@ -66,8 +68,7 @@ export function createUsers({ storage, legacyPin = null }) {
     firstAdmin: () => view(admins()[0]),
     check(id, pin) {
       const user = find(id);
-      if (!user || !validPin(pin)) return false;
-      return crypto.timingSafeEqual(Buffer.from(hash(pin, user.pin.salt), 'hex'), Buffer.from(user.pin.hash, 'hex'));
+      return Boolean(user) && validPin(pin) && matches(pin, user.pin);
     },
     // ¿Ya se usó la clave de alta (decisión 62)? Hasta entonces sirve.
     claimed: () => Boolean(store.data.claimed),

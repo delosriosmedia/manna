@@ -4,6 +4,12 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.51.0 — 2026-10-26
+
+- **Actualizar el equipo principal desde la nube**: en el computador donde está instalado, si la nube tiene una versión más nueva que la del equipo, su portada ofrece «Actualizar Manna en este equipo» (dice qué versión tiene cada uno) y baja el instalador, que lo pone al día sin tocar los datos ni el contenido. Si no hay versión nueva, «Instalar» sale deshabilitado.
+- **El superadministrador de Manna Iglesia**, en su propio sitio (`admin.manna-iglesia.es`), con contraseña: ve cada iglesia (versión, equipo principal, usuarios, órdenes, espacio usado y último uso) y decide si está activa, qué módulos puede usar y en qué orden salen en cada función, si su gente sube archivos desde casa y cuánto espacio tiene, y su máximo de órdenes. Puede dar a una iglesia una clave de alta nueva para recuperar el acceso de su administrador. En «Espacio» reparte el del plan del hosting, con un margen, sin dar más de lo que hay.
+- **Cada iglesia obedece al superadministrador**: un módulo apagado no sale en ninguna pantalla ni acepta órdenes; los módulos salen en el orden que él eligió; y una iglesia suspendida no deja entrar en su nube (su equipo de la iglesia sigue funcionando, sin sincronizar).
+
 ## 1.50.0 — 2026-10-26
 
 - **Instalar el equipo principal desde la nube**: en un computador, la portada de la nube de la iglesia ofrece «Instalar Manna en este equipo», con el PIN de un administrador. Avisa si ya hay otro equipo principal, deja elegir el himnario (desde la nube, o completo en el equipo) y baja un instalador que sale ya emparejado con esa iglesia: al terminar, Manna se abre como su equipo principal, sin escribir códigos. Ya instalado, esa portada ofrece «Abrir Manna». En el celular y la tableta solo salen Preparar y Administrar.

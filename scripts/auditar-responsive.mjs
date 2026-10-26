@@ -211,6 +211,9 @@ const SCREENS = [
   { name: 'Administrar la iglesia', url: '/administrar', cloud: 'administrar', tabs: true, inside: '.user-row' },
   // El equipo oficial (fase 37): quién es y el botón que da el código para emparejar.
   { name: 'Administrar la iglesia: equipo', url: '/administrar#equipo', cloud: 'administrar', tabs: true, primary: '.ws[data-module=equipo] .btn.primary' },
+  // El superadministrador (fase 39): en su propio servidor, con la nube de arriba como su iglesia.
+  { name: 'Superadministrador: iglesias', url: '/superadmin', cloud: 'superadmin', tabs: true, content: '.super-list', inside: '.super-row', settle: 600 },
+  { name: 'Superadministrador: espacio', url: '/superadmin#espacio', cloud: 'superadmin', tabs: true, primary: '.super-plan .btn.primary', settle: 600 },
   { name: 'Inicio', url: '/', plain: '.role' },
   { name: 'Revisión del equipo', url: '/requisitos', plain: '.req' },
 ];
@@ -448,7 +451,13 @@ async function worker(list, n) {
   const cloudData = path.join(tmp, `nube-${n + 1}`);
   const cloudServer = screens.some((s) => s.cloud) && killOnExit(spawn(process.execPath, ['server/index.js'], {
     cwd: ROOT, stdio: 'ignore',
-    env: { ...process.env, MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'auditoria', MANNA_NO_OPEN: '1', MANNA_DATA: cloudData, PORT: String(port + 20), MANNA_HIMNARIO: seedExample(cloudData).hymnal },
+    env: { ...process.env, MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'auditoria', MANNA_CLAVE_SUPER: 'auditoria-super', MANNA_NO_OPEN: '1', MANNA_DATA: cloudData, PORT: String(port + 20), MANNA_HIMNARIO: seedExample(cloudData).hymnal },
+  }));
+  // El superadministrador (fase 39), por super.localhost: otro nombre, para que su sesión no pise ninguna.
+  const superBase = `http://super.localhost:${port + 30}`;
+  const superServer = screens.some((s) => s.cloud === 'superadmin') && killOnExit(spawn(process.execPath, ['server/index.js'], {
+    cwd: ROOT, stdio: 'ignore',
+    env: { ...process.env, MANNA_NUBE: '1', MANNA_SUPER: '1', MANNA_CLAVE_ALTA: 'auditoria', MANNA_CLAVE_SUPER: 'auditoria-super', MANNA_NO_OPEN: '1', MANNA_DATA: path.join(tmp, `super-${n + 1}`), PORT: String(port + 30) },
   }));
   await sleep(3000);
   const chrome = await startChrome();
@@ -458,6 +467,17 @@ async function worker(list, n) {
   let cloudRole = null;
   async function cloudLogin(role) {
     if (cloudRole === role) return;
+    if (role === 'superadmin') {
+      await chrome.send('Page.navigate', { url: `${superBase}/api/ping` });
+      await sleep(300);
+      await chrome.evaluate(`(async () => { localStorage.clear(); const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const password = 'contraseña de la auditoría';
+        if ((await (await fetch('/api/session')).json()).alta) await post('/api/session/alta', { clave: 'auditoria', name: 'Ana', password });
+        else await post('/api/session', { role: 'superadmin', password });
+        return (await post('/api/action', { type: 'super.add', payload: { host: '127.0.0.1:${port + 20}' } })).status; })()`);
+      cloudRole = role;
+      return;
+    }
     await chrome.send('Page.navigate', { url: `${cloudBase}/api/ping` });
     await sleep(300);
     await chrome.evaluate(`(async () => { localStorage.clear(); const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -496,7 +516,7 @@ async function worker(list, n) {
         // La dirección cambia en cada visita para forzar una carga limpia de la página.
         const [pathname, hash = ''] = screen.url.split('#');
         progress[n] = `${device.w}x${device.h} «${screen.name}»`;
-        await chrome.send('Page.navigate', { url: `${screen.cloud ? cloudBase : base}${pathname}?t=${Date.now()}${BIG ? '&escala=1.08' : ''}${hash ? `#${hash}` : ''}` });
+        await chrome.send('Page.navigate', { url: `${screen.cloud === 'superadmin' ? superBase : screen.cloud ? cloudBase : base}${pathname}?t=${Date.now()}${BIG ? '&escala=1.08' : ''}${hash ? `#${hash}` : ''}` });
         await ready(chrome, screen);
         if (screen.prepare) { await chrome.evaluate(screen.prepare); await sleep(screen.settle || 500); }
         const result = await chrome.evaluate(`JSON.stringify(${MEASURE(screen, device.touch, narrow)})`);
@@ -534,6 +554,7 @@ async function worker(list, n) {
     chrome.close();
     server.kill();
     if (cloudServer) cloudServer.kill();
+    if (superServer) superServer.kill();
     await fakeTv.stop();
   }
 }

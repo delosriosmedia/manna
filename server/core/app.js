@@ -52,11 +52,15 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
   // Modo nube (fase 36): el mismo programa en el hosting (`MANNA_NUBE=1`). Nadie es «el equipo principal», no hay
   // certificado propio (el `https` lo pone el hosting) y los módulos dejan fuera lo que es del equipo de la iglesia.
   const cloud = Boolean(process.env.MANNA_NUBE);
+  // El sitio del superadministrador de Manna Iglesia (fase 39): el mismo programa en modo nube, con `MANNA_SUPER=1`.
+  const superMode = cloud && Boolean(process.env.MANNA_SUPER);
   const store = new Store();
-  const sessions = createSessions({ storage, roles: ROLES, cloud });
+  const sessions = createSessions({ storage, roles: ROLES, cloud, superMode });
   const BLOCKED = 'Este Manna no funciona mientras haya otro en la red: usa ese, o apágalo y pulsa «Volver a comprobar».';
   const REPLACED = 'Este equipo ya no es el oficial de la iglesia: no funciona hasta que se vuelva a emparejar con un código de «Administrar la iglesia».';
-  const refusal = () => (app.blocked?.replaced ? REPLACED : app.blocked ? BLOCKED : null);
+  // Una iglesia que el superadministrador suspendió (fase 39): su nube no deja cambiar nada ni entrar.
+  const SUSPENDED = 'Esta iglesia está suspendida en Manna Iglesia. Su equipo de la iglesia sigue funcionando; pregunta a quien administra Manna Iglesia.';
+  const refusal = () => (app.blocked?.replaced ? REPLACED : app.blocked ? BLOCKED : app.suspended ? SUSPENDED : null);
   const router = createRouter({ webDir: path.join(rootDir, 'web'), sessions, cloud, refuse: refusal });
   const realtime = createRealtime({ store, router, sessions });
   const jobs = createJobs({ store });
@@ -76,7 +80,7 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
   const app = {
     // mediaDir: carpeta donde la iglesia copia a mano sus videos y audios (Contenido/Medios), o null.
     // hymnsDir: carpeta del himnario (Contenido/Himnario, con videos/ y letras/), o null.
-    rootDir, dataDir, biblesDir, mediaDir, hymnsDir, uploadsDir, tmpDir, cloud,
+    rootDir, dataDir, biblesDir, mediaDir, hymnsDir, uploadsDir, tmpDir, cloud, super: superMode, suspended: false, refusal,
     // En la nube, el depósito de R2 con el himnario y las biblias (fase 36, parte 3), si el hosting tiene sus claves.
     r2: cloud ? bucketFromEnv() : null,
     // La carpeta de contenido de la iglesia (con Biblias, Himnario y Medios), o null. Se cambia con Manna abierto
@@ -146,6 +150,10 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
     const def = actions.get(type);
     if (!def) throw new HttpError(404, `Manna no reconoce la orden «${String(type).slice(0, 60)}». Si acabas de actualizarlo, reinícialo desde Ajustes.`);
     if (app.blocked && !['system.shutdown', 'system.recheck', 'cloud.pair'].includes(type)) throw new HttpError(409, refusal());
+    if (app.suspended) throw new HttpError(409, refusal());
+    // Un módulo que el superadministrador no le dejó a esta iglesia (fase 39).
+    const off = app.services.church?.refuses(type);
+    if (off) throw new HttpError(403, off);
     ctx.require(def.permission);
     return { result: (await def.handler(payload || {}, ctx)) ?? null };
   });

@@ -4,7 +4,7 @@ Cómo se despliega Manna en «modo nube» en el hosting de Hostinger y lo que se
 
 ## Dónde vive
 
-- **Hosting**: Hostinger, cuenta `u887958304`, pedido `1009683253` (plan Business, Node.js con LiteSpeed y Passenger). Una iglesia es un sitio (subdominio) con su propio proceso y su carpeta de datos. Hoy: `nv.manna-iglesia.es` (página de espera) y `pruebas.manna-iglesia.es` (decisión 57; creado el 2026-10-25 con la 1.47.0). En la misma cuenta hay sitios del dueño que no son de Manna (`milugar`, `biblia`): no se tocan.
+- **Hosting**: Hostinger, cuenta `u887958304`, pedido `1009683253` (plan Business, Node.js con LiteSpeed y Passenger). Una iglesia es un sitio (subdominio) con su propio proceso y su carpeta de datos. Hoy: `nv.manna-iglesia.es` (página de espera), `pruebas.manna-iglesia.es` (decisión 57; creado el 2026-10-25 con la 1.47.0) y `admin.manna-iglesia.es`, el del superadministrador (fase 39, decisión 64; creado el 2026-10-26: el mismo programa con `MANNA_SUPER=1`). En la misma cuenta hay sitios del dueño que no son de Manna (`milugar`, `biblia`): no se tocan.
 - **DNS**: Cloudflare, zona `manna-iglesia.es`. Cada subdominio, un registro A al servidor de Hostinger (`31.97.208.163`), **solo DNS, sin proxy**: así Hostinger da el certificado.
 - **Himnario y biblias**: R2 (`server/core/r2.js`), subidos con `scripts/subir-r2.mjs`. La nube los copia al abrirse.
 - **Cómo arranca**: Passenger, desde la carpeta de la última compilación (`~/domains/<sitio>/hbuilds/current/nodejs`), con Node.js 24 y el archivo de entrada de la compilación (queda en el `.htaccess` del sitio como `PassengerStartupFile`). LiteSpeed lo carga con `require()`: la entrada es `server/inicio.cjs`. Espera que la aplicación abra su puerto en sus primeros 3 s (Manna lo abre en unos 0,2 s) y toma el primero que se abre: en la nube Manna abre uno solo.
@@ -22,6 +22,9 @@ Las que no llevan claves (`MANNA_NUBE`, `MANNA_DATA`, `MANNA_NO_OPEN`, `MANNA_SI
 | `MANNA_CLAVE_ALTA` | la clave de un solo uso con la que entra el primer administrador (la elige el dueño) |
 | `R2_ACCOUNT_ID`, `R2_BUCKET` | los de `~/.manna-r2` |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | una clave de R2 **de solo lectura** para ese depósito (S54), no la de subir |
+| `MANNA_CLAVE_SUPER` | la clave con la que el superadministrador habla con la iglesia: **la misma** en cada sitio de iglesia y en `admin` (la elige el dueño) |
+
+El sitio del superadministrador (`admin.manna-iglesia.es`) lleva `MANNA_NUBE=1`, `MANNA_SUPER=1`, `MANNA_NO_OPEN`, `MANNA_SIN_VENTANA` y su `MANNA_DATA` (el asistente), y `MANNA_CLAVE_ALTA` (con la que crea su cuenta, con contraseña) y `MANNA_CLAVE_SUPER` (el dueño). No lleva R2. Se despliega con el mismo paquete que las iglesias.
 
 ## Desplegar
 

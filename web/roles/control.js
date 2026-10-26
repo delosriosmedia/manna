@@ -12,6 +12,7 @@ createShell({
   isLocal: me.isLocal,
   user: me.user,
   modules: MODULES,
+  church: me.church,
   createScene: createEscenario,
   topTools: [connectionTools(me)],
 });

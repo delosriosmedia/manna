@@ -9,6 +9,7 @@ const STATUS = {
   on: (c) => `Conectado${c.lastSeen ? ` (${whenLabel(c.lastSeen)})` : ''}.`,
   offline: () => 'Ahora sin conexión con la nube: Manna funciona igual y se pondrá al día al volver.',
   unknown: (c) => c.error || 'La nube no reconoce este equipo: vuelve a emparejarlo.',
+  suspended: () => 'La nube de esta iglesia está suspendida en Manna Iglesia: este equipo funciona igual, sin sincronizar.',
 };
 
 export function cloudBody() {

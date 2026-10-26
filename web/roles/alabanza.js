@@ -11,5 +11,6 @@ createShell({
   isLocal: me.isLocal,
   user: me.user,
   modules: ALABANZA_MODULES,
+  church: me.church,
   createScene: createEscenario,
 });

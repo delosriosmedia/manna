@@ -23,7 +23,7 @@ Repositorio: https://github.com/delosriosmedia/manna
 - Los guiones de pruebas en Chrome (`scripts/lib/chrome.mjs`, usan el `WebSocket` integrado) necesitan **Node.js 22 o superior**.
 - La nube: `node scripts/subir-r2.mjs` sube a R2 el himnario y las biblias que falten (claves en `~/.manna-r2`); `node scripts/desplegar.mjs probar` arma el paquete del hosting y lo prueba como lo abrirá. Cómo se despliega: `.claude/rules/nube.md`
 - Cuántas pruebas correr y cuándo (en cada edición, al terminar un cambio, al cerrar una parte): `.claude/rules/pruebas.md`
-- Demostración con un orden del culto de ejemplo y datos temporales: `node scripts/demo.mjs` (puerto 8123). Con ella, `/vista-previa` muestra la app en el marco de un celular o una tableta. En modo nube (Preparar el culto y Administrar la iglesia, con la clave de alta `clave-de-prueba`): `MANNA_NUBE=1 MANNA_CLAVE_ALTA=clave-de-prueba PORT=8141 node scripts/demo.mjs`
+- Demostración con un orden del culto de ejemplo y datos temporales: `node scripts/demo.mjs` (puerto 8123). Con ella, `/vista-previa` muestra la app en el marco de un celular o una tableta. En modo nube (Preparar el culto y Administrar la iglesia, con la clave de alta `clave-de-prueba`): `MANNA_NUBE=1 MANNA_CLAVE_ALTA=clave-de-prueba PORT=8141 node scripts/demo.mjs`; el superadministrador, en `manna-super` de `.claude/launch.json` (puerto 8143, la misma clave de alta y `MANNA_CLAVE_SUPER=clave-super-de-prueba`, también en `manna-nube`)
 
 ## Stack
 

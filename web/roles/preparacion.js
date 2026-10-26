@@ -12,6 +12,7 @@ createShell({
   isLocal: me.isLocal,
   user: me.user,
   modules: PREPARACION_MODULES,
+  church: me.church,
   layout: 'pestanas',
   createScene: () => ({ preview: createPreview() }),
 });

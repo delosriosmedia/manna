@@ -12,6 +12,8 @@ import order from '../server/modules/order/index.js';
 import texts from '../server/modules/texts/index.js';
 import hymns from '../server/modules/hymns/index.js';
 import cloud from '../server/modules/cloud/index.js';
+import church from '../server/modules/church/index.js';
+import superadmin from '../server/modules/super/index.js';
 import { startFakeR2 } from '../scripts/lib/r2-falso.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -23,7 +25,8 @@ test.after(async () => {
 });
 
 // Un Manna de verdad (la nube o un equipo de la iglesia) atendiendo en este equipo, con su cliente y su cookie.
-async function serve(name, env = {}) {
+const CHURCH_MODULES = [system, users, order, texts, hymns, cloud, church];
+async function serve(name, env = {}, modules = CHURCH_MODULES) {
   Object.assign(process.env, env);
   // Un himnario de mentira de un solo himno (el nombre del video basta para que exista).
   const hymnsDir = path.join(tmp, `${name}-himnario`);
@@ -31,8 +34,8 @@ async function serve(name, env = {}) {
   fs.writeFileSync(path.join(hymnsDir, 'videos', '001 Canción de prueba.mp4'), 'x');
   const app = createApp({ rootDir: ROOT, dataDir: path.join(tmp, name), biblesDir: path.join(tmp, `${name}-biblias`), hymnsDir });
   for (const key of Object.keys(env)) delete process.env[key];
-  for (const setup of [system, users, order, texts, hymns, cloud]) await setup(app);
-  app.services.hymns.reload();
+  for (const setup of modules) await setup(app);
+  app.services.hymns?.reload();
   const server = http.createServer(app.handle);
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -213,7 +216,11 @@ test('instalar el equipo principal desde la nube: el instalador emparejado y el 
     const st = (await c.state()).cloud;
     assert.deepEqual([st.status, st.hymnal], ['on', 'nube']);
     assert.ok(!fs.existsSync(path.join(tmp, 'iglesia-instalada', 'emparejar.json')), 'se usa una vez');
-    assert.equal((await nube.call(`/api/nube/instalado?id=${id}`)).installed, true, 'la portada lo reconoce');
+    const known = await nube.call(`/api/nube/instalado?id=${id}`);
+    assert.deepEqual([known.installed, known.version, known.latest], [true, known.latest, known.latest], 'la portada lo reconoce, con su versión y la de la nube');
+    // Para ponerlo al día, el instalador de siempre: sin código, no lo vuelve a emparejar.
+    const plain = await fetch(`${nube.base}/api/nube/actualizador?so=windows`);
+    assert.deepEqual([await plain.text(), plain.headers.get('content-disposition')], ['MZ instalador', 'attachment; filename="Instalar-Manna-Windows.exe"']);
     assert.equal((await nube.call(`/api/nube/instalado?id=${'cd'.repeat(16)}`)).installed, false);
     assert.equal((await nube.call('/api/nube/emparejar', { install: code, id: 'f'.repeat(16) })).status, 410, 'el código del instalador sirve una vez');
 
@@ -238,5 +245,61 @@ test('instalar el equipo principal desde la nube: el instalador emparejado y el 
     delete process.env.MANNA_INSTALADORES_URL;
     github.close();
     await r2.stop();
+  }
+});
+
+test('el superadministrador: su contraseña, las iglesias, lo que puede usar cada una y el espacio del plan (fase 39, decisión 64)', async () => {
+  // La clave del superadministrador: la misma en su sitio y en el de cada iglesia (aquí, el mismo proceso).
+  process.env.MANNA_CLAVE_SUPER = 'clave-super-de-prueba';
+  const GB = 1024 ** 3;
+  const iglesia = await serve('iglesia-super', { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'alta-iglesia' });
+  const admin = await serve('super', { MANNA_NUBE: '1', MANNA_SUPER: '1', MANNA_CLAVE_ALTA: 'alta-super' }, [system, users, superadmin]);
+  try {
+    // Su cuenta: con la clave de alta, su nombre y una contraseña de al menos 10 caracteres; después, con la contraseña.
+    const info = await admin.call('/api/session');
+    assert.deepEqual([info.roles.map((r) => r.id), info.alta], [['superadmin'], true]);
+    assert.equal((await admin.call('/api/session/alta', { clave: 'alta-super', name: 'Ángel', password: 'corta' })).status, 400);
+    assert.equal((await admin.call('/api/session/alta', { clave: 'alta-super', name: 'Ángel', password: 'una contraseña larga' })).status, 200);
+    assert.equal((await admin.call('/api/session')).alta, false);
+    assert.equal((await admin.remote('/api/session', { role: 'superadmin', password: 'otra cualquiera' })).status, 401);
+    assert.equal((await admin.remote('/api/session', { role: 'superadmin', password: 'una contraseña larga' })).status, 200);
+
+    // Una iglesia: contesta solo con la clave del superadministrador.
+    const host = new URL(iglesia.base).host;
+    assert.equal((await fetch(`${iglesia.base}/api/nube/super/estado`, { headers: { authorization: 'Bearer otra' } })).status, 401);
+    assert.equal((await admin.send('super.add', { host })).status, 200);
+    const first = (await admin.state()).super.churches[0];
+    assert.deepEqual([first.ok, first.settings.active, first.settings.limit, first.settings.space], [true, true, 20, 5 * GB]);
+
+    // El espacio del plan: con el margen, no se reparte más de lo que hay.
+    assert.equal((await admin.send('super.plan', { total: 10 * GB, margin: 0.2 })).status, 200);
+    assert.equal((await admin.send('super.set', { host, settings: { space: 9 * GB } })).status, 409);
+    const set = await admin.send('super.set', { host, settings: { space: 6 * GB, off: ['textos'], limit: 30, layout: { preparacion: ['himnario', 'orden', 'otro'] } } });
+    assert.equal(set.status, 200);
+    const seen = (await iglesia.call('/api/session')).church;
+    assert.deepEqual([seen.off, seen.layout.preparacion, seen.space], [['textos'], ['himnario', 'orden'], 6 * GB]);
+    assert.equal(iglesia.app.services.order.limit(), 30);
+    assert.ok(iglesia.app.services.church.refuses('texts.save'), 'un módulo apagado no da órdenes');
+    assert.equal(iglesia.app.services.church.refuses('order.add'), null);
+
+    // Suspendida: su nube no deja entrar; reactivada, sí.
+    await admin.send('super.set', { host, settings: { active: false } });
+    assert.equal((await iglesia.call('/api/session')).church.active, false);
+    const refused = await iglesia.remote('/api/session', { role: 'preparacion', user: 'x', pin: '1234' });
+    assert.equal(refused.status, 409);
+    assert.match(refused.error, /suspendida/);
+    await admin.send('super.set', { host, settings: { active: true } });
+    assert.equal(iglesia.app.suspended, false);
+
+    // Recuperar el acceso: una clave de alta nueva para el administrador de la iglesia.
+    assert.equal((await iglesia.call('/api/session/alta', { clave: 'alta-iglesia', name: 'Ana', pin: '1234' })).status, 200);
+    assert.equal((await iglesia.call('/api/session')).alta, false);
+    const { result } = await admin.send('super.access', { host });
+    assert.match(result.clave, /^[a-f0-9]{10}$/);
+    assert.equal((await iglesia.call('/api/session')).alta, true);
+    assert.equal((await iglesia.call('/api/session/alta', { clave: result.clave, name: 'Ana', pin: '4321' })).status, 200);
+    assert.equal((await iglesia.call('/api/session')).alta, false, 'y sirve una vez');
+  } finally {
+    delete process.env.MANNA_CLAVE_SUPER;
   }
 });

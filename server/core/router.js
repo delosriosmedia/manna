@@ -184,7 +184,8 @@ function sendFile(req, res, file) {
 
 // refuse(): con un texto, se rechaza (409) todo lo que no es una lectura, salvo abrir sesión, el aviso del sonido y
 // las órdenes (que filtra la propia ruta de órdenes). Lo usa el bloqueo de «otro Manna en la red».
-const OPEN_WHILE_REFUSED = new Set(['/api/session', '/api/events/sound', '/api/action']);
+// (Lo del superadministrador, también con la iglesia suspendida: para volver a activarla, fase 39.)
+const OPEN_WHILE_REFUSED = new Set(['/api/session', '/api/events/sound', '/api/action', '/api/nube/super/ajustes', '/api/nube/super/acceso']);
 export function createRouter({ webDir, sessions, cloud = false, refuse = () => null }) {
   const routes = [];
   const mounts = []; // carpetas de contenido servidas bajo un prefijo: { prefix: '/media/', dir }

@@ -159,6 +159,9 @@ const UNTOUCHED = {
   'GET /api/nube/esperar': 'la deja hecha el equipo de la iglesia para enterarse de lo que cambia en su nube; no la interfaz',
   'GET /api/nube/contenido': 'la pide el equipo de la iglesia a su nube para bajar el himnario y las biblias; no la interfaz',
   'POST /api/nube/enlaces': 'la pide el equipo de la iglesia a su nube para bajar el himnario y las biblias; no la interfaz',
+  'GET /api/nube/super/estado': 'la pide el sitio del superadministrador a cada iglesia (super.refresh, super.add); no la interfaz',
+  'POST /api/nube/super/ajustes': 'la pide el sitio del superadministrador a cada iglesia (super.set); no la interfaz',
+  'POST /api/nube/super/acceso': 'la pide el sitio del superadministrador a cada iglesia (super.access); no la interfaz',
   'bible.rescan': 'no tiene botón: la carpeta de biblias se vigila sola',
   'projection.clear': 'no tiene botón: "Solo fondo" y "Negro" cubren su uso',
   'projection.display': 'necesita una segunda pantalla de verdad',
@@ -3474,7 +3477,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     fs.cpSync(hymnal.dir, path.join(r2dir, 'Himnario'), { recursive: true });
     fs.cpSync(bibles, path.join(r2dir, 'Biblias'), { recursive: true });
     const fakeR2 = await startFakeR2(r2dir);
-    const startCloud = () => startServer(null, { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'clave-de-alta-de-prueba', PORT: String(cloudPort), MANNA_DATA: path.join(tmp, 'nube'), ...fakeR2.env });
+    const startCloud = () => startServer(null, { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'clave-de-alta-de-prueba', MANNA_CLAVE_SUPER: 'clave-super-de-prueba', PORT: String(cloudPort), MANNA_DATA: path.join(tmp, 'nube'), ...fakeR2.env });
     let cloudServer = startCloud();
     // Por 127.0.0.1: la cookie de la sesión va por nombre de equipo, y así no pisa la del equipo de la iglesia (localhost).
     const cloud = `http://127.0.0.1:${cloudPort}`;
@@ -3646,6 +3649,86 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
         && await run(`return ${card('Abrir Manna en este equipo')} && ${card('Instalar Manna en este equipo')}.disabled`));
       await chrome.send('Page.navigate', { url: `${local}/control#ajustes` });
       check('con el himnario elegido al bajar el instalador', await until(`${hymnalChip('completo')}?.getAttribute('aria-pressed') === 'true'`, 25));
+      // Con una versión nueva en la nube, la portada ofrece actualizar. Con el equipo apagado, la nube recuerda la versión
+      // que le dijo la última vez: aquí se le dice una vieja, con la clave del equipo.
+      await stopServer(server);
+      const token = JSON.parse(fs.readFileSync(path.join(tmp, 'data', 'nube.json'), 'utf8')).token;
+      await fetch(`${cloud}/api/nube/estado`, { headers: { authorization: `Bearer ${token}`, 'x-manna-version': '1.0.0' } });
+      await chrome.send('Page.navigate', { url: `${cloud}/` });
+      check('con una versión nueva en la nube, la portada ofrece «Actualizar Manna» en lugar de «Instalar»', await until(`${card('Actualizar Manna en este equipo')}?.textContent.includes('este equipo tiene la 1.0.0') && !${card('Instalar Manna en este equipo')}`, 15));
+      for (const f of fs.readdirSync(downloads)) fs.rmSync(path.join(downloads, f));
+      await click(card('Actualizar Manna en este equipo'));
+      const plain = () => fs.readdirSync(downloads).find((f) => /^Instalar-Manna-(Windows\.exe|Mac\.pkg)$/.test(f));
+      for (let i = 0; i < 60 && !plain(); i += 1) await sleep(250);
+      check('y baja el instalador de siempre, sin código: pone Manna al día sin volver a emparejarlo', Boolean(plain()) && fs.readFileSync(path.join(downloads, plain()), 'utf8') === 'instalador de prueba', fs.readdirSync(downloads).join(', '));
+      await modalButton('Entendido');
+      server = startServer(null);
+      for (let i = 0; i < 60 && !(await fetch(`${local}/api/ping`).then((res) => res.ok, () => false)); i += 1) await sleep(250);
+
+      // El superadministrador (fase 39, decisión 64), en su propio servidor y por super.localhost (otro nombre: su sesión
+      // no pisa las de la iglesia). Su iglesia es la nube de este paso.
+      console.log('\n6. La nube: el superadministrador');
+      const superPort = PORT + 6;
+      const superServer = startServer(null, { MANNA_NUBE: '1', MANNA_SUPER: '1', MANNA_CLAVE_ALTA: 'alta-del-super', MANNA_CLAVE_SUPER: 'clave-super-de-prueba', PORT: String(superPort), MANNA_DATA: path.join(tmp, 'super') });
+      const sup = `http://super.localhost:${superPort}`;
+      try {
+        for (let i = 0; i < 60 && !(await fetch(`http://127.0.0.1:${superPort}/api/ping`).then((res) => res.ok, () => false)); i += 1) await sleep(250);
+        await chrome.send('Page.navigate', { url: `${sup}/` });
+        await sleep(1200);
+        check('su sitio ofrece solo «Superadministrador», con contraseña', (await run(`return [...document.querySelectorAll('#roles .role')].map((r) => r.textContent).join()`)).includes('SuperadministradorLas iglesias')
+          && await run(`return document.querySelectorAll('#roles .role').length === 1`));
+        await roleCard('Superadministrador');
+        await sleep(400);
+        await formField('Clave de alta', 'alta-del-super');
+        await formField('Tu nombre', 'Ángel');
+        await formField('Tu contraseña', 'corta');
+        await submit();
+        await sleep(500);
+        check('la primera vez crea su cuenta, con una contraseña de al menos 10 caracteres', (await text('.modal .pin-error')).includes('al menos 10'));
+        await formField('Tu contraseña', 'la contraseña del super');
+        await submit();
+        check('y entra en su panel', await until(`location.pathname === '/superadmin' && document.querySelector('.ws[data-module=iglesias]')`, 25));
+        await click(`[...document.querySelectorAll('.ws[data-module=iglesias] .btn')].find((b) => b.textContent.includes('Añadir iglesia'))`);
+        await sleep(300);
+        await run(`const i = document.querySelector('.modal input'); i.value = ${JSON.stringify(`127.0.0.1:${cloudPort}`)}; i.dispatchEvent(new Event('input'));`);
+        await modalButton('Añadir');
+        const row = `document.querySelector('.super-row[data-host="127.0.0.1:${cloudPort}"]')`;
+        check('añade una iglesia: su estado, su equipo principal y su uso', await until(`${row}?.textContent.includes('Activa') && ${row}.textContent.includes('equipo principal')`, 25), await run(`return ${row}?.textContent || 'sin fila'`));
+        await click(`[...document.querySelectorAll('.ws[data-module=iglesias] .btn')].find((b) => b.textContent.includes('Actualizar'))`);
+        await sleep(600);
+        // Lo que puede usar: sin Textos, Himnario primero en Preparar el culto, 2 GB y 25 órdenes.
+        await click(row);
+        await until(`document.querySelector('.modal .super-edit')`, 15);
+        await run(`document.querySelector('.modal .super-check[data-id=textos] input').click();
+          document.querySelector('.modal .super-order[data-role=preparacion] [aria-label="Subir Himnario en Preparar el culto"]').click();
+          const [space, limit] = document.querySelectorAll('.modal .super-edit input[type=number]'); space.value = '2'; limit.value = '25';`);
+        await modalButton('Guardar');
+        const church = () => fetch(`${cloud}/api/session`).then((r) => r.json()).then((s) => s.church);
+        await sleep(800);
+        const after = await church();
+        check('apaga un módulo y ordena los de cada función en esa iglesia', after.off.includes('textos') && after.layout.preparacion.indexOf('himnario') < after.layout.preparacion.indexOf('biblia') && after.space === 2 * 1024 ** 3, JSON.stringify(after));
+        await click(row);
+        await until(`document.querySelector('.modal .super-edit')`, 15);
+        await click(`[...document.querySelectorAll('.modal .btn')].find((b) => b.textContent.includes('Recuperar el acceso'))`);
+        check('«Recuperar el acceso» da una clave de alta nueva para su administrador', await until(`/^[a-f0-9]{10}$/.test(document.querySelector('.modal .pair-code')?.textContent || '')`, 15)
+          && (await fetch(`${cloud}/api/session`).then((r) => r.json())).alta === true);
+        await modalButton('Listo');
+        await modalButton('Cancelar');
+        await sleep(300);
+        // El espacio del plan: con su margen, lo que queda para repartir.
+        await goTo('espacio');
+        await run(`const [total, margin] = document.querySelectorAll('.super-plan input'); total.value = '50'; margin.value = '20';`);
+        await click(`document.querySelector('.super-plan .btn.primary')`);
+        check('«Espacio» reparte el plan con su margen', await until(`[...document.querySelectorAll('.super-space > div')].slice(0, 3).map((d) => d.textContent).join() === 'Para repartir40 GB,Repartido2,0 GB,Libre para repartir38 GB'`, 15),
+          await run(`return [...document.querySelectorAll('.super-space > div')].map((d) => d.textContent).join()`));
+        await goTo('iglesias');
+        await click(row);
+        await until(`document.querySelector('.modal .super-edit')`, 15);
+        await click(`[...document.querySelectorAll('.modal .btn')].find((b) => b.textContent.includes('Quitar del panel'))`);
+        check('y quita una iglesia del panel', await until(`!${row}`, 15));
+      } finally {
+        await stopServer(superServer);
+      }
     } finally {
       await stopServer(cloudServer);
       await fakeR2.stop();

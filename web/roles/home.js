@@ -9,7 +9,7 @@ const info = await session.get();
 preferStableAddress(info);
 $('#version').textContent = `Church projection app${info.version ? ` · ${info.version}` : ''}`;
 const back = new URLSearchParams(location.search).get('volver');
-const ICONS = { control: 'sliders-horizontal', alabanza: 'music-notes', presentador: 'hand-pointing', orden: 'list-numbers', proyeccion: 'monitor', preparacion: 'list-plus', administrar: 'key' };
+const ICONS = { control: 'sliders-horizontal', alabanza: 'music-notes', presentador: 'hand-pointing', orden: 'list-numbers', proyeccion: 'monitor', preparacion: 'list-plus', administrar: 'key', superadmin: 'key' };
 // Las que usa cualquiera de la lista (la de proyección y, en la nube, preparar el culto).
 const FOR_ALL = ['proyeccion', 'preparacion'];
 
@@ -65,26 +65,46 @@ function askPin(role, user, done = () => { location.href = role.path; }) {
   paint();
 }
 
-// La primera vez en la nube, la clave de alta que puso el dueño en el hosting crea el administrador (decisión 62).
+// La primera vez en la nube, la clave de alta que puso el dueño en el hosting crea el administrador (decisión 62), con
+// su PIN; en el sitio del superadministrador (fase 39), su cuenta, con una contraseña.
 function askAlta(role) {
+  const sup = role.id === 'superadmin';
   const field = (label, attrs) => h('label', { class: 'login-field' }, h('span', {}, label), h('input', { class: 'input', ...attrs }));
   const fields = {
     clave: field('Clave de alta', { type: 'password', autocomplete: 'off' }),
     name: field('Tu nombre', { maxLength: 40, autocomplete: 'name', placeholder: 'Por ejemplo, Ana' }),
-    pin: field('Tu PIN, para preparar y administrar', { inputMode: 'numeric', pattern: '[0-9]*', maxLength: 4, autocomplete: 'off', placeholder: '4 números' }),
+    ...(sup ? { password: field('Tu contraseña', { type: 'password', autocomplete: 'new-password', placeholder: 'Al menos 10 caracteres' }) }
+      : { pin: field('Tu PIN, para preparar y administrar', { inputMode: 'numeric', pattern: '[0-9]*', maxLength: 4, autocomplete: 'off', placeholder: '4 números' }) }),
   };
-  const value = (id) => fields[id].querySelector('input').value;
+  const value = (id) => fields[id]?.querySelector('input').value;
   const error = h('p', { class: 'pin-error', role: 'alert' });
   dialog(role.name, h('form', { class: 'login-form', onsubmit: async (e) => {
     e.preventDefault();
     try {
-      await session.alta({ clave: value('clave'), name: value('name'), pin: value('pin') });
+      await session.alta({ clave: value('clave'), name: value('name'), pin: value('pin'), password: value('password') });
       location.href = role.path;
     } catch (err) {
       error.textContent = err.message;
     }
-  } }, h('p', {}, 'Es la primera vez: escribe la clave de alta que te dio quien instaló Manna y crea tu cuenta de administrador. La clave sirve una sola vez.'),
-  ...Object.values(fields), error, h('button', { class: 'btn primary', type: 'submit' }, 'Crear el administrador')));
+  } }, h('p', {}, `Es la primera vez: escribe la clave de alta que te dio quien instaló Manna y crea tu cuenta de ${sup ? 'superadministrador' : 'administrador'}. La clave sirve una sola vez.`),
+  ...Object.values(fields), error, h('button', { class: 'btn primary', type: 'submit' }, sup ? 'Crear el superadministrador' : 'Crear el administrador')));
+}
+
+// El superadministrador entra con su contraseña (fase 39, decisión 64).
+function askPassword(role) {
+  const input = h('input', { class: 'input', type: 'password', autocomplete: 'current-password', 'aria-label': 'Contraseña' });
+  const error = h('p', { class: 'pin-error', role: 'alert' });
+  dialog(role.name, h('form', { class: 'login-form', onsubmit: async (e) => {
+    e.preventDefault();
+    try {
+      await session.open(role.id, undefined, undefined, input.value);
+      location.href = role.path;
+    } catch (err) {
+      error.textContent = err.message;
+      input.select();
+    }
+  } }, h('p', {}, 'Escribe tu contraseña.'), input, error, h('button', { class: 'btn primary', type: 'submit' }, 'Entrar')));
+  input.focus();
 }
 
 // Quién eres: los nombres de quienes pueden usar esa función (administrar, solo los administradores).
@@ -114,6 +134,7 @@ async function choose(role) {
     location.href = role.path;
     return;
   }
+  if (role.id === 'superadmin') return info.alta ? askAlta(role) : askPassword(role);
   if (role.id === 'administrar' && info.alta) return askAlta(role);
   if (info.isLocal || (!switching && mine(role))) return enter(role);
   askWho(role);
@@ -125,13 +146,15 @@ if (info.user && !info.isLocal) {
   who.append(`Entraste como ${info.user.name} · `, h('button', { onclick: () => { switching = true; who.firstChild.textContent = 'Elige la función y luego tu nombre · '; } }, 'Entrar como otra persona'));
 }
 
-$('#roles').append(...info.roles.map((role) => {
+// Una iglesia suspendida por el superadministrador (fase 39): su nube no deja entrar.
+if (info.church?.active === false) $('#roles').append(h('p', { class: 'empty' }, 'Esta iglesia está suspendida en Manna Iglesia. Su equipo de la iglesia sigue funcionando; pregunta a quien administra Manna Iglesia.'));
+else $('#roles').append(...info.roles.map((role) => {
   const current = info.role === role.id;
   const asks = role.requiresPin && !info.isLocal && !mine(role);
   return h('button', { class: `role${current ? ' current' : ''}`, onclick: () => choose(role) },
     h('span', { class: 'role-icon' }, icon(ICONS[role.id] || 'monitor', 22)),
     h('span', { class: 'role-text' }, h('strong', {}, role.name), h('span', {}, role.description)),
-    h('span', { class: `tag${asks && !current ? ' asks' : ''}` }, current ? 'Función actual' : asks ? 'Pide PIN' : 'Sin PIN'));
+    h('span', { class: `tag${asks && !current ? ' asks' : ''}` }, current ? 'Función actual' : role.id === 'superadmin' ? 'Contraseña' : asks ? 'Pide PIN' : 'Sin PIN'));
 }));
 
 // Si llegó aquí rebotado desde una página de control, entra directo (o pide el PIN de esa función).
@@ -146,17 +169,35 @@ const SYSTEM = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ? nu
   : /Windows/.test(navigator.userAgent) ? 'windows' : /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints < 2 ? 'mac' : null;
 const INSTALLED = 'manna.instalacion'; // el número de la instalación bajada desde aquí
 const stored = () => { try { return localStorage.getItem(INSTALLED); } catch { return null; } };
-const installedHere = async () => Boolean(stored()) && (await api(`/api/nube/instalado?id=${stored()}`).catch(() => ({}))).installed === true;
+const installState = async () => (stored() ? api(`/api/nube/instalado?id=${stored()}`).catch(() => ({})) : {});
+const installedHere = async () => (await installState()).installed === true;
+// ¿La versión a es más nueva que la b? («1.51.0» > «1.50.2»)
+const newer = (a, b) => {
+  const [x, y] = [a, b].map((v) => v.split('.').map(Number));
+  const i = [0, 1, 2].find((n) => (x[n] || 0) !== (y[n] || 0));
+  return i !== undefined && (x[i] || 0) > (y[i] || 0);
+};
 const card = (glyph, title, text, tag, onclick) => h('button', { class: 'role install-role', disabled: !onclick, onclick },
   h('span', { class: 'role-icon' }, icon(glyph, 22)), h('span', { class: 'role-text' }, h('strong', {}, title), h('span', {}, text)), tag && h('span', { class: 'tag asks' }, tag));
 
 async function installCards() {
-  const done = await installedHere();
+  const { installed, version, latest } = await installState();
+  // Con una versión nueva en la nube (decisión 58: la nube va primero), «Actualizar» en lugar de «Instalar».
+  const update = installed && version && latest && newer(latest, version);
   $('#roles').querySelectorAll('.install-role').forEach((el) => el.remove());
-  $('#roles').append(...(done
+  $('#roles').append(...(installed
     ? [card('power', 'Abrir Manna en este equipo', 'Enciende Manna en este computador, el equipo principal de la iglesia.', null, () => { location.href = 'manna://abrir'; }),
-      card('download-simple', 'Instalar Manna en este equipo', 'Ya está instalado en este equipo.', null, null)]
+      update ? card('arrow-clockwise', 'Actualizar Manna en este equipo', `Hay una versión nueva, la ${latest}; este equipo tiene la ${version}.`, null, () => updateHere())
+        : card('download-simple', 'Instalar Manna en este equipo', 'Ya está instalado en este equipo.', null, null)]
     : [card('download-simple', 'Instalar Manna en este equipo', 'Para que este computador sea el equipo principal de la iglesia, el que proyecta en el culto.', 'Pide PIN', () => startInstall())]));
+}
+
+// El instalador de siempre: pone Manna al día sin tocar los datos ni el contenido, y lo vuelve a abrir.
+function updateHere() {
+  location.href = `/api/nube/actualizador?so=${SYSTEM}`;
+  const box = dialog('Actualizar Manna', h('div', { class: 'login-form' },
+    h('p', {}, `Abre el instalador cuando termine de bajar${SYSTEM === 'windows' ? ' (si Windows avisa, pulsa «Más información» y «Ejecutar de todas formas»)' : ''}. Pone Manna al día y lo vuelve a abrir, sin tocar los datos ni el contenido de la iglesia. Mientras tanto, Manna se cierra un momento: no lo hagas durante un culto.`),
+    h('button', { class: 'btn primary', onclick: () => box.close() }, 'Entendido')));
 }
 
 function startInstall() {
@@ -196,4 +237,4 @@ async function installDialog() {
     download, after));
 }
 
-if (SYSTEM && info.roles.some((r) => r.id === 'preparacion')) installCards();
+if (SYSTEM && info.roles.some((r) => r.id === 'preparacion') && info.church?.active !== false) installCards();

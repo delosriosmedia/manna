@@ -180,9 +180,14 @@ export default function setup(app) {
     serverId: settings.data.id,
     version,
     nameUrl: store.get('system').nameUrl,
+    // Lo que el superadministrador dejó a esta iglesia (fase 39): los módulos apagados, su orden y si está suspendida.
+    church: app.services.church?.view() || null,
   }));
 
-  app.route('POST', '/api/session', async (ctx) => sessions.open(ctx, await ctx.json()));
+  app.route('POST', '/api/session', async (ctx) => {
+    if (app.suspended) throw new HttpError(409, app.refusal());
+    return sessions.open(ctx, await ctx.json());
+  });
 
   // "Guion" pasó a llamarse "Orden del culto": los marcadores antiguos siguen llegando.
   app.route('GET', '/guion', (ctx) => {
