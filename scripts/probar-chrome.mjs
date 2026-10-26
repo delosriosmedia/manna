@@ -3688,9 +3688,13 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       // que le dijo la última vez: aquí se le dice una vieja, con la clave del equipo.
       await stopServer(server);
       const token = JSON.parse(fs.readFileSync(path.join(tmp, 'data', 'nube.json'), 'utf8')).token;
-      await fetch(`${cloud}/api/nube/estado`, { headers: { authorization: `Bearer ${token}`, 'x-manna-version': '1.0.0' } });
+      // También su dirección en la red de la iglesia (fase 37, parte 6): este navegador habla con la nube desde la misma
+      // dirección, como si estuviera en esa red.
+      await fetch(`${cloud}/api/nube/estado`, { headers: { authorization: `Bearer ${token}`, 'x-manna-version': '1.0.0', 'x-manna-lan': 'http://192.168.1.20:8000' } });
       await chrome.send('Page.navigate', { url: `${cloud}/` });
       check('con una versión nueva en la nube, la portada ofrece «Actualizar Manna» en lugar de «Instalar»', await until(`${card('Actualizar Manna en este equipo')}?.textContent.includes('este equipo tiene la 1.0.0') && !${card('Instalar Manna en este equipo')}`, 15));
+      check('desde la red de la iglesia, ofrece entrar directo en el equipo, y no «Abrir Manna»', await until(`document.querySelector('#roles .church-role')?.getAttribute('href') === 'http://192.168.1.20:8000' && !${card('Abrir Manna en este equipo')}`, 15),
+        await run(`return document.querySelector('#roles .church-role, #roles .church-note')?.outerHTML || 'nada'`));
       for (const f of fs.readdirSync(downloads)) fs.rmSync(path.join(downloads, f));
       await click(card('Actualizar Manna en este equipo'));
       const plain = () => fs.readdirSync(downloads).find((f) => /^Instalar-Manna-(Windows\.exe|Mac\.pkg)$/.test(f));
@@ -3699,6 +3703,19 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       await modalButton('Entendido');
       server = startServer(null);
       for (let i = 0; i < 60 && !(await fetch(`${local}/api/ping`).then((res) => res.ok, () => false)); i += 1) await sleep(250);
+      // La portada con el equipo de verdad, recién encendido: lo sabe por lo que él mismo le dice. Si tiene una dirección de
+      // red local, ofrece entrar por ella; si no (aquí escucha solo en este equipo), dice que está encendido.
+      const front = `document.querySelector('#roles .church-role, #roles .church-note')`;
+      let entry = null;
+      // Hasta que se vea lo que dice él (no la dirección de mentira de arriba).
+      const real = (e) => e?.on && (e.href ? /^http:\/\/(10|172|192)\.[\d.]+:\d+$/.test(e.href) && e.href.endsWith(`:${PORT}`) && !e.open : true);
+      for (let i = 0; i < 15 && !real(entry); i += 1) {
+        if (i) await sleep(1000);
+        await chrome.send('Page.navigate', { url: `${cloud}/` });
+        await until(front, 15);
+        entry = await run(`const a = document.querySelector('#roles .church-role'); return { href: a?.getAttribute('href') || null, on: Boolean(a) || ${front}?.textContent.includes('encendido'), open: Boolean(${card('Abrir Manna en este equipo')}) }`);
+      }
+      check('con el equipo encendido de verdad, la portada lo sabe', real(entry), JSON.stringify(entry));
 
       // El superadministrador (fase 39, decisión 64), en su propio servidor y por super.localhost (otro nombre: su sesión
       // no pisa las de la iglesia). Su iglesia es la nube de este paso.

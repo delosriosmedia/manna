@@ -27,6 +27,10 @@
     .role:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .role.current { border-color: var(--accent); }
     .role:disabled { opacity: 0.55; transform: none; border-color: var(--glass-line); cursor: default; }
+    /* La portada de la nube (fase 37, parte 6): entrar al equipo de la iglesia, o saber que está apagado. */
+    a.role { color: inherit; text-decoration: none; }
+    .church-role { border-color: var(--accent); }
+    .church-note { grid-column: 1 / -1; margin: 0 0 2px; color: var(--ink-3); font-size: 13px; }
     /* Instalar Manna en el equipo principal, desde la nube (decisión 64). */
     .install-choice { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--glass-line); border-radius: var(--r); cursor: pointer; }
     .install-choice:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
@@ -43,6 +47,7 @@
     .tag.asks { color: #f0bc66; background: rgba(240, 188, 102, 0.12); }
     #who { margin-top: 10px; color: var(--ink-3); font-size: 13px; }
     #who button { color: var(--accent); font: inherit; text-decoration: underline; text-underline-offset: 3px; }
+    .touch #who button { min-height: var(--tap); padding: 0 4px; }
 
     /* Quién eres (fase 35): los nombres de quienes pueden usar esa función, para tocar el tuyo. */
     .people { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); gap: 10px; }

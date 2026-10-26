@@ -226,12 +226,26 @@ test('instalar el equipo principal desde la nube: el instalador emparejado y el 
     assert.equal((await nube.call(`/api/nube/instalado?id=${'cd'.repeat(16)}`)).installed, false);
     assert.equal((await nube.call('/api/nube/emparejar', { install: code, id: 'f'.repeat(16) })).status, 410, 'el código del instalador sirve una vez');
 
+    // La portada (fase 37, parte 6): con el equipo encendido, quien está en su misma red recibe la dirección de dentro;
+    // quien no, la de internet. Una dirección que no es de una red local no se da.
+    c.app.storage.flushAll();
+    const token = JSON.parse(fs.readFileSync(path.join(tmp, 'iglesia-instalada', 'nube.json'), 'utf8')).token;
+    const report = (lan) => fetch(`${nube.base}/api/nube/estado`, { headers: { authorization: `Bearer ${token}`, 'x-manna-lan': lan, 'x-manna-tunel': 'https://iglesia.ejemplo.org' } });
+    await report('http://192.168.1.20:8000');
+    const front = await nube.call('/api/nube/portada');
+    assert.deepEqual([front.online, front.here, front.tunnel], [true, 'http://192.168.1.20:8000', 'https://iglesia.ejemplo.org']);
+    const outside = await (await fetch(`${nube.base}/api/nube/portada`, { headers: { 'X-Forwarded-For': '203.0.113.9' } })).json();
+    assert.deepEqual([outside.online, outside.here, outside.tunnel], [true, null, 'https://iglesia.ejemplo.org'], 'desde fuera, solo la de internet');
+    await report('http://8.8.8.8');
+    assert.equal((await nube.call('/api/nube/portada')).here, null, 'solo direcciones de una red local');
+
     // El himnario de la nube: las biblias y las letras se bajan siempre; el himno que no está en la carpeta sale igual
     // (desde la nube) y se baja al usarlo.
     const bible = path.join(tmp, 'iglesia-instalada-biblias', 'Prueba.xmm');
-    for (let i = 0; i < 50 && !fs.existsSync(bible); i += 1) await new Promise((r) => setTimeout(r, 100));
+    const letras = path.join(tmp, 'iglesia-instalada-himnario', 'letras', 'Letras.md');
+    for (let i = 0; i < 50 && !(fs.existsSync(bible) && fs.existsSync(letras)); i += 1) await new Promise((r) => setTimeout(r, 100));
     assert.equal(fs.readFileSync(bible, 'utf8'), 'biblia');
-    assert.ok(fs.existsSync(path.join(tmp, 'iglesia-instalada-himnario', 'letras', 'Letras.md')));
+    assert.ok(fs.existsSync(letras));
     const two = () => c.call('/api/hymns').then((r) => r.hymns.find((h) => h.number === 2));
     const remote = await two();
     assert.deepEqual([remote.url, remote.slidesBase], ['/himnos-nube/002%20Otro%20himno.mp4', '/himnos-letras-nube/002%20Otro%20himno/']);

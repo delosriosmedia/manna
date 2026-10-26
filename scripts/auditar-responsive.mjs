@@ -215,6 +215,8 @@ const SCREENS = [
   { name: 'Superadministrador: iglesias', url: '/superadmin', cloud: 'superadmin', tabs: true, content: '.super-list', inside: '.super-row', settle: 600 },
   { name: 'Superadministrador: espacio', url: '/superadmin#espacio', cloud: 'superadmin', tabs: true, primary: '.super-plan .btn.primary', settle: 600 },
   { name: 'Inicio', url: '/', plain: '.role' },
+  // La portada de la nube (fase 37, parte 6): sin equipo encendido, el aviso; en un computador, las tarjetas de instalar.
+  { name: 'Portada de la nube', url: '/', cloud: 'preparacion', plain: '.church-note' },
   { name: 'Revisión del equipo', url: '/requisitos', plain: '.req' },
 ];
 

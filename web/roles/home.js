@@ -180,16 +180,17 @@ const newer = (a, b) => {
 const card = (glyph, title, text, tag, onclick) => h('button', { class: 'role install-role', disabled: !onclick, onclick },
   h('span', { class: 'role-icon' }, icon(glyph, 22)), h('span', { class: 'role-text' }, h('strong', {}, title), h('span', {}, text)), tag && h('span', { class: 'tag asks' }, tag));
 
-async function installCards() {
+// front: lo que dijo la portada (abajo). Con el equipo de la iglesia encendido en este mismo computador, «Abrir» sobra.
+async function installCards(front = {}) {
   const { installed, version, latest } = await installState();
   // Con una versión nueva en la nube (decisión 58: la nube va primero), «Actualizar» en lugar de «Instalar».
   const update = installed && version && latest && newer(latest, version);
   $('#roles').querySelectorAll('.install-role').forEach((el) => el.remove());
   $('#roles').append(...(installed
-    ? [card('power', 'Abrir Manna en este equipo', 'Enciende Manna en este computador, el equipo principal de la iglesia.', null, () => { location.href = 'manna://abrir'; }),
+    ? [!(front.online && front.here) && card('power', 'Abrir Manna en este equipo', 'Enciende Manna en este computador, el equipo principal de la iglesia.', null, () => { location.href = 'manna://abrir'; }),
       update ? card('arrow-clockwise', 'Actualizar Manna en este equipo', `Hay una versión nueva, la ${latest}; este equipo tiene la ${version}.`, null, () => updateHere())
         : card('download-simple', 'Instalar Manna en este equipo', 'Ya está instalado en este equipo.', null, null)]
-    : [card('download-simple', 'Instalar Manna en este equipo', 'Para que este computador sea el equipo principal de la iglesia, el que proyecta en el culto.', 'Pide PIN', () => startInstall())]));
+    : [card('download-simple', 'Instalar Manna en este equipo', 'Para que este computador sea el equipo principal de la iglesia, el que proyecta en el culto.', 'Pide PIN', () => startInstall())]).filter(Boolean));
 }
 
 // El instalador de siempre: pone Manna al día sin tocar los datos ni el contenido, y lo vuelve a abrir.
@@ -237,4 +238,23 @@ async function installDialog() {
     download, after));
 }
 
-if (SYSTEM && info.roles.some((r) => r.id === 'preparacion') && info.church?.active !== false) installCards();
+// La portada (fase 37, parte 6): si el equipo de la iglesia está encendido, se ofrece entrar en él, directo si se está en
+// su red (sin pasar por internet) y si no por su conexión por internet; si está apagado, se dice y queda Preparar.
+async function frontPage() {
+  const front = await api('/api/nube/portada').catch(() => ({}));
+  const where = front.online && (front.here || front.tunnel);
+  if (where) {
+    $('#roles').prepend(h('a', { class: 'role church-role', href: where },
+      h('span', { class: 'role-icon' }, icon('house', 22)),
+      h('span', { class: 'role-text' }, h('strong', {}, 'Entrar al equipo de la iglesia'),
+        h('span', {}, front.here ? 'Estás en la red de la iglesia: entra directo, sin pasar por internet.' : 'Está encendido: entra por su conexión por internet, con tu PIN.'))));
+  } else {
+    $('#roles').prepend(h('p', { class: 'church-note' }, front.online ? 'El equipo de la iglesia está encendido. Desde fuera de la iglesia, el culto se prepara aquí.'
+      : 'El equipo de la iglesia está apagado. Aquí puedes preparar el culto: le llegará cuando se encienda.'));
+  }
+  return front;
+}
+
+if (info.roles.some((r) => r.id === 'preparacion') && info.church?.active !== false) {
+  frontPage().then((front) => { if (SYSTEM) installCards(front); });
+}

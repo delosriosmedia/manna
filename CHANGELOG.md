@@ -4,6 +4,11 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.54.0 — 2026-10-26
+
+- **La portada de la nube sabe si el equipo de la iglesia está encendido**: si lo está y quien la abre está en la red de la iglesia, ofrece «Entrar al equipo de la iglesia», directo y sin pasar por internet; desde fuera, por la conexión por internet de la iglesia si está encendida. Si no, dice si el equipo está encendido o apagado, y que el culto se prepara ahí.
+- En el celular, «Entrar como otra persona» de la portada tiene el tamaño para tocarlo con el dedo.
+
 ## 1.53.0 — 2026-10-26
 
 - **La biblioteca de la iglesia, en la nube**: lo que hay en Medios del equipo de la iglesia (fotos, videos, audios y presentaciones, con sus categorías) se ve en «Preparar el culto» con su miniatura, como «en la iglesia», y se añade al orden desde casa. Los archivos no viajan: se quedan en la iglesia. Lo que se quita en la iglesia desaparece también de la nube.

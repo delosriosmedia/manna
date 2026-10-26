@@ -109,6 +109,14 @@ function cloudSide(app) {
     });
     ctx.res.end(body);
   });
+  // La portada (fase 37, parte 6): ¿está encendido el equipo de la iglesia? Si quien pregunta sale a internet por la misma
+  // dirección que el equipo, está en la red de la iglesia: se le da la dirección de dentro; si no, la de internet, si la hay.
+  app.route('GET', '/api/nube/portada', (ctx) => {
+    const o = saved.data.official;
+    if (!o || Date.now() - o.lastSeen > ONLINE_MS) return { online: false };
+    return { online: true, here: o.ip && o.ip === ctx.ip ? o.lan || null : null, tunnel: o.tunnel || null };
+  });
+
   // ¿Se instaló con el instalador que bajó ese navegador, y ese equipo sigue siendo el oficial? Con su versión y la de
   // la nube: si la de la nube es más nueva, la portada ofrece actualizarlo.
   app.route('GET', '/api/nube/instalado', (ctx) => {
@@ -181,6 +189,13 @@ function cloudSide(app) {
       if (app.suspended) return { official: true, suspended: true, church: host(ctx) };
       o.lastSeen = Date.now();
       o.version = String(ctx.req.headers['x-manna-version'] || o.version).slice(0, 20);
+      // Para la portada (fase 37, parte 6): por dónde se llega al equipo dentro de la iglesia (una dirección de red local)
+      // y desde internet (su conexión por internet, si está encendida), y desde qué dirección pública habla con la nube.
+      const lan = String(ctx.req.headers['x-manna-lan'] || '');
+      const tunnel = String(ctx.req.headers['x-manna-tunel'] || '');
+      o.lan = /^http:\/\/(10|172\.(1[6-9]|2\d|3[01])|192\.168)(\.\d{1,3}){2,3}(:\d{2,5})?$/.test(lan) ? lan : null;
+      o.tunnel = /^https:\/\/[a-z0-9.-]+$/i.test(tunnel) ? tunnel : null;
+      o.ip = ctx.ip;
       saved.save();
       publish();
       return { official: true, church: host(ctx), users: versionOf(users.records()), data: versionNow(), settings: app.services.church?.settings() };
@@ -425,7 +440,13 @@ function churchSide(app) {
     await pairFromInstaller();
     if (!saved.data.token || saved.data.replaced) return;
     try {
-      const res = await fetch(`${saved.data.url}/api/nube/estado`, { headers: { authorization: `Bearer ${saved.data.token}`, 'x-manna-version': version }, signal: AbortSignal.timeout(15_000) });
+      // Con sus direcciones, para la portada de la nube: la de la red de la iglesia y, si está encendida, la de internet.
+      const { addresses } = store.get('system') || {};
+      const net = store.get('internet') || {};
+      const res = await fetch(`${saved.data.url}/api/nube/estado`, {
+        headers: { authorization: `Bearer ${saved.data.token}`, 'x-manna-version': version, 'x-manna-lan': addresses?.[0] || '', 'x-manna-tunel': net.status === 'on' ? net.url || '' : '' },
+        signal: AbortSignal.timeout(15_000),
+      });
       const body = await res.json().catch(() => ({}));
       if (res.status === 401) return set({ status: 'unknown', error: body.error || 'La nube no reconoce este equipo: vuelve a emparejarlo.' });
       if (!res.ok) return set({ status: 'offline', error: body.error || `La nube respondió ${res.status}.` });
