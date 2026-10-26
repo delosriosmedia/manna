@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { HttpError } from '../../core/router.js';
-import { readImageInfo } from '../../core/images.js';
+import { imageInfo, readImageInfo } from '../../core/images.js';
 import { cleanName } from '../../core/names.js';
 import { applyView, initialView } from '../../core/view.js';
 import { createExporter, isPresentation, liveSupported, openLive, PRESENTATION_EXTENSIONS } from './powerpoint.js';
@@ -49,7 +49,7 @@ export default function setup(app) {
 
   // Lo que quedó a medias al apagar: una subida sin terminar se borra; una conversión, se dice.
   saved.data.decks = decks().filter((deck) => {
-    const keep = deck.status !== 'receiving' && (deck.status !== 'ready' || fs.existsSync(dirOf(deck)));
+    const keep = deck.status !== 'receiving' && (deck.status !== 'ready' || deck.atChurch || fs.existsSync(dirOf(deck)));
     if (!keep) {
       fs.rmSync(dirOf(deck), { recursive: true, force: true });
       dropOriginal(deck);
@@ -65,7 +65,7 @@ export default function setup(app) {
   // La interfaz arma la dirección de cada diapositiva con `base`, `ext` y `thumbs`: no se publica la lista.
   const view = (deck) => ({
     id: deck.id, name: deck.name, source: deck.source, pages: deck.pages, width: deck.width || 0, height: deck.height || 0, added: deck.added,
-    status: deck.status, error: deck.error || null, base: `/media/${FOLDER}/${deck.id}/`, ext: deck.ext || 'jpg', thumbs: Boolean(deck.thumbs), thumbExt: deck.thumbExt || 'jpg', ...(deck.atChurch && { atChurch: true }),
+    status: deck.status, error: deck.error || null, base: `/media/${FOLDER}/${deck.id}/`, ext: deck.ext || 'jpg', thumbs: Boolean(deck.thumbs), thumbExt: deck.thumbExt || 'jpg', ...(deck.atChurch && { atChurch: true }), ...(deck.cover && { cover: true }),
     // Tras un fallo de PowerPoint va como imágenes, y el menú ofrece volver a intentarlo.
     live: Boolean(deck.live) && !failed.has(deck.id), liveable: liveable(deck),
   });
@@ -426,6 +426,37 @@ export default function setup(app) {
       Object.assign(deck, { thumbs: numbers.every((n) => has(`m${n}.jpg`)), width: first.width, height: first.height });
       decks().push(deck);
       commit();
+    },
+    // La biblioteca del equipo, para que la nube la muestre: cada presentación con su portada (cover: en la nube solo
+    // está la portada; sus diapositivas, en la iglesia).
+    summary: () => decks().filter((d) => d.status === 'ready').map((d) => ({
+      type: 'slides', id: d.id, entry: { name: d.name, source: d.source, pages: d.pages, width: d.width, height: d.height },
+      thumb: path.join(dirOf(d), d.thumbs ? `m1.${d.thumbExt || 'jpg'}` : `1.${d.ext || 'jpg'}`),
+    })),
+    mirror(items) {
+      const listed = new Set(items.map((x) => x.id));
+      for (const gone of decks().filter((d) => d.atChurch && !listed.has(d.id))) fs.rmSync(dirOf(gone), { recursive: true, force: true });
+      saved.data.decks = decks().filter((d) => !d.atChurch || listed.has(d.id));
+      for (const { id, entry } of items) {
+        const found = decks().find((d) => d.id === id);
+        if (found && !found.atChurch) continue;
+        const pages = Math.min(MAX_PAGES, Math.max(1, Number(entry.pages) || 1));
+        const next = { name: cleanName(entry.name) || 'Presentación', source: SOURCES[entry.source] ? entry.source : 'pdf', pages, width: Number(entry.width) || 0, height: Number(entry.height) || 0 };
+        if (found) Object.assign(found, next);
+        else decks().push({ id, ext: 'jpg', thumbs: false, added: Date.now(), status: 'ready', error: null, atChurch: true, cover: true, ...next });
+      }
+      commit();
+    },
+    lacking: () => decks().filter((d) => d.atChurch && d.cover && !fs.existsSync(path.join(dirOf(d), `1.${d.ext}`))).map((d) => d.id),
+    thumb(id, buffer) {
+      const deck = decks().find((d) => d.id === id && d.atChurch && d.cover);
+      const ext = EXT[imageInfo(buffer)?.type];
+      if (!deck || !ext) return false;
+      fs.mkdirSync(dirOf(deck), { recursive: true });
+      fs.writeFileSync(path.join(dirOf(deck), `1.${ext}`), buffer);
+      deck.ext = ext;
+      commit();
+      return true;
     },
   };
 

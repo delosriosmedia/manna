@@ -144,6 +144,13 @@ export function createSlidesPanel(ctx, lib) {
         deck.status === 'church' ? 'Sus diapositivas se verán en la iglesia. Ya se puede añadir al orden del culto.' : deck.status === 'converting' ? 'Aparecerá aquí en cuanto termine. Puedes seguir usando Manna mientras tanto.' : deck.error));
       return;
     }
+    // Una presentación de la iglesia vista desde la nube (decisión 64): solo está su portada; las diapositivas, allá.
+    if (deck.cover) {
+      delete pages.dataset.key;
+      pages.replaceChildren(h('div', { class: 'empty' }, h('img', { class: 'deck-cover-only', src: thumbUrl(deck, 1), alt: '' }),
+        h('strong', {}, 'Está en el equipo de la iglesia'), `Sus ${plural(deck.pages)} se ven allá. Ya se puede añadir al orden del culto.`));
+      return;
+    }
     // La rejilla solo se rehace si cambia la presentación: así las imágenes no se vuelven a pedir.
     const key = `${deck.id}|${deck.pages}`;
     if (pages.dataset.key !== key) {

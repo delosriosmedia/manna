@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.53.0 — 2026-10-26
+
+- **La biblioteca de la iglesia, en la nube**: lo que hay en Medios del equipo de la iglesia (fotos, videos, audios y presentaciones, con sus categorías) se ve en «Preparar el culto» con su miniatura, como «en la iglesia», y se añade al orden desde casa. Los archivos no viajan: se quedan en la iglesia. Lo que se quita en la iglesia desaparece también de la nube.
+
 ## 1.52.0 — 2026-10-26
 
 - **Fotos, videos y presentaciones desde casa**: en «Preparar el culto», Medios es la biblioteca de siempre, con «Añadir al orden» en lugar de «Proyectar». Se suben fotos, videos, audios, PDF y PowerPoint, y los videos de YouTube van por su enlace. El equipo de la iglesia lo baja solo cuando está encendido, con el mismo nombre en el orden; allí se preparan los videos, se convierten los PowerPoint y se descargan los de YouTube, que en el orden pasan a ser el video de la biblioteca. En la nube queda la miniatura de lo que ya llegó, y lo que se sube cabe en el espacio que dio el superadministrador.

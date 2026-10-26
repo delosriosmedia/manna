@@ -345,4 +345,23 @@ test('lo que se sube desde casa llega al equipo de la iglesia, y la nube se qued
   assert.ok(there.slides.decks.find((d) => d.id === deck).atChurch);
   assert.ok(!fs.existsSync(path.join(tmp, 'nube-archivos', 'media', 'diapositivas', deck, '1.jpg')) && fs.existsSync(path.join(tmp, 'nube-archivos', 'media', 'diapositivas', deck, 'm1.jpg')));
   assert.deepEqual((await nube.call('/api/nube/archivos')).status, 401);
+
+  // Y al revés: lo que ya está en el equipo sube a la nube como ficha «en la iglesia», con su miniatura y sus categorías.
+  const local = await (await c.raw('/api/media/images?name=Cartel de la iglesia', { method: 'POST', body: JPG, headers: { 'Content-Type': 'image/jpeg' } })).json();
+  await c.raw(`/api/media/images/${local.id}/thumb`, { method: 'POST', body: JPG, headers: { 'Content-Type': 'image/jpeg' } });
+  assert.equal((await c.send('media.categoryAdd', { name: 'Anuncios' })).status, 200);
+  await c.app.services.cloud.check();
+  let seen = null;
+  for (let i = 0; i < 50 && !seen?.thumb; i += 1) {
+    await new Promise((r) => setTimeout(r, 100));
+    seen = (await nube.state()).media.images.find((x) => x.id === local.id);
+  }
+  assert.ok(seen?.atChurch && seen.thumb && seen.name === 'Cartel de la iglesia', JSON.stringify(seen));
+  assert.deepEqual((await nube.state()).media.categories.map((x) => x.name), ['Anuncios']);
+  assert.equal((await nube.send('order.add', { kind: 'image', data: { id: local.id } })).status, 200, 'y desde casa se añade al orden');
+  // Lo que la iglesia quita de su biblioteca, se va también de la nube.
+  assert.equal((await c.send('media.remove', { id: local.id })).status, 200);
+  await c.app.services.cloud.check();
+  for (let i = 0; i < 50 && (await nube.state()).media.images.some((x) => x.id === local.id); i += 1) await new Promise((r) => setTimeout(r, 100));
+  assert.ok(!(await nube.state()).media.images.some((x) => x.id === local.id));
 });

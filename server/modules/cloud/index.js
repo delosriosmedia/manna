@@ -275,6 +275,25 @@ function cloudSide(app) {
     return { ok: true };
   });
 
+  // La biblioteca del equipo (decisión 64): la lista, con las categorías, y las miniaturas que falten. La nube la muestra
+  // como «en la iglesia», para añadirla al orden desde casa; los archivos se quedan en la iglesia.
+  app.route('POST', '/api/nube/biblioteca', async (ctx) => {
+    official(ctx);
+    const { items, categories } = await ctx.json();
+    if (!Array.isArray(items) || items.length > 5000) throw new HttpError(400, 'Falta la lista de la biblioteca.');
+    const valid = items.filter((x) => typeof x?.id === 'string' && /^[a-f0-9]{6,32}$/.test(x.id) && typeof x.type === 'string' && x.entry && typeof x.entry === 'object');
+    for (const t of transfers(app)) t.mirror(valid.filter((x) => t.types.includes(x.type)));
+    if (Array.isArray(categories)) app.services.media?.categories.replace(categories);
+    return { want: transfers(app).flatMap((t) => t.lacking()) };
+  });
+  app.route('POST', '/api/nube/biblioteca/miniatura', async (ctx) => {
+    official(ctx);
+    const id = String(ctx.query.get('id') || '');
+    const buffer = await ctx.raw(600 * 1024);
+    if (!transfers(app).some((t) => t.has(id) && t.thumb(id, buffer))) throw new HttpError(415, 'Esa miniatura no es de nada que esté en la iglesia.');
+    return { ok: true };
+  });
+
   // Los usuarios: la copia del equipo, y los que sube el equipo la primera vez que se empareja.
   app.route('GET', '/api/nube/usuarios', (ctx) => {
     official(ctx);
@@ -426,7 +445,7 @@ function churchSide(app) {
       if (body.data !== saved.data.cloudData || setVersion(exportAll(app)) !== saved.data.synced) await syncData();
       set({ status: 'on', lastSeen: Date.now(), error: null });
       waitLoop();
-      receive().catch((err) => console.error('No se pudo traer lo subido a la nube:', err.message));
+      receive().then(pushLibrary).catch((err) => console.error('No se pudo poner al día lo de Medios con la nube:', err.message));
       if (Date.now() - filled > 30 * 60_000) {
         filled = Date.now();
         content.fill().catch((err) => console.error('No se pudo bajar el himnario de la nube:', err.message));
@@ -472,6 +491,35 @@ function churchSide(app) {
       });
     })().finally(() => { receiving = null; });
     return receiving;
+  }
+
+  // La biblioteca del equipo sube a la nube (decisión 64): la lista con sus categorías y, después, las miniaturas que la
+  // nube dice que le faltan. Solo cuando hace falta (ver sendLibrary).
+  let librarySent = 0;
+  async function pushLibrary() {
+    if (!live()) return;
+    const items = transfers(app).flatMap((t) => t.summary());
+    const body = { items: items.map(({ type, id, entry }) => ({ type, id, entry })), categories: app.services.media?.categories.export() || [] };
+    const signature = hash(JSON.stringify(body)).slice(0, 16);
+    if (!sendLibrary(signature, saved.data.librarySig, Date.now() - librarySent)) return;
+    const { want } = await ask('POST', '/api/nube/biblioteca', body, 60_000);
+    for (const id of want || []) {
+      const thumb = items.find((x) => x.id === id)?.thumb;
+      if (!thumb || !fs.existsSync(thumb)) continue;
+      await fetch(`${saved.data.url}/api/nube/biblioteca/miniatura?id=${encodeURIComponent(id)}`, {
+        method: 'POST', headers: { authorization: `Bearer ${saved.data.token}`, 'content-type': 'application/octet-stream' }, body: fs.readFileSync(thumb), signal: AbortSignal.timeout(60_000),
+      }).catch(() => null);
+    }
+    saved.data.librarySig = signature;
+    saved.save();
+    librarySent = Date.now();
+  }
+  // ¿Hay que mandar la biblioteca? signature: la de ahora; last: la última que se mandó (undefined, nunca); since: ms
+  // desde que se mandó por última vez en este arranque.
+  function sendLibrary(signature, last, since) {
+    // Cuando cambió algo; y, aunque no cambie, al encender el equipo y cada media hora: así se recupera una miniatura que
+    // se perdió por un corte, o una nube que se reinició sin ellas.
+    return signature !== last || since > 30 * 60_000;
   }
 
   // Emparejado (y no sustituido), los usuarios se cambian en la nube (decisión 63).

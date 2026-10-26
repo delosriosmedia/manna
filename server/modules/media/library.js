@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { HttpError } from '../../core/router.js';
-import { readImageInfo } from '../../core/images.js';
+import { EXTENSIONS, imageInfo, readImageInfo } from '../../core/images.js';
 import { listFiles, watchFolder } from '../../core/folders.js';
 import { applyClock, createClock, freezeClock } from '../../core/playback.js';
 import { AUDIO_EXTENSIONS, SUBTITLE_EXTENSIONS, VIDEO_EXTENSIONS, clipKind, clock, originalMayPlay, planFor, playsAsIs, toVtt } from './clips.js';
@@ -539,6 +539,35 @@ export function registerClips(app, { saved, commit }) {
       }
       clips().push(clip);
       commit();
+    },
+    // La biblioteca del equipo, para que la nube la muestre (sin los archivos, con su imagen).
+    summary: () => clips().filter((c) => !c.atChurch).map((c) => ({
+      type: c.kind, id: c.id, entry: { name: c.name, duration: c.duration, width: c.width, height: c.height }, thumb: c.poster && path.join(base, c.poster),
+    })),
+    mirror(items) {
+      const listed = new Set(items.map((x) => x.id));
+      for (const gone of clips().filter((c) => c.atChurch && !listed.has(c.id))) removeFile(gone.poster);
+      saved.data.clips = clips().filter((c) => !c.atChurch || listed.has(c.id));
+      for (const { id, type, entry } of items) {
+        const kind = ['video', 'audio', 'youtube'].includes(type) ? type : null;
+        const found = clips().find((c) => c.id === id);
+        if (!kind || (found && !found.atChurch)) continue;
+        const next = { name: cleanName(entry.name) || LABELS[kind], duration: Number(entry.duration) > 0 ? Number(entry.duration) : null, width: Number(entry.width) || 0, height: Number(entry.height) || 0 };
+        if (found) Object.assign(found, next);
+        else clips().push({ id, kind, source: 'church', file: null, bytes: 0, added: Date.now(), status: 'church', direct: true, converted: null, poster: null, subtitles: null, error: null, atChurch: true, ...next });
+      }
+      commit();
+    },
+    lacking: () => clips().filter((c) => c.atChurch && visual(c) && !c.poster).map((c) => c.id),
+    thumb(id, buffer) {
+      const clip = clips().find((c) => c.id === id && c.atChurch);
+      const type = imageInfo(buffer)?.type;
+      if (!clip || !['jpeg', 'png'].includes(type)) return false;
+      fs.mkdirSync(path.join(base, 'miniaturas'), { recursive: true });
+      Object.assign(clip, { poster: `miniaturas/${id}${EXTENSIONS[type]}`, posterAt: Date.now() });
+      fs.writeFileSync(path.join(base, clip.poster), buffer);
+      commit();
+      return true;
     },
   };
 

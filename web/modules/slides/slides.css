@@ -128,3 +128,5 @@ html.touch .pr-tools .chip { min-height: var(--tap); padding: 0 14px; }
 
 /* En el Presentador, los mandos de la diapositiva no se muestran (la grande ya se mueve y se señala): solo el aviso de PowerPoint. */
 .presenter .live-controls:not(:has(.slide-ppt:not([hidden]))) { display: none; }
+/* Una presentación de la iglesia vista desde la nube: solo su portada (decisión 64). */
+.deck-cover-only { width: min(320px, 100%); aspect-ratio: 16 / 9; object-fit: contain; border-radius: var(--r-sm); background: var(--media-bg); margin-bottom: 8px; }

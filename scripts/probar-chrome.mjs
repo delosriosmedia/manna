@@ -162,6 +162,8 @@ const UNTOUCHED = {
   'GET /api/nube/archivos': 'la pide el equipo de la iglesia a su nube para bajar lo subido desde casa; no la interfaz',
   'GET /api/nube/archivo': 'la pide el equipo de la iglesia a su nube para bajar lo subido desde casa; no la interfaz',
   'POST /api/nube/archivos/recibidos': 'la pide el equipo de la iglesia a su nube al recibir lo subido desde casa; no la interfaz',
+  'POST /api/nube/biblioteca': 'la pide el equipo de la iglesia a su nube para subir la lista de su biblioteca; no la interfaz',
+  'POST /api/nube/biblioteca/miniatura': 'la pide el equipo de la iglesia a su nube para subir las miniaturas de su biblioteca; no la interfaz',
   'GET /api/nube/super/estado': 'la pide el sitio del superadministrador a cada iglesia (super.refresh, super.add); no la interfaz',
   'POST /api/nube/super/ajustes': 'la pide el sitio del superadministrador a cada iglesia (super.set); no la interfaz',
   'POST /api/nube/super/acceso': 'la pide el sitio del superadministrador a cada iglesia (super.access); no la interfaz',
@@ -416,9 +418,11 @@ async function reviewSection() {
     MANNA_DESCARGAS: JSON.stringify({ 'yt-dlp': { url: `${from}/yt-dlp-prueba`, sums: `${from}/SUMAS`, file: 'yt-dlp', size: '60 KB' }, cloudflared: { url: `${from}/cloudflared-prueba`, sums: `${from}/SUMAS`, file: 'cloudflared', size: '60 KB' } }),
   });
   try {
-    await sleep(3000);
+    // Con los tres grupos arrancando a la vez el equipo va cargado: se espera a que el servidor conteste y a que la
+    // página dibuje sus tarjetas, no un tiempo fijo (con 3 + 2 s fallaba a veces todo el grupo, 2026-10-26).
+    for (let i = 0; i < 80 && !(await fetch('http://localhost:8125/api/ping').then((res) => res.ok, () => false)); i += 1) await sleep(250);
     await chrome.send('Page.navigate', { url: 'http://localhost:8125/requisitos' });
-    await sleep(2000);
+    await until(`document.querySelectorAll('.req').length === 7 && document.querySelector('#modules .mod')`, 40);
     const card = `document.querySelector('.req[data-id="yt-dlp"]')`;
     const mod = (id) => `document.querySelector('#modules .mod[data-id=${id}]')`;
     check('la revisión lista los siete programas y marca los que faltan', await run(`return document.querySelectorAll('.req').length === 7 && ${card}.classList.contains('missing') && document.querySelector('.req[data-id=navegador]').classList.contains('missing') && document.querySelector('.req[data-id=cloudflared]').classList.contains('missing') && !document.querySelector('.req[data-id=node]').classList.contains('missing')`));
@@ -3610,6 +3614,20 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       check('el orden preparado en la nube llega al equipo de la iglesia', await until(betoOrder, 25));
       check('y la foto subida desde casa, con el mismo identificador que tiene en el orden', await until(`(await (await fetch('/api/state')).json()).media.images.some((i) => i.name === 'foto de casa')`, 40)
         && await run(`const s = await (await fetch('/api/state')).json(); const photo = s.media.images.find((i) => i.name === 'foto de casa'); return s.orders.list.length > 0 && Boolean(photo)`));
+      // Y al revés: una imagen de la biblioteca de la iglesia sube a la nube con su miniatura, para añadirla desde casa.
+      await run(`const c = document.createElement('canvas'); c.width = 64; c.height = 36; c.getContext('2d').fillRect(0, 0, 64, 36);
+        const jpg = await new Promise((r) => c.toBlob(r, 'image/jpeg'));
+        const { id } = await (await fetch('/api/media/images?name=Cartel%20de%20la%20iglesia', { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: jpg })).json();
+        await fetch('/api/media/images/' + id + '/thumb', { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: jpg });`);
+      const people = await (await fetch(`${cloud}/api/session`)).json();
+      const login = await fetch(`${cloud}/api/session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'preparacion', user: people.users.find((u) => u.name === 'Beto').id, pin: '4321' }) });
+      const betoCookie = login.headers.get('set-cookie')?.split(';')[0] || '';
+      let mirrored = null;
+      for (let i = 0; i < 60 && !mirrored?.thumb; i += 1) {
+        await sleep(500);
+        mirrored = (await (await fetch(`${cloud}/api/state`, { headers: { cookie: betoCookie } })).json()).media?.images.find((x) => x.name === 'Cartel de la iglesia');
+      }
+      check('la biblioteca de la iglesia sube a la nube, con su miniatura, como «en la iglesia»', Boolean(mirrored?.atChurch && mirrored.thumb), JSON.stringify(mirrored));
       const betoId = await run(`return ${betoOrder}.id`);
       await stopServer(cloudServer);
       await run(`return await ${post('order.renameOrder', { id: betoId, name: 'Cambiado en la iglesia' })}`);

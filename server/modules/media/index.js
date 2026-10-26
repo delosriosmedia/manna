@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { HttpError } from '../../core/router.js';
-import { EXTENSIONS, IMAGE_TYPES, readImageInfo } from '../../core/images.js';
+import { EXTENSIONS, IMAGE_TYPES, imageInfo, readImageInfo } from '../../core/images.js';
 import { cleanName } from '../../core/names.js';
 import { applyView, initialView, validFit } from '../../core/view.js';
 import { registerClips } from './library.js';
@@ -34,13 +34,13 @@ export default function setup(app) {
     c.items = (c.items || c.videos || []).filter((id) => !seen.has(id) && seen.add(id));
     delete c.videos;
   }
-  // Fichas cuyo archivo ya no está (alguien lo borró a mano) se quitan al arrancar. En la nube, de lo que ya llegó a la
-  // iglesia queda solo la miniatura (atChurch, abajo).
-  saved.data.images = saved.data.images.filter((image) => fs.existsSync(path.join(app.uploadsDir, image.atChurch ? image.thumb || '' : image.file)));
+  // Fichas cuyo archivo ya no está (alguien lo borró a mano) se quitan al arrancar. En la nube, de lo que está en la
+  // iglesia queda solo la ficha y su miniatura (atChurch, abajo).
+  saved.data.images = saved.data.images.filter((image) => image.atChurch || fs.existsSync(path.join(app.uploadsDir, image.file)));
 
   const url = (file) => `/media/${file}`;
   const view = (image) => ({
-    id: image.id, name: image.name, url: url(image.atChurch ? image.thumb : image.file), thumb: image.thumb ? url(image.thumb) : null,
+    id: image.id, name: image.name, url: image.atChurch ? image.thumb && url(image.thumb) : url(image.file), thumb: image.thumb ? url(image.thumb) : null,
     width: image.width, height: image.height, bytes: image.bytes, fit: validFit(image.fit), added: image.added, ...(image.atChurch && { atChurch: true }),
   });
   let library = null; // videos y audios: se crea más abajo
@@ -97,15 +97,60 @@ export default function setup(app) {
       saved.data.images.push({ id, file, thumb, bytes: Number(entry.bytes) || 0, width: info.width, height: info.height, name: cleanName(entry.name) || 'Imagen', fit: validFit(entry.fit), added: Date.now() });
       commit();
     },
+    // La biblioteca del equipo, para que la nube la muestre (sin los archivos, con su miniatura).
+    summary: () => saved.data.images.map((i) => ({
+      type: 'image', id: i.id, entry: { name: i.name, fit: i.fit, width: i.width, height: i.height, bytes: i.bytes }, thumb: i.thumb && path.join(app.uploadsDir, i.thumb),
+    })),
+    // En la nube: lo del equipo pasa a ser la ficha «en la iglesia»; lo que el equipo ya no tiene, se va.
+    mirror(items) {
+      const listed = new Set(items.map((x) => x.id));
+      for (const gone of saved.data.images.filter((i) => i.atChurch && !listed.has(i.id))) fs.rmSync(path.join(app.uploadsDir, gone.thumb || 'nada'), { force: true });
+      saved.data.images = saved.data.images.filter((i) => !i.atChurch || listed.has(i.id));
+      for (const { id, entry } of items) {
+        const found = saved.data.images.find((i) => i.id === id);
+        if (found && !found.atChurch) continue;
+        const next = { name: cleanName(entry.name) || 'Imagen', fit: validFit(entry.fit), width: Number(entry.width) || 0, height: Number(entry.height) || 0, bytes: Number(entry.bytes) || 0 };
+        if (found) Object.assign(found, next);
+        else saved.data.images.push({ id, file: null, thumb: null, added: Date.now(), atChurch: true, ...next });
+      }
+      commit();
+    },
+    lacking: () => saved.data.images.filter((i) => i.atChurch && !i.thumb).map((i) => i.id),
+    thumb(id, buffer) {
+      const image = saved.data.images.find((i) => i.id === id && i.atChurch);
+      const type = imageInfo(buffer)?.type;
+      if (!image || !['jpeg', 'png'].includes(type)) return false;
+      fs.mkdirSync(dir, { recursive: true });
+      image.thumb = `${FOLDER}/${id}.mini${EXTENSIONS[type]}`;
+      fs.writeFileSync(path.join(app.uploadsDir, image.thumb), buffer);
+      commit();
+      return true;
+    },
   };
   app.services.media = {
     rescan: library.rescan,
     transfer: {
-      types: ['image', 'video', 'audio'],
+      types: ['image', 'video', 'audio', 'youtube'],
       has: (id) => saved.data.images.some((i) => i.id === id) || library.has(id),
       pending: () => [...images.pending(), ...library.transfer.pending()],
       delivered: (id) => (library.has(id) ? library.transfer.delivered(id) : images.delivered(id)),
       adopt: (item, files) => (item.type === 'image' ? images.adopt(item, files) : library.transfer.adopt(item, files)),
+      summary: () => [...images.summary(), ...library.transfer.summary()],
+      mirror(items) {
+        images.mirror(items.filter((x) => x.type === 'image'));
+        library.transfer.mirror(items.filter((x) => x.type !== 'image'));
+      },
+      lacking: () => [...images.lacking(), ...library.transfer.lacking()],
+      thumb: (id, buffer) => images.thumb(id, buffer) || library.transfer.thumb(id, buffer),
+    },
+    // Las categorías: las de la iglesia mandan también en la nube.
+    categories: {
+      export: () => saved.data.categories.map((c) => ({ id: c.id, name: c.name, items: [...c.items] })),
+      replace(list) {
+        saved.data.categories = list.filter((c) => typeof c?.id === 'string' && /^[a-f0-9]{4,16}$/.test(c.id) && cleanName(c.name, 40) && Array.isArray(c.items)).slice(0, 200)
+          .map((c) => ({ id: c.id, name: cleanName(c.name, 40), items: c.items.filter((x) => typeof x === 'string').slice(0, 5000) }));
+        commit();
+      },
     },
   };
   publish();
