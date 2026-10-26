@@ -21,7 +21,8 @@ trap 'rm -rf "$TRABAJO"' EXIT
 
 ventana() { [ -n "$MANNA_PKG_USUARIO" ] && return; launchctl asuser "$UID_USUARIO" sudo -u "$USUARIO" /usr/bin/osascript -e "display alert \"Manna\" message \"$1\"" >/dev/null 2>&1; }
 cd "$TRABAJO" || exit 1
-if ! sudo -u "$USUARIO" -H env HOME="$CASA" MANNA_PKG=1 MANNA_PKG_ERROR="$TRABAJO/error" /bin/bash "$TRABAJO/instalar.command" < /dev/null; then
+# Bajado de la nube de una iglesia (decisión 64), el nombre del .pkg lleva esa nube y el código para emparejarse.
+if ! sudo -u "$USUARIO" -H env HOME="$CASA" MANNA_PKG=1 MANNA_PKG_ERROR="$TRABAJO/error" MANNA_INSTALADOR="${PACKAGE_PATH:-$1}" /bin/bash "$TRABAJO/instalar.command" < /dev/null; then
   echo "Manna: no se pudo instalar. $(cat "$TRABAJO/error")"
   ventana "No se pudo instalar Manna. $(tr '"\\' "' " < "$TRABAJO/error")"
   exit 1

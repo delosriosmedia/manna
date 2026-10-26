@@ -108,7 +108,7 @@ hecho "Manna $("$NODE" -p "require('$ORIGEN/package.json').version" 2>/dev/null)
 
 # ---- 4. La carpeta Manna: cierra el Manna abierto, mueve lo de antes y la ordena (instalacion/ordenar.mjs) ----
 paso 4 "Ordenando la carpeta Manna"
-HECHO="$(NODE_NO_WARNINGS=1 "$NODE" "$ORIGEN/instalacion/ordenar.mjs" --origen "$ORIGEN" --oculta "$OCULTA" --documentos "$DOCUMENTOS" --aqui "$AQUI" ${LANZADO:+--lanzador "$LANZADO"} | tail -1)"
+HECHO="$(NODE_NO_WARNINGS=1 "$NODE" "$ORIGEN/instalacion/ordenar.mjs" --origen "$ORIGEN" --oculta "$OCULTA" --documentos "$DOCUMENTOS" --aqui "$AQUI" ${LANZADO:+--lanzador "$LANZADO"} ${MANNA_INSTALADOR:+--instalador "$MANNA_INSTALADOR"} | tail -1)"
 dato() { "$NODE" -e "const d = JSON.parse(process.argv[1] || '{}'); const v = d[process.argv[2]]; process.stdout.write(Array.isArray(v) ? v.join('\n') : v == null ? '' : String(v))" "$HECHO" "$1"; }
 [ -n "$HECHO" ] || falla "No se pudo ordenar la carpeta de Manna. Vuelve a intentarlo."
 [ -z "$(dato error)" ] || falla "$(dato error)"
@@ -122,6 +122,7 @@ fi
 hecho "Manna está en $RAIZ"
 hecho "Carpeta de contenido: $CONTENIDO"
 [ -z "$(dato dominio)" ] || hecho "Conexión por internet con tu dominio: $(dato dominio)"
+[ -z "$(dato emparejar)" ] || hecho "Será el equipo principal de $(dato emparejar): se conecta con su nube al abrirse"
 
 # Los dos instaladores de la carpeta, con el icono de Manna y su engranaje.
 osascript -l JavaScript - "$PROGRAMA/instalacion/icono/instalar.icns" "$RAIZ/Instalar Manna en Mac.command" "$RAIZ/Instalar Manna en Windows.bat" >/dev/null 2>&1 <<'ICONO'
@@ -161,6 +162,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleVersion</key><string>1</string>
   <key>LSUIElement</key><true/>
+  <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>Manna</string><key>CFBundleURLSchemes</key><array><string>manna</string></array></dict></array>
 </dict>
 </plist>
 PLIST

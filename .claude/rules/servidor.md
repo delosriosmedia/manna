@@ -41,7 +41,7 @@ paths:
 - Solo para pruebas y demostraciones: `MANNA_SIN_VENTANA=1` hace como si no hubiera segunda pantalla, para que ese Manna no abra su proyección (ni suene) en el proyector de verdad. Todo guion que arranque un servidor lo pone.
 - Solo para pruebas: `MANNA_VERSIONES_URL` (de dónde se lee la versión publicada, en vez de GitHub), `MANNA_VERSIONES_MS` (cada cuánto se mira, también la primera vez) y `MANNA_ACTUALIZADOR_PRUEBA` (un guion de node que hace de instalador): el aviso de versión nueva sin salir a internet ni abrir el instalador de verdad.
 - Solo para pruebas: `MANNA_DECKCRAFT_PRUEBA=ruta` es un `deckcraft-cli` de verdad para `test/deckcraft.test.js` (lo pone el Windows de GitHub); sin ella, en Mac y Linux se usa el de mentira y en Windows se salta.
-- Solo para pruebas: `MANNA_NUBE_COMPROBAR_MS` cambia cada cuánto pregunta el equipo a su nube si sigue siendo el oficial (60 s).
+- Solo para pruebas: `MANNA_NUBE_COMPROBAR_MS` cambia cada cuánto pregunta el equipo a su nube si sigue siendo el oficial (60 s), y `MANNA_INSTALADORES_URL` de dónde trae la nube los instaladores que da emparejados (la última versión de GitHub).
 - Solo para pruebas: `MANNA_CAPAS_REINTENTO_MS` cambia cada cuánto se vuelve a mirar una página de una capa que no contesta (15 s).
 - Solo para pruebas: `MANNA_CARPETA_PRUEBA=ruta` es la carpeta que «elige» la persona en la ventana para elegir la carpeta de contenido, sin abrirla.
 - Solo para pruebas: `MANNA_CONVERSION_LENTA=ms` hace que cada conversión tarde en empezar, para ver qué pasa mientras tanto.

@@ -157,6 +157,8 @@ const UNTOUCHED = {
   'POST /api/nube/usuarios': 'la pide el equipo de la iglesia a su nube al emparejarse, para subir los suyos; no la interfaz',
   'POST /api/nube/sincronizar': 'la pide el equipo de la iglesia a su nube para juntar órdenes, textos y favoritos; no la interfaz',
   'GET /api/nube/esperar': 'la deja hecha el equipo de la iglesia para enterarse de lo que cambia en su nube; no la interfaz',
+  'GET /api/nube/contenido': 'la pide el equipo de la iglesia a su nube para bajar el himnario y las biblias; no la interfaz',
+  'POST /api/nube/enlaces': 'la pide el equipo de la iglesia a su nube para bajar el himnario y las biblias; no la interfaz',
   'bible.rescan': 'no tiene botón: la carpeta de biblias se vigila sola',
   'projection.clear': 'no tiene botón: "Solo fondo" y "Negro" cubren su uso',
   'projection.display': 'necesita una segunda pantalla de verdad',
@@ -213,6 +215,8 @@ const fakeTv = await startFakeTv();
 const ownVersion = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
 let githubVersion = ownVersion;
 const fakeGithub = http.createServer((req, res) => {
+  // Y los instaladores de la última versión, que la nube da emparejados (decisión 64).
+  if (req.url.startsWith('/Instalar-Manna-')) { res.end('instalador de prueba'); return; }
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ name: 'manna', version: githubVersion }));
 });
@@ -224,7 +228,7 @@ fs.writeFileSync(fakeInstaller, `import fs from 'node:fs'; fs.writeFileSync(${JS
 function startServer(host, extra = {}) {
   // MANNA_SIN_VENTANA: la prueba no abre su proyección en el proyector de verdad, si lo hay.
   // MANNA_CONVERSION_LENTA: cada conversión tarda en empezar, para poder ver qué pasa mientras tanto.
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared,deckcraft', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, MANNA_CARPETA_PRUEBA: path.join(tmp, 'otra-iglesia'), PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', MANNA_NUBE_COMPROBAR_MS: '1500', MANNA_CAPAS_REINTENTO_MS: '500', MANNA_VERSIONES_URL: `http://127.0.0.1:${fakeGithub.address().port}/package.json`, MANNA_VERSIONES_MS: '500', MANNA_ACTUALIZADOR_PRUEBA: fakeInstaller, ...extra };
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared,deckcraft', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, MANNA_CARPETA_PRUEBA: path.join(tmp, 'otra-iglesia'), PORT: String(PORT), MANNA_TV_PRUEBA: JSON.stringify({ ...fakeTv.endpoints, found: ['192.168.1.50'] }), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', MANNA_NUBE_COMPROBAR_MS: '1500', MANNA_CAPAS_REINTENTO_MS: '500', MANNA_VERSIONES_URL: `http://127.0.0.1:${fakeGithub.address().port}/package.json`, MANNA_INSTALADORES_URL: `http://127.0.0.1:${fakeGithub.address().port}`, MANNA_VERSIONES_MS: '500', MANNA_ACTUALIZADOR_PRUEBA: fakeInstaller, ...extra };
   if (host) env.MANNA_HOST = host;
   // killOnExit: si la prueba se corta a medias, el servidor no se queda abierto ocupando el puerto.
   return killOnExit(spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env }));
@@ -3492,7 +3496,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       };
       await chrome.send('Page.navigate', { url: `${cloud}/` });
       await sleep(1500);
-      check('en la nube, la portada ofrece solo preparar el culto y administrar', (await run(`return [...document.querySelectorAll('#roles .role strong')].map((s) => s.textContent).join()`)) === 'Preparar el culto,Administrar la iglesia');
+      check('en la nube, la portada ofrece solo preparar el culto y administrar (y, en un computador, instalar Manna)', (await run(`return [...document.querySelectorAll('#roles .role:not(.install-role) strong')].map((s) => s.textContent).join()`)) === 'Preparar el culto,Administrar la iglesia');
       await roleCard('Administrar la iglesia');
       await sleep(400);
       await formField('Clave de alta', 'otra');
@@ -3573,6 +3577,10 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       await until(cloudSection, 25);
       await run(`const s = ${cloudSection}; const [u, c] = s.querySelectorAll('.cloud-form input'); u.value = ${JSON.stringify(cloud)}; c.value = ${JSON.stringify(firstCode)}; s.querySelector('.cloud-form button[type=submit]').click();`);
       check('Ajustes → Nube empareja este equipo como el oficial', await until(`${cloudSection}.textContent.includes('Conectado')`, 25), await run(`return ${cloudSection}?.textContent`));
+      // Cómo tiene el himnario (decisión 64): se elige ahí mismo.
+      const hymnalChip = (mode) => `${cloudSection}.querySelector('.cloud-hymnal [data-mode=${mode}]')`;
+      await click(hymnalChip('nube'));
+      check('y elige cómo tener el himnario de la nube', await until(`${hymnalChip('nube')}.getAttribute('aria-pressed') === 'true' && (await (await fetch('/api/state')).json()).cloud.hymnal === 'nube'`, 15));
       // Los usuarios (parte 3): los de la nube llegan al equipo, y ahí se ven pero no se cambian.
       const usersSection = `[...document.querySelectorAll('.settings .set')].find((s) => s.querySelector('h2')?.textContent === 'Usuarios')`;
       check('emparejado, Ajustes → Usuarios trae los de la nube y lleva a «Administrar la iglesia» para cambiarlos', await until(`[...${usersSection}.querySelectorAll('.user-row strong')].some((s) => s.textContent.startsWith('Beto'))`, 25)
@@ -3612,6 +3620,32 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       await run(`const i = document.querySelector('.blocked input'); i.value = ${JSON.stringify(backCode)}; document.querySelector('.blocked button[type=submit]').click();`);
       check('con un código nuevo, vuelve a ser el equipo oficial y se pone en marcha', await until(`!document.querySelector('.blocked') && (await (await fetch('/api/state')).json()).cloud.status === 'on'`, 40),
         await run(`const s = await fetch('/api/state').then((r) => r.json(), () => null); return JSON.stringify({ aviso: document.querySelector('.blocked')?.textContent?.slice(0, 60), toast: document.querySelector('#toast')?.textContent, nube: s?.cloud, bloqueado: s?.system?.blocked })`));
+
+      // Instalar el equipo principal desde la portada de la nube (decisión 64): el instalador se baja emparejado, y lo que
+      // deja en los datos del equipo (aquí, a mano: no se instala nada) lo empareja al abrirse. La portada lo reconoce.
+      console.log('\n6. La nube: instalar el equipo principal');
+      await chrome.send('Page.navigate', { url: `${cloud}/` });
+      const card = (title) => `[...document.querySelectorAll('#roles .install-role')].find((b) => b.textContent.includes(${JSON.stringify(title)}))`;
+      check('en un computador, la portada de la nube ofrece instalar Manna en este equipo', await until(card('Instalar Manna en este equipo'), 15) && !(await run(`return ${card('Instalar Manna en este equipo')}.disabled`)));
+      await click(card('Instalar Manna en este equipo'));
+      check('primero avisa de cuál es hoy el equipo principal, y deja elegir el himnario', await until(`document.querySelector('.modal .install-warn')?.textContent.includes('es hoy el equipo principal')`, 15)
+        && (await run(`return document.querySelectorAll('.modal .install-choice input').length`)) === 2);
+      const downloads = path.join(tmp, 'descargas');
+      fs.mkdirSync(downloads, { recursive: true });
+      await chrome.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: downloads });
+      await click(`document.querySelector('.modal .install-choice input[value=completo]')`);
+      await click(`[...document.querySelectorAll('.modal .btn.primary')].find((b) => b.textContent.includes('Descargar el instalador'))`);
+      const saved = () => fs.readdirSync(downloads).find((f) => /^Instalar-Manna-.+-[a-f0-9]{12}\.(exe|pkg)$/.test(f));
+      for (let i = 0; i < 60 && !saved(); i += 1) await sleep(250);
+      check('baja el instalador, con la nube y un código de un solo uso en su nombre', Boolean(saved()) && fs.readFileSync(path.join(downloads, saved()), 'utf8') === 'instalador de prueba', fs.readdirSync(downloads).join(', '));
+      const installCode = /-([a-f0-9]{12})\./.exec(saved() || '')?.[1];
+      fs.writeFileSync(path.join(tmp, 'data', 'emparejar.json'), JSON.stringify({ url: cloud, code: installCode }));
+      for (let i = 0; i < 40 && fs.existsSync(path.join(tmp, 'data', 'emparejar.json')); i += 1) await sleep(250);
+      check('el equipo se empareja con él al abrirse, sin escribir códigos', !fs.existsSync(path.join(tmp, 'data', 'emparejar.json')));
+      check('y la portada pasa a ofrecer «Abrir Manna», con «Instalar» deshabilitado', await until(`document.querySelector('.modal .install-after')?.textContent.startsWith('Listo')`, 25)
+        && await run(`return ${card('Abrir Manna en este equipo')} && ${card('Instalar Manna en este equipo')}.disabled`));
+      await chrome.send('Page.navigate', { url: `${local}/control#ajustes` });
+      check('con el himnario elegido al bajar el instalador', await until(`${hymnalChip('completo')}?.getAttribute('aria-pressed') === 'true'`, 25));
     } finally {
       await stopServer(cloudServer);
       await fakeR2.stop();

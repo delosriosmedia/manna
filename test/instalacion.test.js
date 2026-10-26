@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
-import { arrange } from '../instalacion/ordenar.mjs';
+import { arrange, pairingFrom } from '../instalacion/ordenar.mjs';
 
 // Cómo ordenan los instaladores la carpeta de Manna (instalacion/ordenar.mjs), en carpetas temporales:
 // una instalación nueva, la de la carpeta oculta, la antigua (la carpeta entera del proyecto), la carpeta
@@ -44,6 +44,18 @@ test('una instalación nueva: la carpeta Manna con los instaladores, Contenido y
     assert.equal(again.antiguo, null);
     assert.deepEqual(list(raiz), expected);
     assert.equal(fs.readFileSync(path.join(raiz, 'Programa', 'datos', 'orden.json'), 'utf8'), 'mi orden');
+  } finally {
+    fs.rmSync(t.tmp, { recursive: true, force: true });
+  }
+});
+
+test('el instalador bajado de la nube de una iglesia deja a Manna lo necesario para emparejarse (decisión 64)', async () => {
+  const t = setup();
+  try {
+    assert.equal(pairingFrom('Instalar-Manna-Windows.exe'), null, 'el de GitHub no empareja');
+    const res = await arrange({ ...t, nube: false, instalador: path.join(t.tmp, 'Descargas', 'Instalar-Manna-pruebas.manna-iglesia.es-1a2b3c4d5e6f (1).exe') });
+    assert.equal(res.emparejar, 'pruebas.manna-iglesia.es');
+    assert.deepEqual(json(path.join(t.documentos, 'Manna', 'Programa', 'datos', 'emparejar.json')), { url: 'https://pruebas.manna-iglesia.es', code: '1a2b3c4d5e6f' });
   } finally {
     fs.rmSync(t.tmp, { recursive: true, force: true });
   }

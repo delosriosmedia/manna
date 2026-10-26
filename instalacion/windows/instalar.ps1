@@ -149,7 +149,10 @@ Paso 4 'Ordenando la carpeta Manna'
 # (Lo que Node diga por su cuenta, como un aviso, no debe cortar la instalación.)
 $env:NODE_NO_WARNINGS = '1'
 $ErrorActionPreference = 'Continue'
-$salida = & $node (Join-Path $origen 'instalacion\ordenar.mjs') --origen $origen --oculta $oculta --documentos $documentos --aqui $aqui --lanzador $lanzador
+# Bajado de la nube de una iglesia, su nombre lleva la nube y el código para emparejarse (decisión 64). Va antes de
+# --lanzador: PowerShell 5.1 no pasa los textos vacíos, y $lanzador puede estarlo.
+$extra = if ($env:MANNA_INSTALADOR) { @('--instalador', $env:MANNA_INSTALADOR) } else { @() }
+$salida = & $node (Join-Path $origen 'instalacion\ordenar.mjs') --origen $origen --oculta $oculta --documentos $documentos --aqui $aqui @extra --lanzador $lanzador
 $ErrorActionPreference = 'Stop'
 $hecho = $null
 try { $hecho = ($salida | Select-Object -Last 1) | ConvertFrom-Json } catch { }
@@ -168,6 +171,7 @@ Remove-Item -LiteralPath $temporal -Recurse -Force -ErrorAction SilentlyContinue
 Hecho "Manna está en $($hecho.raiz)"
 Hecho "Carpeta de contenido: $($hecho.contenido)"
 if ($hecho.dominio) { Hecho "Conexión por internet con tu dominio: $($hecho.dominio)" }
+if ($hecho.emparejar) { Hecho "Será el equipo principal de $($hecho.emparejar): se conecta con su nube al abrirse" }
 
 # En la carpeta, el instalador de Windows es un acceso directo con su icono (un .bat no puede tenerlo).
 $acceso = $shell.CreateShortcut((Join-Path $hecho.raiz 'Instalar Manna en Windows.lnk'))
@@ -191,6 +195,14 @@ foreach ($lugar in $lugares) {
   $acceso.Save()
 }
 Hecho 'Icono «Manna» en el Escritorio y en el menú Inicio'
+# El enlace manna:// (decisión 64): la portada de la nube abre Manna con él, como el icono. Solo para quien instala.
+if (-not $env:MANNA_DESTINO) {
+  $clase = 'HKCU:\Software\Classes\manna'
+  New-Item -Path "$clase\shell\open\command" -Force | Out-Null
+  Set-Item -Path $clase -Value 'URL:Manna'
+  New-ItemProperty -Path $clase -Name 'URL Protocol' -Value '' -Force | Out-Null
+  Set-Item -Path "$clase\shell\open\command" -Value ('"' + (Join-Path $programa 'instalacion\abrir-windows.bat') + '"')
+}
 if (-not $env:MANNA_DESTINO) {
   Start-Process -FilePath (Join-Path $programa 'instalacion\abrir-windows.bat') -WorkingDirectory $programa -WindowStyle Hidden
 }

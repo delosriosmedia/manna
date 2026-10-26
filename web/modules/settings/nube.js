@@ -29,6 +29,13 @@ export function cloudBody() {
     h('label', { class: 'user-field' }, h('span', {}, 'Código de «Administrar la iglesia» → Equipo'), code),
     h('div', { class: 'row' }, h('button', { class: 'btn primary', type: 'submit' }, icon('link-simple', 16), 'Emparejar')));
   const again = h('button', { class: 'btn', onclick: () => { form.hidden = false; code.focus(); } }, 'Emparejar de nuevo');
+  // Cómo tiene el himnario de la nube este equipo (decisión 64); lo que está bajando, debajo.
+  const HYMNALS = [['nube', 'Desde la nube', 'Los himnos de los órdenes se bajan antes del culto; cualquier otro, al usarlo, con internet.'],
+    ['completo', 'Completo en este equipo', 'Cantados, pistas, letras y diapositivas (unos 6 GB) se bajan a la carpeta de contenido, en segundo plano.']];
+  const modes = HYMNALS.map(([id, label]) => h('button', { class: 'chip', dataset: { mode: id }, onclick: guard(() => action('cloud.hymnal', { mode: id })) }, label));
+  const hymnalNote = h('p', { class: 'muted' });
+  const hymnal = h('div', { class: 'cloud-hymnal' }, h('span', { class: 'user-field' }, h('span', {}, 'El himnario en este equipo')),
+    h('div', { class: 'row', role: 'group', 'aria-label': 'El himnario en este equipo' }, ...modes), hymnalNote);
 
   subscribe('cloud', (c) => {
     const paired = c.status !== 'off';
@@ -37,10 +44,17 @@ export function cloudBody() {
     status.classList.toggle('warn', c.status === 'unknown');
     if (!url.value && c.church) url.value = c.church;
     again.hidden = !paired;
+    hymnal.hidden = !paired || c.status === 'replaced';
+    for (const b of modes) {
+      b.classList.toggle('on', b.dataset.mode === c.hymnal);
+      b.setAttribute('aria-pressed', String(b.dataset.mode === c.hymnal));
+    }
+    const progress = c.content ? ` Bajando: ${c.content.done} de ${c.content.total} archivos${c.content.failed ? ` (${c.content.failed} no se pudieron: se reintentan más tarde)` : ''}.` : '';
+    hymnalNote.textContent = (HYMNALS.find(([id]) => id === c.hymnal)?.[2] || 'Elige cómo tener aquí el himnario de la nube. Las biblias y las letras se bajan siempre.') + progress;
     if (!paired || c.status === 'unknown') form.hidden = false;
     else if (document.activeElement && !form.contains(document.activeElement)) form.hidden = true;
   });
-  return [status, form, again];
+  return [status, form, again, hymnal];
 }
 
 // Ya hay otro equipo oficial: emparejar este lo bloquea (decisión 63). Se pregunta antes.

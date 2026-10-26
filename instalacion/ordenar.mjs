@@ -14,8 +14,8 @@
 // Lo usan los dos instaladores, con el Manna que acaban de bajar (así el mismo código ordena en Windows y en Mac):
 //   node ordenar.mjs --origen <Manna recién bajado> --oculta <carpeta oculta> --documentos <Documentos>
 //                    [--aqui <carpeta del instalador que se abrió>] [--lanzador <carpeta del programa a la que
-//                    apunta el icono Manna>] [--nube 0|1]
-// La última línea que escribe es { programa, contenido, raiz, nube, antiguo, avisos } o { error }, en JSON.
+//                    apunta el icono Manna>] [--nube 0|1] [--instalador <el archivo del instalador que se abrió>]
+// La última línea que escribe es { programa, contenido, raiz, nube, antiguo, avisos, emparejar } o { error }, en JSON.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -44,6 +44,14 @@ export function synced(dir, { home = os.homedir(), env = process.env } = {}) {
   const icloud = path.join(home, 'Library', 'Mobile Documents');
   if (inside(dir, icloud)) return true;
   return exists(path.join(icloud, 'com~apple~CloudDocs', 'Documents')) && ['Documents', 'Desktop'].some((d) => inside(dir, path.join(home, d)));
+}
+
+// El instalador que se baja de la nube de una iglesia (decisión 64) lleva en su nombre la dirección de esa nube y un
+// código de un solo uso: «Instalar-Manna-pruebas.manna-iglesia.es-1a2b3c4d5e6f.exe» (el navegador puede añadirle
+// « (1)»). Manna se empareja con ellos al abrirse (datos/emparejar.json).
+export function pairingFrom(file) {
+  const m = /Instalar-Manna-([a-z0-9-]+(?:\.[a-z0-9-]+)+)-([a-f0-9]{12})(?![a-z0-9])/i.exec(path.basename(file || ''));
+  return m && { url: `https://${m[1].toLowerCase()}`, code: m[2].toLowerCase() };
 }
 
 // Qué hay instalado y dónde va cada cosa. No cambia nada.
@@ -231,7 +239,10 @@ export async function arrange(options) {
 
   // El dominio propio de la conexión por internet, para que el instalador diga que sigue ahí.
   const dominio = readJson(path.join(datos, 'tunel.json'))?.address || null;
-  return { programa, contenido: p.contenido, raiz: p.raiz, nube: p.nube, antiguo, avisos, dominio };
+  // Bajado de la nube de una iglesia: Manna se empareja con ella al abrirse.
+  const pairing = pairingFrom(options.instalador);
+  if (pairing) fs.writeFileSync(path.join(datos, 'emparejar.json'), JSON.stringify(pairing));
+  return { programa, contenido: p.contenido, raiz: p.raiz, nube: p.nube, antiguo, avisos, dominio, emparejar: pairing && new URL(pairing.url).host };
 }
 
 // En JSON solo con letras ASCII (lo demás, como \u00f1): así lo lee bien PowerShell en cualquier consola.
@@ -245,7 +256,7 @@ if (path.basename(process.argv[1] || '') === 'ordenar.mjs') {
   try {
     const result = await arrange({
       origen: args.origen, oculta: args.oculta, documentos: args.documentos, aqui: args.aqui || null, lanzador: args.lanzador || null,
-      nube: args.nube == null ? null : args.nube === '1',
+      nube: args.nube == null ? null : args.nube === '1', instalador: args.instalador || null,
     });
     console.log(ascii(result));
   } catch (err) {

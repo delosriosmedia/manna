@@ -1,4 +1,4 @@
-import { session } from '../core/api.js';
+import { api, session } from '../core/api.js';
 import { $, h, dialog, toast } from '../core/dom.js';
 import { icon } from '../core/icons.js';
 import { preferStableAddress } from '../core/upgrade.js';
@@ -15,7 +15,8 @@ const FOR_ALL = ['proyeccion', 'preparacion'];
 
 // El PIN (4 cifras) se escribe en un teclado grande, también con las teclas del teclado, y entra solo
 // al teclear la cuarta.
-function askPin(role, user) {
+// done: lo que se hace al entrar (si no, se va a la página de la función).
+function askPin(role, user, done = () => { location.href = role.path; }) {
   let typed = '';
   let busy = false;
   const dots = h('div', { class: 'pin-dots', role: 'img' });
@@ -43,7 +44,7 @@ function askPin(role, user) {
     busy = true;
     try {
       await session.open(role.id, typed, user.id);
-      location.href = role.path;
+      done();
     } catch (err) {
       typed = '';
       box.classList.add('wrong');
@@ -87,10 +88,10 @@ function askAlta(role) {
 }
 
 // Quién eres: los nombres de quienes pueden usar esa función (administrar, solo los administradores).
-function askWho(role) {
+function askWho(role, done) {
   const people = info.users.filter((u) => (role.id === 'administrar' ? u.admin : FOR_ALL.includes(role.id) || u.functions.includes(role.id)));
   const { close } = dialog(role.name, people.length
-    ? h('div', { class: 'people', role: 'list', 'aria-label': '¿Quién eres?' }, ...people.map((user) => h('button', { class: 'person', role: 'listitem', onclick: () => { close(); askPin(role, user); } },
+    ? h('div', { class: 'people', role: 'list', 'aria-label': '¿Quién eres?' }, ...people.map((user) => h('button', { class: 'person', role: 'listitem', onclick: () => { close(); askPin(role, user, done); } },
       h('span', { class: 'initial', 'aria-hidden': 'true' }, user.name.slice(0, 1).toUpperCase()), h('span', { class: 'name' }, user.name))))
     : h('p', { class: 'empty' }, `Nadie puede usar «${role.name}» todavía. Se lo da el administrador, en Ajustes → Usuarios.`));
 }
@@ -136,3 +137,63 @@ $('#roles').append(...info.roles.map((role) => {
 // Si llegó aquí rebotado desde una página de control, entra directo (o pide el PIN de esa función).
 const wanted = back && info.roles.find((r) => r.path === back);
 if (wanted && info.role !== wanted.id) choose(wanted);
+
+// En la nube, en un computador (decisión 64): instalar Manna para que este sea el equipo principal de la iglesia, con
+// el PIN de un administrador. El instalador se baja ya emparejado con esta nube (el código va en su nombre). Si ya se
+// instaló desde este navegador y ese equipo sigue siendo el oficial, «Instalar» queda deshabilitado y «Abrir Manna» lo
+// enciende con el enlace manna:// que registra el instalador. En el celular y la tableta no sale: ahí no se instala.
+const SYSTEM = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ? null
+  : /Windows/.test(navigator.userAgent) ? 'windows' : /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints < 2 ? 'mac' : null;
+const INSTALLED = 'manna.instalacion'; // el número de la instalación bajada desde aquí
+const stored = () => { try { return localStorage.getItem(INSTALLED); } catch { return null; } };
+const installedHere = async () => Boolean(stored()) && (await api(`/api/nube/instalado?id=${stored()}`).catch(() => ({}))).installed === true;
+const card = (glyph, title, text, tag, onclick) => h('button', { class: 'role install-role', disabled: !onclick, onclick },
+  h('span', { class: 'role-icon' }, icon(glyph, 22)), h('span', { class: 'role-text' }, h('strong', {}, title), h('span', {}, text)), tag && h('span', { class: 'tag asks' }, tag));
+
+async function installCards() {
+  const done = await installedHere();
+  $('#roles').querySelectorAll('.install-role').forEach((el) => el.remove());
+  $('#roles').append(...(done
+    ? [card('power', 'Abrir Manna en este equipo', 'Enciende Manna en este computador, el equipo principal de la iglesia.', null, () => { location.href = 'manna://abrir'; }),
+      card('download-simple', 'Instalar Manna en este equipo', 'Ya está instalado en este equipo.', null, null)]
+    : [card('download-simple', 'Instalar Manna en este equipo', 'Para que este computador sea el equipo principal de la iglesia, el que proyecta en el culto.', 'Pide PIN', () => startInstall())]));
+}
+
+function startInstall() {
+  const admin = info.roles.find((r) => r.id === 'administrar');
+  if (info.role === 'administrar') return installDialog();
+  if (me?.admin) return session.open('administrar', undefined, me.id).then(installDialog, (err) => toast(err.message, 'error'));
+  return askWho(admin, () => installDialog());
+}
+
+async function installDialog() {
+  // Con la sesión de administrar, el estado dice cuál es hoy el equipo oficial.
+  const official = (await api('/api/state').catch(() => ({}))).cloud?.official;
+  let hymnal = 'nube';
+  const choice = (id, title, text) => h('label', { class: 'install-choice' },
+    h('input', { type: 'radio', name: 'himnario', value: id, checked: id === hymnal, onchange: () => { hymnal = id; } }),
+    h('span', {}, h('strong', {}, title), h('small', {}, text)));
+  const after = h('p', { class: 'install-after', role: 'status', hidden: true });
+  const download = h('button', { class: 'btn primary', onclick: () => {
+    const id = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
+    try { localStorage.setItem(INSTALLED, id); } catch { /* sin guardar: la portada volverá a ofrecer instalar */ }
+    location.href = `/api/nube/instalador?so=${SYSTEM}&himnario=${hymnal}&id=${id}`;
+    after.hidden = false;
+    after.textContent = `Abre el instalador cuando termine de bajar${SYSTEM === 'windows' ? ' (si Windows avisa, pulsa «Más información» y «Ejecutar de todas formas»)' : ' y sigue sus pasos'}. Al terminar, Manna se abre solo como el equipo principal de la iglesia.`;
+    const wait = setInterval(async () => {
+      if (!box.el.isConnected) return clearInterval(wait);
+      if (!(await installedHere())) return undefined;
+      clearInterval(wait);
+      after.textContent = 'Listo: Manna quedó instalado en este equipo, y es el equipo principal de la iglesia.';
+      return installCards();
+    }, 5000);
+  } }, icon('download-simple', 16), 'Descargar el instalador');
+  const box = dialog('Instalar Manna en este equipo', h('div', { class: 'login-form' },
+    official && h('p', { class: 'install-warn' }, `«${official.name}» es hoy el equipo principal de la iglesia. Si instalas Manna aquí, ese quedará bloqueado hasta que se vuelva a emparejar.`),
+    h('p', {}, 'Este computador será el equipo principal: el que proyecta en el culto, aunque no haya internet. ¿Cómo quieres el himnario?'),
+    choice('nube', 'Desde la nube', 'Los himnos de los órdenes se bajan antes del culto; cualquier otro, al usarlo, con internet.'),
+    choice('completo', 'Completo en este equipo', 'Cantados, pistas, letras y diapositivas: unos 6 GB, que se bajan en segundo plano.'),
+    download, after));
+}
+
+if (SYSTEM && info.roles.some((r) => r.id === 'preparacion')) installCards();

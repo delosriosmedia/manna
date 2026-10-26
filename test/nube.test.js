@@ -12,6 +12,7 @@ import order from '../server/modules/order/index.js';
 import texts from '../server/modules/texts/index.js';
 import hymns from '../server/modules/hymns/index.js';
 import cloud from '../server/modules/cloud/index.js';
+import { startFakeR2 } from '../scripts/lib/r2-falso.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-nube-'));
@@ -48,6 +49,7 @@ async function serve(name, env = {}) {
   };
   const s = {
     app, base, call, remote,
+    raw: (url, options = {}) => fetch(base + url, { ...options, headers: { cookie } }),
     send: (type, payload = {}) => call('/api/action', { type, payload }),
     state: () => call('/api/state'),
     stop: async () => { await app.close(); server.close(); },
@@ -176,4 +178,65 @@ test('emparejar con un código de «Administrar», el equipo oficial y el bloque
   const late = await a.send('cloud.pair', { url: nube.base, code: last });
   assert.equal(late.status, 400);
   assert.match(late.error, /ya no sirve/);
+});
+
+test('instalar el equipo principal desde la nube: el instalador emparejado y el himnario de la nube (decisión 64)', async () => {
+  // Un R2 de mentira con una biblia, unas letras y un himno que el equipo no tiene; y un «GitHub» con el instalador.
+  const r2dir = path.join(tmp, 'r2-instalar');
+  for (const [file, text] of [['Biblias/Prueba.xmm', 'biblia'], ['Himnario/letras/Letras.md', '# Himnario'], ['Himnario/videos/002 Otro himno.mp4', 'video 2'], ['Himnario/diapositivas/002 Otro himno/01.jpg', 'portada']]) {
+    fs.mkdirSync(path.dirname(path.join(r2dir, file)), { recursive: true });
+    fs.writeFileSync(path.join(r2dir, file), text);
+  }
+  const r2 = await startFakeR2(r2dir);
+  const github = http.createServer((req, res) => res.end(req.url === '/Instalar-Manna-Windows.exe' ? 'MZ instalador' : ''));
+  await new Promise((resolve) => github.listen(0, '127.0.0.1', resolve));
+  // Se lee al pedir el instalador: vale durante toda la prueba.
+  process.env.MANNA_INSTALADORES_URL = `http://127.0.0.1:${github.address().port}`;
+  const nube = await serve('nube-instalar', { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'clave-instalar', ...r2.env });
+  try {
+    await nube.call('/api/session/alta', { clave: 'clave-instalar', name: 'Ana', pin: '1234' });
+    // El instalador: solo para un administrador, con el sistema y el himnario; lleva en su nombre la nube y un código.
+    const id = 'ab'.repeat(16);
+    assert.equal((await fetch(`${nube.base}/api/nube/instalador?so=windows&himnario=nube&id=${id}`)).status, 401);
+    assert.equal((await nube.raw(`/api/nube/instalador?so=linux&himnario=nube&id=${id}`)).status, 400);
+    const res = await nube.raw(`/api/nube/instalador?so=windows&himnario=nube&id=${id}`);
+    assert.equal(await res.text(), 'MZ instalador');
+    const code = /filename="Instalar-Manna-[a-z0-9.-]+-([a-f0-9]{12})\.exe"/.exec(res.headers.get('content-disposition'))?.[1];
+    assert.ok(code, res.headers.get('content-disposition'));
+    assert.equal((await nube.call(`/api/nube/instalado?id=${id}`)).installed, false);
+
+    // El equipo, con lo que deja el instalador en sus datos: se empareja solo al abrirse, con el himnario elegido.
+    const c = await serve('iglesia-instalada');
+    await c.call('/api/session', { role: 'control' });
+    fs.writeFileSync(path.join(tmp, 'iglesia-instalada', 'emparejar.json'), JSON.stringify({ url: nube.base, code }));
+    await c.app.services.cloud.check();
+    const st = (await c.state()).cloud;
+    assert.deepEqual([st.status, st.hymnal], ['on', 'nube']);
+    assert.ok(!fs.existsSync(path.join(tmp, 'iglesia-instalada', 'emparejar.json')), 'se usa una vez');
+    assert.equal((await nube.call(`/api/nube/instalado?id=${id}`)).installed, true, 'la portada lo reconoce');
+    assert.equal((await nube.call(`/api/nube/instalado?id=${'cd'.repeat(16)}`)).installed, false);
+    assert.equal((await nube.call('/api/nube/emparejar', { install: code, id: 'f'.repeat(16) })).status, 410, 'el código del instalador sirve una vez');
+
+    // El himnario de la nube: las biblias y las letras se bajan siempre; el himno que no está en la carpeta sale igual
+    // (desde la nube) y se baja al usarlo.
+    const bible = path.join(tmp, 'iglesia-instalada-biblias', 'Prueba.xmm');
+    for (let i = 0; i < 50 && !fs.existsSync(bible); i += 1) await new Promise((r) => setTimeout(r, 100));
+    assert.equal(fs.readFileSync(bible, 'utf8'), 'biblia');
+    assert.ok(fs.existsSync(path.join(tmp, 'iglesia-instalada-himnario', 'letras', 'Letras.md')));
+    const two = () => c.call('/api/hymns').then((r) => r.hymns.find((h) => h.number === 2));
+    const remote = await two();
+    assert.deepEqual([remote.url, remote.slidesBase], ['/himnos-nube/002%20Otro%20himno.mp4', '/himnos-letras-nube/002%20Otro%20himno/']);
+    const video = await c.raw(remote.url, { redirect: 'manual' });
+    assert.equal(video.status, 302);
+    assert.ok(video.headers.get('location').startsWith(r2.endpoint));
+    const file = path.join(tmp, 'iglesia-instalada-himnario', 'videos', '002 Otro himno.mp4');
+    for (let i = 0; i < 50 && !fs.existsSync(file); i += 1) await new Promise((r) => setTimeout(r, 100));
+    assert.equal(fs.readFileSync(file, 'utf8'), 'video 2', 'y queda en la carpeta del himnario');
+    c.app.services.hymns.reload();
+    assert.equal((await two()).url, '/himnos/002%20Otro%20himno.mp4');
+  } finally {
+    delete process.env.MANNA_INSTALADORES_URL;
+    github.close();
+    await r2.stop();
+  }
 });

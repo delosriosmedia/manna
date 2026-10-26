@@ -64,7 +64,8 @@ export default function setup(app) {
   const durationOf = (hymn) => known(hymn)?.duration ?? null;
   // ¿Tiene pista instrumental? null: aún no se ha mirado el archivo.
   const hasTrack = (hymn) => (known(hymn)?.tracks == null ? null : known(hymn).tracks >= 2);
-  const urlOf = (hymn) => `/himnos/${encodeURIComponent(hymn.file)}`;
+  // Lo que está en la nube y aún no en la carpeta (el equipo emparejado, decisión 64) se sirve por otra dirección.
+  const urlOf = (hymn) => `/himnos${hymn.remote ? '-nube' : ''}/${encodeURIComponent(hymn.file)}`;
   const trackUrl = (hymn) => `/api/hymns/${hymn.number}/pista.mp4?v=${Math.round(hymn.modified)}`;
   const find = (number) => {
     const hymn = byNumber.get(Number(number));
@@ -132,7 +133,23 @@ export default function setup(app) {
   function load() {
     slidesOf = readSlides();
     sizes.clear();
-    catalog = buildCatalog(listFiles(videosDir, VIDEO_EXTENSIONS), readLyrics());
+    // Con el equipo emparejado (decisión 64), los videos y las diapositivas que están en la nube y aún no en la carpeta
+    // salen igual: se ven desde la nube y se bajan al usarlos.
+    const local = listFiles(videosDir, VIDEO_EXTENSIONS);
+    const here = new Set(local.map((f) => f.name));
+    const remote = [];
+    for (const { key, size } of app.services.cloud?.missing?.() || []) {
+      const [, kind, dir, file] = key.split('/');
+      if (kind === 'videos' && !here.has(dir) && VIDEO_EXTENSIONS.includes(path.extname(dir).toLowerCase())) remote.push({ name: dir, size, modified: 0 });
+      const number = Number(/^(\d+)\s/.exec(dir)?.[1]);
+      if (kind !== 'diapositivas' || !file || !number || (slidesOf.has(number) && !slidesOf.get(number).remote)) continue;
+      if (!slidesOf.has(number)) slidesOf.set(number, { dir, files: [], remote: true });
+      if (slidesOf.get(number).dir === dir && /^\d+\.(jpe?g|png)$/i.test(file)) slidesOf.get(number).files.push(file);
+    }
+    for (const s of slidesOf.values()) if (s.remote) s.files.sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+    catalog = buildCatalog([...local, ...remote], readLyrics());
+    const away = new Set(remote.map((f) => f.name));
+    for (const hymn of catalog.hymns) if (away.has(hymn.file)) hymn.remote = true;
     byNumber = new Map(catalog.hymns.map((h) => [h.number, h]));
     search = createHymnSearch(catalog.hymns);
     // Lo anotado de archivos que ya no están se olvida.
@@ -174,7 +191,7 @@ export default function setup(app) {
     const failed = new Set(); // archivos que ffprobe no entiende: no se insiste
     try {
       // La carpeta puede cambiar mientras tanto: se sigue hasta que no quede ninguno por mirar.
-      for (let hymn; (hymn = catalog.hymns.find((h) => !known(h) && !failed.has(h.file)));) {
+      for (let hymn; (hymn = catalog.hymns.find((h) => !h.remote && !known(h) && !failed.has(h.file)));) {
         if (closed) return;
         // Lo que suena en pantalla es lo primero.
         while (playingNow() && !closed) await wait(PROBE_PAUSE_MS);
@@ -238,6 +255,16 @@ export default function setup(app) {
   } else {
     app.mount('/himnos/', () => videosDir);
     app.mount('/himnos-letras/', () => slidesDir);
+    // Lo que está en la nube y aún no aquí (decisión 64): un enlace para verlo ya, y se baja para la próxima vez.
+    const fromCloud = async (ctx, key) => {
+      const url = await app.services.cloud?.link(key).catch(() => null);
+      if (!url) throw new HttpError(503, 'Este himno aún no está en el equipo y no se pudo traer de la nube: revisa la conexión a internet.');
+      app.services.cloud.fetch(key).catch(() => {});
+      ctx.res.writeHead(302, { Location: url, 'Cache-Control': 'no-store' });
+      ctx.res.end();
+    };
+    app.route('GET', '/himnos-nube/:file', (ctx) => fromCloud(ctx, `Himnario/videos/${ctx.params.file}`));
+    app.route('GET', '/himnos-letras-nube/:dir/:file', (ctx) => fromCloud(ctx, `Himnario/diapositivas/${ctx.params.dir}/${ctx.params.file}`));
   }
   const watch = () => [watchFolder(videosDir, load), watchFolder(lyricsDir, load), watchFolder(slidesDir, load)];
   let stops = watch();
@@ -266,7 +293,7 @@ export default function setup(app) {
   // ---- Lo que pide la interfaz ----
   // Con sus archivos (el video y, si se puede sacar, la pista), para escucharlo en un celular antes de añadirlo.
   const view = (hymn) => ({ number: hymn.number, title: hymn.title, category: hymn.category, duration: durationOf(hymn), lyrics: Boolean(hymn.parts), instrumental: hasTrack(hymn),
-    slides: slidesOf.get(hymn.number)?.files.length || 0, slidesBase: slidesOf.has(hymn.number) ? `/himnos-letras/${encodeURIComponent(slidesOf.get(hymn.number).dir)}/` : null, slideFiles: slidesOf.get(hymn.number)?.files || [],
+    slides: slidesOf.get(hymn.number)?.files.length || 0, slidesBase: slidesOf.has(hymn.number) ? `/himnos-letras${slidesOf.get(hymn.number).remote ? '-nube' : ''}/${encodeURIComponent(slidesOf.get(hymn.number).dir)}/` : null, slideFiles: slidesOf.get(hymn.number)?.files || [],
     url: urlOf(hymn), instrumentalUrl: whyNoTrack(hymn) ? null : trackUrl(hymn) });
 
   // Favoritos: los himnos que más se cantan, a un toque. Un número que deja de estar en la carpeta se conserva,
@@ -315,6 +342,8 @@ export default function setup(app) {
   app.route('GET', '/api/hymns/:number/pista.mp4', async (ctx) => {
     const hymn = find(ctx.params.number);
     if (!app.tools.has('ffmpeg')) throw new HttpError(409, 'Para la pista instrumental hace falta ffmpeg en el equipo principal.');
+    // Si aún está en la nube, primero se baja: la pista sale del archivo.
+    if (hymn.remote) await app.services.cloud.fetch(`Himnario/videos/${hymn.file}`);
     ctx.file(await ensureTrack(hymn));
   });
 
@@ -375,7 +404,7 @@ export default function setup(app) {
   // data = { number }. Cada diapositiva es un paso (la primera, la portada) y se proyecta como una imagen (acercar,
   // desplazar). Se pasa a mano y no sale del himno (decisión 37): desde la última, «Siguiente» vuelve a la portada;
   // desde la portada, «Anterior» se queda. Ni en el orden del culto pasa al elemento siguiente: eso se toca en la cola.
-  const slideUrl = (s, i) => `/himnos-letras/${encodeURIComponent(s.dir)}/${encodeURIComponent(s.files[i])}`;
+  const slideUrl = (s, i) => `/himnos-letras${s.remote ? '-nube' : ''}/${encodeURIComponent(s.dir)}/${encodeURIComponent(s.files[i])}`;
   const sizeOf = (number, s) => {
     if (!sizes.has(number)) sizes.set(number, readImageInfo(path.join(slidesDir, s.dir, s.files[0])) || { width: 4, height: 3 });
     return sizes.get(number);

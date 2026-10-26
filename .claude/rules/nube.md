@@ -33,8 +33,10 @@ Las que no llevan claves (`MANNA_NUBE`, `MANNA_DATA`, `MANNA_NO_OPEN`, `MANNA_SI
 3. Subir el paquete: `hosting_files_generate-upload-url` y, con su `url` y sus claves, el `.zip` por TUS a `public_html` (POST para crearlo y PATCH con el contenido; ver la descripción de la operación). El hosting gasta cada archivo al compilarlo: por eso cada paquete lleva la fecha y la hora en el nombre.
 4. Compilar: `hosting_nodejs_start-build` con `node_version` 24, `app_type` `express`, `root_directory` `.`, `output_directory` y `build_script` vacíos, `entry_file` `server/inicio.cjs`, `package_manager` `npm`, `source_type` `archive` y `source_options.archive_path` el nombre del `.zip` (tarda unos 10 s). Antes se puede ver lo que propone con `hosting_nodejs_build-settings-from-archive`. Las operaciones son asíncronas: se consulta `hosting_nodejs_build` hasta `completed`; si falla, `hosting_nodejs_build-logs`.
 5. Comprobar desde aquí: `https://<sitio>/api/ping` dice `"app":"manna"` con la versión; `GET /api/session` trae `preparacion` y `administrar` y, la primera vez, `alta: true`. Pasados unos 30 s (la copia de R2), con un usuario, `/api/hymns` trae los 613 himnos.
-6. El dueño entra en `https://<sitio>/administrar` con la clave de alta, crea su administrador y los usuarios, y prueba `/preparacion` desde un celular y desde el PC de Leidy.
-7. Empareja el equipo oficial: en `/administrar` → Equipo, «Emparejar un equipo»; en el equipo (para `pruebas`, el PC de Leidy), Ajustes → Nube con la dirección del sitio y el código.
+6. El dueño entra en `https://<sitio>/administrar` con la clave de alta, crea su administrador (nombre y PIN) y los usuarios, y prueba `/preparacion` desde un celular y desde el PC de Leidy.
+7. El equipo oficial: en ese computador, la portada del sitio → «Instalar Manna en este equipo» (con el PIN de un administrador; decisión 64) baja el instalador ya emparejado. O, con Manna ya instalado, `/administrar` → Equipo → «Emparejar un equipo» y, en el equipo, Ajustes → Nube con la dirección del sitio y el código.
+
+**Las demás iglesias** (decisiones 58 y 64): una versión se despliega primero en `pruebas`; cuando el dueño la aprueba, el mismo paquete se despliega igual en cada sitio de iglesia (hoy, `nv.manna-iglesia.es`).
 
 ## Lo aprendido
 

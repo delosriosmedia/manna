@@ -70,6 +70,8 @@ html.touch .disk-gap { width: var(--tap); }
 /* Ajustes → Nube y «Administrar la iglesia» → Equipo (fase 37). */
 .cloud-form { display: grid; gap: 12px; margin-bottom: 10px; }
 .cloud-form[hidden] { display: none; }
+.cloud-hymnal { display: grid; gap: 8px; margin-top: 12px; }
+.cloud-hymnal[hidden] { display: none; }
 .pair-code { font: 700 44px/1 var(--mono); letter-spacing: 0.18em; text-align: center; color: var(--accent); padding: 8px 0; }
 .pair-steps { display: grid; gap: 6px; padding-left: 20px; color: var(--ink-2); }
 /* Administrar la iglesia (fase 36, en la nube): solo los usuarios. */

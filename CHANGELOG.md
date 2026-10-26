@@ -4,6 +4,11 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.50.0 — 2026-10-26
+
+- **Instalar el equipo principal desde la nube**: en un computador, la portada de la nube de la iglesia ofrece «Instalar Manna en este equipo», con el PIN de un administrador. Avisa si ya hay otro equipo principal, deja elegir el himnario (desde la nube, o completo en el equipo) y baja un instalador que sale ya emparejado con esa iglesia: al terminar, Manna se abre como su equipo principal, sin escribir códigos. Ya instalado, esa portada ofrece «Abrir Manna». En el celular y la tableta solo salen Preparar y Administrar.
+- **El himnario y las biblias de la nube, en el equipo de la iglesia**: emparejado, el equipo baja las biblias y las letras que le falten; con el himnario «desde la nube», los himnos de los órdenes que vienen se bajan antes del culto y cualquier otro se ve desde la nube y se baja al usarlo; «completo» baja todo en segundo plano y sigue donde iba si se corta. Nunca pisa lo que ya hay en la carpeta. Se cambia en Ajustes → Nube.
+
 ## 1.49.0 — 2026-10-26
 
 - **El nombre del orden se cambia ahí mismo**: junto a «Orden del culto», tocar el nombre deja escribir el nuevo, que se guarda solo al terminar (al salir del campo o con Intro; Esc deja el de antes). Ya no lleva a la pestaña Órdenes. Un orden nuevo se llama, si no se le pone otro nombre, con el de quien lo crea y el día: «Orden Ana 25 de oct.».
