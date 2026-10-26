@@ -33,6 +33,9 @@ const PUSH_MS = 2000; // un cambio del equipo sale a los 2 s (si llegan varios s
 const INSTALL_MS = 24 * 3600_000; // lo que dura el código del instalador emparejado (decisión 64)
 const INSTALLERS = { windows: 'Instalar-Manna-Windows.exe', mac: 'Instalar-Manna-Mac.pkg' };
 export const HYMNALS = ['nube', 'completo'];
+// El «idioma» de lo que va y viene entre el equipo y su nube (fase 37, parte 7): se sube cuando cambia su forma. Con
+// uno distinto no se sincroniza: el equipo lo dice y sigue en local (decisiones 57 y 58). El himnario sigue sirviendo.
+export const PROTOCOL = 1;
 // Lo que el equipo oficial puede bajar de R2: las biblias y el himnario, nada más.
 export const contentKey = (key) => typeof key === 'string' && /^(Biblias|Himnario\/(videos|letras|diapositivas))\//.test(key) && !key.split('/').some((p) => !p || p === '.' || p === '..');
 // Lo que se sincroniza y el módulo que lo tiene (cada uno ofrece sync: { export, apply }).
@@ -178,6 +181,14 @@ function cloudSide(app) {
     if (!o || !same(keyOf(ctx), o.tokenHash)) throw new HttpError(401, 'La nube no reconoce este equipo: vuelve a emparejarlo.');
     return o;
   };
+  // Pruebas: MANNA_NUBE_PROTOCOLO y MANNA_NUBE_VERSION hacen hablar a la nube otro idioma o tener otra versión.
+  const speaks = () => Number(process.env.MANNA_NUBE_PROTOCOLO) || PROTOCOL;
+  // Lo que se sincroniza, solo con el mismo idioma (sin la cabecera, un equipo de antes de la 1.55: el 1).
+  const speaking = (ctx) => {
+    const o = official(ctx);
+    if ((Number(ctx.req.headers['x-manna-protocolo']) || 1) !== speaks()) throw new HttpError(409, 'Este equipo y la nube tienen versiones distintas de Manna: se sincronizarán cuando tengan la misma.');
+    return o;
+  };
   const users = app.sessions.users;
 
   // Lo pregunta el equipo cada minuto, con su clave: ¿sigo siendo el oficial? Con la huella de los usuarios.
@@ -198,7 +209,8 @@ function cloudSide(app) {
       o.ip = ctx.ip;
       saved.save();
       publish();
-      return { official: true, church: host(ctx), users: versionOf(users.records()), data: versionNow(), settings: app.services.church?.settings() };
+      return { official: true, church: host(ctx), users: versionOf(users.records()), data: versionNow(), settings: app.services.church?.settings(),
+        version: process.env.MANNA_NUBE_VERSION || store.get('system')?.version, protocol: speaks() };
     }
     const former = saved.data.former.find((f) => same(mine, f.tokenHash));
     if (former) return { official: false, replaced: { by: former.by, at: former.replaced }, church: host(ctx) };
@@ -209,7 +221,7 @@ function cloudSide(app) {
   // suyo, se queda el resultado y se lo devuelve, con los conflictos (decisión 63, C).
   const versionNow = () => setVersion(exportAll(app));
   app.route('POST', '/api/nube/sincronizar', async (ctx) => {
-    official(ctx);
+    speaking(ctx);
     const { since, sets } = await ctx.json();
     const out = {};
     let conflicts = [];
@@ -228,7 +240,7 @@ function cloudSide(app) {
   // «Avísame si algo cambia»: contesta en cuanto lo sincronizado cambia, o a los 25 s con lo mismo.
   const waiting = new Set();
   app.route('GET', '/api/nube/esperar', async (ctx) => {
-    official(ctx);
+    speaking(ctx);
     const seen = String(ctx.query.get('v') || '');
     if (versionNow() !== seen) return { version: versionNow() };
     return new Promise((resolve) => {
@@ -273,17 +285,17 @@ function cloudSide(app) {
     ...item, files: Object.entries(item.files).filter(([, file]) => file).map(([name, file]) => ({ name, path: file, size: fs.statSync(path.join(app.dataDir, file), { throwIfNoEntry: false })?.size ?? 0 })),
   }));
   app.route('GET', '/api/nube/archivos', (ctx) => {
-    official(ctx);
+    speaking(ctx);
     return { items: pendingItems() };
   });
   app.route('GET', '/api/nube/archivo', (ctx) => {
-    official(ctx);
+    speaking(ctx);
     const wanted = String(ctx.query.get('ruta') || '');
     if (!pendingItems().some((item) => item.files.some((f) => f.path === wanted))) throw new HttpError(404, 'Ese archivo no espera a la iglesia.');
     ctx.file(path.join(app.dataDir, wanted));
   });
   app.route('POST', '/api/nube/archivos/recibidos', async (ctx) => {
-    official(ctx);
+    speaking(ctx);
     const { ids } = await ctx.json();
     if (!Array.isArray(ids) || ids.length > 500) throw new HttpError(400, 'Falta la lista de lo recibido.');
     for (const id of ids) for (const t of transfers(app)) if (typeof id === 'string' && t.has(id)) t.delivered(id);
@@ -293,7 +305,7 @@ function cloudSide(app) {
   // La biblioteca del equipo (decisión 64): la lista, con las categorías, y las miniaturas que falten. La nube la muestra
   // como «en la iglesia», para añadirla al orden desde casa; los archivos se quedan en la iglesia.
   app.route('POST', '/api/nube/biblioteca', async (ctx) => {
-    official(ctx);
+    speaking(ctx);
     const { items, categories } = await ctx.json();
     if (!Array.isArray(items) || items.length > 5000) throw new HttpError(400, 'Falta la lista de la biblioteca.');
     const valid = items.filter((x) => typeof x?.id === 'string' && /^[a-f0-9]{6,32}$/.test(x.id) && typeof x.type === 'string' && x.entry && typeof x.entry === 'object');
@@ -302,7 +314,7 @@ function cloudSide(app) {
     return { want: transfers(app).flatMap((t) => t.lacking()) };
   });
   app.route('POST', '/api/nube/biblioteca/miniatura', async (ctx) => {
-    official(ctx);
+    speaking(ctx);
     const id = String(ctx.query.get('id') || '');
     const buffer = await ctx.raw(600 * 1024);
     if (!transfers(app).some((t) => t.has(id) && t.thumb(id, buffer))) throw new HttpError(415, 'Esa miniatura no es de nada que esté en la iglesia.');
@@ -311,12 +323,12 @@ function cloudSide(app) {
 
   // Los usuarios: la copia del equipo, y los que sube el equipo la primera vez que se empareja.
   app.route('GET', '/api/nube/usuarios', (ctx) => {
-    official(ctx);
+    speaking(ctx);
     const list = users.records();
     return { version: versionOf(list), list };
   });
   app.route('POST', '/api/nube/usuarios', async (ctx) => {
-    official(ctx);
+    speaking(ctx);
     const { list } = await ctx.json();
     if (!Array.isArray(list) || list.length > 500) throw new HttpError(400, 'Falta la lista de usuarios.');
     const same = users.merge(list);
@@ -330,11 +342,14 @@ function churchSide(app) {
   const { store } = app;
   const { version } = JSON.parse(fs.readFileSync(path.join(app.rootDir, 'package.json'), 'utf8'));
   const saved = app.storage('nube', { url: '', token: '', church: '', paired: 0, replaced: null, usersUp: false, users: '', syncedAt: 0, synced: '', cloudData: '', hymnal: null });
-  // status: off (sin emparejar), on, offline (sin conexión con la nube), unknown (la nube no lo reconoce), replaced.
+  // status: off (sin emparejar), on, offline (sin conexión con la nube), unknown (la nube no lo reconoce), replaced,
+  // suspended, version (versiones distintas: no sincroniza) y updating (poniéndose al día con la versión de la nube).
   // hymnal: cómo tiene el himnario (nube o completo, decisión 64); content: lo que está bajando ({ done, total, failed }).
   store.register('cloud', { church: saved.data.token ? saved.data.church : '', url: saved.data.token ? saved.data.url : '', paired: saved.data.token ? saved.data.paired : 0,
     status: saved.data.replaced ? 'replaced' : saved.data.token ? 'offline' : 'off', lastSeen: null, error: null, hymnal: saved.data.hymnal, content: null });
   const set = (patch) => store.set('cloud', patch);
+  // Cómo se presenta ante su nube: su clave, su versión y el idioma de la sincronización.
+  const auth = () => ({ authorization: `Bearer ${saved.data.token}`, 'x-manna-version': version, 'x-manna-protocolo': String(PROTOCOL) });
   // Bloqueado porque otro equipo pasó a ser el oficial (lo lee server/app.js al arrancar).
   const blocked = () => saved.data.replaced && { replaced: true, church: saved.data.church, by: saved.data.replaced.by, at: saved.data.replaced.at };
 
@@ -345,7 +360,7 @@ function churchSide(app) {
   };
 
   const ask = (method, route, body, ms = 20_000) => fetch(`${saved.data.url}${route}`, {
-    method, headers: { authorization: `Bearer ${saved.data.token}`, 'x-manna-version': version, ...(body && { 'content-type': 'application/json' }) },
+    method, headers: { ...auth(), ...(body && { 'content-type': 'application/json' }) },
     ...(body && { body: JSON.stringify(body) }), signal: AbortSignal.timeout(ms),
   }).then(async (res) => {
     const out = await res.json().catch(() => ({}));
@@ -380,8 +395,10 @@ function churchSide(app) {
   let syncing = null;
   let again = false;
   const live = () => Boolean(saved.data.token) && !saved.data.replaced;
+  let apart = null; // con versiones distintas de la nube, lo que se dice (parte 7)
+  const syncs = () => live() && !apart;
   function syncData() {
-    if (!live()) return Promise.resolve();
+    if (!syncs()) return Promise.resolve();
     if (syncing) { again = true; return syncing; }
     syncing = (async () => {
       const sentAt = Date.now();
@@ -406,7 +423,7 @@ function churchSide(app) {
   // Un cambio de aquí sale a los 2 s (si de verdad cambió algo desde la última vez).
   let pushTimer = null;
   store.on('change', (ns) => {
-    if (!['orders', 'texts', 'hymns'].includes(ns) || !live()) return;
+    if (!['orders', 'texts', 'hymns'].includes(ns) || !syncs()) return;
     clearTimeout(pushTimer);
     pushTimer = setTimeout(() => {
       if (setVersion(exportAll(app)) !== saved.data.synced) syncData().catch(() => {});
@@ -419,10 +436,10 @@ function churchSide(app) {
     if (waitingFor) return;
     waitingFor = new AbortController();
     const { signal } = waitingFor;
-    while (live() && !signal.aborted) {
+    while (syncs() && !signal.aborted) {
       try {
         const res = await fetch(`${saved.data.url}/api/nube/esperar?v=${encodeURIComponent(saved.data.cloudData)}`, {
-          headers: { authorization: `Bearer ${saved.data.token}`, 'x-manna-version': version }, signal: AbortSignal.any([signal, AbortSignal.timeout(WAIT_MS + 15_000)]),
+          headers: auth(), signal: AbortSignal.any([signal, AbortSignal.timeout(WAIT_MS + 15_000)]),
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body.error || String(res.status));
@@ -436,7 +453,10 @@ function churchSide(app) {
   }
   app.onClose(() => waitingFor?.abort());
 
+  let starting = true; // la primera comprobación de este arranque
   async function check() {
+    const atStart = starting;
+    starting = false;
     await pairFromInstaller();
     if (!saved.data.token || saved.data.replaced) return;
     try {
@@ -444,7 +464,7 @@ function churchSide(app) {
       const { addresses } = store.get('system') || {};
       const net = store.get('internet') || {};
       const res = await fetch(`${saved.data.url}/api/nube/estado`, {
-        headers: { authorization: `Bearer ${saved.data.token}`, 'x-manna-version': version, 'x-manna-lan': addresses?.[0] || '', 'x-manna-tunel': net.status === 'on' ? net.url || '' : '' },
+        headers: { ...auth(), 'x-manna-lan': addresses?.[0] || '', 'x-manna-tunel': net.status === 'on' ? net.url || '' : '' },
         signal: AbortSignal.timeout(15_000),
       });
       const body = await res.json().catch(() => ({}));
@@ -459,14 +479,34 @@ function churchSide(app) {
         return restartAs(blocked());
       }
       if (body.suspended) return set({ status: 'suspended', lastSeen: Date.now(), error: null });
+      // La misma versión (parte 7, decisiones 57 y 58): si la nube tiene una más nueva, el equipo se pone al día al
+      // encenderse, antes de que lo use nadie, como con «Actualizar ahora» pero sin preguntar. Nunca con Manna abierto
+      // (ni tras un reinicio o con algo al aire), y una vez por versión, por si el instalador no pudo.
+      const updates = app.services.updates;
+      if (atStart && body.version && updates?.newer(body.version) && saved.data.updateTried !== body.version && !process.env.MANNA_REINICIO && !store.get('projection')?.item) {
+        saved.data.updateTried = body.version;
+        saved.save();
+        saved.flush();
+        try {
+          updates.install();
+          console.log(`La nube tiene Manna ${body.version}: este equipo se pone al día.`);
+          return set({ status: 'updating', lastSeen: Date.now(), error: null });
+        } catch (err) {
+          console.error(`No se pudo poner al día con la versión de la nube (${body.version}): ${err.message}`);
+        }
+      }
+      apart = (Number(body.protocol) || 1) === PROTOCOL ? null
+        : `La nube tiene Manna ${body.version || 'de otra versión'} y este equipo, la ${version}: hasta que tengan la misma, este equipo sigue en local, sin sincronizar.${updates?.newer(body.version) ? ' Se pondrá al día al volver a abrir Manna.' : ''}`;
       // Lo que el superadministrador dejó a esta iglesia (fase 39): módulos, su orden y el máximo de órdenes.
       if (body.settings) app.services.church?.apply(body.settings);
-      if (body.users && body.users !== saved.data.users) await syncUsers();
+      if (!apart && body.users && body.users !== saved.data.users) await syncUsers();
       // Por si se perdió un aviso: si la nube o el equipo tienen algo distinto de lo último que se juntó.
-      if (body.data !== saved.data.cloudData || setVersion(exportAll(app)) !== saved.data.synced) await syncData();
-      set({ status: 'on', lastSeen: Date.now(), error: null });
-      waitLoop();
-      receive().then(pushLibrary).catch((err) => console.error('No se pudo poner al día lo de Medios con la nube:', err.message));
+      if (!apart && (body.data !== saved.data.cloudData || setVersion(exportAll(app)) !== saved.data.synced)) await syncData();
+      set({ status: apart ? 'version' : 'on', lastSeen: Date.now(), error: apart });
+      if (!apart) {
+        waitLoop();
+        receive().then(pushLibrary).catch((err) => console.error('No se pudo poner al día lo de Medios con la nube:', err.message));
+      }
       if (Date.now() - filled > 30 * 60_000) {
         filled = Date.now();
         content.fill().catch((err) => console.error('No se pudo bajar el himnario de la nube:', err.message));
@@ -480,7 +520,7 @@ function churchSide(app) {
   // ser el video de la biblioteca. Una vez a la vez.
   let receiving = null;
   function receive() {
-    if (receiving || !live()) return receiving || Promise.resolve();
+    if (receiving || !syncs()) return receiving || Promise.resolve();
     receiving = (async () => {
       const { items } = await ask('GET', '/api/nube/archivos');
       const used = new Set((app.services.order?.sync.export().records || []).flatMap((o) => o.items.map((i) => i.data?.id)));
@@ -491,7 +531,7 @@ function churchSide(app) {
         try {
           const files = {};
           for (const f of item.files) {
-            const res = await fetch(`${saved.data.url}/api/nube/archivo?ruta=${encodeURIComponent(f.path)}`, { headers: { authorization: `Bearer ${saved.data.token}` }, signal: AbortSignal.timeout(30 * 60_000) });
+            const res = await fetch(`${saved.data.url}/api/nube/archivo?ruta=${encodeURIComponent(f.path)}`, { headers: auth(), signal: AbortSignal.timeout(30 * 60_000) });
             if (!res.ok) throw new Error(`La nube respondió ${res.status}.`);
             files[f.name] = path.join(work, path.basename(f.name));
             await pipeline(Readable.fromWeb(res.body), fs.createWriteStream(files[f.name]));
@@ -518,7 +558,7 @@ function churchSide(app) {
   // nube dice que le faltan. Solo cuando hace falta (ver sendLibrary).
   let librarySent = 0;
   async function pushLibrary() {
-    if (!live()) return;
+    if (!syncs()) return;
     const items = transfers(app).flatMap((t) => t.summary());
     const body = { items: items.map(({ type, id, entry }) => ({ type, id, entry })), categories: app.services.media?.categories.export() || [] };
     const signature = hash(JSON.stringify(body)).slice(0, 16);
@@ -528,7 +568,7 @@ function churchSide(app) {
       const thumb = items.find((x) => x.id === id)?.thumb;
       if (!thumb || !fs.existsSync(thumb)) continue;
       await fetch(`${saved.data.url}/api/nube/biblioteca/miniatura?id=${encodeURIComponent(id)}`, {
-        method: 'POST', headers: { authorization: `Bearer ${saved.data.token}`, 'content-type': 'application/octet-stream' }, body: fs.readFileSync(thumb), signal: AbortSignal.timeout(60_000),
+        method: 'POST', headers: { ...auth(), 'content-type': 'application/octet-stream' }, body: fs.readFileSync(thumb), signal: AbortSignal.timeout(60_000),
       }).catch(() => null);
     }
     saved.data.librarySig = signature;

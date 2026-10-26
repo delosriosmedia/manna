@@ -379,3 +379,65 @@ test('lo que se sube desde casa llega al equipo de la iglesia, y la nube se qued
   for (let i = 0; i < 50 && (await nube.state()).media.images.some((x) => x.id === local.id); i += 1) await new Promise((r) => setTimeout(r, 100));
   assert.ok(!(await nube.state()).media.images.some((x) => x.id === local.id));
 });
+
+test('la misma versión: el equipo se pone al día al encenderse, y con otro idioma no sincroniza (fase 37, parte 7)', async () => {
+  const marker = path.join(tmp, 'instalador-abierto');
+  const installer = path.join(tmp, 'instalador.mjs');
+  fs.writeFileSync(installer, `import fs from 'node:fs'; fs.writeFileSync(${JSON.stringify(marker)}, 'abierto');\n`);
+  process.env.MANNA_ACTUALIZADOR_PRUEBA = installer;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const nube = await serve('nube-version', { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'alta-version' });
+  // El equipo se apaga y se vuelve a encender: la primera comprobación de cada arranque es la que puede ponerlo al día.
+  const start = async () => {
+    const s = await serve('iglesia-version');
+    await s.call('/api/session', { role: 'control' });
+    return s;
+  };
+  const restart = async (s) => {
+    opened.splice(opened.indexOf(s), 1);
+    await s.stop();
+    return start();
+  };
+  let c = await start();
+  try {
+    await nube.call('/api/session/alta', { clave: 'alta-version', name: 'Ana', pin: '1234' });
+    assert.equal((await c.send('cloud.pair', { url: nube.base, code: (await nube.send('cloud.code')).result.code })).status, 200);
+    await c.app.services.cloud.check();
+    assert.equal((await c.state()).cloud.status, 'on');
+
+    // La nube tiene una versión más nueva: con Manna abierto, nada; al encenderse, abre el instalador, una vez por versión.
+    process.env.MANNA_NUBE_VERSION = '99.0.0';
+    await c.app.services.cloud.check();
+    assert.equal((await c.state()).cloud.status, 'on');
+    await sleep(300);
+    assert.ok(!fs.existsSync(marker), 'nunca con Manna abierto');
+    c = await restart(c);
+    await c.app.services.cloud.check();
+    assert.equal((await c.state()).cloud.status, 'updating');
+    for (let i = 0; i < 50 && !fs.existsSync(marker); i += 1) await sleep(100);
+    assert.ok(fs.existsSync(marker), 'al encenderse, abre el instalador');
+    fs.rmSync(marker);
+    c = await restart(c);
+    await c.app.services.cloud.check();
+    assert.equal((await c.state()).cloud.status, 'on', 'si el instalador no pudo, con esa versión no lo vuelve a intentar');
+    await sleep(300);
+    assert.ok(!fs.existsSync(marker));
+
+    // Otro idioma de sincronización: el equipo lo dice y sigue en local, y la nube no sincroniza con él.
+    process.env.MANNA_NUBE_PROTOCOLO = '2';
+    await c.app.services.cloud.check();
+    const apart = (await c.state()).cloud;
+    assert.equal(apart.status, 'version');
+    assert.match(apart.error, /99\.0\.0.*sigue en local, sin sincronizar\. Se pondrá al día/);
+    const token = JSON.parse(fs.readFileSync(path.join(c.app.dataDir, 'nube.json'), 'utf8')).token;
+    const asks = (route, protocol) => fetch(`${nube.base}${route}`, { headers: { authorization: `Bearer ${token}`, ...(protocol && { 'x-manna-protocolo': protocol }) } });
+    assert.equal((await asks('/api/nube/usuarios', '1')).status, 409);
+    assert.equal((await asks('/api/nube/usuarios')).status, 409, 'un equipo de antes de la 1.55 habla el 1');
+    assert.equal((await asks('/api/nube/usuarios', '2')).status, 200);
+    delete process.env.MANNA_NUBE_PROTOCOLO;
+    await c.app.services.cloud.check();
+    assert.equal((await c.state()).cloud.status, 'on', 'con el mismo idioma, vuelve a sincronizar');
+  } finally {
+    for (const key of ['MANNA_ACTUALIZADOR_PRUEBA', 'MANNA_NUBE_VERSION', 'MANNA_NUBE_PROTOCOLO']) delete process.env[key];
+  }
+});

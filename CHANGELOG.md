@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.55.0 — 2026-10-26
+
+- **El equipo de la iglesia y su nube, siempre en la misma versión**: si la nube tiene una versión más nueva de Manna, el equipo de la iglesia se pone al día solo al encenderse, antes de que nadie lo use (como «Actualizar ahora», sin preguntar). Nunca lo hace con Manna abierto. Si alguna vez tienen versiones que no se entienden, el equipo lo dice en Ajustes → Nube y sigue funcionando en local, sin sincronizar, con el himnario de siempre.
+
 ## 1.54.0 — 2026-10-26
 
 - **La portada de la nube sabe si el equipo de la iglesia está encendido**: si lo está y quien la abre está en la red de la iglesia, ofrece «Entrar al equipo de la iglesia», directo y sin pasar por internet; desde fuera, por la conexión por internet de la iglesia si está encendida. Si no, dice si el equipo está encendido o apagado, y que el culto se prepara ahí.

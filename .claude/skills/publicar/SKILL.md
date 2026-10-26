@@ -86,4 +86,15 @@ gh release view v<versión> --json assets --jq '.assets[].name'
 
 Si la compilación falla, la versión queda sin instaladores: se arregla, se publica una versión de arreglo y se avisa al dueño. Para probar un cambio de los instaladores antes de publicar, se sube a una rama `fase-…`: el mismo flujo los compila y los prueba sin adjuntarlos.
 
+## 9. La nube (fase 37, parte 7)
+
+Con versión nueva, tras el push (los equipos que se ponen al día bajan la versión de `main`), se despliega en la nube, como dice `.claude/rules/nube.md` («Desplegar»):
+
+1. `node scripts/desplegar.mjs probar`; si falla, no se sube.
+2. El paquete, por TUS, a `public_html` de `pruebas.manna-iglesia.es` y de `admin.manna-iglesia.es`, y `hosting_nodejs_start-build` en los dos.
+3. Comprobar que `https://<sitio>/api/ping` dice la versión nueva en los dos.
+4. Las demás iglesias (hoy, `nv.manna-iglesia.es`) solo cuando el dueño apruebe esa versión en `pruebas` (decisiones 58 y 64).
+
+Con la nube en la versión nueva, cada equipo oficial se pone al día solo la próxima vez que se encienda. Si la versión cambia la forma de lo que va y viene entre el equipo y la nube (órdenes, textos, favoritos, usuarios, Medios), se sube antes `PROTOCOL` en `server/modules/cloud/index.js`: así un equipo que aún no se puso al día no sincroniza con la forma nueva (lo dice en Ajustes → Nube y sigue en local).
+
 Confirma con el enlace al repositorio: https://github.com/delosriosmedia/manna

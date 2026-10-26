@@ -39,6 +39,8 @@ El sitio del superadministrador (`admin.manna-iglesia.es`) lleva `MANNA_NUBE=1`,
 6. El dueño entra en `https://<sitio>/administrar` con la clave de alta, crea su administrador (nombre y PIN) y los usuarios, y prueba `/preparacion` desde un celular y desde el PC de Leidy.
 7. El equipo oficial: en ese computador, la portada del sitio → «Instalar Manna en este equipo» (con el PIN de un administrador; decisión 64) baja el instalador ya emparejado. O, con Manna ya instalado, `/administrar` → Equipo → «Emparejar un equipo» y, en el equipo, Ajustes → Nube con la dirección del sitio y el código.
 
+**Cada versión** se despliega así como paso 9 de `/publicar` (fase 37, parte 7): con la nube en la versión nueva, cada equipo oficial se pone al día solo al encenderse.
+
 **Las demás iglesias** (decisiones 58 y 64): una versión se despliega primero en `pruebas`; cuando el dueño la aprueba, el mismo paquete se despliega igual en cada sitio de iglesia (hoy, `nv.manna-iglesia.es`).
 
 ## Lo aprendido

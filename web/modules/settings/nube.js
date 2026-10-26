@@ -10,6 +10,8 @@ const STATUS = {
   offline: () => 'Ahora sin conexión con la nube: Manna funciona igual y se pondrá al día al volver.',
   unknown: (c) => c.error || 'La nube no reconoce este equipo: vuelve a emparejarlo.',
   suspended: () => 'La nube de esta iglesia está suspendida en Manna Iglesia: este equipo funciona igual, sin sincronizar.',
+  version: (c) => c.error,
+  updating: () => 'La nube tiene una versión más nueva de Manna: este equipo se está poniendo al día y se volverá a abrir solo.',
 };
 
 export function cloudBody() {
@@ -42,7 +44,7 @@ export function cloudBody() {
     const paired = c.status !== 'off';
     status.textContent = paired ? `Emparejado con ${c.church} (desde ${whenLabel(c.paired)}). ${(STATUS[c.status] || STATUS.offline)(c)}`
       : 'Este equipo no está emparejado. Con la nube de la iglesia se prepara el culto desde casa, aunque este equipo esté apagado.';
-    status.classList.toggle('warn', c.status === 'unknown');
+    status.classList.toggle('warn', ['unknown', 'version'].includes(c.status));
     if (!url.value && c.church) url.value = c.church;
     again.hidden = !paired;
     hymnal.hidden = !paired || c.status === 'replaced';

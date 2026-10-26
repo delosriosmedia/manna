@@ -72,10 +72,9 @@ export function watchVersions(app, version) {
     return { version, latest, newer: newer(latest, version) };
   });
 
-  // «Actualizar ahora»: abre el instalador como lo haría un doble clic. Solo desde el equipo principal, que es donde
-  // está y donde se actualiza. Pruebas: MANNA_ACTUALIZADOR_PRUEBA, un guion de node que hace de instalador.
-  app.action('system.update', { permission: 'system.admin' }, (_payload, ctx) => {
-    if (!ctx?.isLocal) throw new HttpError(403, 'Manna solo se actualiza desde el equipo principal.');
+  // Abre el instalador como lo haría un doble clic. Pruebas: MANNA_ACTUALIZADOR_PRUEBA, un guion de node que hace de
+  // instalador.
+  function install() {
     const fake = process.env.MANNA_ACTUALIZADOR_PRUEBA;
     const file = fake || path.join(app.rootDir, INSTALLERS[process.platform] || '');
     if (!fake && (dev || !INSTALLERS[process.platform] || !fs.existsSync(file))) {
@@ -86,5 +85,12 @@ export function watchVersions(app, version) {
       : process.platform === 'win32' ? ['explorer.exe', [file]] : ['open', ['-a', 'Terminal', file]];
     if (!fake && process.platform === 'darwin') fs.chmodSync(file, 0o755); // por si el .zip no guardó el permiso
     spawn(cmd, args, { cwd: path.dirname(file), detached: true, stdio: 'ignore' }).on('error', () => {}).unref();
+  }
+  // «Actualizar ahora»: solo desde el equipo principal, que es donde está y donde se actualiza.
+  app.action('system.update', { permission: 'system.admin' }, (_payload, ctx) => {
+    if (!ctx?.isLocal) throw new HttpError(403, 'Manna solo se actualiza desde el equipo principal.');
+    install();
   });
+  // El equipo oficial se pone al día solo al encenderse si su nube tiene una versión más nueva (fase 37, parte 7).
+  app.services.updates = { newer: (latest) => newer(latest, version), install };
 }
