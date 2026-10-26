@@ -100,7 +100,7 @@ test('R2: en la nube, el video de un himno se pide con un enlace que caduca, sol
     const video = `/himnos/${encodeURIComponent('001 Canción de prueba.mp4')}`;
     assert.equal((await fetch(base + video, { redirect: 'manual' })).status, 401, 'sin ingreso, nada');
     const post = (url, body, cookie = '') => fetch(base + url, { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(body) });
-    const admin = await post('/api/session/alta', { clave: 'clave-de-alta-r2', name: 'Ana', pin: '1234', password: 'contraseña de prueba' });
+    const admin = await post('/api/session/alta', { clave: 'clave-de-alta-r2', name: 'Ana', pin: '1234' });
     const user = (await admin.json()).user.id;
     const cookie = (await post('/api/session', { role: 'preparacion', user, pin: '1234' }, admin.headers.get('set-cookie').split(';')[0])).headers.get('set-cookie').split(';')[0];
     const list = await (await fetch(`${base}/api/hymns`, { headers: { cookie } })).json();

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { dayOf, migrateLegacy, moveItem, neighbor, renameItem, serviceName, uniqueName, validDay } from '../server/modules/order/logic.js';
+import { dayOf, defaultName, migrateLegacy, moveItem, neighbor, renameItem, uniqueName, validDay } from '../server/modules/order/logic.js';
 
 const items = [
   { id: 's1', kind: 'section', title: 'Apertura' },
@@ -82,9 +82,8 @@ test('renameItem en una sección solo cambia el título y no admite dejarlo vac�
 
 test('la fecha de un orden: el día del culto, y el nombre que se le propone (fase 35)', () => {
   assert.equal(dayOf(new Date(2026, 10, 1, 23, 59).getTime()), '2026-11-01');
-  assert.equal(serviceName('2026-11-01'), 'Culto del domingo 1 de nov.');
-  assert.equal(serviceName('2026-10-31'), 'Culto del sábado 31 de oct.');
-  assert.equal(serviceName('2026-09-02'), 'Culto del miércoles 2 de sept.');
+  assert.equal(defaultName('Ana', '2026-11-01'), 'Orden Ana 1 de nov.');
+  assert.equal(defaultName('Ángel', '2026-09-02'), 'Orden Ángel 2 de sept.');
   for (const day of ['2026-11-01', '2028-02-29']) assert.ok(validDay(day), day);
   for (const day of ['2026-02-30', '2026-13-01', '01/11/2026', '', '2026-1-1']) assert.ok(!validDay(day), day);
 });

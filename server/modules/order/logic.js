@@ -14,12 +14,11 @@ export const dayOf = (ms = Date.now()) => {
 };
 export const validDay = (day) => /^\d{4}-\d{2}-\d{2}$/.test(day) && dayOf(new Date(`${day}T12:00`).getTime()) === day;
 
-// El nombre que se propone para un orden: «Culto del sábado 1 de nov.».
-const DAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+// El nombre que se propone para un orden (decisión 64): «Orden Ana 25 de oct.», con quien lo crea y el día en que lo crea.
 const MONTHS = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sept.', 'oct.', 'nov.', 'dic.'];
-export function serviceName(day) {
+export function defaultName(owner, day) {
   const d = new Date(`${day}T12:00`);
-  return `Culto del ${DAYS[d.getDay()]} ${d.getDate()} de ${MONTHS[d.getMonth()]}`;
+  return `Orden ${owner} ${d.getDate()} de ${MONTHS[d.getMonth()]}`;
 }
 
 // base, o «base (2)», «base (3)»… si ya está entre names (sin contar mayúsculas).

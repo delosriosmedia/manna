@@ -10,7 +10,7 @@ import system from '../server/modules/system/index.js';
 import users from '../server/modules/users/index.js';
 import projection from '../server/modules/projection/index.js';
 import order from '../server/modules/order/index.js';
-import { dayOf, serviceName } from '../server/modules/order/logic.js';
+import { dayOf, defaultName } from '../server/modules/order/logic.js';
 
 // Órdenes del culto (fases 23 y 35 de docs/PLAN.md): cada uno con nombre, dueño y fecha desde que se crea. El que
 // está en uso lo ven todos en la cola; los demás, solo su dueño y el administrador. Al apagar Manna nada queda en uso,
@@ -86,7 +86,7 @@ test('al pasar a la fase 35, los guardados son del administrador y el orden sin 
   }));
   const m = await open(t, 'fase23');
   const { orders, order: inUse } = await (await m.person()).state();
-  assert.deepEqual(orders.list.map((o) => [o.name, o.ownerName, o.date]), [['Sábado', 'Administrador', '2026-10-18'], [serviceName(dayOf()), 'Administrador', dayOf()]]);
+  assert.deepEqual(orders.list.map((o) => [o.name, o.ownerName, o.date]), [['Sábado', 'Administrador', '2026-10-18'], [defaultName('Administrador', dayOf()), 'Administrador', dayOf()]]);
   assert.equal(inUse.active, 's1', 'tras un corte corto, sigue en uso el que estaba');
   await m.close();
   const saved = JSON.parse(fs.readFileSync(file('fase23'), 'utf8'));
@@ -116,7 +116,7 @@ test('cada orden es de quien lo crea: los demás no lo ven, salvo el que está e
   // Lo que añade sin tener ninguno abierto va a uno nuevo, suyo, con el nombre del día.
   assert.equal((await anaIn.send('order.add', card)).status, 200);
   seen = await anaIn.state();
-  assert.deepEqual(seen.orders.list.map((o) => [o.name, o.ownerName, o.count]), [[serviceName(dayOf()), 'Ana', 1]]);
+  assert.deepEqual(seen.orders.list.map((o) => [o.name, o.ownerName, o.count]), [[defaultName('Ana', dayOf()), 'Ana', 1]]);
   assert.deepEqual([seen.orders.editing, seen.orders.items.length, seen.order.name], [seen.orders.list[0].id, 1, 'Culto del sábado']);
   const hers = seen.orders.list[0].id;
   assert.equal((await anaIn.send('order.create', { name: 'Alabanza' })).status, 200);

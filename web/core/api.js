@@ -58,7 +58,7 @@ export async function action(type, payload = {}, options = {}) {
 
 export const session = {
   get: () => api('/api/session'),
-  open: (role, pin, user, password) => postJson('/api/session', { role, pin, user, password }),
+  open: (role, pin, user) => postJson('/api/session', { role, pin, user }),
   // El primer administrador en la nube, con la clave de alta (decisión 62): deja la sesión de /administrar abierta.
   alta: (data) => postJson('/api/session/alta', data),
 };

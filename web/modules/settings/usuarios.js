@@ -17,9 +17,8 @@ const buttons = (box, label, save) => h('div', { class: 'row', style: 'justify-c
   h('button', { class: 'btn', onclick: () => box().close() }, 'Cancelar'),
   h('button', { class: 'btn primary', onclick: save }, label));
 
-// passwords: en /administrar (la nube, fase 36), cada administrador tiene además su contraseña para entrar ahí.
 // En el equipo emparejado con su nube (fase 37, decisión 63), la lista se ve pero se cambia en la nube: sin botones.
-export function usersBody(me, { passwords = false } = {}) {
+export function usersBody(me) {
   const list = h('div', { class: 'user-list' });
   const managed = h('p', { class: 'muted', hidden: true });
   const add = h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => edit(null) }, icon('user-plus', 16), 'Añadir usuario'));
@@ -28,8 +27,7 @@ export function usersBody(me, { passwords = false } = {}) {
   const render = () => list.replaceChildren(...users.map((u) => h('div', { class: 'user-row', dataset: { id: u.id } },
       h('span', { class: 'initial', 'aria-hidden': 'true' }, u.name.slice(0, 1).toUpperCase()),
       h('span', { class: 'item-text' }, h('strong', {}, u.name, u.id === me?.id ? ' (tú)' : ''),
-        h('small', {}, u.admin ? `Administrador · todas las funciones${passwords && !u.password ? ' · sin contraseña' : ''}` : u.functions.map((f) => NAMES[f]).join(' · '))),
-      passwords && u.admin && h('button', { class: 'btn user-password', 'aria-label': `Cambiar la contraseña de ${u.name}`, onclick: () => changePassword(u) }, 'Contraseña'),
+        h('small', {}, u.admin ? 'Administrador · todas las funciones' : u.functions.map((f) => NAMES[f]).join(' · '))),
       ...(cloud ? [] : [
         h('button', { class: 'icon-btn sm', title: 'Cambiar', 'aria-label': `Cambiar a ${u.name}`, onclick: () => edit(u) }, icon('pencil-simple', 15)),
         h('button', { class: 'icon-btn sm', title: 'Cambiar el PIN', 'aria-label': `Cambiar el PIN de ${u.name}`, onclick: () => changePin(u) }, icon('key', 15)),
@@ -81,19 +79,6 @@ export function usersBody(me, { passwords = false } = {}) {
     pin.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
     const box = dialog(`PIN de ${user.name}`,
       h('label', { class: 'user-field' }, h('span', {}, 'PIN nuevo'), pin),
-      buttons(() => box, 'Cambiar', save));
-  }
-
-  function changePassword(user) {
-    const input = h('input', { class: 'input', type: 'password', autocomplete: 'new-password', placeholder: 'Al menos 10 caracteres', 'aria-label': 'Contraseña nueva' });
-    const save = guard(async () => {
-      await action('users.setPassword', { id: user.id, password: input.value });
-      box.close();
-      toast(user.id === me?.id ? 'Contraseña cambiada.' : `Contraseña cambiada. ${user.name} ya puede administrar con ella.`);
-    });
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
-    const box = dialog(`Contraseña de ${user.name}`,
-      h('label', { class: 'user-field' }, h('span', {}, 'Contraseña nueva, para entrar en «Administrar la iglesia»'), input),
       buttons(() => box, 'Cambiar', save));
   }
 

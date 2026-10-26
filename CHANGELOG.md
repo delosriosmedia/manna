@@ -4,6 +4,12 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.49.0 — 2026-10-26
+
+- **El nombre del orden se cambia ahí mismo**: junto a «Orden del culto», tocar el nombre deja escribir el nuevo, que se guarda solo al terminar (al salir del campo o con Intro; Esc deja el de antes). Ya no lleva a la pestaña Órdenes. Un orden nuevo se llama, si no se le pone otro nombre, con el de quien lo crea y el día: «Orden Ana 25 de oct.».
+- **El administrador de la nube entra con su PIN**, el mismo con el que prepara el culto. La clave de alta se pide solo la primera vez, con el nombre y el PIN del administrador. Ya no hay contraseña: quien la tenía entra ahora con su PIN.
+- **Himnos con pista desde Preparar el culto**: en el Himnario de la nube se puede elegir «Pista» al añadir un himno. Allí se escucha cantado (la nube no puede sacar la pista), y el equipo de la iglesia lo proyecta con la pista.
+
 ## 1.48.0 — 2026-10-25
 
 - **Lo preparado en casa llega a la iglesia, y al revés** (fase 37): con el equipo emparejado, los órdenes, los textos y los himnos favoritos van y vienen entre el equipo y su nube; con los dos encendidos, un cambio llega al otro lado en unos segundos. Sin internet, el equipo sigue igual y se pone al día al volver. Si un mismo orden se cambió en los dos sitios sin conexión, queda el cambio más reciente, y su dueño (y el administrador) lo ven en un aviso en el cajón Orden.

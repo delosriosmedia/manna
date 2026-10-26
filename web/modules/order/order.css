@@ -5,10 +5,12 @@
 .oside { min-height: 0; overflow-y: auto; border-left: 1px solid var(--line); }
 .order-bar { display: flex; align-items: center; gap: 6px; padding: 8px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
 .order-bar small { margin-left: auto; color: var(--ink-3); font-size: 12px; white-space: nowrap; }
-/* El orden que se ve, junto al título: lleva a «Órdenes» (fases 23 y 35). */
-.order-switch { min-width: 0; max-width: 300px; }
-.order-switch > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-span.order-switch { color: var(--ink-3); }
+/* El nombre del orden que se ve, junto al título: se escribe ahí mismo (decisión 64). Parece texto hasta tocarlo. */
+.order-name { min-width: 0; max-width: 300px; min-height: var(--control); padding: 0 8px; font-weight: 600; text-overflow: ellipsis;
+  background: transparent; border: 1px solid transparent; border-radius: var(--r); }
+.order-name:not(:read-only):hover { border-color: var(--line); }
+.order-name:focus { outline: none; border-color: var(--accent); background: var(--s2); }
+.order-name:read-only { color: var(--ink-3); font-weight: 500; }
 .orders { display: grid; gap: 8px; }
 .order-saved { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-lg); }
 .order-saved.on { border-color: var(--accent); background: var(--accent-soft); }
@@ -47,7 +49,7 @@ span.order-switch { color: var(--ink-3); }
 }
 @container cajon (max-width: 599px) {
   .ws[data-module='orden'] .ws-head .search { flex: 1 1 100%; order: 3; }
-  .order-switch { flex: 1 1 0; justify-content: flex-start; max-width: none; min-width: 96px; }
+  .order-name { flex: 1 1 0; max-width: none; min-width: 96px; }
   .order-add { width: var(--control); padding: 0; }
   .order-add span { display: none; }
 }

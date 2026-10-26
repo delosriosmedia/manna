@@ -40,13 +40,6 @@ export default function setup(app) {
     users.setPin(id, String(pin ?? ''));
     sessions.closeUser(id, ctx?.session?.id);
   });
-  // La contraseña de un administrador, para entrar en /administrar desde la nube (fase 36). Cierra sus otras sesiones.
-  app.action('users.setPassword', { permission: 'users.manage' }, ({ id, password } = {}, ctx) => {
-    own();
-    users.setPassword(id, password);
-    sessions.closeUser(id, ctx?.session?.id);
-    publish();
-  });
   app.action('users.remove', { permission: 'users.manage' }, ({ id } = {}, ctx) => {
     own();
     if (id && id === ctx?.session?.user?.id) throw new HttpError(409, 'No puedes quitarte a ti mismo: pídeselo a otro administrador.');

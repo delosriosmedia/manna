@@ -321,7 +321,7 @@ test('en modo nube nadie es el equipo principal: lo que llega del propio servido
   }
 });
 
-test('en la nube: la clave de alta, el administrador con contraseña y preparar el culto (fase 36)', async () => {
+test('en la nube: la clave de alta, el administrador con su PIN y preparar el culto (fases 36 y 49)', async () => {
   const cloud = await start('nube-alta', { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'clave-de-alta-de-prueba' }, [media]);
   // Cada cliente con su cookie (el `request` del ayudante lleva la suya).
   const client = () => {
@@ -341,16 +341,15 @@ test('en la nube: la clave de alta, el administrador con contraseña y preparar 
 
     // La clave de alta: una equivocada no sirve; con ella, nada se cambia si falta algo, y crea el primer administrador.
     const ana = client();
-    const alta = (body) => ana.call('/api/session/alta', { clave: 'clave-de-alta-de-prueba', name: 'Ana', pin: '1234', password: 'contraseña larga', ...body });
+    const alta = (body) => ana.call('/api/session/alta', { clave: 'clave-de-alta-de-prueba', name: 'Ana', pin: '1234', ...body });
     assert.equal((await alta({ clave: 'otra' })).status, 401);
-    assert.equal((await alta({ password: 'corta' })).status, 400);
     assert.equal((await alta({ pin: '12' })).status, 400);
     const opened = await alta();
     assert.equal(opened.status, 200);
     assert.deepEqual([opened.role, opened.user.name, opened.user.admin], ['administrar', 'Ana', true]);
     assert.equal((await (await cloud.request('/api/session')).json()).alta, false, 'ya no se pide');
-    assert.deepEqual((await ana.state()).users.list.map(({ name, admin, password }) => [name, admin, password]), [['Ana', true, true]], 'la lista ya la tiene');
-    assert.equal((await client().call('/api/session/alta', { clave: 'clave-de-alta-de-prueba', name: 'Otro', pin: '9999', password: 'otra contraseña' })).status, 409, 'y no vuelve a servir');
+    assert.deepEqual((await ana.state()).users.list.map(({ name, admin }) => [name, admin]), [['Ana', true]], 'la lista ya la tiene');
+    assert.equal((await client().call('/api/session/alta', { clave: 'clave-de-alta-de-prueba', name: 'Otro', pin: '9999' })).status, 409, 'y no vuelve a servir');
 
     // El administrador gestiona los usuarios desde /administrar.
     const created = await ana.send('users.create', { name: 'Beto', pin: '4321', functions: ['orden'] });
@@ -358,10 +357,10 @@ test('en la nube: la clave de alta, el administrador con contraseña y preparar 
     const beto = created.result.id;
     assert.equal((await ana.send('projection.show', { kind: 'testcard', data: {} })).status, 403, 'administrar no proyecta');
 
-    // A /administrar se entra con la contraseña, y solo un administrador.
+    // A /administrar se entra con el PIN (decisión 64), y solo un administrador.
     const anaId = opened.user.id;
-    assert.equal((await client().call('/api/session', { role: 'administrar', user: anaId, pin: '1234' })).status, 401, 'el PIN no basta');
-    assert.equal((await client().call('/api/session', { role: 'administrar', user: anaId, password: 'contraseña larga' })).status, 200);
+    assert.equal((await client().call('/api/session', { role: 'administrar', user: anaId, pin: '0000' })).status, 401);
+    assert.equal((await client().call('/api/session', { role: 'administrar', user: anaId, pin: '1234' })).status, 200);
     assert.equal((await client().call('/api/session', { role: 'administrar', user: beto, pin: '4321' })).status, 403);
     assert.equal((await client().call('/api/session', { role: 'control', user: beto, pin: '4321' })).status, 400, 'en la nube no hay Control completo');
 
@@ -376,11 +375,9 @@ test('en la nube: la clave de alta, el administrador con contraseña y preparar 
     assert.equal((await b.send('projection.show', { kind: 'ytlink', data: added.result.data })).status, 403);
     assert.equal((await b.send('users.create', { name: 'Carla', pin: '1111', functions: ['orden'] })).status, 403, 'no gestiona usuarios');
 
-    // La contraseña de otro administrador la pone uno que ya lo es.
+    // Quien pasa a ser administrador entra a administrar con su mismo PIN; desde Preparar, sin volver a escribirlo.
     assert.equal((await ana.send('users.update', { id: beto, admin: true })).status, 200);
-    assert.equal((await ana.send('users.setPassword', { id: beto, password: 'corta' })).status, 400);
-    assert.equal((await ana.send('users.setPassword', { id: beto, password: 'la de beto, larga' })).status, 200);
-    assert.equal((await client().call('/api/session', { role: 'administrar', user: beto, password: 'la de beto, larga' })).status, 200);
+    assert.equal((await b.call('/api/session', { role: 'administrar', user: beto })).status, 200);
   } finally {
     await cloud.stop();
   }

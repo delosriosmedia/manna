@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { HttpError } from '../../core/router.js';
 import { cleanName } from '../../core/names.js';
-import { dayOf, migrateLegacy, moveItem, neighbor, renameItem, serviceName, uniqueName, validDay } from './logic.js';
+import { dayOf, defaultName, migrateLegacy, moveItem, neighbor, renameItem, uniqueName, validDay } from './logic.js';
 
 const MAX_STEPS_SHOWN = 200;
 const BEAT_MS = 60_000;
@@ -45,12 +45,12 @@ export default function setup(app) {
   }
   if (data.version !== 2) {
     // Fase 35: cada orden con su dueño (el administrador, los de antes) y su fecha; el orden sin nombre, si tenía algo,
-    // pasa a ser uno más, con el nombre del día.
+    // pasa a ser uno más, con el nombre de siempre.
     const admin = users.firstAdmin().id;
     for (const o of data.saved) Object.assign(o, { owner: o.owner || admin, date: o.date || dayOf(o.updated) });
     if (data.draft?.items?.length) {
       const day = dayOf();
-      const draft = { id: crypto.randomUUID(), name: uniqueName(serviceName(day), data.saved.map((o) => o.name)), owner: admin, date: day, items: data.draft.items, updated: Date.now() };
+      const draft = { id: crypto.randomUUID(), name: uniqueName(defaultName(users.get(admin).name, day), data.saved.map((o) => o.name)), owner: admin, date: day, items: data.draft.items, updated: Date.now() };
       data.saved.push(draft);
       if (!data.active) data.active = draft.id;
     }
@@ -160,7 +160,7 @@ export default function setup(app) {
     if (!validDay(day)) throw new HttpError(400, 'Esa fecha no es válida.');
     return day;
   };
-  // Sin nombre, el del día («Culto del sábado 1 de nov.»). Con nada en uso, el nuevo pasa a ser el de la cola.
+  // Sin nombre, el de quien lo crea y el día («Orden Ana 25 de oct.»). Con nada en uso, el nuevo pasa a ser el de la cola.
   const create = (owner, { name, date } = {}) => {
     if (data.saved.length >= data.limit) {
       throw new HttpError(409, `Ya hay ${data.limit} órdenes, el máximo de esta iglesia. Para crear otro, borra los antiguos que ya no se necesiten (los de otras personas los borra el administrador).`);
@@ -169,7 +169,7 @@ export default function setup(app) {
     const named = name != null && cleanName(name, 60);
     const created = {
       id: crypto.randomUUID(), owner, date: day, favorite: false, items: [], updated: Date.now(),
-      name: named ? orderName(name, owner) : uniqueName(serviceName(day), data.saved.filter((o) => o.owner === owner).map((o) => o.name)),
+      name: named ? orderName(name, owner) : uniqueName(defaultName(ownerName({ owner }), dayOf()), data.saved.filter((o) => o.owner === owner).map((o) => o.name)),
     };
     data.saved.push(created);
     if (!inUse()) data.active = created.id;

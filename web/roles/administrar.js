@@ -6,7 +6,7 @@ import { icon } from '../core/icons.js';
 import { whenLabel } from '../core/time.js';
 import { usersBody } from '../modules/settings/usuarios.js';
 
-// Administrar la iglesia (en la nube, fase 36): el administrador entra con su contraseña y gestiona los usuarios, aunque
+// Administrar la iglesia (en la nube, fase 36): el administrador entra con su PIN y gestiona los usuarios, aunque
 // el equipo de la iglesia esté apagado, y empareja el equipo oficial (fase 37). Dos pestañas, sin proyección.
 const me = await ensureRole('administrar');
 
@@ -17,7 +17,7 @@ const usuarios = {
   mount(el, ctx) {
     el.replaceChildren(h('div', { class: 'ws-head' }, h('h1', {}, 'Usuarios de la iglesia')),
       h('div', { class: 'admin-users' }, h('p', {}, 'Cada persona entra con su nombre y su PIN. En la iglesia, solo usa las funciones que tenga marcadas; aquí, en la nube, todos pueden preparar el culto.'),
-        ...usersBody(ctx.user, { passwords: true })));
+        ...usersBody(ctx.user)));
   },
 };
 

@@ -67,7 +67,6 @@ html.touch .disk-gap { width: var(--tap); }
 
 /* Usuarios (fase 35): una fila por persona, con su inicial, sus funciones y tres botones. */
 .user-list { display: grid; margin-bottom: 12px; }
-.user-password { flex-shrink: 0; }
 /* Ajustes → Nube y «Administrar la iglesia» → Equipo (fase 37). */
 .cloud-form { display: grid; gap: 12px; margin-bottom: 10px; }
 .cloud-form[hidden] { display: none; }

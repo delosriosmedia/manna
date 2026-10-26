@@ -33,7 +33,7 @@ export const ROLES = [
     requiresPin: true,
     permissions: ['projection.control', 'hymns.read'],
   },
-  // Solo en la nube (fase 36, `nube: true`): preparar el culto desde casa, y administrar los usuarios con contraseña.
+  // Solo en la nube (fase 36, `nube: true`): preparar el culto desde casa, y administrar los usuarios (el administrador, con su PIN).
   // En la nube no hay otras; en el equipo de la iglesia, estas no están.
   {
     id: 'preparacion',
@@ -47,7 +47,7 @@ export const ROLES = [
   {
     id: 'administrar',
     name: 'Administrar la iglesia',
-    description: 'Los usuarios de la iglesia. Entra el administrador, con su contraseña.',
+    description: 'Los usuarios y el equipo de la iglesia. Entra un administrador, con su PIN.',
     path: '/administrar',
     requiresPin: true,
     nube: true,

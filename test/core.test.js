@@ -158,6 +158,18 @@ test('al pasar a usuarios (fase 35), el PIN único de antes es el del administra
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+test('la contraseña del administrador de la nube (hasta la 1.48) se olvida y cuenta como clave de alta usada', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-clave-'));
+  const pin = { salt: 'a'.repeat(32), hash: 'b'.repeat(64) };
+  fs.writeFileSync(path.join(dir, 'usuarios.json'), JSON.stringify({ list: [{ id: 'a1b2c3d4e5f6', name: 'Ana', admin: true, functions: ['control'], pin, password: pin }] }));
+  const storage = createStorage(dir);
+  const sessions = createSessions({ storage, roles: [], cloud: true });
+  storage.flushAll();
+  assert.equal(sessions.altaPending(), false);
+  assert.ok(!fs.readFileSync(path.join(dir, 'usuarios.json'), 'utf8').includes('password'));
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test('las sesiones guardadas tienen un límite: al pasarlo se van las más viejas (fase 35)', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-sesiones-'));
   const list = Object.fromEntries(Array.from({ length: 505 }, (_, i) => [`s${i}`, { role: 'proyeccion', user: null, created: 1000 + i }]));

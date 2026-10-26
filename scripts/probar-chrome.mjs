@@ -3458,8 +3458,8 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   }
 
   // ---- Grupo «red»: la nube (fase 36) ----
-  // Otro servidor, en modo nube y con su clave de alta: el primer administrador, su contraseña, un usuario nuevo y
-  // preparar el culto con el PIN de ese usuario, sin proyección.
+  // Otro servidor, en modo nube y con su clave de alta: el primer administrador (con su PIN, decisión 64), un usuario
+  // nuevo y preparar el culto con el PIN de ese usuario, sin proyección.
   if (inGroup('red')) {
     console.log('\n6. La nube: administrar y preparar el culto');
     // El Chrome del paso 4 es otro: que también acepte el «¿Salir del sitio?» (tras un toque de verdad, como «Escuchar»).
@@ -3498,19 +3498,12 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       await formField('Clave de alta', 'otra');
       await formField('Tu nombre', 'Ana');
       await formField('Tu PIN', '1234');
-      await formField('Tu contraseña', 'contraseña de prueba');
       await submit();
       await sleep(600);
       check('la primera vez pide la clave de alta, y una equivocada no sirve', (await text('.modal .pin-error')) === 'La clave de alta no es esa.');
       await formField('Clave de alta', 'clave-de-alta-de-prueba');
       await submit();
       check('con la buena crea el administrador y entra en «Administrar la iglesia»', await until(`location.pathname === '/administrar' && document.querySelector('.user-row strong')?.textContent === 'Ana (tú)'`, 25));
-      await click(`document.querySelector('.user-row .user-password')`);
-      await sleep(300);
-      await run(`const i = document.querySelector('.modal input[type=password]'); i.value = 'la nueva contraseña'; i.dispatchEvent(new Event('input'));`);
-      await modalButton('Cambiar');
-      await sleep(600);
-      check('«Contraseña» la cambia', (await text('#toast')) === 'Contraseña cambiada.');
       await click(`[...document.querySelectorAll('.admin-users .btn')].find((b) => b.textContent.includes('Añadir usuario'))`);
       await sleep(300);
       await run(`const f = document.querySelectorAll('.modal .user-field input'); f[0].value = 'Beto'; f[1].value = '4321'; for (const i of f) i.dispatchEvent(new Event('input'));`);
@@ -3522,13 +3515,8 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       check('para administrar, solo salen los administradores', (await run(`return [...document.querySelectorAll('.modal .person .name')].map((s) => s.textContent).join()`)) === 'Ana');
       await click(`document.querySelector('.modal .person')`);
       await sleep(300);
-      await run(`const i = document.querySelector('.modal input[type=password]'); i.value = 'contraseña de prueba'; i.dispatchEvent(new Event('input'));`);
-      await submit();
-      await sleep(600);
-      check('y entran con la contraseña: la vieja ya no vale', (await text('.modal .pin-error')) === 'Contraseña incorrecta.');
-      await run(`const i = document.querySelector('.modal input[type=password]'); i.value = 'la nueva contraseña'; i.dispatchEvent(new Event('input'));`);
-      await submit();
-      check('con la nueva, sí', await until(`location.pathname === '/administrar'`, 25));
+      for (const digit of '1234') await click(`document.querySelector('.pin-keys button[aria-label="${digit}"]')`);
+      check('y entran con su PIN, el mismo de preparar el culto', await until(`location.pathname === '/administrar'`, 25));
 
       await switchUser('Preparar el culto');
       await click(`[...document.querySelectorAll('.modal .person')].find((p) => p.textContent.includes('Beto'))`);
@@ -3547,6 +3535,9 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       check('el himnario de la nube lleva su nota de uso', await until(`document.querySelector('.ws[data-module=himnario] .hymn-note')?.textContent.includes('no comercial')`, 15));
       check('el himnario se lee y un himno se añade al orden', await until(`document.querySelector('.ws[data-module=himnario] .hymn')`, 25)
         && await run(`document.querySelector('.ws[data-module=himnario] .hymn').click(); await new Promise((r) => setTimeout(r, 400)); const b = [...document.querySelectorAll('.hymn-bar .btn')].find((x) => x.textContent.includes('Añadir')); b.click(); await new Promise((r) => setTimeout(r, 700)); return /^Himno \\d+ añadido al orden/.test(document.querySelector('#toast').textContent)`));
+      // Con pista, aunque la nube no tenga ffmpeg: el equipo de la iglesia la sacará (decisión 64).
+      check('y con pista, aunque aquí no se pueda oír', await run(`const p = document.querySelector('.hymn-bar [data-track=instrumental]'); if (p.disabled) return false; p.click(); await new Promise((r) => setTimeout(r, 200)); [...document.querySelectorAll('.hymn-bar .btn')].find((x) => x.textContent.includes('Añadir')).click(); await new Promise((r) => setTimeout(r, 700));
+        const s = await (await fetch('/api/state')).json(); return document.querySelector('#toast').textContent.endsWith('(pista).') && s.orders.items.some((i) => i.kind === 'song' && i.data.track === 'instrumental')`));
       await tapEl(`document.querySelector('.hymn-bar .hymn-listen')`);
       check('un himno se escucha en el dispositivo, pedido a R2 con un enlace que caduca', await until(`document.querySelector('.preview-bar audio')?.currentTime > 0.5`, 25)
         && fakeR2.requests.some((r) => r.method === 'GET' && r.key.startsWith('Himnario/videos/') && r.signed), JSON.stringify(fakeR2.requests.slice(-3)));
@@ -3566,11 +3557,14 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
         await modalButton('Listo');
         return value;
       };
+      // Desde la sesión de Beto: el PIN de Ana se comprueba (quien ya entró cambia de función sin escribirlo).
       await switchUser('Administrar la iglesia');
       await click(`document.querySelector('.modal .person')`);
       await sleep(300);
-      await run(`const i = document.querySelector('.modal input[type=password]'); i.value = 'la nueva contraseña'; i.dispatchEvent(new Event('input'));`);
-      await submit();
+      for (const digit of '0000') await click(`document.querySelector('.pin-keys button[aria-label="${digit}"]')`);
+      await sleep(600);
+      check('a administrar, un PIN equivocado no entra', (await text('.modal .pin-error')) === 'PIN incorrecto.');
+      for (const digit of '1234') await click(`document.querySelector('.pin-keys button[aria-label="${digit}"]')`);
       await until(`location.pathname === '/administrar'`, 25);
       const firstCode = await adminCode();
       check('«Administrar la iglesia» → Equipo da un código de 6 cifras para emparejar', /^\d{6}$/.test(firstCode));
@@ -3639,7 +3633,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   console.log('\n5. Órdenes');
   {
     const ws = `document.querySelector('.ws[data-module=orden]')`;
-    const sw = `${ws}.querySelector('.order-switch')`;
+    const sw = `${ws}.querySelector('.order-name')`;
     const note = `${ws}.querySelector('.order-note')`;
     const queueName = `document.querySelector('.queue-head .queue-name')`;
     const other = `document.querySelector('#otro').contentDocument`;
@@ -3653,8 +3647,8 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     const names = (expected) => run(`return ${queueName}.textContent === ${JSON.stringify(expected)} && ${other}.querySelector('.queue-head .queue-name').textContent === ${JSON.stringify(expected)}`);
     const day = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const today = day(new Date());
-    // El nombre que propone «Nuevo orden»: el del día («Culto del sábado 1 de nov.»).
-    const proposal = `Culto del ${['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'][new Date().getDay()]} ${new Date().getDate()} de ${['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sept.', 'oct.', 'nov.', 'dic.'][new Date().getMonth()]}`;
+    // El nombre que propone «Nuevo orden»: el de quien lo crea y el de hoy («Orden Ana 25 de oct.», decisión 64).
+    const proposal = `Orden ${await run(`return (await (await fetch('/api/session')).json()).user.name`)} ${new Date().getDate()} de ${['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sept.', 'oct.', 'nov.', 'dic.'][new Date().getMonth()]}`;
     // Uno en uso al empezar, para ver que lo nuevo no lo cambia.
     const first = await run(`const r = await fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'order.create', payload: { name: 'Culto de la mañana' } }) }); return (await r.json()).result.id`);
     await run(`return await ${post('order.use', { id: 'ID' })}`.replace('"ID"', JSON.stringify(first)));
@@ -3672,12 +3666,12 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     // Nuevo orden: fecha de hoy y el nombre del día propuesto; queda abierto, pero no cambia la cola.
     await click(`${ws}.querySelector('.obrowse-head .btn')`);
     await sleep(400);
-    check('«Nuevo orden» pide la fecha (hoy) y propone el nombre del día', await run(`const m = ${topModal}; return m.querySelector('h2').textContent === 'Nuevo orden' && m.querySelector('input[type=date]').value === ${JSON.stringify(today)} && m.querySelector('input[aria-label=Nombre]').placeholder === ${JSON.stringify(proposal)}`), proposal);
+    check('«Nuevo orden» pide la fecha (hoy) y propone su nombre y el de hoy', await run(`const m = ${topModal}; return m.querySelector('h2').textContent === 'Nuevo orden' && m.querySelector('input[type=date]').value === ${JSON.stringify(today)} && m.querySelector('input[aria-label=Nombre]').placeholder === ${JSON.stringify(proposal)}`), proposal);
     await field('Nombre', 'Culto de prueba');
     await inTop('Crear');
     await sleep(800);
     let now = await stateNow();
-    check('lo crea y lo abre en «Este orden»; la cola sigue con el que estaba en uso, y lo dice', now.name === 'Culto de la mañana' && now.list.includes(`Culto de prueba:0:${today}`) && await run(`return ${ws}.querySelector('[data-view=este]').classList.contains('on') && ${sw}.textContent.trim() === 'Culto de prueba' && !${note}.hidden && ${note}.textContent.includes('No está en uso: la cola del culto muestra «Culto de la mañana»')`) && await names('Culto de la mañana'), JSON.stringify(now));
+    check('lo crea y lo abre en «Este orden»; la cola sigue con el que estaba en uso, y lo dice', now.name === 'Culto de la mañana' && now.list.includes(`Culto de prueba:0:${today}`) && await run(`return ${ws}.querySelector('[data-view=este]').classList.contains('on') && ${sw}.value === 'Culto de prueba' && !${note}.hidden && ${note}.textContent.includes('No está en uso: la cola del culto muestra «Culto de la mañana»')`) && await names('Culto de la mañana'), JSON.stringify(now));
     for (let i = 0; i < 2; i += 1) await run(`return await ${post('order.add', { kind: 'testcard', data: {} })}`);
     await sleep(500);
     now = await stateNow();
@@ -3688,6 +3682,21 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     await inTop('Cancelar');
     await sleep(300);
     check('«Cancelar» no cambia nada', (await stateNow()).name === 'Culto de la mañana');
+    // El nombre, junto al título, se escribe ahí mismo y se guarda al terminar; con Esc vuelve el de antes.
+    await run(`${sw}.focus()`);
+    await chrome.send('Input.insertText', { text: 'Otro nombre' });
+    await press('Escape');
+    check('el nombre junto al título: con Esc vuelve el de antes, sin guardar', (await stateNow()).list.includes(`Culto de prueba:2:${today}`) && await run(`return ${sw}.value === 'Culto de prueba'`));
+    await run(`${sw}.focus()`);
+    await chrome.send('Input.insertText', { text: 'Culto renombrado' });
+    await press('Enter');
+    await sleep(400);
+    check('y con Intro se guarda solo, sin abrir nada', (await stateNow()).list.includes(`Culto renombrado:2:${today}`) && await run(`return document.activeElement !== ${sw} && !document.querySelector('.modal') && ${ws}.querySelector('[data-view=este]').classList.contains('on')`));
+    await run(`${sw}.focus()`);
+    await chrome.send('Input.insertText', { text: 'Culto de prueba' });
+    await run(`${sw}.blur()`);
+    await sleep(400);
+    check('y también al salir del campo', (await stateNow()).list.includes(`Culto de prueba:2:${today}`));
     await click(`${note}.querySelector('.btn')`);
     await sleep(400);
     await inTop('Usar este orden');
@@ -3718,7 +3727,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     // Abrir otro desde la lista.
     await click(`${rowOf('Culto de la mañana')}.querySelector('.order-open')`);
     await sleep(700);
-    check('tocar un orden lo abre en «Este orden», sin cambiar la cola', (await stateNow()).editing === first && await run(`return ${ws}.querySelector('[data-view=este]').classList.contains('on') && ${sw}.textContent.trim() === 'Culto de la mañana' && ${ws}.querySelectorAll('.olist .orow').length === 1 && !${note}.hidden`) && await names('Culto vespertino'));
+    check('tocar un orden lo abre en «Este orden», sin cambiar la cola', (await stateNow()).editing === first && await run(`return ${ws}.querySelector('[data-view=este]').classList.contains('on') && ${sw}.value === 'Culto de la mañana' && ${ws}.querySelectorAll('.olist .orow').length === 1 && !${note}.hidden`) && await names('Culto vespertino'));
 
     // Eliminar el que está en uso: la cola queda vacía.
     await tab('ordenes');
@@ -3750,7 +3759,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     await run(`return await ${post('order.use', { id: 'ID' })}`.replace('"ID"', JSON.stringify(first)));
     await chrome.send('Page.navigate', { url: `${local}/orden?x=${Date.now()}#orden` });
     await sleep(2500);
-    check('en «Control del orden» no hay botón ni pestañas: solo se ve el nombre del orden en uso', await run(`const e = document.querySelector('.order-switch'); e.click(); return e.tagName === 'SPAN' && e.textContent.trim() === 'Culto de la mañana' && !document.querySelector('button.order-switch, .order-bar [role=tab]') && !document.querySelector('.modal')`));
+    check('en «Control del orden» no hay pestañas y el nombre del orden en uso no se puede cambiar', await run(`const e = document.querySelector('.order-name'); e.click(); return e.readOnly && e.value === 'Culto de la mañana' && !document.querySelector('.order-bar [role=tab]') && !document.querySelector('.modal')`));
     await chrome.send('Page.navigate', { url: `${local}/control?fin2=${Date.now()}#orden` });
     await sleep(2500);
   }

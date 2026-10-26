@@ -31,8 +31,9 @@ function mount(el, ctx) {
   const letras = () => view === 'letras';
   const slideUrl = (hymn, i) => `${hymn.slidesBase}${encodeURIComponent(hymn.slideFiles[i])}`;
   const hasFfmpeg = () => Boolean((state.tools?.list || []).find((t) => t.id === 'ffmpeg')?.found);
-  // ¿Se puede usar la pista de este himno? Sin ffmpeg, no; y hay himnos que no la traen.
-  const canPlayTrack = (hymn) => hasFfmpeg() && hymn?.instrumental !== false;
+  // ¿Se puede usar la pista de este himno? Sin ffmpeg, no; y hay himnos que no la traen. Al preparar el culto en la nube
+  // sí se elige (decisión 64): la nube no tiene ffmpeg, pero el equipo de la iglesia la sacará al proyectarlo.
+  const canPlayTrack = (hymn) => (!ctx.canProject || hasFfmpeg()) && hymn?.instrumental !== false;
   const soundFor = (hymn) => (track === 'instrumental' && canPlayTrack(hymn) ? 'instrumental' : 'vocal');
 
   // ---- Cabecera: buscador, vistas y avisos ----
@@ -246,7 +247,7 @@ function mount(el, ctx) {
         chip.classList.toggle('on', id === soundFor(hymn));
         chip.setAttribute('aria-pressed', id === soundFor(hymn));
         chip.disabled = id === 'instrumental' && !usable;
-        chip.title = id !== 'instrumental' ? 'El himno con las voces' : usable ? 'Solo la música, para que cante la iglesia'
+        chip.title = id !== 'instrumental' ? 'El himno con las voces' : usable ? `Solo la música, para que cante la iglesia${ctx.canProject ? '' : ' (aquí se escucha cantado; la iglesia lo proyectará con la pista)'}`
           : hasFfmpeg() ? 'Este himno no trae pista instrumental' : 'Para la pista hace falta ffmpeg en el equipo principal';
       }
       if (favButton) {

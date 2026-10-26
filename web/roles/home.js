@@ -64,37 +64,20 @@ function askPin(role, user) {
   paint();
 }
 
-// Administrar, en la nube (fase 36): con la contraseña del administrador, no con el PIN.
-function askPassword(role, user) {
-  const input = h('input', { class: 'input', type: 'password', autocomplete: 'current-password', 'aria-label': 'Contraseña' });
-  const error = h('p', { class: 'pin-error', role: 'alert' });
-  dialog(role.name, h('form', { class: 'login-form', onsubmit: async (e) => {
-    e.preventDefault();
-    try {
-      await session.open(role.id, undefined, user.id, input.value);
-      location.href = role.path;
-    } catch (err) {
-      error.textContent = err.message;
-      input.select();
-    }
-  } }, h('p', {}, `${user.name}, escribe tu contraseña.`), input, error, h('button', { class: 'btn primary', type: 'submit' }, 'Entrar')));
-}
-
 // La primera vez en la nube, la clave de alta que puso el dueño en el hosting crea el administrador (decisión 62).
 function askAlta(role) {
   const field = (label, attrs) => h('label', { class: 'login-field' }, h('span', {}, label), h('input', { class: 'input', ...attrs }));
   const fields = {
     clave: field('Clave de alta', { type: 'password', autocomplete: 'off' }),
     name: field('Tu nombre', { maxLength: 40, autocomplete: 'name', placeholder: 'Por ejemplo, Ana' }),
-    pin: field('Tu PIN, para preparar el culto', { inputMode: 'numeric', pattern: '[0-9]*', maxLength: 4, autocomplete: 'off', placeholder: '4 números' }),
-    password: field('Tu contraseña, para administrar', { type: 'password', autocomplete: 'new-password', placeholder: 'Al menos 10 caracteres' }),
+    pin: field('Tu PIN, para preparar y administrar', { inputMode: 'numeric', pattern: '[0-9]*', maxLength: 4, autocomplete: 'off', placeholder: '4 números' }),
   };
   const value = (id) => fields[id].querySelector('input').value;
   const error = h('p', { class: 'pin-error', role: 'alert' });
   dialog(role.name, h('form', { class: 'login-form', onsubmit: async (e) => {
     e.preventDefault();
     try {
-      await session.alta({ clave: value('clave'), name: value('name'), pin: value('pin'), password: value('password') });
+      await session.alta({ clave: value('clave'), name: value('name'), pin: value('pin') });
       location.href = role.path;
     } catch (err) {
       error.textContent = err.message;
@@ -107,7 +90,7 @@ function askAlta(role) {
 function askWho(role) {
   const people = info.users.filter((u) => (role.id === 'administrar' ? u.admin : FOR_ALL.includes(role.id) || u.functions.includes(role.id)));
   const { close } = dialog(role.name, people.length
-    ? h('div', { class: 'people', role: 'list', 'aria-label': '¿Quién eres?' }, ...people.map((user) => h('button', { class: 'person', role: 'listitem', onclick: () => { close(); (role.id === 'administrar' ? askPassword : askPin)(role, user); } },
+    ? h('div', { class: 'people', role: 'list', 'aria-label': '¿Quién eres?' }, ...people.map((user) => h('button', { class: 'person', role: 'listitem', onclick: () => { close(); askPin(role, user); } },
       h('span', { class: 'initial', 'aria-hidden': 'true' }, user.name.slice(0, 1).toUpperCase()), h('span', { class: 'name' }, user.name))))
     : h('p', { class: 'empty' }, `Nadie puede usar «${role.name}» todavía. Se lo da el administrador, en Ajustes → Usuarios.`));
 }
@@ -122,8 +105,9 @@ async function enter(role) {
 }
 
 let switching = false; // «Entrar como otra persona»
-// Quien ya entró usa sin PIN las funciones que tiene. Administrar pide siempre la contraseña.
-const mine = (role) => Boolean(info.user) && role.id !== 'administrar' && (FOR_ALL.includes(role.id) || Boolean(info.users.find((u) => u.id === info.user.id)?.functions.includes(role.id)));
+// Quien ya entró usa sin PIN las funciones que tiene (Administrar, si es administrador).
+const me = info.user && info.users.find((u) => u.id === info.user.id);
+const mine = (role) => Boolean(me) && (role.id === 'administrar' ? me.admin : FOR_ALL.includes(role.id) || me.functions.includes(role.id));
 async function choose(role) {
   if (!role.requiresPin) {
     location.href = role.path;
@@ -146,7 +130,7 @@ $('#roles').append(...info.roles.map((role) => {
   return h('button', { class: `role${current ? ' current' : ''}`, onclick: () => choose(role) },
     h('span', { class: 'role-icon' }, icon(ICONS[role.id] || 'monitor', 22)),
     h('span', { class: 'role-text' }, h('strong', {}, role.name), h('span', {}, role.description)),
-    h('span', { class: `tag${asks && !current ? ' asks' : ''}` }, current ? 'Función actual' : role.id === 'administrar' ? 'Contraseña' : asks ? 'Pide PIN' : 'Sin PIN'));
+    h('span', { class: `tag${asks && !current ? ' asks' : ''}` }, current ? 'Función actual' : asks ? 'Pide PIN' : 'Sin PIN'));
 }));
 
 // Si llegó aquí rebotado desde una página de control, entra directo (o pide el PIN de esa función).

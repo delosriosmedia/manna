@@ -34,13 +34,12 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const WARN_LEFT = 5;
 
 // Fechas de los órdenes: «AAAA-MM-DD», el día del culto. El nombre que se propone es el del servidor
-// (server/modules/order/logic.js): «Culto del sábado 1 de nov.».
+// (server/modules/order/logic.js): «Orden Ana 25 de oct.».
 const DAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const MONTHS = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sept.', 'oct.', 'nov.', 'dic.'];
 const two = (n) => String(n).padStart(2, '0');
 const dayOf = (d = new Date()) => `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
 const dateOf = (day) => new Date(`${day}T12:00`);
-const serviceName = (day) => { const d = dateOf(day); return `Culto del ${DAYS[d.getDay()]} ${d.getDate()} de ${MONTHS[d.getMonth()]}`; };
 const shortDate = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
 const dayLabel = (day) => { const d = dateOf(day); return `${DAYS[d.getDay()].slice(0, 3)}. ${shortDate(d)}`; };
 // El domingo de su semana (las semanas van de domingo a sábado), como «AAAA-MM-DD».
@@ -84,11 +83,33 @@ function mount(el, ctx) {
   // Mandos del elemento que está al aire. Se crean una vez y se colocan en su detalle.
   const liveControls = h('div', {});
   createLiveControls(liveControls);
-  // El orden que se ve; con permiso de editar, lleva a «Órdenes».
-  const orderName = h('span', {});
-  const switcher = ctx.canEdit
-    ? h('button', { class: 'btn order-switch', title: 'Órdenes', onclick: () => setView('ordenes') }, icon('folder-simple', 16), orderName, icon('caret-down', 14))
-    : h('span', { class: 'order-switch' }, orderName);
+  // El nombre del orden que se ve, junto al título (decisión 64): quien puede cambiarlo lo escribe ahí mismo y se guarda
+  // solo al terminar (al salir del campo o con Intro; con Esc vuelve el de antes, y el shell quita el foco).
+  const orderName = h('input', {
+    class: 'order-name', maxLength: 60, autocomplete: 'off', spellcheck: false, placeholder: 'Ningún orden', 'aria-label': 'Nombre del orden',
+    onfocus: () => orderName.select(),
+    oninput: () => fitName(),
+    onkeydown: (e) => {
+      if (e.key === 'Enter') orderName.blur();
+      if (e.key === 'Escape') orderName.value = viewing?.name || '';
+    },
+    onchange: guard(async () => {
+      const name = orderName.value.trim();
+      if (!name || name === viewing?.name) {
+        orderName.value = viewing?.name || '';
+        fitName();
+        return;
+      }
+      try {
+        await action('order.renameOrder', { id: viewing.id, name });
+      } catch (err) {
+        orderName.value = viewing?.name || '';
+        fitName();
+        throw err;
+      }
+    }),
+  });
+  const fitName = () => { orderName.size = Math.min(40, Math.max(6, (orderName.value || orderName.placeholder).length + 1)); };
   const quick = h('input', {
     type: 'text', placeholder: 'Añadir una cita rápida: jn 3 16', autocomplete: 'off', 'aria-label': 'Añadir una cita al orden',
     onkeydown: (e) => { if (e.key === 'Enter') quickAdd(quick.value.trim()); },
@@ -102,7 +123,7 @@ function mount(el, ctx) {
   });
 
   el.replaceChildren(
-    h('div', { class: 'ws-head' }, h('h1', {}, 'Orden del culto'), switcher,
+    h('div', { class: 'ws-head' }, h('h1', {}, 'Orden del culto'), orderName,
       ctx.canEdit && h('label', { class: 'search' }, icon('plus', 16), quick, h('kbd', {}, '↵')),
       !ctx.canEdit && h('span', { class: 'spacer' }),
       ctx.canEdit && h('button', { class: 'btn order-add', 'aria-label': 'Añadir', onclick: (e) => openAddMenu(e.currentTarget) }, icon('plus', 15), h('span', {}, 'Añadir')),
@@ -214,13 +235,14 @@ function mount(el, ctx) {
   }
   // Pide nombre y fecha: para uno nuevo (o null) o para cambiar los de uno.
   function askOrder({ title, o = null, onSave }) {
-    const date = h('input', { class: 'input', type: 'date', value: o?.date || dayOf(), 'aria-label': 'Fecha', required: true, oninput: () => { name.placeholder = serviceName(date.value || dayOf()); } });
-    const name = h('input', { class: 'input', maxLength: 60, value: o?.name || '', placeholder: serviceName(o?.date || dayOf()), 'aria-label': 'Nombre' });
+    const date = h('input', { class: 'input', type: 'date', value: o?.date || dayOf(), 'aria-label': 'Fecha', required: true });
+    const today = new Date();
+    const name = h('input', { class: 'input', maxLength: 60, value: o?.name || '', placeholder: `Orden ${me?.name || ''} ${today.getDate()} de ${MONTHS[today.getMonth()]}`, 'aria-label': 'Nombre' });
     const box = dialog(title, h('form', { onsubmit: guard(async (e) => { e.preventDefault(); await onSave({ name: name.value.trim(), date: date.value }); box.close(); }) },
       h('div', { class: 'order-form' },
         h('label', { class: 'order-field' }, h('span', {}, 'Fecha del culto'), date),
         h('label', { class: 'order-field' }, h('span', {}, 'Nombre'), name)),
-      !o && h('p', { class: 'muted' }, 'Sin nombre, se llama como el día. Es tuyo: solo lo ven y lo cambian tú y el administrador.'),
+      !o && h('p', { class: 'muted' }, 'Sin nombre, lleva el tuyo y el de hoy. Es tuyo: solo lo ven y lo cambian tú y el administrador.'),
       h('div', { class: 'row', style: 'justify-content: flex-end;' },
         h('button', { class: 'btn', type: 'button', onclick: () => box.close() }, 'Cancelar'),
         h('button', { class: 'btn primary' }, o ? 'Guardar' : 'Crear'))));
@@ -558,8 +580,11 @@ function mount(el, ctx) {
     viewing = open || (inUse.active ? { id: inUse.active, name: inUse.name, ownerName: inUse.owner } : null);
     items = open ? mine.items : inUse.items || [];
     inUseHere = Boolean(viewing?.id) && viewing.id === inUse.active;
-    orderName.textContent = viewing?.name || 'Ningún orden';
-    if (ctx.canEdit) switcher.setAttribute('aria-label', `Órdenes (abierto: ${orderName.textContent})`);
+    orderName.readOnly = !editable;
+    if (document.activeElement !== orderName) {
+      orderName.value = viewing?.name || '';
+      fitName();
+    }
     renderNote();
     renderBrowse();
     if (!items.some((i) => i.id === selectedId)) selectedId = null;

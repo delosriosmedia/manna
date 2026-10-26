@@ -461,7 +461,7 @@ async function worker(list, n) {
     await chrome.send('Page.navigate', { url: `${cloudBase}/api/ping` });
     await sleep(300);
     await chrome.evaluate(`(async () => { localStorage.clear(); const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      const pass = { pin: '1234', password: 'contraseña de la auditoría' };
+      const pass = { pin: '1234' };
       if ((await (await fetch('/api/session')).json()).alta) await post('/api/session/alta', { clave: 'auditoria', name: 'Ana', ...pass });
       const user = (await (await fetch('/api/session')).json()).users[0].id;
       return (await post('/api/session', { role: ${JSON.stringify(role)}, user, ...pass })).status; })()`);

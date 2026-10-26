@@ -79,7 +79,7 @@ try {
   check('en modo nube, con solo sus dos funciones y la clave de alta pendiente', info.roles.map((r) => r.id).join() === 'preparacion,administrar' && info.alta === true && info.isLocal === false);
   check('sirve la interfaz', (await fetch(`${base}/preparacion`)).status === 200 && (await fetch(`${base}/core/app.css`)).status === 200);
   const post = (url, body, cookie = '') => fetch(base + url, { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(body) });
-  const alta = await post('/api/session/alta', { clave: 'clave-del-paquete', name: 'Prueba', pin: '1234', password: 'contraseña de prueba' });
+  const alta = await post('/api/session/alta', { clave: 'clave-del-paquete', name: 'Prueba', pin: '1234' });
   check('la clave de alta crea el administrador', alta.status === 200);
   const user = (await alta.json()).user?.id;
   const cookie = (await post('/api/session', { role: 'preparacion', user, pin: '1234' }, alta.headers.get('set-cookie')?.split(';')[0])).headers.get('set-cookie')?.split(';')[0] || '';

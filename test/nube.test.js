@@ -60,7 +60,7 @@ test('emparejar con un código de «Administrar», el equipo oficial y el bloque
   const nube = await serve('nube', { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'clave-de-alta-nube' });
   const a = await serve('iglesia-a');
   const b = await serve('iglesia-b');
-  assert.equal((await nube.call('/api/session/alta', { clave: 'clave-de-alta-nube', name: 'Ana', pin: '1234', password: 'contraseña de prueba' })).status, 200);
+  assert.equal((await nube.call('/api/session/alta', { clave: 'clave-de-alta-nube', name: 'Ana', pin: '1234' })).status, 200);
   for (const s of [a, b]) await s.call('/api/session', { role: 'control' }); // desde este equipo: el administrador
   const code = async () => (await nube.send('cloud.code')).result.code;
   const other = (c) => (c === '000000' ? '111111' : '000000');
@@ -170,7 +170,7 @@ test('emparejar con un código de «Administrar», el equipo oficial y el bloque
   assert.ok(answer.version && answer.version !== cloudData && Date.now() - t0 < 5000, 'contesta enseguida, con la huella nueva');
 
   // Diez intentos fallidos anulan el código.
-  await nube.call('/api/session', { role: 'administrar', user: anaThere, password: 'contraseña de prueba' });
+  await nube.call('/api/session', { role: 'administrar', user: anaThere, pin: '1234' });
   const last = await code();
   for (let i = 0; i < 10; i += 1) await a.send('cloud.pair', { url: nube.base, code: other(last) });
   const late = await a.send('cloud.pair', { url: nube.base, code: last });
