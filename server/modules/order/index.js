@@ -224,6 +224,38 @@ export default function setup(app) {
       delete data.editing[from];
       if (theirs.length) save();
     },
+    // Cambia en todos los órdenes los elementos de un tipo: change(elemento) devuelve { kind, data } o null (lo deja).
+    // Lo que se preparó en la nube y en la iglesia es otra cosa (decisión 64): el video de YouTube por su enlace, ya
+    // descargado. El elemento conserva su nombre en el orden.
+    convert(kind, change) {
+      let changed = false;
+      for (const o of data.saved) {
+        o.items = o.items.map((item) => {
+          if (item.kind !== kind) return item;
+          const next = change(item);
+          const described = next && app.kinds.get(next.kind)?.describe(next.data);
+          if (!described) return item;
+          changed = true;
+          o.updated = Date.now();
+          return { ...item, kind: next.kind, subtitle: described.subtitle, steps: described.steps, data: described.data };
+        });
+      }
+      if (changed) save();
+    },
+    // Lo que cambió de un contenido (un PowerPoint ya convertido: cuántas diapositivas tiene), en los órdenes que lo usan.
+    refresh(kind, id) {
+      let changed = false;
+      for (const o of data.saved) {
+        for (const item of o.items) {
+          const described = item.kind === kind && item.data?.id === id && app.kinds.get(kind)?.describe(item.data);
+          if (!described || (described.steps === item.steps && described.subtitle === item.subtitle)) continue;
+          Object.assign(item, { subtitle: described.subtitle, steps: described.steps });
+          o.updated = Date.now();
+          changed = true;
+        }
+      }
+      if (changed) save();
+    },
     // La sincronización con la nube (fase 37, parte 4; core/sync.js). Lo que está en uso y lo que cada uno tiene
     // abierto es de cada lado y no viaja.
     sync: {

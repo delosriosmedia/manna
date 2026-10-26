@@ -22,7 +22,8 @@ const LOST = 'Las animaciones, las transiciones y los videos incrustados no se c
 const AS_PDF = 'Ábrela en el programa donde se hizo y guárdala como PDF: en PowerPoint, Archivo → Exportar (o Guardar como) → PDF. En Presentaciones de Google, Archivo → Descargar → PDF. En Keynote, Archivo → Exportar a → PDF.';
 
 // Ventana para poner nombre a la presentación y subirla. onDone(id) recibe la que quedó en la biblioteca.
-export function openDeckUpload(file, { onDone = () => {} } = {}) {
+// cloud: al preparar el culto en la nube (decisión 64), un PowerPoint se sube tal cual y lo convierte la iglesia.
+export function openDeckUpload(file, { cloud = false, onDone = () => {} } = {}) {
   if (!file) return;
   if (!acceptsDeck(file)) {
     const box = dialog('Ese archivo no es una presentación',
@@ -31,7 +32,7 @@ export function openDeckUpload(file, { onDone = () => {} } = {}) {
     return;
   }
   const pdf = isPdf(file);
-  if (!pdf && !converter()) {
+  if (!pdf && !cloud && !converter()) {
     const box = dialog('Hace falta el PDF de la presentación',
       h('p', {}, 'El equipo principal no tiene con qué abrir esta presentación. Puedes instalar DeckCraft (gratis, sin PowerPoint) desde la revisión del equipo: Ajustes → Revisar el equipo.'), h('p', { class: 'muted' }, AS_PDF),
       h('p', { class: 'muted' }, 'Luego sube aquí el PDF.'),
@@ -42,7 +43,7 @@ export function openDeckUpload(file, { onDone = () => {} } = {}) {
   const name = h('input', { class: 'input', value: nameFromFile(file.name, 'Presentación'), maxLength: 80, 'aria-label': 'Nombre de la presentación' });
   const fill = h('span', { style: 'width: 0%;' });
   const bar = h('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': 0 }, fill);
-  const status = h('small', { class: 'deck-up-status' }, pdf ? 'Leyendo el PDF…' : `La convertirá ${converter() === 'DeckCraft' ? 'DeckCraft' : 'el PowerPoint'} del equipo principal. Puede tardar un momento.`);
+  const status = h('small', { class: 'deck-up-status' }, pdf ? 'Leyendo el PDF…' : cloud ? 'La convertirá el equipo de la iglesia cuando le llegue.' : `La convertirá ${converter() === 'DeckCraft' ? 'DeckCraft' : 'el PowerPoint'} del equipo principal. Puede tardar un momento.`);
   const send = h('button', { class: 'btn primary', disabled: pdf }, 'Subir');
   const cancel = h('button', { class: 'btn' }, 'Cancelar');
   const box = dialog('Subir una presentación',
@@ -120,7 +121,7 @@ export function openDeckUpload(file, { onDone = () => {} } = {}) {
       const id = await (pdf ? sendPdf() : sendPresentation());
       working = false;
       close();
-      toast(pdf ? 'Presentación subida.' : 'PowerPoint la está convirtiendo. Puedes seguir usando Manna mientras tanto.');
+      toast(pdf ? 'Presentación subida.' : cloud ? 'Presentación subida. Se convertirá en la iglesia.' : 'PowerPoint la está convirtiendo. Puedes seguir usando Manna mientras tanto.');
       onDone(id);
     } catch (err) {
       working = false;

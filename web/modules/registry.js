@@ -2,7 +2,6 @@ import order from './order/workspace.js';
 import bible from './bible/workspace.js';
 import himnario from './hymns/workspace.js';
 import medios from './media/workspace.js';
-import enlaces from './media/enlaces.js';
 import presentador from './slides/presenter.js';
 import paginas from './web/workspace.js';
 import textos from './texts/workspace.js';
@@ -43,8 +42,9 @@ export const ALABANZA_MODULES = [
   bible,
 ];
 
-// Función "Preparar el culto" (en la nube, fase 36): cinco pestañas, sin proyección. Medios, solo YouTube por su enlace.
-export const PREPARACION_MODULES = [order, bible, himnario, enlaces, textos];
+// Función "Preparar el culto" (en la nube, fase 36): cinco pestañas, sin proyección. Medios sube desde casa lo que baja
+// después el equipo de la iglesia, y YouTube va por su enlace (decisión 64).
+export const PREPARACION_MODULES = [order, bible, himnario, medios, textos];
 
 // Función "Presentador de diapositivas": solo su pantalla, que ya muestra lo que está al aire.
 export const PRESENTADOR_MODULES = [presentador];

@@ -78,7 +78,7 @@ export function registerClips(app, { saved, commit }) {
   const view = (clip) => ({
     id: clip.id, kind: clip.kind, name: clip.name, source: clip.source, url: urlOf(clip), poster: stamped(clip.poster, clip.posterAt),
     duration: clip.duration ?? null, width: clip.width || 0, height: clip.height || 0, bytes: clip.bytes || 0, added: clip.added,
-    status: clip.status, error: clip.error || null, subtitles: subtitlesOf(clip).length > 0, converted: Boolean(clip.converted),
+    status: clip.status, error: clip.error || null, subtitles: subtitlesOf(clip).length > 0, converted: Boolean(clip.converted), ...(clip.atChurch && { atChurch: true }),
     // usable: ya se puede proyectar (aunque la copia para las demás pantallas esté en camino).
     // original: solo en lo que hay que convertir. playable = lo dicho por el equipo principal
     // (null: aún no lo ha comprobado), by = qué pantalla suya lo comprobó.
@@ -217,7 +217,7 @@ export function registerClips(app, { saved, commit }) {
 
   // Lo que quedó a medias al apagar, y lo que esperaba a que hubiera ffmpeg.
   async function resume() {
-    saved.data.clips = clips().filter((clip) => clip.source === 'folder' || fs.existsSync(path.join(base, clip.file))
+    saved.data.clips = clips().filter((clip) => clip.source === 'folder' || clip.atChurch || fs.existsSync(path.join(base, clip.file))
       || (clip.source === 'youtube' && clip.status !== 'ready'));
     for (const clip of clips()) {
       // Una descarga que se quedó a medias al apagar no se retoma sola (haría falta internet): se dice.
@@ -339,6 +339,7 @@ export function registerClips(app, { saved, commit }) {
   // ---- Subir ----
   app.route('POST', '/api/media/clips', async (ctx) => {
     ctx.require('media.edit');
+    if (app.cloud) app.services.church?.room(Number(ctx.req.headers['content-length']) || 0);
     const ext = String(ctx.query.get('ext') || '').toLowerCase();
     const kind = /^\.[a-z0-9]{2,5}$/.test(ext) ? clipKind(`x${ext}`) : null;
     if (!kind) throw new HttpError(415, 'Manna no reconoce ese tipo de archivo. Sube un video (MP4, MOV, AVI…) o un audio (MP3, M4A, WAV…).');
@@ -500,7 +501,49 @@ export function registerClips(app, { saved, commit }) {
     return view(clip);
   });
 
+  // De la nube al equipo de la iglesia (decisión 64; ver index.js): lo subido desde casa, tal cual se subió. En el
+  // equipo entra como si se acabara de subir (con su copia ligera y su imagen, si hacen falta).
+  const rel = (file) => file && path.join(path.relative(app.dataDir, base), file);
+  const transfer = {
+    pending: () => clips().filter((c) => c.source === 'upload' && !c.atChurch).map((c) => ({
+      type: c.kind, id: c.id, entry: { name: c.name, ext: path.extname(c.file), duration: c.duration, bytes: c.bytes }, files: { main: rel(c.file), thumb: rel(c.poster) },
+    })),
+    delivered(id) {
+      const clip = find(id);
+      if (clip.atChurch) return;
+      // Se queda la imagen (la miniatura de la nube); lo demás, que pesa, se borra.
+      converter.cancel(clip.id);
+      for (const file of [clip.file, clip.converted, clip.subtitles]) removeFile(file);
+      Object.assign(clip, { atChurch: true, status: 'church', direct: true, converted: null, subtitles: null, error: null });
+      commit();
+    },
+    async adopt({ id, type, entry }, files) {
+      const kind = type === 'audio' ? 'audio' : 'video';
+      const ext = String(entry.ext || '').toLowerCase();
+      if (!/^\.[a-z0-9]{2,5}$/.test(ext) || clipKind(`x${ext}`) !== kind) throw new Error('No llegó un video ni un audio.');
+      const file = `${FOLDERS[kind]}/${id}${ext}`;
+      fs.mkdirSync(path.join(base, FOLDERS[kind]), { recursive: true });
+      fs.renameSync(files.main, path.join(base, file));
+      const clip = {
+        id, kind, name: cleanName(entry.name) || LABELS[kind], source: 'upload', file, bytes: Number(entry.bytes) || 0, added: Date.now(),
+        duration: Number(entry.duration) > 0 ? Number(entry.duration) : null, width: 0, height: 0, status: 'ready', direct: false, converted: null, poster: null, subtitles: null, error: null,
+      };
+      if (files.thumb && readImageInfo(files.thumb)?.type === 'jpeg') {
+        fs.mkdirSync(path.join(base, 'miniaturas'), { recursive: true });
+        fs.renameSync(files.thumb, path.join(base, `miniaturas/${id}.jpg`));
+        Object.assign(clip, { poster: `miniaturas/${id}.jpg`, posterAt: Date.now() });
+      }
+      if (!(await analyze(clip))) {
+        removeFile(file);
+        throw new Error('No se puede reproducir.');
+      }
+      clips().push(clip);
+      commit();
+    },
+  };
+
   return {
+    transfer,
     views: (kind) => clips().filter((c) => c.kind === kind).sort((a, b) => b.added - a.added).map(view),
     has: (id) => clips().some((c) => c.id === id),
     kindOf: (id) => clips().find((c) => c.id === id)?.kind ?? null,

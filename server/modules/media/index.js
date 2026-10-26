@@ -34,13 +34,14 @@ export default function setup(app) {
     c.items = (c.items || c.videos || []).filter((id) => !seen.has(id) && seen.add(id));
     delete c.videos;
   }
-  // Fichas cuyo archivo ya no está (alguien lo borró a mano) se quitan al arrancar.
-  saved.data.images = saved.data.images.filter((image) => fs.existsSync(path.join(app.uploadsDir, image.file)));
+  // Fichas cuyo archivo ya no está (alguien lo borró a mano) se quitan al arrancar. En la nube, de lo que ya llegó a la
+  // iglesia queda solo la miniatura (atChurch, abajo).
+  saved.data.images = saved.data.images.filter((image) => fs.existsSync(path.join(app.uploadsDir, image.atChurch ? image.thumb || '' : image.file)));
 
   const url = (file) => `/media/${file}`;
   const view = (image) => ({
-    id: image.id, name: image.name, url: url(image.file), thumb: image.thumb ? url(image.thumb) : null,
-    width: image.width, height: image.height, bytes: image.bytes, fit: validFit(image.fit), added: image.added,
+    id: image.id, name: image.name, url: url(image.atChurch ? image.thumb : image.file), thumb: image.thumb ? url(image.thumb) : null,
+    width: image.width, height: image.height, bytes: image.bytes, fit: validFit(image.fit), added: image.added, ...(image.atChurch && { atChurch: true }),
   });
   let library = null; // videos y audios: se crea más abajo
   // Las más recientes, primero.
@@ -69,7 +70,44 @@ export default function setup(app) {
 
   store.register('media', { images: [], videos: [], audios: [], youtube: [], categories: [] });
   library = registerClips(app, { saved, commit });
-  app.services.media = { rescan: library.rescan };
+  // De la nube al equipo de la iglesia (decisión 64): lo que se sube desde casa espera en la nube (pending) a que el
+  // equipo lo baje y lo adopte con el mismo identificador (así los órdenes que lo usan no cambian); al recibirlo, la
+  // nube borra el archivo grande y se queda con la ficha y la miniatura (delivered: atChurch). Las rutas de los
+  // archivos, dentro de data/. Los videos y audios, en library.js.
+  const rel = (file) => file && path.join(path.relative(app.dataDir, app.uploadsDir), file);
+  const images = {
+    pending: () => saved.data.images.filter((i) => !i.atChurch).map((i) => ({
+      type: 'image', id: i.id, entry: { name: i.name, fit: i.fit, bytes: i.bytes }, files: { main: rel(i.file), thumb: rel(i.thumb) },
+    })),
+    delivered(id) {
+      const image = saved.data.images.find((i) => i.id === id);
+      if (!image || image.atChurch || !image.thumb) return;
+      fs.rmSync(path.join(app.uploadsDir, image.file), { force: true });
+      image.atChurch = true;
+      commit();
+    },
+    adopt({ id, entry }, files) {
+      const info = readImageInfo(files.main);
+      if (!info) throw new Error('No llegó una imagen.');
+      const file = `${FOLDER}/${id}${EXTENSIONS[info.type]}`;
+      fs.mkdirSync(dir, { recursive: true });
+      fs.renameSync(files.main, path.join(app.uploadsDir, file));
+      const thumb = files.thumb && readImageInfo(files.thumb)?.type === 'jpeg' ? `${FOLDER}/${id}.mini.jpg` : null;
+      if (thumb) fs.renameSync(files.thumb, path.join(app.uploadsDir, thumb));
+      saved.data.images.push({ id, file, thumb, bytes: Number(entry.bytes) || 0, width: info.width, height: info.height, name: cleanName(entry.name) || 'Imagen', fit: validFit(entry.fit), added: Date.now() });
+      commit();
+    },
+  };
+  app.services.media = {
+    rescan: library.rescan,
+    transfer: {
+      types: ['image', 'video', 'audio'],
+      has: (id) => saved.data.images.some((i) => i.id === id) || library.has(id),
+      pending: () => [...images.pending(), ...library.transfer.pending()],
+      delivered: (id) => (library.has(id) ? library.transfer.delivered(id) : images.delivered(id)),
+      adopt: (item, files) => (item.type === 'image' ? images.adopt(item, files) : library.transfer.adopt(item, files)),
+    },
+  };
   publish();
 
   // ---- Tipo de contenido ----
@@ -109,6 +147,8 @@ export default function setup(app) {
   // ---- Subir ----
   app.route('POST', '/api/media/images', async (ctx) => {
     ctx.require('media.edit');
+    // En la nube, lo que se sube desde casa cabe en el espacio que dio el superadministrador (fase 39).
+    if (app.cloud) app.services.church?.room(Number(ctx.req.headers['content-length']) || 0);
     const declared = IMAGE_TYPES[(ctx.req.headers['content-type'] || '').split(';')[0].trim()];
     if (!declared) throw new HttpError(415, 'Usa una imagen JPG, PNG, WebP o GIF.');
     const id = crypto.randomBytes(6).toString('hex');

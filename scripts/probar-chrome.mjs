@@ -159,6 +159,9 @@ const UNTOUCHED = {
   'GET /api/nube/esperar': 'la deja hecha el equipo de la iglesia para enterarse de lo que cambia en su nube; no la interfaz',
   'GET /api/nube/contenido': 'la pide el equipo de la iglesia a su nube para bajar el himnario y las biblias; no la interfaz',
   'POST /api/nube/enlaces': 'la pide el equipo de la iglesia a su nube para bajar el himnario y las biblias; no la interfaz',
+  'GET /api/nube/archivos': 'la pide el equipo de la iglesia a su nube para bajar lo subido desde casa; no la interfaz',
+  'GET /api/nube/archivo': 'la pide el equipo de la iglesia a su nube para bajar lo subido desde casa; no la interfaz',
+  'POST /api/nube/archivos/recibidos': 'la pide el equipo de la iglesia a su nube al recibir lo subido desde casa; no la interfaz',
   'GET /api/nube/super/estado': 'la pide el sitio del superadministrador a cada iglesia (super.refresh, super.add); no la interfaz',
   'POST /api/nube/super/ajustes': 'la pide el sitio del superadministrador a cada iglesia (super.set); no la interfaz',
   'POST /api/nube/super/acceso': 'la pide el sitio del superadministrador a cada iglesia (super.access); no la interfaz',
@@ -3534,8 +3537,20 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
         && await run(`return !document.querySelector('.topbar, .scene-bg') && ![...document.querySelectorAll('button')].some((b) => b.textContent.includes('Proyectar'))`));
       await goTo('medios');
       await sleep(400);
-      await run(`const i = document.querySelector('.media-links input'); i.value = 'Canto de entrada: https://youtu.be/dQw4w9WgXcQ'; i.dispatchEvent(new Event('input'));`);
-      await click(`document.querySelector('.media-links button[type=submit]')`);
+      // Una foto desde casa (decisión 64): se sube a la nube, se añade al orden y la bajará el equipo de la iglesia.
+      const photo = path.join(tmp, 'foto de casa.png');
+      fs.writeFileSync(photo, examplePoster(800, 450));
+      await chooseFiles(MEDIA_FILES, [photo]);
+      check('Medios de la nube sube una foto desde casa', await until(`[...document.querySelectorAll('.modal .up-row small')].every((s) => s.textContent.startsWith('Lista')) && document.querySelector('.modal .btn.primary:not(:disabled)')`, 25));
+      await click(`document.querySelector('.modal .btn.primary')`);
+      check('y queda en su biblioteca', await until(`!document.querySelector('.modal') && document.querySelector('.ws[data-module=medios] .media-card')`, 25));
+      await click(`document.querySelector('.ws[data-module=medios] .media-card .media-pick')`);
+      await sleep(400);
+      check('con «Añadir al orden» como acción principal, sin «Proyectar»', await run(`const bar = document.querySelector('.ws[data-module=medios] .media-bar:not([hidden])'); return bar.querySelector('.btn.primary').textContent.includes('Añadir al orden') && !bar.textContent.includes('Proyectar')`));
+      await click(`document.querySelector('.ws[data-module=medios] .media-bar:not([hidden]) .btn.primary')`);
+      check('y la añade al orden', await until(`document.querySelector('#toast')?.textContent.startsWith('«foto de casa» añadida al orden')`, 15));
+      await run(`const i = document.querySelector('.ws[data-module=medios] .yt-add input'); i.value = 'Canto de entrada: https://youtu.be/dQw4w9WgXcQ'; i.dispatchEvent(new Event('input'));`);
+      await click(`document.querySelector('.ws[data-module=medios] .yt-add button[type=submit]')`);
       await sleep(700);
       check('Medios añade al orden un video de YouTube por su enlace', (await text('#toast')).startsWith('«Canto de entrada» añadido al orden del culto'));
       await goTo('himnario');
@@ -3593,6 +3608,8 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       // (la nube apagada mientras tanto), gana el último y el equipo lo avisa en el cajón Orden.
       const betoOrder = `(await (await fetch('/api/state')).json()).orders.list.find((o) => o.ownerName === 'Beto')`;
       check('el orden preparado en la nube llega al equipo de la iglesia', await until(betoOrder, 25));
+      check('y la foto subida desde casa, con el mismo identificador que tiene en el orden', await until(`(await (await fetch('/api/state')).json()).media.images.some((i) => i.name === 'foto de casa')`, 40)
+        && await run(`const s = await (await fetch('/api/state')).json(); const photo = s.media.images.find((i) => i.name === 'foto de casa'); return s.orders.list.length > 0 && Boolean(photo)`));
       const betoId = await run(`return ${betoOrder}.id`);
       await stopServer(cloudServer);
       await run(`return await ${post('order.renameOrder', { id: betoId, name: 'Cambiado en la iglesia' })}`);

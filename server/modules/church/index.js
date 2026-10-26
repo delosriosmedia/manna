@@ -69,9 +69,22 @@ export default function setup(app) {
     suspend();
     store.set('church', view());
   }
+  // ¿Cabe lo que se sube desde casa (decisión 64)? Lo de la nube que aún no llegó a la iglesia más esto, dentro del espacio.
+  let pending = null; // { at, bytes }: se mide como mucho cada medio minuto
+  const sent = () => {
+    if (!pending || Date.now() - pending.at > 30_000) pending = { at: Date.now(), bytes: sizeOf(app.uploadsDir) + sizeOf(path.join(app.dataDir, 'presentaciones')) };
+    return pending.bytes;
+  };
+  function room(bytes) {
+    if (!saved.data.uploads) throw new HttpError(403, 'Esta iglesia no sube archivos desde casa: lo activa quien administra Manna Iglesia.');
+    const free = saved.data.space - sent();
+    if (bytes > free) throw new HttpError(413, `No cabe: a esta iglesia le quedan ${Math.max(0, free / 1024 ** 3).toFixed(1).replace('.', ',')} GB para subir desde casa. Lo que ya llegó a la iglesia deja de contar.`);
+    pending.bytes += bytes;
+  }
   app.services.church = {
     view,
     settings,
+    room,
     // El equipo oficial guarda lo que le llega de su nube, salvo suspender: el culto sigue.
     apply: (input) => apply({ ...input, active: true }),
     // ¿Esta orden es de un módulo apagado? Devuelve por qué, o null.

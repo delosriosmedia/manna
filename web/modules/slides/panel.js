@@ -29,7 +29,7 @@ export function createSlidesPanel(ctx, lib) {
     return state.projection?.mode === 'live' && item?.kind === 'slides' ? { id: item.id, number: item.number } : null;
   };
 
-  const startUpload = (file) => openDeckUpload(file, { onDone: (id) => { lib.added([id]); choose(id); } });
+  const startUpload = (file) => openDeckUpload(file, { cloud: !ctx.canProject, onDone: (id) => { lib.added([id]); choose(id); } });
   const back = h('button', { class: 'btn deck-back', onclick: () => choose(null) }, icon('caret-left', 16), 'Presentaciones');
   const list = h('div', { class: 'deck-list' });
   const pages = h('div', {});
@@ -38,18 +38,21 @@ export function createSlidesPanel(ctx, lib) {
   // "Diapositiva 3 de 12" (en el celular, "3 de 12") y, al lado, el nombre de la presentación.
   const where = h('span', {});
   const name = h('span', { class: 'hint' });
+  const add = guard(async () => {
+    const deck = current();
+    await action('order.add', { kind: 'slides', data: { id: deck.id } });
+    toast(`«${deck.name}» añadida al orden del culto.`);
+  });
+  // Sin proyección (al preparar el culto en la nube), Intro añade al orden.
   const project = guard(async () => {
     const deck = current();
-    if (deck?.status === 'ready') await action('projection.show', { kind: 'slides', data: { id: deck.id }, step: page - 1 });
+    if (deck && !ctx.canProject) await add();
+    else if (deck?.status === 'ready') await action('projection.show', { kind: 'slides', data: { id: deck.id }, step: page - 1 });
   });
-  const show = h('button', { class: 'btn primary', onclick: () => project() }, icon('play', 16), 'Proyectar', h('kbd', {}, '↵'));
+  const show = ctx.canProject && h('button', { class: 'btn primary', onclick: () => project() }, icon('play', 16), 'Proyectar', h('kbd', {}, '↵'));
   const bar = h('div', { class: 'abar media-bar deck-bar', hidden: true, dataset: { panel: 'diapositivas' } },
     h('span', { class: 'sel-ref' }, h('span', { class: 'deck-long' }, 'Diapositiva '), where), name,
-    h('button', { class: 'btn', onclick: guard(async () => {
-      const deck = current();
-      await action('order.add', { kind: 'slides', data: { id: deck.id } });
-      toast(`«${deck.name}» añadida al orden del culto.`);
-    }) }, icon('plus', 16), 'Añadir al orden'),
+    h('button', { class: `btn${ctx.canProject ? '' : ' primary'}`, onclick: () => add() }, icon('plus', 16), 'Añadir al orden'),
     show);
 
   function choose(id, number = null) {
@@ -91,7 +94,9 @@ export function createSlidesPanel(ctx, lib) {
 
   // Lo que hay que saber de una presentación que aún no está lista.
   function statusOf(deck) {
-    if (deck.status === 'ready') return null;
+    // En la nube (decisión 64), un PowerPoint se convierte en el equipo de la iglesia al llegar.
+    if (deck.status === 'church') return h('div', { class: 'deck-status' }, h('small', {}, 'Se convierte en el equipo de la iglesia al llegar.'));
+    if (deck.status === 'ready') return deck.atChurch ? h('div', { class: 'deck-status' }, h('small', {}, 'Ya está en la iglesia.')) : null;
     if (deck.status === 'converting') {
       const job = jobOf(deck.id);
       const progress = Math.round((job?.progress || 0) * 100);
@@ -135,8 +140,8 @@ export function createSlidesPanel(ctx, lib) {
     if (deck.status !== 'ready') {
       delete pages.dataset.key;
       pages.replaceChildren(h('div', { class: 'empty' },
-        h('strong', {}, deck.status === 'converting' ? 'PowerPoint está convirtiendo esta presentación' : 'Esta presentación no se pudo convertir'),
-        deck.status === 'converting' ? 'Aparecerá aquí en cuanto termine. Puedes seguir usando Manna mientras tanto.' : deck.error));
+        h('strong', {}, deck.status === 'church' ? 'Se convierte en el equipo de la iglesia' : deck.status === 'converting' ? 'PowerPoint está convirtiendo esta presentación' : 'Esta presentación no se pudo convertir'),
+        deck.status === 'church' ? 'Sus diapositivas se verán en la iglesia. Ya se puede añadir al orden del culto.' : deck.status === 'converting' ? 'Aparecerá aquí en cuanto termine. Puedes seguir usando Manna mientras tanto.' : deck.error));
       return;
     }
     // La rejilla solo se rehace si cambia la presentación: así las imágenes no se vuelven a pedir.
@@ -193,7 +198,7 @@ export function createSlidesPanel(ctx, lib) {
       where.textContent = usable ? `${page} de ${deck.pages}` : '';
       where.parentElement.hidden = !usable;
       name.textContent = deck.name;
-      show.disabled = !usable;
+      if (show) show.disabled = !usable;
       bar.querySelectorAll('.btn:not(.primary)').forEach((b) => { b.disabled = !usable; });
     }
   }

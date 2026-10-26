@@ -205,7 +205,7 @@ const SCREENS = [
   { name: 'Preparar el culto: Biblia', url: '/preparacion#biblia', cloud: 'preparacion', tabs: true, primary: '.abar .btn.primary', content: '.col-verses' },
   { name: 'Preparar el culto: himnario', url: '/preparacion#himnario', cloud: 'preparacion', tabs: true, content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: '.hymn-bar', settle: 700,
     prepare: `document.querySelector('.ws[data-module=himnario] .hymn')?.click()` },
-  { name: 'Preparar el culto: medios', url: '/preparacion#medios', cloud: 'preparacion', tabs: true, primary: '.media-links .btn.primary', inside: '.yt-add' },
+  { name: 'Preparar el culto: medios', url: '/preparacion#medios', cloud: 'preparacion', tabs: true, primary: '.ws[data-module=medios] .media-upload', inside: '.yt-add' },
   { name: 'Preparar el culto: textos', url: '/preparacion#textos', cloud: 'preparacion', tabs: true, content: '.text-editor', primary: '.text-bar .btn.primary', inside: '.text-bar', settle: 600,
     prepare: `document.querySelector('.text-card[data-id=ejemplo-cita] .text-pick').click()` },
   { name: 'Administrar la iglesia', url: '/administrar', cloud: 'administrar', tabs: true, inside: '.user-row' },

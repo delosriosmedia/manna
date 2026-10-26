@@ -13,6 +13,8 @@ import texts from '../server/modules/texts/index.js';
 import hymns from '../server/modules/hymns/index.js';
 import cloud from '../server/modules/cloud/index.js';
 import church from '../server/modules/church/index.js';
+import media from '../server/modules/media/index.js';
+import slides from '../server/modules/slides/index.js';
 import superadmin from '../server/modules/super/index.js';
 import { startFakeR2 } from '../scripts/lib/r2-falso.mjs';
 
@@ -52,7 +54,7 @@ async function serve(name, env = {}, modules = CHURCH_MODULES) {
   };
   const s = {
     app, base, call, remote,
-    raw: (url, options = {}) => fetch(base + url, { ...options, headers: { cookie } }),
+    raw: (url, options = {}) => fetch(base + url, { ...options, headers: { ...options.headers, cookie } }),
     send: (type, payload = {}) => call('/api/action', { type, payload }),
     state: () => call('/api/state'),
     stop: async () => { await app.close(); server.close(); },
@@ -302,4 +304,45 @@ test('el superadministrador: su contraseña, las iglesias, lo que puede usar cad
   } finally {
     delete process.env.MANNA_CLAVE_SUPER;
   }
+});
+
+test('lo que se sube desde casa llega al equipo de la iglesia, y la nube se queda con la miniatura (decisión 64)', async () => {
+  const JPG = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=', 'base64');
+  const LIBRARY = [system, users, order, texts, hymns, media, slides, cloud, church];
+  const nube = await serve('nube-archivos', { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'alta-archivos' }, LIBRARY);
+  const c = await serve('iglesia-archivos', { MANNA_FALTA: 'yt-dlp' }, LIBRARY);
+  const ana = (await nube.call('/api/session/alta', { clave: 'alta-archivos', name: 'Ana', pin: '1234' })).user.id;
+  const code = (await nube.send('cloud.code')).result.code;
+  await c.call('/api/session', { role: 'control' });
+  assert.equal((await c.send('cloud.pair', { url: nube.base, code })).status, 200);
+  // Quien prepara el culto sube una imagen (con su miniatura) y un PDF (sus páginas, ya en imágenes).
+  assert.equal((await nube.call('/api/session', { role: 'preparacion', user: ana })).status, 200);
+  const upload = async (url, body) => (await nube.raw(url, { method: 'POST', body, headers: { 'Content-Type': 'image/jpeg' } })).json();
+  const image = await upload('/api/media/images?name=Bienvenida', JPG);
+  assert.ok(image.id, JSON.stringify(image));
+  await upload(`/api/media/images/${image.id}/thumb`, JPG);
+  const deck = (await (await nube.raw('/api/slides?name=Anuncios&pages=1', { method: 'POST' })).json()).id;
+  await upload(`/api/slides/${deck}/pages/1`, JPG);
+  await upload(`/api/slides/${deck}/pages/1?mini=1`, JPG);
+  assert.equal((await nube.send('slides.finish', { id: deck })).status, 200);
+  for (const [kind, data] of [['image', { id: image.id }], ['slides', { id: deck }], ['ytlink', { link: 'Canto: https://youtu.be/dQw4w9WgXcQ' }]]) assert.equal((await nube.send('order.add', { kind, data })).status, 200);
+  assert.deepEqual((await nube.call('/api/nube/archivos')).status, 401, 'la lista es solo para el equipo oficial');
+
+  // El equipo se pone al día: trae el orden y lo subido, con los mismos identificadores.
+  await c.app.services.cloud.check();
+  let here = await c.state();
+  for (let i = 0; i < 50 && !((await nube.state()).slides.decks[0]?.atChurch && here.media.images.length); i += 1) {
+    await new Promise((r) => setTimeout(r, 100));
+    here = await c.state();
+  }
+  assert.ok(here.media.images.some((i) => i.id === image.id && i.name === 'Bienvenida' && !i.atChurch), 'la imagen está en la iglesia');
+  assert.ok(here.slides.decks.some((d) => d.id === deck && d.status === 'ready' && d.pages === 1), 'y la presentación');
+  const list = here.orders.list.find((o) => o.count === 3);
+  assert.ok(list, 'y el orden con los tres');
+  // En la nube, ya en la iglesia: la ficha y la miniatura, sin el archivo grande.
+  const there = await nube.state();
+  assert.ok(there.media.images.find((i) => i.id === image.id).atChurch);
+  assert.ok(there.slides.decks.find((d) => d.id === deck).atChurch);
+  assert.ok(!fs.existsSync(path.join(tmp, 'nube-archivos', 'media', 'diapositivas', deck, '1.jpg')) && fs.existsSync(path.join(tmp, 'nube-archivos', 'media', 'diapositivas', deck, 'm1.jpg')));
+  assert.deepEqual((await nube.call('/api/nube/archivos')).status, 401);
 });

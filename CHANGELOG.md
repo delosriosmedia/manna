@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.52.0 — 2026-10-26
+
+- **Fotos, videos y presentaciones desde casa**: en «Preparar el culto», Medios es la biblioteca de siempre, con «Añadir al orden» en lugar de «Proyectar». Se suben fotos, videos, audios, PDF y PowerPoint, y los videos de YouTube van por su enlace. El equipo de la iglesia lo baja solo cuando está encendido, con el mismo nombre en el orden; allí se preparan los videos, se convierten los PowerPoint y se descargan los de YouTube, que en el orden pasan a ser el video de la biblioteca. En la nube queda la miniatura de lo que ya llegó, y lo que se sube cabe en el espacio que dio el superadministrador.
+
 ## 1.51.0 — 2026-10-26
 
 - **Actualizar el equipo principal desde la nube**: en el computador donde está instalado, si la nube tiene una versión más nueva que la del equipo, su portada ofrece «Actualizar Manna en este equipo» (dice qué versión tiene cada uno) y baja el instalador, que lo pone al día sin tocar los datos ni el contenido. Si no hay versión nueva, «Instalar» sale deshabilitado.

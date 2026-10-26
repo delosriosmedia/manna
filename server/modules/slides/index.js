@@ -20,8 +20,10 @@ import { createExporter, isPresentation, liveSupported, openLive, PRESENTATION_E
 // Cada presentación es una carpeta data/media/diapositivas/<id>/ con 1.jpg, 2.jpg… y, si las hay,
 // sus miniaturas m1.jpg, m2.jpg…, más una ficha en data/diapositivas.json:
 //   { id, name, source: 'pdf' | 'powerpoint', pages, ext, thumbs, width, height, added,
-//     status: 'receiving' | 'converting' | 'ready' | 'error', error, original, live }
+//     status: 'receiving' | 'converting' | 'church' | 'ready' | 'error', error, original, live, atChurch }
 //   receiving: el navegador aún está enviando las páginas (no se publica)
+//   church:    en la nube, un PowerPoint que se convierte en el equipo de la iglesia al llegar (decisión 64)
+//   atChurch:  en la nube, ya llegó a la iglesia: quedan su ficha y sus miniaturas
 //   original:  el PowerPoint tal cual se subió (desde la 1.14), en data/presentaciones/: no se sirve
 //   live:      se pasa con el propio PowerPoint mientras está al aire (ver «PowerPoint en vivo», abajo)
 
@@ -63,7 +65,7 @@ export default function setup(app) {
   // La interfaz arma la dirección de cada diapositiva con `base`, `ext` y `thumbs`: no se publica la lista.
   const view = (deck) => ({
     id: deck.id, name: deck.name, source: deck.source, pages: deck.pages, width: deck.width || 0, height: deck.height || 0, added: deck.added,
-    status: deck.status, error: deck.error || null, base: `/media/${FOLDER}/${deck.id}/`, ext: deck.ext || 'jpg', thumbs: Boolean(deck.thumbs), thumbExt: deck.thumbExt || 'jpg',
+    status: deck.status, error: deck.error || null, base: `/media/${FOLDER}/${deck.id}/`, ext: deck.ext || 'jpg', thumbs: Boolean(deck.thumbs), thumbExt: deck.thumbExt || 'jpg', ...(deck.atChurch && { atChurch: true }),
     // Tras un fallo de PowerPoint va como imágenes, y el menú ofrece volver a intentarlo.
     live: Boolean(deck.live) && !failed.has(deck.id), liveable: liveable(deck),
   });
@@ -232,6 +234,9 @@ export default function setup(app) {
     label: 'Diapositivas',
     describe(data) {
       const deck = ready(data?.id);
+      // En la nube, un PowerPoint que aún no se ha convertido (decisión 64): sus diapositivas se sabrán en la iglesia.
+      const waiting = !deck && decks().find((d) => d.id === data?.id && d.status === 'church');
+      if (waiting) return { title: waiting.name, subtitle: 'PowerPoint · se prepara en la iglesia', steps: 1, data: { id: waiting.id } };
       return deck ? { title: deck.name, subtitle: SOURCES[deck.source] || 'Presentación', steps: deck.pages, data: { id: deck.id } } : null;
     },
     resolve(data, step) {
@@ -279,6 +284,7 @@ export default function setup(app) {
 
   app.route('POST', '/api/slides/:id/pages/:n', async (ctx) => {
     ctx.require('slides.edit');
+    if (app.cloud) app.services.church?.room(Number(ctx.req.headers['content-length']) || 0);
     const deck = find(ctx.params.id);
     const n = Number(ctx.params.n);
     if (deck.status !== 'receiving' || !Number.isInteger(n) || n < 1 || n > deck.pages) throw new HttpError(400, 'Esa página no corresponde a esta presentación.');
@@ -311,7 +317,8 @@ export default function setup(app) {
     ctx.require('slides.edit');
     const ext = String(ctx.query.get('ext') || '').toLowerCase();
     if (!PRESENTATION_EXTENSIONS.includes(ext)) throw new HttpError(415, 'Manna admite presentaciones de PowerPoint (.pptx, .ppt, .ppsx) y PDF.');
-    if (!app.tools.has('deckcraft') && !app.tools.has('powerpoint')) throw new HttpError(409, 'Este equipo no tiene con qué convertir la presentación: instala DeckCraft desde la revisión del equipo, o guárdala como PDF (en PowerPoint, Archivo → Exportar) y sube el PDF.');
+    if (app.cloud) app.services.church?.room(Number(ctx.req.headers['content-length']) || 0);
+    if (!app.cloud && !app.tools.has('deckcraft') && !app.tools.has('powerpoint')) throw new HttpError(409, 'Este equipo no tiene con qué convertir la presentación: instala DeckCraft desde la revisión del equipo, o guárdala como PDF (en PowerPoint, Archivo → Exportar) y sube el PDF.');
     const id = crypto.randomBytes(6).toString('hex');
     fs.mkdirSync(app.tmpDir, { recursive: true });
     const input = path.join(app.tmpDir, `presentacion-${id}${ext}`);
@@ -326,12 +333,26 @@ export default function setup(app) {
     }
     const deck = {
       id, name: cleanName(ctx.query.get('name')) || 'Presentación', source: 'powerpoint',
-      pages: 0, ext: 'jpg', thumbs: false, width: 0, height: 0, added: Date.now(), status: 'converting', error: null,
+      pages: 0, ext: 'jpg', thumbs: false, width: 0, height: 0, added: Date.now(), status: app.cloud ? 'church' : 'converting', error: null,
       original: null, live: false,
     };
     decks().push(deck);
+    // En la nube no hay con qué convertirla: se guarda tal cual y la convierte el equipo de la iglesia al recibirla.
+    if (app.cloud) {
+      fs.mkdirSync(originals, { recursive: true });
+      fs.renameSync(input, path.join(originals, `${id}${ext}`));
+      deck.original = `${id}${ext}`;
+      commit();
+      return view(deck);
+    }
     commit();
+    convert(deck, input, ext);
+    return view(deck);
+  });
 
+  // Convierte un PowerPoint en imágenes (DeckCraft o PowerPoint), en segundo plano; then: al terminar bien.
+  function convert(deck, input, ext, then = () => {}) {
+    const { id } = deck;
     const out = path.join(app.tmpDir, `diapositivas-${id}`);
     exporter.run({
       id, name: deck.name, input, dir: out,
@@ -345,6 +366,7 @@ export default function setup(app) {
             fs.renameSync(input, path.join(originals, `${id}${ext}`));
             Object.assign(deck, { original: `${id}${ext}` });
             deck.live = liveable(deck);
+            then();
           } else if (still && !result.cancelled) Object.assign(deck, { status: 'error', error: result.error });
         } catch (err) {
           Object.assign(deck, { status: 'error', error: err instanceof HttpError ? err.message : 'No se pudieron guardar las diapositivas.' });
@@ -354,8 +376,58 @@ export default function setup(app) {
         if (still) commit();
       },
     });
-    return view(deck);
-  });
+  }
+
+  // ---- De la nube al equipo de la iglesia (decisión 64; ver modules/media) ----
+  // Un PDF llega ya en imágenes (las convirtió el navegador de quien lo subió); un PowerPoint, tal cual, y se
+  // convierte aquí. En la nube, al recibirlo la iglesia, quedan la ficha y las miniaturas.
+  const rel = (file) => path.relative(app.dataDir, file);
+  app.services.slides.transfer = {
+    types: ['slides'],
+    has: (id) => decks().some((d) => d.id === id),
+    pending: () => decks().filter((d) => !d.atChurch && (d.status === 'church' || (d.status === 'ready' && d.source === 'pdf'))).map((d) => ({
+      type: 'slides', id: d.id, entry: { name: d.name, source: d.source, pages: d.pages, ext: d.status === 'church' ? path.extname(d.original) : null },
+      files: d.status === 'church' ? { original: rel(originalOf(d)) }
+        : Object.fromEntries(fs.readdirSync(dirOf(d)).filter((f) => /^m?\d+\.jpg$/.test(f)).map((f) => [f, rel(path.join(dirOf(d), f))])),
+    })),
+    delivered(id) {
+      const deck = decks().find((d) => d.id === id);
+      if (!deck || deck.atChurch) return;
+      dropOriginal(deck);
+      // Las diapositivas grandes se van; las miniaturas se quedan (sin ellas, la primera hace de miniatura).
+      if (deck.thumbs) for (let n = 1; n <= deck.pages; n += 1) fs.rmSync(path.join(dirOf(deck), `${n}.${deck.ext}`), { force: true });
+      deck.atChurch = true;
+      commit();
+    },
+    adopt({ id, entry }, files) {
+      const name = cleanName(entry.name) || 'Presentación';
+      if (entry.source === 'powerpoint') {
+        const ext = String(entry.ext || '').toLowerCase();
+        if (!PRESENTATION_EXTENSIONS.includes(ext) || !files.original) throw new Error('No llegó una presentación.');
+        const deck = { id, name, source: 'powerpoint', pages: 0, ext: 'jpg', thumbs: false, width: 0, height: 0, added: Date.now(), status: 'converting', error: null, original: null, live: false };
+        decks().push(deck);
+        commit();
+        // Ya convertida, el orden que la usa sabe cuántas diapositivas tiene.
+        convert(deck, files.original, ext, () => app.services.order?.refresh('slides', id));
+        return;
+      }
+      const pages = Number(entry.pages);
+      if (!Number.isInteger(pages) || pages < 1 || pages > MAX_PAGES) throw new Error('No llegó una presentación.');
+      const deck = { id, name, source: 'pdf', pages, ext: 'jpg', thumbs: false, width: 0, height: 0, added: Date.now(), status: 'ready', error: null };
+      fs.mkdirSync(dirOf(deck), { recursive: true });
+      for (const [file, from] of Object.entries(files)) if (/^m?\d+\.jpg$/.test(file) && readImageInfo(from)?.type === 'jpeg') fs.renameSync(from, path.join(dirOf(deck), file));
+      const has = (file) => fs.existsSync(path.join(dirOf(deck), file));
+      const numbers = Array.from({ length: pages }, (_, i) => i + 1);
+      if (!numbers.every((n) => has(`${n}.jpg`))) {
+        fs.rmSync(dirOf(deck), { recursive: true, force: true });
+        throw new Error('Faltan diapositivas.');
+      }
+      const first = readImageInfo(path.join(dirOf(deck), '1.jpg'));
+      Object.assign(deck, { thumbs: numbers.every((n) => has(`m${n}.jpg`)), width: first.width, height: first.height });
+      decks().push(deck);
+      commit();
+    },
+  };
 
   // Pasa a la biblioteca las imágenes que dejó PowerPoint: [{ file, thumb }], en orden.
   function adopt(deck, pages) {

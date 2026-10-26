@@ -5,6 +5,8 @@ import path from 'node:path';
 import { HttpError } from '../../core/router.js';
 import { cleanName } from '../../core/names.js';
 import { mergeSets, setVersion } from '../../core/sync.js';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { createContent } from './contenido.js';
 
 // El equipo oficial y su nube (fase 37, partes 1 y 2; decisión 63). El mismo módulo en los dos lados:
@@ -35,6 +37,8 @@ export const HYMNALS = ['nube', 'completo'];
 export const contentKey = (key) => typeof key === 'string' && /^(Biblias|Himnario\/(videos|letras|diapositivas))\//.test(key) && !key.split('/').some((p) => !p || p === '.' || p === '..');
 // Lo que se sincroniza y el módulo que lo tiene (cada uno ofrece sync: { export, apply }).
 const SETS = { orders: (app) => app.services.order?.sync, texts: (app) => app.services.texts?.sync, favorites: (app) => app.services.hymns?.sync };
+// Lo que se sube desde casa y baja el equipo (decisión 64): imágenes, videos y audios, y presentaciones.
+const transfers = (app) => [app.services.media?.transfer, app.services.slides?.transfer].filter(Boolean);
 const exportAll = (app) => Object.fromEntries(Object.entries(SETS).map(([name, of]) => [name, of(app)?.export()]).filter(([, set]) => set));
 const CHECK_MS = 60_000;
 const hash = (text) => crypto.createHash('sha256').update(String(text)).digest('hex');
@@ -248,6 +252,29 @@ function cloudSide(app) {
     return { links: Object.fromEntries(keys.map((key) => [key, app.r2.link(key)])) };
   });
 
+  // Lo que se subió desde casa y espera al equipo (decisión 64): la lista, cada archivo (solo los de esa lista) y el
+  // «recibido», tras el que la nube borra lo que pesa y se queda con la ficha y la miniatura.
+  const pendingItems = () => transfers(app).flatMap((t) => t.pending()).map((item) => ({
+    ...item, files: Object.entries(item.files).filter(([, file]) => file).map(([name, file]) => ({ name, path: file, size: fs.statSync(path.join(app.dataDir, file), { throwIfNoEntry: false })?.size ?? 0 })),
+  }));
+  app.route('GET', '/api/nube/archivos', (ctx) => {
+    official(ctx);
+    return { items: pendingItems() };
+  });
+  app.route('GET', '/api/nube/archivo', (ctx) => {
+    official(ctx);
+    const wanted = String(ctx.query.get('ruta') || '');
+    if (!pendingItems().some((item) => item.files.some((f) => f.path === wanted))) throw new HttpError(404, 'Ese archivo no espera a la iglesia.');
+    ctx.file(path.join(app.dataDir, wanted));
+  });
+  app.route('POST', '/api/nube/archivos/recibidos', async (ctx) => {
+    official(ctx);
+    const { ids } = await ctx.json();
+    if (!Array.isArray(ids) || ids.length > 500) throw new HttpError(400, 'Falta la lista de lo recibido.');
+    for (const id of ids) for (const t of transfers(app)) if (typeof id === 'string' && t.has(id)) t.delivered(id);
+    return { ok: true };
+  });
+
   // Los usuarios: la copia del equipo, y los que sube el equipo la primera vez que se empareja.
   app.route('GET', '/api/nube/usuarios', (ctx) => {
     official(ctx);
@@ -399,6 +426,7 @@ function churchSide(app) {
       if (body.data !== saved.data.cloudData || setVersion(exportAll(app)) !== saved.data.synced) await syncData();
       set({ status: 'on', lastSeen: Date.now(), error: null });
       waitLoop();
+      receive().catch((err) => console.error('No se pudo traer lo subido a la nube:', err.message));
       if (Date.now() - filled > 30 * 60_000) {
         filled = Date.now();
         content.fill().catch((err) => console.error('No se pudo bajar el himnario de la nube:', err.message));
@@ -407,6 +435,45 @@ function churchSide(app) {
       set({ status: 'offline', error: null });
     }
   }
+  // Lo subido desde casa (decisión 64): el equipo lo baja y lo adopta con el mismo identificador (primero lo que está
+  // en un orden), y avisa a la nube. Los videos de YouTube añadidos por su enlace se descargan aquí y en el orden pasan a
+  // ser el video de la biblioteca. Una vez a la vez.
+  let receiving = null;
+  function receive() {
+    if (receiving || !live()) return receiving || Promise.resolve();
+    receiving = (async () => {
+      const { items } = await ask('GET', '/api/nube/archivos');
+      const used = new Set((app.services.order?.sync.export().records || []).flatMap((o) => o.items.map((i) => i.data?.id)));
+      const fresh = items.filter((item) => !transfers(app).some((t) => t.has(item.id))).sort((a, b) => used.has(b.id) - used.has(a.id));
+      fs.mkdirSync(app.tmpDir, { recursive: true });
+      for (const item of fresh) {
+        const work = fs.mkdtempSync(path.join(app.tmpDir, 'nube-'));
+        try {
+          const files = {};
+          for (const f of item.files) {
+            const res = await fetch(`${saved.data.url}/api/nube/archivo?ruta=${encodeURIComponent(f.path)}`, { headers: { authorization: `Bearer ${saved.data.token}` }, signal: AbortSignal.timeout(30 * 60_000) });
+            if (!res.ok) throw new Error(`La nube respondió ${res.status}.`);
+            files[f.name] = path.join(work, path.basename(f.name));
+            await pipeline(Readable.fromWeb(res.body), fs.createWriteStream(files[f.name]));
+          }
+          await transfers(app).find((t) => t.types.includes(item.type))?.adopt(item, files);
+        } catch (err) {
+          console.error(`No se pudo traer de la nube «${item.entry?.name}»:`, err.message);
+        } finally {
+          fs.rmSync(work, { recursive: true, force: true });
+        }
+      }
+      const ids = items.filter((item) => transfers(app).some((t) => t.has(item.id))).map((item) => item.id);
+      if (ids.length) await ask('POST', '/api/nube/archivos/recibidos', { ids });
+      app.services.order?.convert('ytlink', (item) => {
+        try {
+          return { kind: 'youtube', data: { id: app.run('media.youtube', { link: `https://youtu.be/${item.data.videoId}` }).id } };
+        } catch { return null; } // sin yt-dlp: se intenta en la próxima vuelta
+      });
+    })().finally(() => { receiving = null; });
+    return receiving;
+  }
+
   // Emparejado (y no sustituido), los usuarios se cambian en la nube (decisión 63).
   const managedBy = () => (saved.data.token && !saved.data.replaced ? saved.data.church : null);
   // Para el himnario: lo que está en la nube y no en la carpeta, un enlace para verlo ya y bajarlo (decisión 64).

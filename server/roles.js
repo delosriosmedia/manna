@@ -42,7 +42,8 @@ export const ROLES = [
     path: '/preparacion',
     requiresPin: true,
     nube: true,
-    permissions: ['order.edit', 'hymns.favorite', 'hymns.read', 'texts.edit'],
+    // Subir fotos, videos y presentaciones desde casa (decisión 64): el espacio y si se puede, los decide el superadministrador.
+    permissions: ['order.edit', 'hymns.favorite', 'hymns.read', 'texts.edit', 'media.edit', 'slides.edit'],
   },
   {
     id: 'administrar',

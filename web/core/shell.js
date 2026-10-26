@@ -239,7 +239,8 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   const parts = new Map();
   function renderNotice() {
     const module = usable.find((m) => m.id === current?.id);
-    const missing = module ? missingFor(module, state.tools?.list || [], parts.get(module.id)).filter((m) => !m.soon && m.tools.some((t) => t.level !== 'optional')) : [];
+    // Sin escenario por pestañas (la nube) no hay equipo principal que revisar.
+    const missing = module && !tabs ? missingFor(module, state.tools?.list || [], parts.get(module.id)).filter((m) => !m.soon && m.tools.some((t) => t.level !== 'optional')) : [];
     const tools = toolsOf(missing);
     const key = `${module?.id}:${tools.map((t) => t.id).join()}`;
     if (!missing.length || dismissed.has(key)) {
