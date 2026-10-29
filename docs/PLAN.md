@@ -1744,6 +1744,7 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-29 | Tanda del 2026-10-29: Televisores se quita del todo (código, pruebas y su televisor de mentira); un televisor sigue pudiendo abrir la proyección por su navegador | Decisión 65: cancelados. Se recupera del historial de git si hiciera falta |
 | 2026-10-29 | Tanda del 2026-10-29: S35 sale sin el sonido de la pestaña ni los mandos para acercar o desplazar desde Manna | La pestaña sigue sonando por el equipo (pedir su sonido lo duplicaría) y Chrome la pone delante al compartir, así que se maneja en ella misma |
 | 2026-10-29 | S56 en su forma sencilla (decisión 66): la clave del túnel de cada iglesia la pone el dueño en el hosting de su nube, y la nube se la da al equipo oficial; el túnel lo crea el asistente, una vez por iglesia | Que el panel del superadministrador creara los túneles pediría guardar en el hosting una clave de Cloudflare con permisos amplios; así el computador de la iglesia queda listo solo con el instalador |
+| 2026-10-29 | Los manuales y la página propia de `manna-iglesia.es` (decisiones 66 y 67), hechos antes de que Nueva Vida pase a `nv`: la bienvenida con el manual de instalación aparte y los de uso (usuarios, administrador y, pequeño y aparte, superadministrador), con capturas que se vuelven a tomar en cada publicación (`node scripts/sitio.mjs`); la dirección principal deja de llevar al equipo de Nueva Vida | Pedido del dueño: que cada iglesia reciba un manual de instalación para empezar sola |
 
 ## 11. Lo pendiente y los cambios sugeridos (decisión 60)
 
@@ -1763,13 +1764,7 @@ Desde el 2026-10-25 **todo lo pendiente de Manna está aquí**, en cuatro grupos
 
 ### 2. Listas para hacer
 
-| Qué | Detalle |
-| --- | --- |
-| **Página propia de Manna Iglesia en `manna-iglesia.es`** (decisión 66) | Para presentar el servicio a otras iglesias, cuando Nueva Vida ya esté en `nv` (hasta entonces `manna-iglesia.es` lleva al equipo de la iglesia por el túnel «Manna-PC»). Falta que el dueño diga qué contar y con qué aspecto |
-| **Manual del superadministrador** (pedido del dueño, 2026-10-29) | Para quien maneja `admin.manna-iglesia.es`: entrar con la contraseña; añadir y quitar iglesias; el espacio del plan; lo que puede usar cada iglesia (activa o suspendida, módulos y su orden, archivos y espacio, máximo de órdenes); recuperar el acceso de su administrador (una clave de alta nueva); las copias en Google Drive (conectar la cuenta, hacer una copia, volver a una); y poner en marcha una iglesia nueva (lo que hace el dueño en `/nueva-iglesia`) |
-| **Manual del administrador de cada iglesia** (pedido del dueño, 2026-10-29) | Para quien administra una iglesia en `<iglesia>.manna-iglesia.es/administrar` y en Ajustes de su equipo: el primer ingreso con la clave de alta; los usuarios (crearlos, sus funciones y su PIN, quitarlos); el equipo de la iglesia (instalarlo desde la portada, emparejarlo, su versión y ponerlo al día); el himnario (desde la nube o completo); la conexión por internet; y qué hacer si algo falla (el equipo apagado, sin internet, un PIN olvidado) |
-| **Manual de los usuarios** (pedido del dueño, 2026-10-29) | Para quien prepara el culto o lo maneja a distancia: entrar por la portada con su nombre y PIN; «Preparar el culto» desde casa (el orden, la Biblia, el himnario, Medios con lo que se sube y los videos de YouTube, y Textos); y en el culto, «Entrar al equipo de la iglesia» (en la red de la iglesia o desde fuera), qué hace cada función (Control completo, Servicio de alabanza, Presentador, Control del orden, Pantalla de proyección) y lo básico: proyectar, pasar, «Negro» y «Solo fondo», las capas y el volumen |
-| (los tres manuales) | En español sencillo, paso a paso y con capturas de `pruebas` con datos inventados (sin letras de himnos reales). Se escriben cuando Nueva Vida esté en `nv`, para que muestren las pantallas definitivas. Falta que el dueño decida el formato: un PDF para imprimir y compartir, páginas de ayuda dentro de Manna, o los dos (y si van también en la página propia de `manna-iglesia.es`) |
+Hoy ninguna: los manuales y la bienvenida de `manna-iglesia.es` se hicieron el 2026-10-29 (decisión 67).
 
 ### 3. Tareas del dueño
 

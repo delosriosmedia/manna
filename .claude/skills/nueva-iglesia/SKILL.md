@@ -19,10 +19,12 @@ Al final, para la gente de esa iglesia todo entra por `https://<iglesia>.manna-i
 5. **Desplegar** la versión aprobada en `pruebas` (`nube.md`, pasos 1, 3, 4 y 5).
 6. **El dueño**: en `admin.manna-iglesia.es` → Iglesias, añadirla (así entra en las copias de Google Drive); y en `https://<iglesia>.manna-iglesia.es/administrar`, con la clave de alta, su administrador (nombre y PIN).
 
+7. **Lo que recibe la iglesia** (decisión 67): su dirección, su clave de alta y el manual de instalación, `https://manna-iglesia.es/manuales/instalacion.html`, que explica lo que sigue con capturas.
+
 ## 2. El computador de la iglesia (un solo paso, en ese computador)
 
-7. Abrir `https://<iglesia>.manna-iglesia.es` → «Instalar Manna en este equipo» → PIN de un administrador → elegir el himnario (desde la nube o completo) → ejecutar el instalador. Si ya tenía Manna, se conservan sus usuarios (suben a la nube, los del mismo nombre se juntan), sus órdenes y su contenido.
-8. Comprobar, desde aquí: en `/administrar` → Equipo, el equipo conectado con su versión; la portada ofrece «Entrar al equipo de la iglesia»; `https://servidor-<iglesia>.manna-iglesia.es/api/ping` contesta con su `id`.
+8. Abrir `https://<iglesia>.manna-iglesia.es` → «Instalar Manna en este equipo» → PIN de un administrador → elegir el himnario (desde la nube o completo) → ejecutar el instalador. Si ya tenía Manna, se conservan sus usuarios (suben a la nube, los del mismo nombre se juntan), sus órdenes y su contenido.
+9. Comprobar, desde aquí: en `/administrar` → Equipo, el equipo conectado con su versión; la portada ofrece «Entrar al equipo de la iglesia»; `https://servidor-<iglesia>.manna-iglesia.es/api/ping` contesta con su `id`.
 
 ## 3. Después
 

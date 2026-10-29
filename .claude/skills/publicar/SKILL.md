@@ -94,6 +94,7 @@ Con versión nueva, tras el push (los equipos que se ponen al día bajan la vers
 2. El paquete, por TUS, a `public_html` de `pruebas.manna-iglesia.es` y de `admin.manna-iglesia.es`, y `hosting_nodejs_start-build` en los dos.
 3. Comprobar que `https://<sitio>/api/ping` dice la versión nueva en los dos.
 4. Las demás iglesias (hoy, `nv.manna-iglesia.es`) solo cuando el dueño apruebe esa versión en `pruebas` (decisiones 58 y 64).
+5. Si cambió un manual de `sitio/` o una pantalla que sale en ellos: `node scripts/sitio.mjs` y publicar `manna-iglesia.es` (`.claude/rules/nube.md`, «La bienvenida y los manuales»).
 
 Con la nube en la versión nueva, cada equipo oficial se pone al día solo la próxima vez que se encienda. Si la versión cambia la forma de lo que va y viene entre el equipo y la nube (órdenes, textos, favoritos, usuarios, Medios), se sube antes `PROTOCOL` en `server/modules/cloud/index.js`: así un equipo que aún no se puso al día no sincroniza con la forma nueva (lo dice en Ajustes → Nube y sigue en local).
 

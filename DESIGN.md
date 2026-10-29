@@ -207,6 +207,10 @@ Lo que no puede perderse en ningún tamaño: **ver qué está al aire, avanzar y
 
 Se comprueba con `node scripts/auditar-responsive.mjs`, que abre la app en diez tamaños y verifica estas garantías. Hay que ejecutarlo al tocar cualquier disposición.
 
+## 12 bis. El sitio manna-iglesia.es
+
+La bienvenida y los manuales (`sitio/`, decisión 67) son una página de lectura, no la herramienta: usan las mismas fichas de color, Sora y el cian de la M (`sitio/sitio.css`), con el texto a lo ancho de una lectura cómoda (46 em), el índice al lado en el escritorio y arriba en el celular, y claro al imprimir. Las capturas son de la propia app con datos inventados, nunca dibujos.
+
 ## 13. Lo que no se hace
 
 - Degradados, brillos o sombras decorativas. El cristal (`.glass`, fichas `--glass-*`) es solo para lo que flota sobre la proyección; el resplandor, solo del logo.

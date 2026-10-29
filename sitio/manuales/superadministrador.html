@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#05070a">
+  <meta name="description" content="Manual del superadministrador de Manna Iglesia: las iglesias, su espacio, las copias de seguridad y abrir una iglesia nueva.">
+  <title>Manual del superadministrador · Manna Iglesia</title>
+  <link rel="icon" type="image/svg+xml" href="../logo.svg">
+  <link rel="stylesheet" href="../sitio.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../logo.svg" alt="">Manna Iglesia</a>
+      <nav aria-label="Secciones">
+        <a href="../#instalacion">Instalación</a>
+        <a href="../#manuales">Manuales</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap manual">
+    <header class="doc-head">
+      <p class="who">Manual de uso · para el equipo de Manna Iglesia</p>
+      <h1>Manual del superadministrador</h1>
+      <p class="intro">El superadministrador maneja el servicio entero: qué iglesias hay, qué puede usar cada una, cuánto espacio tiene y sus copias de seguridad. Todo se hace en <code>admin.manna-iglesia.es</code>, con tu contraseña.</p>
+      <button class="print" type="button" onclick="print()">Imprimir o guardar en PDF</button>
+    </header>
+
+    <aside class="toc" aria-label="En este manual">
+      <p>En este manual</p>
+      <ol>
+        <li><a href="#entrar">Entrar al panel</a></li>
+        <li><a href="#iglesias">Las iglesias</a></li>
+        <li><a href="#permisos">Lo que puede usar cada una</a></li>
+        <li><a href="#acceso">Recuperar el acceso</a></li>
+        <li><a href="#espacio">El espacio del plan</a></li>
+        <li><a href="#copias">Copias en Google Drive</a></li>
+        <li><a href="#nueva">Abrir una iglesia nueva</a></li>
+        <li><a href="#versiones">Versiones nuevas</a></li>
+      </ol>
+    </aside>
+
+    <article class="doc">
+
+      <h2 id="entrar">Entrar al panel</h2>
+      <p>Abre <code>admin.manna-iglesia.es</code> y escribe tu contraseña. La primera vez, con la clave de alta del panel, se crea el superadministrador con una contraseña de al menos 10 caracteres. El panel tiene tres pestañas: <strong>Iglesias</strong>, <strong>Espacio</strong> y <strong>Copias</strong>.</p>
+
+      <h2 id="iglesias">Las iglesias</h2>
+      <figure>
+        <img src="../capturas/super-iglesias.jpg" alt="El panel del superadministrador, pestaña Iglesias" loading="lazy">
+        <figcaption>Cada iglesia con su versión, su equipo, sus usuarios, sus órdenes, el espacio que usa y su último uso (aquí, una de prueba).</figcaption>
+      </figure>
+      <ol class="steps">
+        <li><strong>«Añadir iglesia»</strong> con su dirección (por ejemplo <code>nv.manna-iglesia.es</code>), cuando su sitio ya existe (ver <a href="#nueva">Abrir una iglesia nueva</a>).</li>
+        <li><strong>«Actualizar»</strong> vuelve a preguntar a todas cómo están.</li>
+        <li>Toca una iglesia para ver y cambiar lo suyo. <strong>«Quitar del panel»</strong> solo la saca de esta lista: su sitio sigue funcionando.</li>
+      </ol>
+
+      <h2 id="permisos">Lo que puede usar cada iglesia</h2>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Ajuste</th><th>Qué decide</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Activa</strong> o <strong>suspendida</strong></td><td>Suspendida, su dirección no deja entrar a nadie; su equipo de la iglesia sigue funcionando en el culto.</td></tr>
+            <tr><td><strong>Módulos que puede usar</strong></td><td>Biblia, Himnario, Medios, Textos, Tiempo, Páginas web y Capas. Su administrador reparte entre sus usuarios solo lo que esté encendido. El Orden no se apaga.</td></tr>
+            <tr><td><strong>Orden de los módulos</strong></td><td>En qué orden salen en Control completo, Servicio de alabanza y Preparar el culto. En cada función, el primero es el que se abre primero.</td></tr>
+            <tr><td><strong>Archivos y espacio</strong></td><td>Si su gente sube fotos, videos y presentaciones desde casa, y cuántos GB tiene para eso.</td></tr>
+            <tr><td><strong>Máximo de órdenes</strong></td><td>Cuántos órdenes del culto puede guardar.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Pulsa <strong>«Guardar»</strong>: la iglesia lo recibe al momento, y su equipo en su siguiente comprobación (cada minuto).</p>
+
+      <h2 id="acceso">Recuperar el acceso de una iglesia</h2>
+      <p>Si su administrador olvidó su PIN y no hay otro administrador, <strong>«Recuperar el acceso»</strong> da una clave de alta nueva, que dura una semana. Con ella, en <code>&lt;iglesia&gt;.manna-iglesia.es/administrar</code>, la iglesia vuelve a crear su administrador.</p>
+
+      <h2 id="espacio">El espacio del plan</h2>
+      <figure>
+        <img src="../capturas/super-espacio.jpg" alt="El panel del superadministrador, pestaña Espacio" loading="lazy">
+        <figcaption>El espacio del hosting, lo repartido y lo libre para repartir.</figcaption>
+      </figure>
+      <p>Escribe el <strong>espacio del plan</strong> del hosting en GB y un <strong>margen sin repartir</strong> en %. El panel no deja dar a las iglesias más de lo que queda libre, y muestra lo que de verdad está usado.</p>
+
+      <h2 id="copias">Copias en Google Drive</h2>
+      <figure>
+        <img src="../capturas/super-copias.jpg" alt="El panel del superadministrador, pestaña Copias" loading="lazy">
+        <figcaption>Las copias: la cuenta de Google conectada, la última copia y las de cada iglesia.</figcaption>
+      </figure>
+      <ol class="steps">
+        <li>Se conecta <strong>una vez</strong>: «Conectar Google Drive», con la cuenta donde se guardarán, y «Permitir». Manna solo ve los archivos que crea él.</li>
+        <li><strong>Cada noche</strong> (a las 3 de la madrugada de Colombia) se guarda la copia de cada iglesia: usuarios, órdenes, textos, favoritos y ajustes. Se conservan las de los últimos 30 días y una por mes durante un año.</li>
+        <li><strong>«Hacer una copia ahora»</strong> la hace en el momento.</li>
+        <li>Para devolver una iglesia a como estaba: <strong>«Copias…»</strong> de esa iglesia → la fecha → <strong>«Volver a esta copia»</strong>. Pregunta dos veces, y lo que había antes queda guardado en la copia de hoy.</li>
+      </ol>
+      <div class="note"><p>Las copias no llevan los archivos (fotos, videos, himnos): esos están en el equipo de cada iglesia y en el almacén del himnario.</p></div>
+
+      <h2 id="nueva">Abrir una iglesia nueva</h2>
+      <p>Lo hace el asistente de Manna con el procedimiento <code>/nueva-iglesia</code>; tú solo pegas las claves y entregas. Para la iglesia de dirección <code>&lt;iglesia&gt;.manna-iglesia.es</code>:</p>
+      <ol class="steps">
+        <li><strong>Su sitio</strong> en el hosting y su dirección (el asistente).</li>
+        <li><strong>El túnel <code>servidor-&lt;iglesia&gt;</code></strong>, por donde se entra a su equipo desde fuera (el asistente).</li>
+        <li><strong>Sus claves</strong>, que pegas tú en Hostinger → el sitio → Variables de entorno: la clave de alta (una que inventes), la del superadministrador (la de siempre), una clave de R2 de solo lectura propia y la del túnel. Termina con <strong>«Apply changes»</strong>.</li>
+        <li><strong>La versión</strong> aprobada en <code>pruebas</code> (el asistente).</li>
+        <li><strong>«Añadir iglesia»</strong> en este panel.</li>
+        <li><strong>Entregar a la iglesia</strong>: su dirección, su clave de alta y el enlace al <a href="instalacion.html">manual de instalación</a>. Con eso hacen lo demás solos.</li>
+      </ol>
+
+      <h2 id="versiones">Versiones nuevas</h2>
+      <p>Cada versión se publica primero en <code>pruebas.manna-iglesia.es</code> y en este panel. Cuando la apruebas, el asistente la pone igual en cada iglesia. El equipo de cada iglesia se pone al día solo la próxima vez que se enciende.</p>
+    </article>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Manna Iglesia · Los Ríos Multimedia</span>
+      <a href="../">Volver a la bienvenida</a>
+      <a href="https://admin.manna-iglesia.es/privacidad.html">Privacidad</a>
+    </div>
+  </footer>
+</body>
+</html>

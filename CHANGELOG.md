@@ -4,6 +4,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Manuales en manna-iglesia.es**: la bienvenida de Manna Iglesia con el manual de instalación (lo que recibe cada iglesia y los pasos para empezar) y los manuales de los usuarios, del administrador de la iglesia y del superadministrador, con capturas de Manna. Se leen en el celular y se pueden imprimir o guardar en PDF.
 ## 1.58.0 — 2026-10-29
 
 - **Instalar en una iglesia nueva, de una vez**: si la nube de la iglesia tiene la clave de su túnel, el equipo que se instala desde su portada enciende solo su conexión por internet en `servidor-<iglesia>.manna-iglesia.es`. Ya no hay que pegar la clave en Ajustes del equipo.

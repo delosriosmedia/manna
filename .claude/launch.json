@@ -35,6 +35,20 @@
         "scripts/demo.mjs"
       ],
       "port": 8143
+    },
+    {
+      "name": "manna-sitio",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8150",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "data/sitio"
+      ],
+      "port": 8150
     }
   ]
 }

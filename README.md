@@ -4,6 +4,8 @@
 
 Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene el proyector) hace de servidor, y cualquier celular, tableta o PC de la misma red local se conecta por el navegador y elige qué función cumplir.
 
+**Manuales de instalación y de uso**, para cada iglesia: [manna-iglesia.es](https://manna-iglesia.es).
+
 ## Qué hace
 
 - **«Escenario»**: lo que está al aire ocupa el fondo de la pantalla y, encima, los módulos (en un cajón que se abre desde el dock de la izquierda), la **cola del culto** (un toque marca, con un ▶ para proyectar; doble toque o Intro proyecta) y la barra de abajo, en una sola fila: anterior, siguiente, los mandos de lo que está al aire, el volumen y «Más mandos». La barra se aparta al tocar el fondo y vuelve al mover el ratón. Arriba, a la izquierda, el **logo con la versión** (en el Control completo abre **Ajustes**), el botón de **cambiar de función** y **«Solo fondo»** y **«Negro»** como iconos; al centro, lo que está al aire; a la derecha, en el control del equipo principal, el botón que **enciende y apaga el proyector**, «Buscar en todo» y el wifi y el QR, que se abren ahí mismo.

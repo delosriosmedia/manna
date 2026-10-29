@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#05070a">
+  <meta name="description" content="Manual de Manna Iglesia para el administrador de cada iglesia: usuarios y PIN, el equipo de la iglesia, los ajustes y qué hacer si algo falla.">
+  <title>Manual del administrador · Manna Iglesia</title>
+  <link rel="icon" type="image/svg+xml" href="../logo.svg">
+  <link rel="stylesheet" href="../sitio.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../logo.svg" alt="">Manna Iglesia</a>
+      <nav aria-label="Secciones">
+        <a href="../#instalacion">Instalación</a>
+        <a href="../#manuales" aria-current="page">Manuales</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap manual">
+    <header class="doc-head">
+      <p class="who">Manual de uso · para el administrador de cada iglesia</p>
+      <h1>Manual del administrador de la iglesia</h1>
+      <p class="intro">El administrador cuida que cada persona pueda entrar con lo que le toca, que el equipo de la iglesia esté al día y que el culto salga bien. Hace todo desde dos sitios: <strong>«Administrar la iglesia»</strong>, en la dirección de tu iglesia, y los <strong>Ajustes</strong> del equipo de la iglesia.</p>
+      <button class="print" type="button" onclick="print()">Imprimir o guardar en PDF</button>
+    </header>
+
+    <aside class="toc" aria-label="En este manual">
+      <p>En este manual</p>
+      <ol>
+        <li><a href="#entrar">Entrar a administrar</a></li>
+        <li><a href="#usuarios">Los usuarios</a></li>
+        <li><a href="#equipo">El equipo de la iglesia</a></li>
+        <li><a href="#ajustes">Los ajustes del equipo</a></li>
+        <li><a href="#ordenes">Los órdenes de todos</a></li>
+        <li><a href="#versiones">Versiones nuevas</a></li>
+        <li><a href="#copias">Copias de seguridad</a></li>
+        <li><a href="#problemas">Si algo falla</a></li>
+      </ol>
+    </aside>
+
+    <article class="doc">
+
+      <h2 id="entrar">Entrar a administrar</h2>
+      <p>Abre la dirección de tu iglesia y elige <strong>«Administrar la iglesia»</strong> (o escribe <code>/administrar</code> al final de la dirección). Entras con tu nombre y tu PIN, el mismo con el que preparas el culto. La primera vez se entra con la clave de alta: ver el <a href="instalacion.html#administrador">manual de instalación</a>.</p>
+
+      <h2 id="usuarios">Los usuarios</h2>
+      <p>Los usuarios viven en la dirección de tu iglesia, y el equipo de la iglesia los recibe solo: <strong>se crean y se cambian siempre en «Administrar la iglesia» → Usuarios</strong>. En el equipo se ven en Ajustes → Usuarios, y dejan entrar con su PIN aunque no haya internet.</p>
+      <figure>
+        <img src="../capturas/administrar-usuarios.jpg" alt="Administrar la iglesia, pestaña Usuarios" loading="lazy">
+        <figcaption>Cada usuario con sus funciones; a la derecha, cambiar, cambiar el PIN y quitar.</figcaption>
+      </figure>
+      <ol class="steps">
+        <li><strong>«Añadir usuario»</strong>: su nombre, su PIN de 4 números y las funciones que podrá usar en el equipo de la iglesia (Control completo, Servicio de alabanza, Presentador de diapositivas, Control del orden). Todos pueden preparar el culto desde casa.</li>
+        <li><strong>Administrador</strong>: márcalo solo a quien deba crear usuarios y entrar a los Ajustes del equipo. Puede haber más de uno; conviene tener dos, por si uno falta.</li>
+        <li><strong>El lápiz</strong> cambia su nombre, sus funciones y si es administrador. <strong>La llave</strong> le pone un PIN nuevo (si lo olvidó): sus sesiones abiertas se cierran.</li>
+        <li><strong>La papelera</strong> lo quita. Sus órdenes del culto pasan al administrador, para no perderlos.</li>
+      </ol>
+      <div class="note"><p>Las funciones que puedes repartir son las que Manna Iglesia tiene encendidas para tu iglesia. Si te falta alguna, escríbenos.</p></div>
+
+      <h2 id="equipo">El equipo de la iglesia</h2>
+      <p>El equipo de la iglesia (o equipo oficial) es el computador que proyecta en el culto. <strong>Solo hay uno por iglesia</strong>: recibe lo que se prepara en la dirección de tu iglesia, sus usuarios y su conexión por internet. En <strong>«Administrar la iglesia» → Equipo</strong> ves si está conectado y qué versión tiene.</p>
+      <figure>
+        <img src="../capturas/administrar-equipo.jpg" alt="Administrar la iglesia, pestaña Equipo" loading="lazy">
+        <figcaption>La pestaña Equipo, antes de tener equipo.</figcaption>
+      </figure>
+      <h3>Instalarlo o cambiar de computador</h3>
+      <p>Lo más fácil es instalarlo desde la portada de tu iglesia, en el propio computador: «Instalar Manna en este equipo» (ver el <a href="instalacion.html#instalar">paso 3 del manual de instalación</a>). Queda conectado y con todo listo. Si ya había otro equipo de la iglesia, la portada lo avisa: el nuevo pasa a ser el oficial y el anterior deja de funcionar, y lo dice en todas sus pantallas.</p>
+      <h3>Conectar un Manna que ya estaba instalado</h3>
+      <ol class="steps">
+        <li>En «Administrar la iglesia» → Equipo, pulsa <strong>«Emparejar un equipo»</strong>: sale un código de 6 números, que dura 10 minutos.</li>
+        <li>En el computador de la iglesia, abre Manna y entra en <strong>Ajustes → Nube</strong>. Escribe la dirección de tu iglesia y el código, y pulsa <strong>«Emparejar»</strong>.</li>
+      </ol>
+
+      <h2 id="ajustes">Los ajustes del equipo</h2>
+      <p>En el computador de la iglesia, con <strong>Control completo</strong>, toca el <strong>logo de Manna</strong> (arriba a la izquierda) para abrir los Ajustes. Solo los ven los administradores.</p>
+      <figure>
+        <img src="../capturas/ajustes-usuarios.jpg" alt="Los Ajustes del equipo de la iglesia" loading="lazy">
+        <figcaption>Ajustes, con sus secciones arriba. Si al equipo le falta algún programa, un aviso lo dice en lo más alto, con cómo instalarlo.</figcaption>
+      </figure>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Sección</th><th>Para qué</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Apariencia</strong></td><td>Cómo se ve lo que se proyecta: el tamaño del texto y de los subtítulos, la letra, los colores, la sombra y el fondo (también tus propias imágenes).</td></tr>
+            <tr><td><strong>Proyector</strong></td><td>Encender o apagar la proyección en la segunda pantalla, y «Mostrar imagen de prueba» para encuadrar.</td></tr>
+            <tr><td><strong>Dispositivos</strong></td><td>Cuántas pantallas y controles hay conectados, y «Conectar un dispositivo» con su código QR.</td></tr>
+            <tr><td><strong>Usuarios</strong></td><td>La lista de usuarios (se cambian en «Administrar la iglesia»).</td></tr>
+            <tr><td><strong>Internet</strong></td><td>La conexión por internet, para entrar desde fuera. Instalado desde la portada, ya está encendida con la dirección de tu iglesia.</td></tr>
+            <tr><td><strong>Nube</strong></td><td>La conexión con la dirección de tu iglesia y el himnario: <strong>desde la nube</strong> o <strong>completo</strong> en el equipo.</td></tr>
+            <tr><td><strong>Programas</strong></td><td>La revisión del equipo: qué programas tiene, «Instalar por mí» y «Actualizar» el de YouTube si las descargas empiezan a fallar.</td></tr>
+            <tr><td><strong>Contenido</strong></td><td>La carpeta de la iglesia (biblias, himnario y medios): dónde está, abrirla o elegir otra.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Más abajo están también el espacio en disco (con su papelera por categoría), el tamaño de la interfaz de ese dispositivo, «Buscar versión nueva», <strong>Reiniciar Manna</strong> y <strong>Apagar Manna</strong>.</p>
+
+      <h2 id="ordenes">Los órdenes de todos</h2>
+      <p>Cada persona ve y cambia sus órdenes; <strong>el administrador ve, cambia y borra los de todos</strong>, y puede poner en uso cualquiera. Cada iglesia tiene un máximo de órdenes guardados (de entrada, 20): cuando quedan pocos, el cajón Orden pide borrar los antiguos. Los favoritos (con estrella) se guardan para repetirlos.</p>
+
+      <h2 id="versiones">Versiones nuevas</h2>
+      <p>La dirección de tu iglesia y su equipo van siempre en la misma versión. Cuando sale una nueva, la dirección de tu iglesia se pone al día sola, y <strong>el equipo de la iglesia se actualiza solo la próxima vez que se enciende</strong>, antes de que nadie lo use: nunca a mitad de un culto. No tienes que hacer nada. En «Administrar la iglesia» → Equipo se ve qué versión tiene.</p>
+
+      <h2 id="copias">Copias de seguridad</h2>
+      <p>Cada noche Manna Iglesia guarda una copia de tu iglesia: los usuarios, los órdenes, los textos, los favoritos y los ajustes (las de los últimos 30 días y una por mes durante un año). Si algo se borró por error, escríbenos con la fecha y lo volvemos como estaba ese día.</p>
+
+      <h2 id="problemas">Si algo falla</h2>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Qué pasa</th><th>Qué hacer</th></tr></thead>
+          <tbody>
+            <tr><td>Alguien no puede entrar</td><td>Revisa en «Administrar la iglesia» que tenga esa función, o ponle un PIN nuevo con la llave. Cinco PIN equivocados lo dejan 15 minutos sin entrar.</td></tr>
+            <tr><td>La portada dice que el equipo está apagado</td><td>Enciende el computador de la iglesia y abre Manna con su icono.</td></tr>
+            <tr><td>El equipo dice que hay otro Manna en la red</td><td>Hay otro computador con Manna abierto en la misma wifi. Ciérralo y pulsa «Volver a comprobar».</td></tr>
+            <tr><td>El equipo dice que ya no es el oficial</td><td>Se instaló o emparejó otro computador. Si este debe seguir siendo el de la iglesia, vuelve a emparejarlo (Ajustes → Nube) o instálalo de nuevo desde la portada.</td></tr>
+            <tr><td>Desde fuera no se puede entrar</td><td>En el equipo, Ajustes → Internet dice si la conexión está encendida y, si falla, por qué.</td></tr>
+            <tr><td>Se fue el internet</td><td>El culto sigue en la iglesia. Lo preparado desde casa llega en cuanto vuelva.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>¿Algo más? Escribe a <a href="mailto:delosrios.media@gmail.com">delosrios.media@gmail.com</a>.</p>
+    </article>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Manna Iglesia · Los Ríos Multimedia</span>
+      <a href="../">Volver a la bienvenida</a>
+      <a href="https://admin.manna-iglesia.es/privacidad.html">Privacidad</a>
+    </div>
+  </footer>
+</body>
+</html>

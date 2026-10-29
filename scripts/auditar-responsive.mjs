@@ -500,7 +500,8 @@ async function worker(list, n) {
 
     for (const device of list) {
       const narrow = device.w < 860;
-      await chrome.send('Emulation.setDeviceMetricsOverride', { width: device.w, height: device.h, deviceScaleFactor: 1, mobile: device.touch });
+      // MANNA_CAPTURAS_ESCALA: las capturas de los manuales (scripts/sitio.mjs) se toman al doble, para que se lean nítidas.
+      await chrome.send('Emulation.setDeviceMetricsOverride', { width: device.w, height: device.h, deviceScaleFactor: Number(process.env.MANNA_CAPTURAS_ESCALA) || 1, mobile: device.touch });
       await chrome.send('Emulation.setTouchEmulationEnabled', { enabled: device.touch });
       // Cada tamaño empieza sin preferencias guardadas, como un dispositivo nuevo: el cajón se abre a su
       // tamaño de partida. Sin esto, cada tamaño heredaba lo que el anterior guardó (el celular pequeño deja el
