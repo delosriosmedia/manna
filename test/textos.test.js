@@ -95,9 +95,10 @@ test('textos: una función sin el permiso no los toca', async () => {
 });
 
 test('el texto fijo va solo en una capa, con su aspecto (2026-10-29)', async () => {
-  assert.deepEqual(cleanLook({ font: 'lexend', size: 'xl', place: 'tl', box: 'stripe', motion: 'scroll', speed: 'fast' }),
+  assert.deepEqual(cleanLook({ font: 'lexend', size: 'gigante', place: 'tl', box: 'stripe', motion: 'scroll', speed: 'fast' }),
     { font: 'lexend', size: 'm', place: 'tl', box: 'stripe', motion: 'scroll', speed: 'fast' }, 'lo desconocido, el de siempre');
   assert.deepEqual(cleanLook(null), { font: 'sora', size: 'm', place: 'bc', box: 'pill', motion: 'still', speed: 'normal' });
+  assert.equal(cleanLook({ size: 'xxl' }).size, 'xxl', 'seis tamaños, del muy pequeño al enorme');
   const s = await start('fijo');
   try {
     const id = (await s.send('texts.save', { style: 'fixed', text: 'Silencien sus celulares', look: { font: 'atkinson', box: 'none' } })).result.id;

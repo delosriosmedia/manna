@@ -4,12 +4,12 @@
 export const STYLES = ['normal', 'quote', 'fixed'];
 
 // El texto fijo (2026-10-29): va en una capa, como el reloj, con su aspecto. Cuatro letras que se leen bien en pequeño
-// y de lejos, tres tamaños, los nueve sitios del reloj, sin recuadro, en una franja de lado a lado o en una píldora, y
+// y de lejos, seis tamaños, los nueve sitios del reloj, sin recuadro, en una franja de lado a lado o en una píldora, y
 // quieto o pasando como una franja de noticias. El color no se elige: se ajusta solo a lo que haya detrás.
 export const LOOK = { font: 'sora', size: 'm', place: 'bc', box: 'pill', motion: 'still', speed: 'normal' };
 export const LOOKS = {
   font: ['sora', 'atkinson', 'lexend', 'merriweather'],
-  size: ['s', 'm', 'l'],
+  size: ['xs', 's', 'm', 'l', 'xl', 'xxl'],
   place: ['tl', 'tc', 'tr', 'ml', 'mc', 'mr', 'bl', 'bc', 'br'],
   box: ['none', 'stripe', 'pill'],
   motion: ['still', 'scroll'],

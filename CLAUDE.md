@@ -67,3 +67,4 @@ Repositorio: https://github.com/delosriosmedia/manna
 - `/nuevo-modulo` — crea un módulo completo (servidor, web, permisos, pruebas, documentación).
 - `/probar` — levanta un servidor de prueba y verifica en el navegador.
 - `/publicar` — pruebas, documentación, versión, commit y push (con confirmación).
+- `/nueva-iglesia` — pone en marcha una iglesia nueva: su nube, su túnel `servidor-<iglesia>` y su equipo principal instalado desde la portada.

@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.58.0 — 2026-10-29
+
+- **Instalar en una iglesia nueva, de una vez**: si la nube de la iglesia tiene la clave de su túnel, el equipo que se instala desde su portada enciende solo su conexión por internet en `servidor-<iglesia>.manna-iglesia.es`. Ya no hay que pegar la clave en Ajustes del equipo.
+- **Texto fijo**: seis tamaños en vez de tres (de «Muy pequeño» a «Enorme»; los que ya estaban no cambian) y una vista previa que muestra cómo se verá en la proyección mientras se escribe y se eligen la letra, el tamaño, el sitio y el recuadro.
 - **Copias en Google Drive**: el panel del superadministrador ya no muestra un «false» suelto antes de conectar la cuenta.
 
 ## 1.57.2 — 2026-10-29

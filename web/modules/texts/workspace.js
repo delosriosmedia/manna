@@ -3,6 +3,7 @@ import { chooseLayer } from '../../core/capas.js';
 import { h, dialog, guard, menu, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { whenLabel } from '../../core/time.js';
+import { createStage } from '../projection/stage.js';
 
 const NARROW = 600; // por debajo de este ancho del cajón, una cosa cada vez (lo mismo dice texts.css)
 const MAX_TEXT = 4000;
@@ -14,7 +15,7 @@ const firstLine = (text) => text.trim().split('\n')[0].slice(0, 60);
 const LOOK = { font: 'sora', size: 'm', place: 'bc', box: 'pill', motion: 'still', speed: 'normal' };
 const OPTIONS = {
   font: [['sora', 'Sora'], ['atkinson', 'Atkinson'], ['lexend', 'Lexend'], ['merriweather', 'Merriweather']],
-  size: [['s', 'Pequeño'], ['m', 'Mediano'], ['l', 'Grande']],
+  size: [['xs', 'Muy pequeño'], ['s', 'Pequeño'], ['m', 'Mediano'], ['l', 'Grande'], ['xl', 'Muy grande'], ['xxl', 'Enorme']],
   box: [['none', 'Sin recuadro'], ['stripe', 'Franja'], ['pill', 'Píldora']],
   motion: [['still', 'Quieto'], ['scroll', 'Pasando']],
   speed: [['slow', 'Lento'], ['normal', 'Normal'], ['fast', 'Rápido']],
@@ -59,7 +60,10 @@ function mount(el, ctx) {
   const places = h('div', { class: 'text-places', role: 'radiogroup', 'aria-label': 'Dónde va' },
     ...PLACES.map(([value, label]) => choice('place', value, '', { class: 'chip text-place', title: label, 'aria-label': label })));
   const speedRow = lookRow('speed', 'Velocidad');
-  const lookPanel = h('div', { class: 'text-look' }, lookRow('font', 'Letra'), lookRow('size', 'Tamaño'),
+  // Cómo se verá en la proyección, sobre el fondo de Ajustes, mientras se elige (como en Tiempo).
+  const screen = h('div', { class: 'text-preview' });
+  const preview = createStage(screen);
+  const lookPanel = h('div', { class: 'text-look' }, screen, lookRow('font', 'Letra'), lookRow('size', 'Tamaño'),
     h('div', { class: 'text-look-row' }, h('span', { class: 'text-look-title' }, 'Dónde va'), places),
     lookRow('box', 'Recuadro'), lookRow('motion', 'Movimiento'), speedRow,
     h('p', { class: 'muted text-look-note' }, 'El color se ajusta solo a lo que haya detrás, para que siempre se lea.'));
@@ -187,6 +191,9 @@ function mount(el, ctx) {
       b.setAttribute('aria-checked', String(on));
     }
     for (const input of [area, author, ...styles, ...lookButtons]) input.disabled = !ctx.canEdit;
+    if (fixed && state.projection?.styles) {
+      preview.render({ mode: 'live', item: { kind: 'fixed', uid: 0, text: area.value.trim() || 'Así se verá tu texto', look }, styles: state.projection.styles });
+    }
     const parts = partsOf(area.value);
     info.textContent = fixed ? 'Queda encima de lo que se proyecte, en la capa que elijas' : parts.length > 1 ? `${parts.length} partes: se pasan con «Siguiente»` : 'Una línea en blanco pasa a otra pantalla';
     hint.textContent = fixed ? 'Va en una capa, como el reloj' : 'Una línea en blanco pasa a otra pantalla';
@@ -207,7 +214,7 @@ function mount(el, ctx) {
     if (t && !dirty() && differs(t, base)) fill();
     render();
   });
-  subscribe('projection', renderList);
+  subscribe('projection', () => { renderList(); paint(); }); // también la letra y el fondo de Ajustes de la vista previa
 
   return {
     onShow: render,

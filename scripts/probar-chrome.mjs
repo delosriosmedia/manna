@@ -1815,8 +1815,12 @@ try {
     await sleep(200);
     check('«Fijo» muestra su aspecto (cuatro letras, nueve sitios) y cambia «Proyectar» por «Poner en una capa»', await run(`return !${ws}.querySelector('.text-look').hidden && ${ws}.querySelectorAll('.text-look [data-key=font][data-value]').length === 4 && ${ws}.querySelectorAll('.text-place').length === 9
       && [...${tbar}.querySelectorAll('.btn')].filter((b) => !b.hidden).map((b) => b.textContent.trim()).join() === 'Poner en una capa'`), await run(`return JSON.stringify({ look: !${ws}.querySelector('.text-look').hidden, fonts: ${ws}.querySelectorAll('.text-look [data-key=font][data-value]').length, places: ${ws}.querySelectorAll('.text-place').length, bar: [...${tbar}.querySelectorAll('.btn')].filter((b) => !b.hidden).map((b) => b.textContent.trim()).join() })`));
-    for (const [key, value] of [['font', 'atkinson'], ['box', 'stripe'], ['place', 'tc'], ['motion', 'scroll']]) await click(`${ws}.querySelector('.text-look [data-key=${key}][data-value=${value}]')`);
+    for (const [key, value] of [['font', 'atkinson'], ['size', 'xxl'], ['box', 'stripe'], ['place', 'tc'], ['motion', 'scroll']]) await click(`${ws}.querySelector('.text-look [data-key=${key}][data-value=${value}]')`);
     await sleep(200);
+    const sample = `${ws}.querySelector('.text-preview .fix')`;
+    check('la vista previa lo muestra mientras se elige: su texto, su letra, su tamaño (de seis), su sitio y su recuadro', await run(`return ${sample}?.textContent.includes('Silencien sus celulares') && ${sample}.dataset.size === 'xxl' && ${sample}.dataset.place === 'tc' && ${sample}.dataset.box === 'stripe'
+      && getComputedStyle(${sample}.querySelector('.fix-box')).fontFamily.includes('Atkinson') && ${ws}.querySelectorAll('.text-look [data-key=size][data-value]').length === 6`),
+      await run(`return ${sample}?.outerHTML.slice(0, 300) || 'nada'`));
     check('«Pasando» ofrece su velocidad', await run(`return !${ws}.querySelector('.text-look-row[data-key=speed]').hidden`));
     await click(`${ws}.querySelector('.text-look [data-key=speed][data-value=fast]')`);
     await click(`[...${tbar}.querySelectorAll('.btn')].find(b => b.textContent.includes('Poner en una capa'))`);
@@ -1825,7 +1829,7 @@ try {
     await sleep(700);
     const slot4 = JSON.parse(await run(`return JSON.stringify((await (await fetch('/api/state')).json()).layers.slots[3])`));
     check('«Poner en una capa» lo guarda con su aspecto y lo pone en la capa elegida', slot4.kind === 'fixed' && slot4.title === 'Silencien sus celulares'
-      && JSON.stringify(slot4.content?.look) === JSON.stringify({ font: 'atkinson', size: 'm', place: 'tc', box: 'stripe', motion: 'scroll', speed: 'fast' }), JSON.stringify(slot4));
+      && JSON.stringify(slot4.content?.look) === JSON.stringify({ font: 'atkinson', size: 'xxl', place: 'tc', box: 'stripe', motion: 'scroll', speed: 'fast' }), JSON.stringify(slot4));
     await run(`const f = document.createElement('iframe'); f.id = 'pantalla'; f.src = '/proyeccion'; f.style.cssText = 'position:fixed;left:0;bottom:0;width:640px;height:360px;z-index:99;border:0'; document.body.append(f);`);
     const fix = `document.querySelector('#pantalla')?.contentDocument?.querySelector('.stage-layer[data-n="4"] .fix')`;
     check('en la proyección va arriba, en una franja, pasando, con su letra y un color que se lee sobre lo de detrás', await until(`${fix}?.dataset.place === 'tc' && ${fix}.dataset.box === 'stripe'

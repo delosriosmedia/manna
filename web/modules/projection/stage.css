@@ -378,8 +378,11 @@ video::cue { font-size: calc(5.2cqh * var(--cue, 1)); line-height: 1.3; backgrou
 @font-face { font-family: 'Merriweather'; src: url('/vendor/merriweather/merriweather-latin-wght-normal.woff2') format('woff2'); font-weight: 300 900; font-display: swap; }
 .fix { position: absolute; inset: 0; display: grid; padding: 5cqh 4cqw; pointer-events: none; --fix-n: 6.5cqh; --fix-ink: #fff; --fix-halo: rgba(0, 0, 0, 0.78); --fix-plate: rgba(8, 10, 14, 0.62); }
 .fix[data-tone='dark'] { --fix-ink: #101318; --fix-halo: rgba(255, 255, 255, 0.82); --fix-plate: rgba(255, 255, 255, 0.72); }
+.fix[data-size='xs'] { --fix-n: 3.2cqh; }
 .fix[data-size='s'] { --fix-n: 4.4cqh; }
 .fix[data-size='l'] { --fix-n: 10cqh; }
+.fix[data-size='xl'] { --fix-n: 13.5cqh; }
+.fix[data-size='xxl'] { --fix-n: 18cqh; }
 .fix[data-place^='t'] { align-items: start; }
 .fix[data-place^='m'] { align-items: center; }
 .fix[data-place^='b'] { align-items: end; }

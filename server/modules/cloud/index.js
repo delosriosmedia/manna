@@ -38,6 +38,12 @@ export const HYMNALS = ['nube', 'completo'];
 export const PROTOCOL = 1;
 // Lo que el equipo oficial puede bajar de R2: las biblias y el himnario, nada más.
 export const contentKey = (key) => typeof key === 'string' && /^(Biblias|Himnario\/(videos|letras|diapositivas))\//.test(key) && !key.split('/').some((p) => !p || p === '.' || p === '..');
+// El equipo de una iglesia desde internet (regla del dueño, 2026-10-29): servidor-<iglesia> en el dominio de su nube
+// (nv.manna-iglesia.es → https://servidor-nv.manna-iglesia.es). Sin dominio (una IP o localhost), ninguna.
+export function serverUrl(host) {
+  const m = /^([a-z0-9-]+)\.((?:[a-z0-9-]+\.)*[a-z]{2,})$/i.exec(String(host).split(':')[0]);
+  return m ? `https://servidor-${m[1]}.${m[2]}` : null;
+}
 // Lo que se sincroniza y el módulo que lo tiene (cada uno ofrece sync: { export, apply }).
 const SETS = { orders: (app) => app.services.order?.sync, texts: (app) => app.services.texts?.sync, favorites: (app) => app.services.hymns?.sync };
 // Lo que se sube desde casa y baja el equipo (decisión 64): imágenes, videos y audios, y presentaciones.
@@ -73,6 +79,9 @@ function cloudSide(app) {
   timer.unref();
   app.onClose(() => clearInterval(timer));
   const host = (ctx) => String(ctx.req.headers.host || '').trim().slice(0, 100);
+  // La clave del túnel del equipo de la iglesia (S56): la pone el dueño en el hosting y el equipo oficial la recibe al
+  // emparejarse y en cada comprobación, con la dirección de la regla servidor-<iglesia>.
+  const tunnelOf = (ctx) => (process.env.MANNA_TUNEL_CLAVE ? { token: process.env.MANNA_TUNEL_CLAVE, url: serverUrl(host(ctx)) || '' } : null);
 
   app.action('cloud.code', { permission: 'users.manage' }, () => {
     const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
@@ -168,7 +177,7 @@ function cloudSide(app) {
     else saved.data.code = null;
     saved.save();
     publish();
-    return { token, church: host(ctx), hymnal: installed?.hymnal || null };
+    return { token, church: host(ctx), hymnal: installed?.hymnal || null, tunnel: tunnelOf(ctx) };
   });
 
   // ¿Lo pide el equipo oficial? Por su clave.
@@ -209,7 +218,7 @@ function cloudSide(app) {
       o.ip = ctx.ip;
       saved.save();
       publish();
-      return { official: true, church: host(ctx), users: versionOf(users.records()), data: versionNow(), settings: app.services.church?.settings(),
+      return { official: true, church: host(ctx), users: versionOf(users.records()), data: versionNow(), settings: app.services.church?.settings(), tunnel: tunnelOf(ctx),
         version: process.env.MANNA_NUBE_VERSION || store.get('system')?.version, protocol: speaks() };
     }
     const former = saved.data.former.find((f) => same(mine, f.tokenHash));
@@ -499,6 +508,7 @@ function churchSide(app) {
         : `La nube tiene Manna ${body.version || 'de otra versión'} y este equipo, la ${version}: hasta que tengan la misma, este equipo sigue en local, sin sincronizar.${updates?.newer(body.version) ? ' Se pondrá al día al volver a abrir Manna.' : ''}`;
       // Lo que el superadministrador dejó a esta iglesia (fase 39): módulos, su orden y el máximo de órdenes.
       if (body.settings) app.services.church?.apply(body.settings);
+      useTunnel(body.tunnel);
       if (!apart && body.users && body.users !== saved.data.users) await syncUsers();
       // Por si se perdió un aviso: si la nube o el equipo tienen algo distinto de lo último que se juntó.
       if (!apart && (body.data !== saved.data.cloudData || setVersion(exportAll(app)) !== saved.data.synced)) await syncData();
@@ -606,6 +616,10 @@ function churchSide(app) {
     return url.origin;
   }
 
+  const useTunnel = (tunnel) => {
+    if (!tunnel) return;
+    try { app.services.internet?.useTunnel(tunnel); } catch (err) { console.error(err.message); }
+  };
   // Emparejar con el código que da «Administrar la iglesia» (code) o con el del instalador emparejado (install, decisión
   // 64). Si ya hay otro equipo oficial, la nube devuelve { conflict } para preguntarlo (con install no pregunta).
   async function pair({ base, code, install, confirm }) {
@@ -625,6 +639,7 @@ function churchSide(app) {
     if (HYMNALS.includes(body.hymnal)) saved.data.hymnal = body.hymnal;
     saved.save();
     saved.flush();
+    useTunnel(body.tunnel);
     set({ church: saved.data.church, url: base, paired: saved.data.paired, status: 'on', lastSeen: Date.now(), error: null, hymnal: saved.data.hymnal });
     await syncUsers().catch((err) => console.error('No se pudieron traer los usuarios de la nube:', err.message));
     fillSoon();

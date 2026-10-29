@@ -223,4 +223,17 @@ export default function setup(app) {
     tries = 0;
     start();
   });
+  // La clave del túnel que da la nube de la iglesia al equipo oficial (S56): si es otra, se usa y se enciende; si es la
+  // misma, no se toca (por si se apagó aquí a propósito).
+  app.services.internet = {
+    useTunnel({ token, url = '' } = {}) {
+      const clean = tokenFrom(token);
+      if (!clean || (url && !/^https:\/\/[a-z0-9.-]+$/i.test(url))) throw new Error('La nube dio una clave o una dirección del túnel que no sirve.');
+      if (clean === saved.data.token && url === saved.data.address) return;
+      Object.assign(saved.data, { on: true, token: clean, address: url });
+      saved.save();
+      tries = 0;
+      start();
+    },
+  };
 }

@@ -1743,6 +1743,7 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-29 | Tanda del 2026-10-29: la copia de DeckCraft parte de su versión 0.12.0 e incluye `craft-fonts` (letras con las mismas medidas que Calibri, Arial…), porque la versión web no puede usar las del equipo | Sin ellas, el texto de las presentaciones cambiaba de tamaño |
 | 2026-10-29 | Tanda del 2026-10-29: Televisores se quita del todo (código, pruebas y su televisor de mentira); un televisor sigue pudiendo abrir la proyección por su navegador | Decisión 65: cancelados. Se recupera del historial de git si hiciera falta |
 | 2026-10-29 | Tanda del 2026-10-29: S35 sale sin el sonido de la pestaña ni los mandos para acercar o desplazar desde Manna | La pestaña sigue sonando por el equipo (pedir su sonido lo duplicaría) y Chrome la pone delante al compartir, así que se maneja en ella misma |
+| 2026-10-29 | S56 en su forma sencilla (decisión 66): la clave del túnel de cada iglesia la pone el dueño en el hosting de su nube, y la nube se la da al equipo oficial; el túnel lo crea el asistente, una vez por iglesia | Que el panel del superadministrador creara los túneles pediría guardar en el hosting una clave de Cloudflare con permisos amplios; así el computador de la iglesia queda listo solo con el instalador |
 
 ## 11. Lo pendiente y los cambios sugeridos (decisión 60)
 
@@ -1757,11 +1758,14 @@ Desde el 2026-10-25 **todo lo pendiente de Manna está aquí**, en cuatro grupos
 | **Fases 35 a 39: Manna Iglesia en la nube** (decisiones 55, 57 a 59 y 64) | En curso: hechas la 35 (usuarios y el Orden rehecho, 1.41.0), la 36 (la nube de la iglesia, 1.43.0 a 1.47.0) y la 39 (el superadministrador, 1.51.0); la 37 tiene todas sus partes hechas (1.46.0 a 1.55.0) y espera la prueba del dueño en el PC de Leidy; la 38 (copias en Google Drive) funciona desde el 2026-10-29, con Google conectado y la primera copia de `pruebas`. Llevan dentro lo que dejó anotado la auditoría (fase 9): las sesiones sin límite, ya resuelto en la 35 (como mucho 500 guardadas); los enlaces que se siguen dentro de las carpetas, las direcciones del propio equipo en Páginas web y un video aceptado por su extensión sin ffmpeg, en la 36, antes de abrir Manna a internet |
 | **Fase 33, parte 3**: el pase en vivo de las presentaciones dentro de Manna, con DeckCraft | Por el camino B desde el 2026-10-29 (decisión 65): copia propia, sin esperar a DeckCraft (no contestó las propuestas del 2026-10-24). Al cerrarse, PowerPoint sale de Manna y con él la S25 (probar PowerPoint en vivo en Windows); hasta entonces, eso se prueba en el PC de Leidy |
 | **La tanda del 2026-10-29** (decisión 65; ver en la sección 4) | En curso. Hechos en la 1.56.0 los puntos 1 a 8: la licencia AGPL, DeckCraft por el camino B, el celular sin zoom y el PIN al instante, «cantado» por defecto, S55, S41, S48 y las cuatro capas con su isla. Hechos en la 1.57.0 (publicada el mismo día, para que el dueño pruebe toda la tanda en una ronda): el texto fijo, S50, S42, quitar los televisores, la primera versión de S35 (compartir una pestaña) y las copias en Drive (fase 38). La 1.57.1 arregla «Siguiente» con DeckCraft (visto en el PC de Leidy). Google Drive conectado y la clave de R2 de solo lectura de `pruebas` cambiada (S54), el mismo día |
+| **Nueva Vida en `nv.manna-iglesia.es`** (decisión 66) | Con el procedimiento `/nueva-iglesia`, después de probar la 1.58.0 en `pruebas` (el túnel que da la nube, S56): la nube de `nv`, su túnel `servidor-nv`, y el computador de la iglesia instalado desde la portada de `nv` (conserva sus usuarios, órdenes y contenido, y deja el túnel «Manna-PC») |
 | S46 · **Medir las citas de un documento con sermones nuevos** | Más adelante (decisión 65): el dueño trae 3 o 4 sermones que el detector no haya visto y se revisan cita por cita |
 
 ### 2. Listas para hacer
 
-Hoy ninguna: las que había pasaron a la tanda del 2026-10-29 (decisión 65).
+| Qué | Detalle |
+| --- | --- |
+| **Página propia de Manna Iglesia en `manna-iglesia.es`** (decisión 66) | Para presentar el servicio a otras iglesias, cuando Nueva Vida ya esté en `nv` (hasta entonces `manna-iglesia.es` lleva al equipo de la iglesia por el túnel «Manna-PC»). Falta que el dueño diga qué contar y con qué aspecto |
 
 ### 3. Tareas del dueño
 
@@ -1774,7 +1778,6 @@ Hoy ninguna: las que había pasaron a la tanda del 2026-10-29 (decisión 65).
 | Qué | Detalle |
 | --- | --- |
 | **Fase 40: funciones para el celular**, desde cero | En pausa |
-| S56 · **El túnel del equipo, sin pegar claves** | Que la nube le dé al equipo oficial, al emparejarlo, la clave de su túnel con nombre (creado por el superadministrador), para que nadie tenga que copiarla. Cruda |
 | S57 · **Una sola dirección también para controlar el equipo** | Que al controlar el equipo la barra siga diciendo la dirección de la nube (hoy salta a la del túnel): la nube tendría que reenviar todo el tráfico del culto al equipo. Grande; el dueño lo pidió el 2026-10-29: estudiar costo y riesgos antes de decidir. Cruda |
 | S58 · **Que suenen los videos de una presentación con DeckCraft** | La versión web de DeckCraft pasa mudos los videos y audios de una presentación: no tiene salida de sonido (visto en el PC de Leidy, 2026-10-29). Dos caminos: darle salida de sonido en nuestra copia (`delosriosmedia/deckcraft`, con Web Audio; trabajo en Rust, mediano) o que Manna pase con PowerPoint en vivo las presentaciones con video o sonido cuando el equipo tenga PowerPoint. Importa para presentaciones como las del Sábado Joven. Propuesta del asistente: el primero, que vale en cualquier equipo. Cruda |
 | S59 · **La hora de una capa cambia de tono como el texto fijo** | En blanco con sombra se pierde sobre una diapositiva clara (visto en el proyector del PC de Leidy, 2026-10-29). El texto fijo ya mira cada segundo lo que tiene detrás (`data-tone`); el reloj puede hacer lo mismo. Pequeña. Cruda |

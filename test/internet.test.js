@@ -157,6 +157,17 @@ test('la conexión por internet se enciende, se recuerda, usa la clave sin publi
     now = await until((s) => s.status === 'on', 3000);
     assert.deepEqual([now.status, now.busy, asked().length], ['on', null, launched + 1], 'cuando lo suelta, se conecta solo');
 
+    // La clave que da la nube de la iglesia (S56): otra, se usa y se enciende; la misma, no lo vuelve a abrir.
+    const given = `eyJ${'nU6e'.repeat(20)}`;
+    app.services.internet.useTunnel({ token: given, url: 'https://servidor-nv.ejemplo.org' });
+    now = await until((s) => s.status === 'on' && s.url === 'https://servidor-nv.ejemplo.org');
+    assert.deepEqual([now.on, now.own, now.url], [true, true, 'https://servidor-nv.ejemplo.org']);
+    const runs = asked().length;
+    app.services.internet.useTunnel({ token: given, url: 'https://servidor-nv.ejemplo.org' });
+    await sleep(300);
+    assert.equal(asked().length, runs, 'la misma clave no lo vuelve a abrir');
+    assert.throws(() => app.services.internet.useTunnel({ token: given, url: 'http://otra.cosa' }), /no sirve/);
+
     // Una clave no válida: lo dice, con palabras de quien usa Manna.
     assert.equal((await send('internet.own', { token: `malo${'z'.repeat(50)}` })).http, 200);
     now = await until((s) => s.status === 'error');

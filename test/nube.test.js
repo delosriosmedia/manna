@@ -19,6 +19,7 @@ import superadmin from '../server/modules/super/index.js';
 import { startFakeR2 } from '../scripts/lib/r2-falso.mjs';
 import { startFakeGoogle } from '../scripts/lib/google-falso.mjs';
 import { expired } from '../server/modules/super/drive.js';
+import { serverUrl } from '../server/modules/cloud/index.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-nube-'));
@@ -212,13 +213,24 @@ test('instalar el equipo principal desde la nube: el instalador emparejado y el 
     assert.ok(code, res.headers.get('content-disposition'));
     assert.equal((await nube.call(`/api/nube/instalado?id=${id}`)).installed, false);
 
-    // El equipo, con lo que deja el instalador en sus datos: se empareja solo al abrirse, con el himnario elegido.
+    // El equipo, con lo que deja el instalador en sus datos: se empareja solo al abrirse, con el himnario elegido, y
+    // recibe la clave del túnel que el dueño puso en la nube (S56), al emparejarse y en cada comprobación.
     const c = await serve('iglesia-instalada');
     await c.call('/api/session', { role: 'control' });
     fs.writeFileSync(path.join(tmp, 'iglesia-instalada', 'emparejar.json'), JSON.stringify({ url: nube.base, code }));
-    await c.app.services.cloud.check();
+    const tunnels = [];
+    c.app.services.internet = { useTunnel: (t) => tunnels.push(t) };
+    process.env.MANNA_TUNEL_CLAVE = `eyJ${'tUn3'.repeat(20)}`;
+    try {
+      await c.app.services.cloud.check(); // se empareja y, en la misma vuelta, pregunta su estado
+    } finally {
+      delete process.env.MANNA_TUNEL_CLAVE;
+    }
     const st = (await c.state()).cloud;
     assert.deepEqual([st.status, st.hymnal], ['on', 'nube']);
+    assert.deepEqual(tunnels, [1, 2].map(() => ({ token: `eyJ${'tUn3'.repeat(20)}`, url: '' })), 'la clave del túnel llega al emparejarse y al comprobar');
+    assert.deepEqual([serverUrl('nv.manna-iglesia.es'), serverUrl('pruebas.manna-iglesia.es:443'), serverUrl('127.0.0.1:8135'), serverUrl('localhost')],
+      ['https://servidor-nv.manna-iglesia.es', 'https://servidor-pruebas.manna-iglesia.es', null, null], 'la dirección sigue la regla servidor-<iglesia>');
     assert.ok(!fs.existsSync(path.join(tmp, 'iglesia-instalada', 'emparejar.json')), 'se usa una vez');
     const known = await nube.call(`/api/nube/instalado?id=${id}`);
     assert.deepEqual([known.installed, known.version, known.latest], [true, known.latest, known.latest], 'la portada lo reconoce, con su versión y la de la nube');
