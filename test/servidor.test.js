@@ -716,3 +716,67 @@ test('una orden que no viene de Manna (origen «null» o de otro sitio) se recha
   assert.equal(read.status, 200);
   await read.arrayBuffer();
 });
+
+test('compartir una pestaña (S35): solo desde el equipo principal, y Manna solo pasa los mensajes entre quien comparte y el proyector', async () => {
+  // Una conexión en tiempo real, como la de una página: su identificador y los avisos que le llegan solo a ella.
+  const listen = async (role) => {
+    const reader = (await main.request(`/api/events?rol=${role}`)).body.getReader();
+    const decoder = new TextDecoder();
+    const events = [];
+    let buffer = '';
+    (async () => {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) return;
+        buffer += decoder.decode(value, { stream: true });
+        for (let i = buffer.indexOf('\n\n'); i >= 0; i = buffer.indexOf('\n\n')) {
+          const block = buffer.slice(0, i);
+          buffer = buffer.slice(i + 2);
+          const event = /^event: (.*)$/m.exec(block)?.[1];
+          if (event) events.push({ event, data: JSON.parse(/^data: (.*)$/m.exec(block)[1]) });
+        }
+      }
+    })().catch(() => {});
+    while (!events.some((e) => e.event === 'hello')) await new Promise((r) => setTimeout(r, 20));
+    return { id: events.find((e) => e.event === 'hello').data.id, signals: () => events.filter((e) => e.event === 'signal').map((e) => e.data), close: () => reader.cancel() };
+  };
+  const signal = async (body) => (await main.request('/api/web/share/signal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).status;
+  const wait = () => new Promise((r) => setTimeout(r, 100));
+  const sharer = await listen('control');
+  const screen = await listen('proyeccion');
+  const other = await listen('control');
+  try {
+    assert.equal(await signal({ from: screen.id, data: { want: true } }), 409, 'sin nada compartido no hay a quién avisar');
+    assert.equal((await main.send('web.share', { conn: 'c-que-no-existe' })).status, 403);
+    const { status, result: { id, key } } = await main.send('web.share', { conn: sharer.id });
+    assert.equal(status, 200);
+    let s = await main.state();
+    assert.equal(s.projection.item.kind, 'share');
+    assert.deepEqual(s.web.share, { id });
+    assert.ok(!JSON.stringify(s).includes(key), 'la clave de quien comparte no va en el estado');
+    assert.equal((await main.send('order.add', { kind: 'share', data: { id } })).status, 404, 'no va al orden');
+
+    // La pantalla de proyección pide; quien comparte, con su clave, le contesta a ella.
+    assert.equal(await signal({ from: screen.id, data: { want: true } }), 200);
+    assert.equal(await signal({ from: sharer.id, key, to: screen.id, data: { offer: { type: 'offer', sdp: 'v=0' } } }), 200);
+    // A otra que no es una pantalla de proyección no le llega nada; y sin la clave, una que no proyecta no puede hablar.
+    assert.equal(await signal({ from: sharer.id, key, to: other.id, data: { offer: 'x' } }), 200);
+    assert.equal(await signal({ from: other.id, data: { want: true } }), 403);
+    assert.equal(await signal({ from: screen.id, data: 'x'.repeat(70 * 1024) }), 413);
+    await wait();
+    assert.deepEqual(sharer.signals(), [{ share: id, from: screen.id, data: { want: true } }]);
+    assert.deepEqual(screen.signals(), [{ share: id, from: sharer.id, data: { offer: { type: 'offer', sdp: 'v=0' } } }]);
+    assert.deepEqual(other.signals(), []);
+
+    // Proyectar otra cosa no deja de compartir: se vuelve a proyectar; dejar de compartir la quita del aire.
+    await main.send('projection.show', { kind: 'testcard', data: {} });
+    assert.equal((await main.send('projection.show', { kind: 'share', data: { id } })).status, 200);
+    await main.send('web.shareStop');
+    s = await main.state();
+    assert.equal(s.web.share, null);
+    assert.equal(s.projection.item, null);
+    assert.equal(await signal({ from: sharer.id, key, to: screen.id, data: {} }), 409);
+  } finally {
+    for (const c of [sharer, screen, other]) await c.close();
+  }
+});

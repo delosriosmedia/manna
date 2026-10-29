@@ -3,6 +3,7 @@ import { h, dialog, guard, menu, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { nameFromFile } from '../../core/names.js';
 import { layerButton } from '../../core/capas.js';
+import { canShare, share } from './share.js';
 
 // "Informe_final-2.html" -> "Informe final 2"
 const ADDED = (page) => (page.framable
@@ -98,21 +99,37 @@ function mount(el, ctx) {
     }) }, icon('plus', 16), 'Añadir al orden'),
     toLayer,
     h('button', { class: 'btn primary', onclick: () => project() }, icon('play', 16), 'Proyectar', h('kbd', {}, '↵')));
+  // S35: una pestaña de Chrome del equipo principal, en vivo en el proyector (solo se empieza desde ese equipo).
+  const shareBtn = h('button', { class: 'btn', hidden: true, onclick: guard(share) }, icon('screencast', 16), 'Compartir una pestaña');
   el.replaceChildren(h('div', { class: 'ws-head' }, h('h1', {}, 'Páginas web'), h('span', { class: 'spacer' }),
-    ctx.canEdit && h('button', { class: 'btn', onclick: openAdd }, icon('plus', 16), 'Agregar página')), list, bar, picker);
+    ctx.canEdit && h('button', { class: 'btn', onclick: openAdd }, icon('plus', 16), 'Agregar página'), shareBtn), list, bar, picker);
+
+  // Mientras se comparte, su ficha va primero: desde cualquier dispositivo se vuelve a proyectar o se deja de compartir.
+  function sharedItem() {
+    const shared = state.web?.share;
+    if (!shared) return null;
+    const live = state.projection?.mode === 'live' && state.projection?.item?.kind === 'share';
+    return h('div', { class: `web-item web-share${live ? ' live' : ''}` },
+      h('span', { class: 'kind k-share' }, icon('screencast', 16)),
+      h('span', { class: 'item-text' }, h('strong', {}, 'Pestaña compartida'),
+        h('small', {}, live && h('span', { class: 'badge live' }, 'Al aire'), live ? ' Se ve en el proyector' : ' Lista para proyectar')),
+      !live && h('button', { class: 'btn', onclick: guard(() => action('projection.show', { kind: 'share', data: { id: shared.id } })) }, icon('play', 16), 'Proyectar'),
+      h('button', { class: 'btn', onclick: guard(() => action('web.shareStop')) }, icon('x', 16), 'Dejar de compartir'));
+  }
 
   function render() {
     const all = pages();
     if (awaited && all.some((p) => p.id === awaited)) awaited = null;
     if (pageId && !awaited && !current()) pageId = null;
     const air = onAir();
+    shareBtn.hidden = !canShare();
     if (!all.length) {
-      list.replaceChildren(h('div', { class: 'empty' }, h('strong', {}, 'Aún no hay páginas'),
+      list.replaceChildren(sharedItem() || '', h('div', { class: 'empty' }, h('strong', {}, 'Aún no hay páginas'),
         'Agrega la dirección de una presentación de Canva, Google Slides o Genially, o de un juego como Kahoot, o sube un archivo HTML propio. Se proyecta a pantalla completa.',
         ctx.canEdit && h('div', { class: 'row', style: 'justify-content: center; margin-top: 14px;' },
           h('button', { class: 'btn primary', onclick: openAdd }, icon('plus', 16), 'Agregar página'))));
     } else {
-      list.replaceChildren(...all.map((page) => h('div', { class: `web-item${page.id === pageId ? ' selected' : ''}${air === page.id ? ' live' : ''}`, dataset: { id: page.id } },
+      list.replaceChildren(sharedItem() || '', ...all.map((page) => h('div', { class: `web-item${page.id === pageId ? ' selected' : ''}${air === page.id ? ' live' : ''}`, dataset: { id: page.id } },
         h('button', { class: 'web-pick', 'aria-pressed': page.id === pageId, onclick: () => choose(page.id), ondblclick: () => { choose(page.id); project(); } },
           h('span', { class: 'kind k-web' }, icon('globe', 16)),
           h('span', { class: 'item-text' }, h('strong', {}, page.name), h('small', {}, air === page.id && h('span', { class: 'badge live' }, 'Al aire'), ` ${page.subtitle}`))),

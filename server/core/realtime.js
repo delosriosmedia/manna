@@ -1,7 +1,7 @@
 // Canal en tiempo real (Server-Sent Events): el servidor empuja cada cambio de estado
 // a todos los dispositivos conectados. Las órdenes viajan aparte, por POST /api/action.
 // Eventos: 'hello' (quién es esta conexión), 'state' (todo, al conectar), 'patch' (un espacio que
-// cambió) y 'ping' (latido).
+// cambió), 'ping' (latido) y 'signal' (un aviso para esa conexión sola: compartir una pestaña, S35).
 // El latido lleva la hora del servidor: con ella cada pantalla ajusta su reloj y la
 // reproducción va a la par en todas (ver web/core/playback.js).
 import { plainAddress } from './listener.js';
@@ -10,6 +10,7 @@ const PING_MS = 10_000;
 
 export function createRealtime({ store, router, sessions }) {
   const clients = new Set();
+  const leaving = new Set();
   let serial = 0;
 
   store.register('conexiones', {});
@@ -63,6 +64,7 @@ export function createRealtime({ store, router, sessions }) {
     req.on('close', () => {
       clients.delete(client);
       publishCounts();
+      for (const fn of leaving) fn(client.id);
     });
   });
 
@@ -85,7 +87,20 @@ export function createRealtime({ store, router, sessions }) {
   }, PING_MS);
   keepAlive.unref();
 
+  const find = (id) => [...clients].find((c) => c.id === id);
   return {
+    // Para hablar con una conexión concreta (compartir una pestaña, modules/web/share.js): quién es, un aviso solo
+    // para ella y cuándo se va.
+    client(id) {
+      const c = find(id);
+      return c ? { id: c.id, role: c.role, local: c.local, ip: c.ip } : null;
+    },
+    tell(id, data) {
+      const c = find(id);
+      if (c) send(c.res, 'signal', data);
+      return Boolean(c);
+    },
+    onLeave: (fn) => leaving.add(fn),
     close() {
       clearInterval(keepAlive);
       for (const c of clients) c.res.end();

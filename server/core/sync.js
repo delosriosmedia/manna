@@ -44,3 +44,14 @@ export function setVersion(sets) {
   }]));
   return crypto.createHash('sha256').update(JSON.stringify(stable(sorted))).digest('hex').slice(0, 16);
 }
+
+// Volver a una copia (fase 38): lo de la copia queda como recién cambiado y lo que no estaba en ella, como recién borrado.
+// Así, al juntarse con el otro lado (el equipo de la iglesia), gana la copia y no se deshace.
+export function restoreSet(current, copy, now = Date.now()) {
+  const ids = new Set((copy?.records || []).map((r) => r.id));
+  return {
+    records: (copy?.records || []).map((r) => ({ ...r, updated: now })),
+    deleted: [...(current?.deleted || []).filter((d) => !ids.has(d.id)),
+      ...(current?.records || []).filter((r) => !ids.has(r.id)).map((r) => ({ id: r.id, at: now }))],
+  };
+}

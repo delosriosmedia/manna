@@ -1,4 +1,5 @@
 import { HttpError } from '../../core/router.js';
+import { setupDrive } from './drive.js';
 
 // El superadministrador de Manna Iglesia (fase 39, decisión 64), en su propio sitio (admin.manna-iglesia.es, con
 // `MANNA_SUPER=1`). Habla con cada iglesia por su dirección, con la clave que el dueño pone en `MANNA_CLAVE_SUPER` de
@@ -25,7 +26,9 @@ export default function setup(app) {
   const { store } = app;
   const saved = app.storage('iglesias', { list: [], plan: { total: 0, margin: 0.15 } });
   const known = new Map(); // host → lo último que dijo
-  const view = () => ({ plan: saved.data.plan, churches: saved.data.list.map(({ host }) => known.get(host) || { host, ok: null }) });
+  // Las copias en Google Drive (fase 38).
+  const drive = setupDrive(app, { ask, hosts: () => saved.data.list.map((c) => c.host), changed: () => publish() });
+  const view = () => ({ plan: saved.data.plan, churches: saved.data.list.map(({ host }) => known.get(host) || { host, ok: null }), drive: drive.view() });
   store.register('super', view());
   const publish = () => store.set('super', view());
 

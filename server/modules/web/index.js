@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { HttpError } from '../../core/router.js';
 import { cleanName } from '../../core/names.js';
+import { setupShare } from './share.js';
 
 // Módulo Páginas web: presentaciones y juegos que viven en una página (Canva, Google Slides,
 // Genially, Kahoot) o en un archivo HTML propio, proyectados a pantalla completa.
@@ -89,7 +90,7 @@ export default function setup(app) {
     if (!page) throw new HttpError(404, 'Esa página ya no está en la biblioteca.');
     return page;
   };
-  store.register('web', { pages: [] });
+  store.register('web', { pages: [], share: null });
   publish();
 
   // ---- Tipo de contenido ----
@@ -177,4 +178,6 @@ export default function setup(app) {
     saved.data.pages = pages().filter((p) => p.id !== id);
     commit();
   });
+
+  setupShare(app);
 }

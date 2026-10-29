@@ -216,6 +216,7 @@ const SCREENS = [
   // El superadministrador (fase 39): en su propio servidor, con la nube de arriba como su iglesia.
   { name: 'Superadministrador: iglesias', url: '/superadmin', cloud: 'superadmin', tabs: true, content: '.super-list', inside: '.super-row', settle: 600 },
   { name: 'Superadministrador: espacio', url: '/superadmin#espacio', cloud: 'superadmin', tabs: true, primary: '.super-plan .btn.primary', settle: 600 },
+  { name: 'Superadministrador: copias', url: '/superadmin#copias', cloud: 'superadmin', tabs: true, content: '.super-copies', inside: '.super-row', settle: 600 },
   { name: 'Inicio', url: '/', plain: '.role' },
   // La portada de la nube (fase 37, parte 6): sin equipo encendido, el aviso; en un computador, las tarjetas de instalar.
   { name: 'Portada de la nube', url: '/', cloud: 'preparacion', plain: '.church-note' },
@@ -454,9 +455,13 @@ async function worker(list, n) {
   }));
   // El superadministrador (fase 39), por super.localhost: otro nombre, para que su sesión no pise ninguna.
   const superBase = `http://super.localhost:${port + 30}`;
+  // Con Google Drive ya conectado (fase 38): sin pedir nada a Google, se ve la lista de copias de cada iglesia.
+  const superData = path.join(tmp, `super-${n + 1}`);
+  fs.mkdirSync(superData, { recursive: true });
+  fs.writeFileSync(path.join(superData, 'drive.json'), JSON.stringify({ refresh: 'de-auditoria', since: Date.now(), night: null, last: {} }));
   const superServer = screens.some((s) => s.cloud === 'superadmin') && killOnExit(spawn(process.execPath, ['server/index.js'], {
     cwd: ROOT, stdio: 'ignore',
-    env: { ...process.env, MANNA_NUBE: '1', MANNA_SUPER: '1', MANNA_CLAVE_ALTA: 'auditoria', MANNA_CLAVE_SUPER: 'auditoria-super', MANNA_NO_OPEN: '1', MANNA_DATA: path.join(tmp, `super-${n + 1}`), PORT: String(port + 30) },
+    env: { ...process.env, MANNA_NUBE: '1', MANNA_SUPER: '1', MANNA_CLAVE_ALTA: 'auditoria', MANNA_CLAVE_SUPER: 'auditoria-super', MANNA_NO_OPEN: '1', MANNA_DATA: superData, PORT: String(port + 30), GOOGLE_CLIENT_ID: 'auditoria', GOOGLE_CLIENT_SECRET: 'auditoria' },
   }));
   await sleep(3000);
   const chrome = await startChrome();

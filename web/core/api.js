@@ -126,6 +126,10 @@ export function reportSound(able) {
   fetch('/api/events/sound', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: clientId, able }) }).catch(() => {});
 }
 
+// Avisos para esta conexión sola (evento 'signal'): hoy, los de compartir una pestaña (modules/web/share.js).
+const signals = new Set();
+export const onSignal = (fn) => signals.add(fn);
+
 // El servidor envía un latido cada 10 s. Si pasan 25 s sin recibir nada, la conexión
 // está "muerta aunque abierta" (wifi caída, router reiniciado, equipo dormido) y se rehace.
 const STALE_MS = 25_000;
@@ -173,6 +177,12 @@ export function connect(role) {
       const { ns, state: next } = JSON.parse(e.data);
       state[ns] = next;
       emit(ns);
+    });
+    source.addEventListener('signal', (e) => {
+      seen();
+      let msg;
+      try { msg = JSON.parse(e.data); } catch { return; }
+      signals.forEach((fn) => fn(msg));
     });
     source.addEventListener('ping', (e) => {
       seen();

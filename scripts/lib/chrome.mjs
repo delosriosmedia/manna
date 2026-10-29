@@ -52,13 +52,14 @@ const freePort = () => new Promise((resolve, reject) => {
 //   events                eventos recibidos (por ejemplo, cuadros de diálogo)
 //   acceptDialogs         si es true, acepta solo el aviso "¿Salir del sitio?"; sin ello,
 //                         una navegación se queda esperando a que alguien responda
-export async function startChrome() {
+// args: más opciones para este Chrome (p. ej., la pestaña que elige solo al compartir una).
+export async function startChrome({ args = [] } = {}) {
   const debugPort = await freePort();
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-chrome-'));
   // --mute-audio: lo que las pruebas reproducen no suena en este equipo (los reproductores de la
   // página se comportan igual: solo se calla la salida del navegador).
   const child = killOnExit(spawn(findBrowser(), ['--headless=new', '--mute-audio', `--remote-debugging-port=${debugPort}`, `--user-data-dir=${profile}`,
-    '--no-first-run', '--window-size=1280,800', 'about:blank'], { stdio: 'ignore' }));
+    '--no-first-run', '--window-size=1280,800', ...args, 'about:blank'], { stdio: 'ignore' }));
 
   let target;
   for (let i = 0; i < 50 && !target; i += 1) {

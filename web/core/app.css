@@ -211,7 +211,7 @@ input[type='file'].input { padding: 6px; height: auto; }
 .kind.k-youtube, .kind.k-ytlink { background: rgba(242, 119, 122, 0.14); color: #f59a9c; }
 .kind.k-slides { background: rgba(237, 169, 58, 0.14); color: #f0bc66; }
 .kind.k-compare { background: rgba(86, 212, 234, 0.14); color: #7fdcec; }
-.kind.k-web { background: rgba(140, 200, 96, 0.14); color: #a8d77f; }
+.kind.k-web, .kind.k-share { background: rgba(140, 200, 96, 0.14); color: #a8d77f; }
 .kind.k-text, .kind.k-fixed { background: rgba(240, 130, 180, 0.14); color: #f3a3c9; }
 .kind.k-clock { background: rgba(250, 204, 21, 0.14); color: #f5d565; }
 .kind.k-testcard { background: var(--s3); color: var(--ink-2); }

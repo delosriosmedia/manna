@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeSets, setVersion } from '../server/core/sync.js';
+import { mergeSets, restoreSet, setVersion } from '../server/core/sync.js';
 
 const r = (id, updated, extra = {}) => ({ id, updated, ...extra });
 
@@ -28,4 +28,15 @@ test('juntar: cambiado en los dos lados después de ponerse de acuerdo es un con
 test('la huella no depende del orden', () => {
   assert.equal(setVersion({ x: { records: [r('a', 1), r('b', 2)], deleted: [] } }), setVersion({ x: { records: [r('b', 2), r('a', 1)], deleted: [] } }));
   assert.notEqual(setVersion({ x: { records: [r('a', 1)], deleted: [] } }), setVersion({ x: { records: [r('a', 2)], deleted: [] } }));
+});
+
+test('volver a una copia: lo de la copia gana al juntarse con el otro lado, y lo que no estaba se borra', () => {
+  const copy = { records: [{ id: 'a', name: 'viejo', updated: 10 }], deleted: [] };
+  const now = { records: [{ id: 'a', name: 'nuevo', updated: 50 }, { id: 'b', updated: 40 }], deleted: [{ id: 'a', at: 20 }, { id: 'c', at: 30 }] };
+  const restored = restoreSet(now, copy, 100);
+  assert.deepEqual(restored.records, [{ id: 'a', name: 'viejo', updated: 100 }]);
+  assert.deepEqual(restored.deleted, [{ id: 'c', at: 30 }, { id: 'b', at: 100 }]);
+  // El equipo de la iglesia todavía tiene lo de antes: al juntarse queda la copia.
+  const merged = mergeSets(now, restored, { now: 100 });
+  assert.deepEqual(merged.records, [{ id: 'a', name: 'viejo', updated: 100 }]);
 });

@@ -1,4 +1,4 @@
-/* El panel del superadministrador de Manna Iglesia (fase 39): las iglesias y el espacio del plan. */
+/* El panel del superadministrador de Manna Iglesia (fase 39): las iglesias, el espacio del plan y las copias (fase 38). */
 .super-list { flex: 1; min-height: 0; overflow-y: auto; display: grid; align-content: start; gap: 8px; padding: 12px 20px 24px; }
 .super-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; text-align: left; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); }
 button.super-row:not(:disabled):hover { border-color: var(--accent); }
@@ -17,6 +17,9 @@ button.super-row:not(:disabled):hover { border-color: var(--accent); }
 .super-order li span { display: inline-block; min-width: 110px; }
 .super-plan { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
 .super-plan .user-field { flex: 1 1 160px; }
+/* Copias: todo en una zona que ocupa lo que queda y se desplaza entera. */
+.super-copies { flex: 1; min-height: 0; }
+.super-copies .super-list { padding: 0; }
 .super-space { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 12px 0; }
 .super-space > div { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r); }
 .super-space small { color: var(--ink-3); font-size: 12px; }

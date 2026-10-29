@@ -11,6 +11,12 @@
 .web-pick small { color: var(--ink-3); font-size: 12px; overflow-wrap: anywhere; }
 .web-pick .badge { font-size: 10px; padding: 1px 6px; }
 .web-more { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
+/* La pestaña compartida (S35), a todo lo ancho y primero. */
+.web-share { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px; }
+.web-share .item-text { flex: 1 1 160px; display: grid; gap: 2px; min-width: 0; }
+.web-share strong { font-weight: 600; }
+.web-share small { color: var(--ink-3); font-size: 12px; }
+.web-share .badge { font-size: 10px; padding: 1px 6px; }
 
 /* Barra de la elegida: un nombre largo se corta y deja sitio a los botones. */
 .web-bar .sel-ref { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

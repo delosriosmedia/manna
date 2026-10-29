@@ -53,6 +53,7 @@ import { HYMN_FACTS, hymnTitle, seedHymnal } from './lib/himnario-falso.mjs';
 import { examplePoster } from './lib/png.mjs';
 import { checkContract, sourceFiles } from './lib/codigo.mjs';
 import { startFakeR2 } from './lib/r2-falso.mjs';
+import { startFakeGoogle } from './lib/google-falso.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const QUICK = process.argv.includes('rapido');
@@ -167,6 +168,8 @@ const UNTOUCHED = {
   'GET /api/nube/super/estado': 'la pide el sitio del superadministrador a cada iglesia (super.refresh, super.add); no la interfaz',
   'POST /api/nube/super/ajustes': 'la pide el sitio del superadministrador a cada iglesia (super.set); no la interfaz',
   'POST /api/nube/super/acceso': 'la pide el sitio del superadministrador a cada iglesia (super.access); no la interfaz',
+  'GET /api/nube/super/copia': 'la pide el sitio del superadministrador a cada iglesia para su copia en Drive (super.backup); no la interfaz',
+  'POST /api/nube/super/restaurar': 'la pide el sitio del superadministrador a una iglesia al volver a una copia (super.restore); no la interfaz',
   'bible.rescan': 'no tiene botón: la carpeta de biblias se vigila sola',
   'projection.clear': 'no tiene botón: "Solo fondo" y "Negro" cubren su uso',
   'projection.display': 'necesita una segunda pantalla de verdad',
@@ -482,7 +485,9 @@ async function reviewSection() {
 
 let server = startServer();
 await sleep(3000);
-chrome = await startChrome();
+// Al compartir una pestaña (S35), Chrome elige sola la de este título en vez de preguntar.
+const SHARED_TAB = 'Pizarra de prueba';
+chrome = await startChrome({ args: [`--auto-select-tab-capture-source-by-title=${SHARED_TAB}`] });
 await instrument();
 try {
   chrome.acceptDialogs = true;
@@ -1808,8 +1813,8 @@ try {
     await sleep(200);
     await type(area, 'Silencien sus celulares');
     await sleep(200);
-    check('«Fijo» muestra su aspecto (cuatro letras, nueve sitios) y cambia «Proyectar» por «Poner en una capa»', await run(`return !${ws}.querySelector('.text-look').hidden && ${ws}.querySelectorAll('.text-look [data-key=font]').length === 4 && ${ws}.querySelectorAll('.text-place').length === 9
-      && [...${tbar}.querySelectorAll('.btn')].filter((b) => !b.hidden).map((b) => b.textContent.trim()).join() === 'Poner en una capa'`), await run(`return [...${tbar}.querySelectorAll('.btn')].filter((b) => !b.hidden).map((b) => b.textContent.trim()).join()`));
+    check('«Fijo» muestra su aspecto (cuatro letras, nueve sitios) y cambia «Proyectar» por «Poner en una capa»', await run(`return !${ws}.querySelector('.text-look').hidden && ${ws}.querySelectorAll('.text-look [data-key=font][data-value]').length === 4 && ${ws}.querySelectorAll('.text-place').length === 9
+      && [...${tbar}.querySelectorAll('.btn')].filter((b) => !b.hidden).map((b) => b.textContent.trim()).join() === 'Poner en una capa'`), await run(`return JSON.stringify({ look: !${ws}.querySelector('.text-look').hidden, fonts: ${ws}.querySelectorAll('.text-look [data-key=font][data-value]').length, places: ${ws}.querySelectorAll('.text-place').length, bar: [...${tbar}.querySelectorAll('.btn')].filter((b) => !b.hidden).map((b) => b.textContent.trim()).join() })`));
     for (const [key, value] of [['font', 'atkinson'], ['box', 'stripe'], ['place', 'tc'], ['motion', 'scroll']]) await click(`${ws}.querySelector('.text-look [data-key=${key}][data-value=${value}]')`);
     await sleep(200);
     check('«Pasando» ofrece su velocidad', await run(`return !${ws}.querySelector('.text-look-row[data-key=speed]').hidden`));
@@ -2517,7 +2522,8 @@ try {
     // (X-Frame-Options): nada sale a internet.
     const site = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', ...(req.url.startsWith('/no-se-deja') && { 'X-Frame-Options': 'DENY' }) });
-      res.end(req.url.startsWith('/capa') ? LAYER_PAGE : '<!doctype html><title>Sitio de prueba</title><body>Sitio de prueba</body>');
+      res.end(req.url.startsWith('/capa') ? LAYER_PAGE : req.url.startsWith('/pizarra') ? `<!doctype html><title>${SHARED_TAB}</title><body style="margin:0;background:rgb(200,30,40)">`
+        : '<!doctype html><title>Sitio de prueba</title><body>Sitio de prueba</body>');
     });
     await new Promise((resolve) => site.listen(0, '127.0.0.1', resolve));
     const open = `http://127.0.0.1:${site.address().port}/se-deja`;
@@ -2620,6 +2626,31 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       await click(`${covers}.querySelector('.btn')`);
       check('«Ocultarlos» lo oculta, y el aviso se va', await until(`(await (await fetch('/api/state')).json()).layers.slots[0].visible === false && ${covers}.hidden`, 15));
       await run(`return await ${post('layers.clear', { n: 1 })}`);
+
+      // S35: compartir una pestaña. Chrome la elige sola (SHARED_TAB, roja); la otra pantalla de proyección (#pantalla) la
+      // recibe por WebRTC, y el fondo del control, que no es una pantalla de proyección, ve la tarjeta.
+      const shareBtn = `[...${ws}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes('Compartir una pestaña'))`;
+      check('en el equipo principal, Páginas web ofrece «Compartir una pestaña»', await run(`return Boolean(${shareBtn}) && !${shareBtn}.hidden`));
+      const board = (await chrome.send('Target.createTarget', { url: `http://127.0.0.1:${site.address().port}/pizarra` })).result?.targetId;
+      await sleep(800);
+      await chrome.send('Page.bringToFront');
+      await sleep(300);
+      const at = await centerOf(shareBtn);
+      await clickAt(at.x, at.y);
+      const red = `(() => { const v = ${far}.querySelector('video.share-video'); if (!v?.videoWidth) return false; const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight; const g = c.getContext('2d'); g.drawImage(v, 0, 0); const [r, gr, b] = g.getImageData(c.width >> 1, c.height >> 1, 1, 1).data; return r > 150 && gr < 80 && b < 80; })()`;
+      check('la pestaña compartida se pone al aire y la otra pantalla de proyección la ve en vivo', await until(red, 30),
+        await run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ item: s.projection.item?.kind, share: s.web.share, clic: document.elementFromPoint(${at.x}, ${at.y})?.textContent?.slice(0, 40) })`));
+      check('en el fondo del control (no es una pantalla de proyección) se ve su tarjeta', await until(`document.querySelector('.scene-bg .web-card')?.textContent.includes('Se ve en el proyector')`, 15));
+      const shareRow = `${ws}.querySelector('.web-share')`;
+      check('su ficha va primero en Páginas web, al aire y con «Dejar de compartir»', await until(`${shareRow}?.classList.contains('live') && ${shareRow}.textContent.includes('Dejar de compartir') && ${ws}.querySelector('.web-list').firstElementChild === ${shareRow}`, 15));
+      await projectPage('Presentación del culto');
+      await click(`[...${shareRow}.querySelectorAll('.btn')].find(b => b.textContent.includes('Proyectar'))`);
+      check('se puede volver a proyectar después de otra cosa, y sigue llegando', await until(`(await (await fetch('/api/state')).json()).projection.item?.kind === 'share'`, 15) && await until(red, 30));
+      await click(`[...${shareRow}.querySelectorAll('.btn')].find(b => b.textContent.includes('Dejar de compartir'))`);
+      check('«Dejar de compartir» la quita del aire y de la lista', await until(`((s) => !s.web.share && !s.projection.item)(await (await fetch('/api/state')).json())`, 15) && await until(`!${shareRow}`, 15));
+      if (board) await chrome.send('Target.closeTarget', { targetId: board });
+      // Lo que sigue (el Presentador) espera al aire la página que va en su propia ventana, como quedó antes de compartir.
+      await projectPage('Concurso bíblico');
       await run(`document.querySelector('#pantalla').remove()`);
 
       // Al orden del culto: en la miniatura, siempre una tarjeta.
@@ -3765,7 +3796,10 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       // no pisa las de la iglesia). Su iglesia es la nube de este paso.
       console.log('\n6. La nube: el superadministrador');
       const superPort = PORT + 6;
-      const superServer = startServer(null, { MANNA_NUBE: '1', MANNA_SUPER: '1', MANNA_CLAVE_ALTA: 'alta-del-super', MANNA_CLAVE_SUPER: 'clave-super-de-prueba', PORT: String(superPort), MANNA_DATA: path.join(tmp, 'super') });
+      // Google, para las copias en Drive (fase 38): uno de mentira en este equipo.
+      const fakeGoogle = await startFakeGoogle();
+      const superServer = startServer(null, { MANNA_NUBE: '1', MANNA_SUPER: '1', MANNA_CLAVE_ALTA: 'alta-del-super', MANNA_CLAVE_SUPER: 'clave-super-de-prueba', PORT: String(superPort), MANNA_DATA: path.join(tmp, 'super'),
+        GOOGLE_CLIENT_ID: 'cliente-de-prueba', GOOGLE_CLIENT_SECRET: 'secreto-de-prueba', MANNA_GOOGLE_PRUEBA: fakeGoogle.url });
       const sup = `http://super.localhost:${superPort}`;
       try {
         for (let i = 0; i < 60 && !(await fetch(`http://127.0.0.1:${superPort}/api/ping`).then((res) => res.ok, () => false)); i += 1) await sleep(250);
@@ -3788,7 +3822,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
         await sleep(300);
         await run(`const i = document.querySelector('.modal input'); i.value = ${JSON.stringify(`127.0.0.1:${cloudPort}`)}; i.dispatchEvent(new Event('input'));`);
         await modalButton('Añadir');
-        const row = `document.querySelector('.super-row[data-host="127.0.0.1:${cloudPort}"]')`;
+        const row = `document.querySelector('.ws[data-module=iglesias] .super-row[data-host="127.0.0.1:${cloudPort}"]')`;
         check('añade una iglesia: su estado, su equipo principal y su uso', await until(`${row}?.textContent.includes('Activa') && ${row}.textContent.includes('equipo principal')`, 25), await run(`return ${row}?.textContent || 'sin fila'`));
         await click(`[...document.querySelectorAll('.ws[data-module=iglesias] .btn')].find((b) => b.textContent.includes('Actualizar'))`);
         await sleep(600);
@@ -3817,6 +3851,26 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
         await click(`document.querySelector('.super-plan .btn.primary')`);
         check('«Espacio» reparte el plan con su margen', await until(`[...document.querySelectorAll('.super-space > div')].slice(0, 3).map((d) => d.textContent).join() === 'Para repartir40 GB,Repartido2,0 GB,Libre para repartir38 GB'`, 15),
           await run(`return [...document.querySelectorAll('.super-space > div')].map((d) => d.textContent).join()`));
+        // Las copias en Google Drive (fase 38): conectar la cuenta, hacer una copia y volver a ella.
+        await goTo('copias');
+        const copies = `document.querySelector('.ws[data-module=copias]')`;
+        await click(`[...${copies}.querySelectorAll('.btn')].find((b) => b.textContent.includes('Conectar Google Drive'))`);
+        check('«Conectar Google Drive» pasa por Google y vuelve conectado', await until(`location.pathname === '/superadmin' && ${copies}?.textContent.includes('Google Drive conectado') && document.querySelector('#toast').textContent.includes('quedó conectado')`, 25));
+        await click(`[...${copies}.querySelectorAll('.ws-head .btn')].find((b) => b.textContent.includes('Hacer una copia ahora'))`);
+        const copyRow = `${copies}.querySelector('.super-row[data-host="127.0.0.1:${cloudPort}"]')`;
+        check('«Hacer una copia ahora» guarda en Drive la de cada iglesia', await until(`${copyRow}?.textContent.includes('Última copia')`, 25) && [...fakeGoogle.files.values()].some((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f.name)),
+          await run(`return ${copyRow}?.textContent || 'sin fila'`));
+        await click(`${copyRow}.querySelector('.btn')`);
+        check('«Copias…» las lista por fecha', await until(`document.querySelectorAll('.modal .super-row').length === 1`, 15));
+        await click(`document.querySelector('.modal .super-row .btn')`);
+        await sleep(300);
+        await modalButton('Continuar');
+        await sleep(300);
+        await modalButton('Volver a la copia');
+        check('volver a una copia pregunta dos veces, y la iglesia vuelve a ella', await until(`document.querySelector('#toast').textContent.includes('volvió a la copia') && !document.querySelector('.modal')`, 25),
+          await run(`return document.querySelector('#toast').textContent`));
+        await fakeGoogle.stop();
+
         await goTo('iglesias');
         await click(row);
         await until(`document.querySelector('.modal .super-edit')`, 15);

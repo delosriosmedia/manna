@@ -19,15 +19,15 @@ const ICONS = [
   // estado
   'monitor', 'power', 'warning', 'clock-counter-clockwise', 'rows', 'qr-code', 'wifi-slash', 'eye-slash', 'selection-background',
   'check-circle', 'warning-circle', 'frame-corners', 'columns',
-  // televisores y medios
-  'television-simple', 'house', 'keyboard', 'speaker-low', 'speaker-high', 'upload-simple', 'images',
+  // medios
+  'house', 'speaker-low', 'speaker-high', 'upload-simple', 'images',
   'magnifying-glass-plus', 'magnifying-glass-minus', 'arrows-out', 'squares-four',
   // reproducción
   'speaker-x', 'closed-captioning', 'waveform', 'folder-simple', 'youtube-logo', 'link-simple',
   // presentador
   'hand-pointing', 'arrows-out-cardinal',
-  // páginas web
-  'globe',
+  // páginas web; compartir una pestaña (S35)
+  'globe', 'screencast',
   // escenario (fase 13)
   'sliders-horizontal', 'arrows-in',
   // himnario: favoritos

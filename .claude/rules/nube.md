@@ -24,7 +24,18 @@ Las que no llevan claves (`MANNA_NUBE`, `MANNA_DATA`, `MANNA_NO_OPEN`, `MANNA_SI
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | una clave de R2 **de solo lectura** para ese depósito (S54), no la de subir |
 | `MANNA_CLAVE_SUPER` | la clave con la que el superadministrador habla con la iglesia: **la misma** en cada sitio de iglesia y en `admin` (la elige el dueño) |
 
-El sitio del superadministrador (`admin.manna-iglesia.es`) lleva `MANNA_NUBE=1`, `MANNA_SUPER=1`, `MANNA_NO_OPEN`, `MANNA_SIN_VENTANA` y su `MANNA_DATA` (el asistente), y `MANNA_CLAVE_ALTA` (con la que crea su cuenta, con contraseña) y `MANNA_CLAVE_SUPER` (el dueño). No lleva R2. Se despliega con el mismo paquete que las iglesias.
+El sitio del superadministrador (`admin.manna-iglesia.es`) lleva `MANNA_NUBE=1`, `MANNA_SUPER=1`, `MANNA_NO_OPEN`, `MANNA_SIN_VENTANA` y su `MANNA_DATA` (el asistente), y `MANNA_CLAVE_ALTA` (con la que crea su cuenta, con contraseña) y `MANNA_CLAVE_SUPER` (el dueño); para las copias en Google Drive (fase 38), `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` (el dueño, abajo). No lleva R2. Se despliega con el mismo paquete que las iglesias.
+
+### Conectar Google Drive (una vez, lo hace el dueño)
+
+Las copias de cada noche van a la carpeta «Manna Iglesia» del Drive que se conecte. Manna solo ve lo que crea él (permiso `drive.file`).
+
+1. En https://console.cloud.google.com, con la cuenta del Drive donde irán las copias (la de Los Ríos Multimedia), crear un proyecto: «Manna Iglesia».
+2. «APIs y servicios» → «Biblioteca» → **Google Drive API** → «Habilitar».
+3. «Google Auth Platform» (la pantalla de consentimiento): tipo **Externo**, nombre «Manna Iglesia» y el correo de asistencia. En «Público», **Publicar la app** para que quede «En producción»: en «Prueba», Google corta el acceso a los 7 días. Con solo `drive.file` no hace falta la verificación de Google.
+4. «Clientes» → «Crear cliente» → **Aplicación web**, con el URI de redireccionamiento autorizado `https://admin.manna-iglesia.es/api/super/drive/vuelta`. Copiar el ID de cliente y el secreto.
+5. En Hostinger, sitio `admin.manna-iglesia.es` → Node.js → Variables de entorno: añadir `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`, sin borrar las demás, y volver a desplegar.
+6. En https://admin.manna-iglesia.es → **Copias** → «Conectar Google Drive» → elegir esa cuenta → «Permitir». Desde entonces, la copia de cada iglesia se hace sola cada noche (a las 3 de la madrugada de Colombia).
 
 ## Desplegar
 

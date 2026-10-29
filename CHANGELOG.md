@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Copias en Google Drive** (Manna Iglesia, panel del superadministrador): cada noche se guarda la copia de cada iglesia (usuarios, órdenes, textos, favoritos y ajustes) en Google Drive, con las de los últimos 30 días y una por mes durante un año. Se puede hacer una copia en el momento y volver a una copia; su equipo de la iglesia se pone igual al sincronizarse.
+- **Compartir una pestaña** (Páginas web, en el equipo principal): una pestaña de Chrome sale en vivo en el proyector tal como la tienes, con tus sesiones abiertas, y se maneja en la propia pestaña. Sirve para lo que no se deja mostrar de otra forma (un Kahoot, un Canva sin enlace para insertar). Se vuelve a proyectar o se deja de compartir desde su ficha, también desde un celular.
 - **Televisores**, que estaba en pausa, se quita (decisión 65). Un televisor puede seguir mostrando la proyección abriendo la dirección de Manna en su navegador («Dispositivos» → «¿Es un televisor?»).
 - **Medios más ordenado y más compacto**: lo de cada categoría (y de «Principal») se ordena a mano arrastrándolo sobre otro, y las categorías, arrastrando su nombre. Y una **vista en lista**, que ocupa menos: una fila por elemento con la miniatura pequeña; al tocar uno se ve en grande.
 - **Texto fijo**, en Textos: un texto que va en una capa, encima de lo que se proyecte, como el reloj («Silencien sus celulares», el nombre de quien predica). Se elige entre cuatro letras que se leen bien de lejos, tres tamaños, nueve sitios, sin recuadro, en una franja o en una píldora, y quieto o pasando como una franja de noticias. Su color se ajusta solo a lo que haya detrás para que siempre se lea.

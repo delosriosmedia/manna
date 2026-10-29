@@ -17,6 +17,8 @@ import media from '../server/modules/media/index.js';
 import slides from '../server/modules/slides/index.js';
 import superadmin from '../server/modules/super/index.js';
 import { startFakeR2 } from '../scripts/lib/r2-falso.mjs';
+import { startFakeGoogle } from '../scripts/lib/google-falso.mjs';
+import { expired } from '../server/modules/super/drive.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-nube-'));
@@ -439,5 +441,71 @@ test('la misma versión: el equipo se pone al día al encenderse, y con otro idi
     assert.equal((await c.state()).cloud.status, 'on', 'con el mismo idioma, vuelve a sincronizar');
   } finally {
     for (const key of ['MANNA_ACTUALIZADOR_PRUEBA', 'MANNA_NUBE_VERSION', 'MANNA_NUBE_PROTOCOLO']) delete process.env[key];
+  }
+});
+
+test('qué copias se quedan: las de los últimos 30 días y la primera de cada mes durante un año (fase 38)', () => {
+  const names = ['2026-10-29.json', '2026-10-01.json', '2026-09-30.json', '2026-09-20.json', '2026-09-02.json', '2025-11-05.json', '2025-10-03.json', 'otra cosa.json'];
+  assert.deepEqual(expired(names, '2026-10-29'), ['2025-10-03.json', '2026-09-20.json']);
+});
+
+test('copias en Google Drive: conectar la cuenta, hacer una copia y volver a ella (fase 38)', async () => {
+  const google = await startFakeGoogle();
+  const env = { MANNA_CLAVE_SUPER: 'clave-super-de-prueba', GOOGLE_CLIENT_ID: 'cliente-de-prueba', GOOGLE_CLIENT_SECRET: 'secreto-de-prueba', MANNA_GOOGLE_PRUEBA: google.url };
+  Object.assign(process.env, env);
+  const iglesia = await serve('iglesia-copias', { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'alta-copias' });
+  const admin = await serve('super-copias', { MANNA_NUBE: '1', MANNA_SUPER: '1', MANNA_CLAVE_ALTA: 'alta-super-copias' }, [system, users, superadmin]);
+  try {
+    await admin.call('/api/session/alta', { clave: 'alta-super-copias', name: 'Ángel', password: 'una contraseña larga' });
+    const host = new URL(iglesia.base).host;
+    await admin.send('super.add', { host });
+    let drive = (await admin.state()).super.drive;
+    assert.deepEqual([drive.ready, drive.connected], [true, false]);
+    assert.equal((await admin.send('super.backup')).status, 409, 'sin conectar no hay copias');
+
+    // Conectar: el panel lleva a Google, y Google vuelve con un código que Manna cambia por su clave.
+    const go = await admin.raw('/api/super/drive/conectar', { redirect: 'manual' });
+    assert.equal(go.status, 302);
+    const back = new URL((await fetch(go.headers.get('location'), { redirect: 'manual' })).headers.get('location'));
+    assert.equal(back.pathname, '/api/super/drive/vuelta');
+    const forged = await admin.raw('/api/super/drive/vuelta?code=codigo-de-prueba&state=otro', { redirect: 'manual' });
+    assert.equal(forged.headers.get('location'), '/superadmin?drive=cancelado#copias', 'sin el state de la ida no se conecta');
+    const done = await admin.raw(back.pathname + back.search, { redirect: 'manual' });
+    assert.equal(done.headers.get('location'), '/superadmin?drive=conectado#copias');
+    const state = await admin.state();
+    assert.equal(state.super.drive.connected, true);
+    assert.ok(!JSON.stringify(state).includes('renovar'), 'la clave de Google no va en el estado');
+
+    // La iglesia, con su administrador, un orden y un texto; su copia va a «Manna Iglesia / <iglesia> / hoy.json».
+    await iglesia.call('/api/session/alta', { clave: 'alta-copias', name: 'Ana', pin: '1234' });
+    const ana = (await iglesia.call('/api/session')).users[0].id;
+    assert.equal((await iglesia.call('/api/session', { role: 'preparacion', user: ana })).status, 200);
+    const { result: kept } = await iglesia.send('order.create', { name: 'Culto del domingo' });
+    await iglesia.send('texts.save', { style: 'normal', text: 'Bienvenidos' });
+    const today = `${new Date().toISOString().slice(0, 10)}.json`;
+    assert.equal((await admin.send('super.backup', { host })).result.ok, true);
+    await admin.send('super.backup');
+    assert.deepEqual([...google.files.values()].map((f) => f.name).sort(), ['Manna Iglesia', host, today].sort(), 'otra copia hoy sustituye a la de hoy');
+    const copy = JSON.parse([...google.files.values()].find((f) => f.name === today).content);
+    assert.deepEqual([copy.users.map((u) => u.name), copy.sets.orders.records.map((o) => o.name)], [['Ana'], ['Culto del domingo']]);
+    assert.ok(copy.users[0].pin && !JSON.stringify(copy).includes('"1234"'), 'el PIN va como huella');
+    drive = (await admin.state()).super.drive;
+    assert.equal(drive.last[host].name, today);
+
+    // Lo de la iglesia cambia; al volver a la copia queda como estaba, y lo de antes de volver se guarda.
+    await iglesia.send('order.deleteOrder', { id: kept.id });
+    await iglesia.send('order.create', { name: 'Ensayo' });
+    await iglesia.send('texts.save', { style: 'normal', text: 'Otro texto' });
+    const [listed] = (await admin.send('super.backups', { host })).result;
+    assert.equal(listed.name, today);
+    assert.equal((await admin.send('super.restore', { host, id: 'no-esta' })).status, 404);
+    assert.equal((await admin.send('super.restore', { host, id: listed.id })).status, 200);
+    assert.deepEqual(iglesia.app.services.order.sync.export().records.map((o) => o.name), ['Culto del domingo']);
+    assert.deepEqual(iglesia.app.services.texts.sync.export().records.map((x) => x.text), ['Bienvenidos']);
+    const saved = JSON.parse([...google.files.values()].find((f) => f.name === today).content);
+    assert.deepEqual(saved.sets.orders.records.map((o) => o.name), ['Ensayo'], 'la de hoy guarda lo de antes de volver');
+  } finally {
+    for (const key of Object.keys(env)) delete process.env[key];
+    await google.stop();
   }
 });

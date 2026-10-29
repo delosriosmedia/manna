@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { HttpError } from '../../core/router.js';
+import { restoreSet } from '../../core/sync.js';
 
 // Lo que el superadministrador de Manna Iglesia deja a cada iglesia (fase 39, decisión 64): si está activa, qué módulos
 // puede usar, en qué orden salen en cada función, si su gente sube archivos desde casa y cuánto espacio tiene, y su
@@ -131,5 +132,36 @@ export default function setup(app) {
   app.route('POST', '/api/nube/super/acceso', (ctx) => {
     authorize(ctx);
     return { clave: app.sessions.newAlta() };
+  });
+
+  // ---- La copia de seguridad (fase 38) ----
+  // Lo que la iglesia hace y no se puede volver a sacar de otro sitio: usuarios (con la huella del PIN), órdenes, textos,
+  // favoritos y ajustes; la lista de la biblioteca va solo para saber qué había (los archivos están en su equipo).
+  const SETS = { orders: () => app.services.order?.sync, texts: () => app.services.texts?.sync, favorites: () => app.services.hymns?.sync };
+  app.route('GET', '/api/nube/super/copia', (ctx) => {
+    authorize(ctx);
+    return {
+      manna: 1, at: Date.now(), version: store.get('system')?.version || null,
+      users: app.sessions.users.records(),
+      sets: Object.fromEntries(Object.entries(SETS).map(([name, sync]) => [name, sync()?.export() ?? null])),
+      settings: settings(),
+      library: { items: [...(app.services.media?.transfer?.summary() || []), ...(app.services.slides?.transfer?.summary() || [])], categories: app.services.media?.categories?.export() || [] },
+    };
+  });
+  // Volver a una copia: lo de la copia queda como recién cambiado, para que el equipo de la iglesia no lo deshaga al
+  // sincronizarse (restoreSet). Primero se comprueba todo; los usuarios, los primeros (sin un administrador no se hace).
+  app.route('POST', '/api/nube/super/restaurar', async (ctx) => {
+    authorize(ctx);
+    let copy;
+    try { copy = JSON.parse((await ctx.raw(32 * 1024 * 1024)).toString('utf8')); } catch { throw new HttpError(400, 'Esa copia no se puede leer.'); }
+    if (copy?.manna !== 1 || !Array.isArray(copy.users) || !copy.sets || typeof copy.sets !== 'object') throw new HttpError(400, 'Eso no es una copia de Manna.');
+    app.sessions.users.replace(copy.users);
+    app.services.users?.publish();
+    for (const [name, sync] of Object.entries(SETS)) {
+      const set = copy.sets[name];
+      if (sync() && Array.isArray(set?.records)) sync().apply(restoreSet(sync().export(), set));
+    }
+    if (copy.settings) apply(copy.settings);
+    return state(ctx);
   });
 }

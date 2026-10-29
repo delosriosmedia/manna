@@ -5,9 +5,9 @@ import { h, dialog, guard, toast } from '../core/dom.js';
 import { icon } from '../core/icons.js';
 import { whenLabel } from '../core/time.js';
 
-// El superadministrador de Manna Iglesia (fase 39, decisión 64): las iglesias, lo que puede usar cada una y el espacio
-// del plan. Entra con su contraseña. Dos pestañas, sin proyección. Lo que cambia lo guarda cada iglesia en su nube
-// (server/modules/church); este sitio solo se lo pide (server/modules/super).
+// El superadministrador de Manna Iglesia (fase 39, decisión 64): las iglesias, lo que puede usar cada una, el espacio
+// del plan y sus copias en Google Drive (fase 38). Entra con su contraseña. Tres pestañas, sin proyección. Lo que
+// cambia lo guarda cada iglesia en su nube (server/modules/church); este sitio solo se lo pide (server/modules/super).
 const me = await ensureRole('superadmin');
 const GB = 1024 ** 3;
 const gb = (bytes) => `${(bytes / GB).toFixed(bytes < 10 * GB ? 1 : 0).replace('.', ',')} GB`;
@@ -160,4 +160,75 @@ const espacio = {
   },
 };
 
-createShell({ role: 'superadmin', isLocal: me.isLocal, user: me.user, modules: [iglesias, espacio], layout: 'pestanas', createScene: () => ({}) });
+// ---- Copias en Google Drive (fase 38) ----
+const dayName = (file) => new Date(`${file.name.slice(0, 10)}T12:00:00`).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
+
+// Volver a una copia pregunta dos veces: se pierde lo que la iglesia cambió desde entonces.
+function restore(host, file, list) {
+  const day = dayName(file);
+  const second = () => {
+    const box = dialog('¿Seguro?',
+      h('p', {}, `Se perderá lo que ${host} haya cambiado desde el ${day}. Lo de ahora queda guardado en la copia de hoy, por si hay que deshacerlo.`),
+      buttons(() => box, h('button', { class: 'btn danger', onclick: guard(async () => {
+        await action('super.restore', { host, id: file.id });
+        box.close();
+        list.close();
+        toast(`${host} volvió a la copia del ${day}.`);
+      }) }, 'Volver a la copia')));
+  };
+  const box = dialog('Volver a una copia',
+    h('p', {}, `${host} quedará como estaba el ${day}: usuarios, órdenes, textos, favoritos y ajustes. Su equipo de la iglesia se pone igual al sincronizarse.`),
+    buttons(() => box, h('button', { class: 'btn danger', onclick: () => { box.close(); second(); } }, 'Continuar')));
+}
+function showCopies(host) {
+  const rows = h('div', { class: 'super-list' }, h('p', { class: 'muted' }, 'Buscando las copias…'));
+  const box = dialog(`Copias de ${host}`, rows, buttons(() => box));
+  guard(async () => {
+    const files = await action('super.backups', { host });
+    rows.replaceChildren(...(files.length ? files.map((f) => h('div', { class: 'super-row' },
+      h('span', { class: 'item-text' }, h('strong', {}, dayName(f)), h('small', {}, `${Math.max(1, Math.round(f.size / 1024))} KB`)),
+      h('button', { class: 'btn', onclick: () => restore(host, f, box) }, 'Volver a esta copia')))
+      : [h('p', { class: 'muted' }, 'Aún no hay copias de esta iglesia.')]));
+  })();
+}
+
+const copias = {
+  id: 'copias',
+  name: 'Copias',
+  icon: 'clock-counter-clockwise',
+  mount(el) {
+    const body = h('div', { class: 'admin-users super-copies' });
+    const now = h('button', { class: 'btn primary', hidden: true, onclick: guard(async () => {
+      await action('super.backup');
+      toast('Copias hechas.');
+    }) }, icon('download-simple', 16), 'Hacer una copia ahora');
+    el.replaceChildren(h('div', { class: 'ws-head' }, h('h1', {}, 'Copias en Google Drive'), now), body);
+    // Al volver de Google, lo que pasó.
+    const came = new URLSearchParams(location.search).get('drive');
+    if (came) {
+      toast({ conectado: 'Google Drive quedó conectado.', cancelado: 'Google Drive no se conectó.' }[came] || 'Google no dio acceso. Vuelve a intentarlo.', came === 'conectado' ? 'info' : 'error');
+      history.replaceState(null, '', `${location.pathname}${location.hash}`);
+    }
+    subscribe('super', (s) => {
+      data = s;
+      const d = s.drive;
+      now.hidden = !d.connected;
+      body.replaceChildren(
+        h('p', {}, 'Cada noche se guarda una copia de cada iglesia (usuarios, órdenes, textos, favoritos y ajustes) en la carpeta «Manna Iglesia» de Google Drive. Se quedan las de los últimos 30 días y una por mes durante un año.'),
+        d.ready ? h('div', { class: 'super-row' },
+          h('span', { class: 'item-text' }, h('strong', {}, d.connected ? 'Google Drive conectado' : 'Google Drive sin conectar'),
+            h('small', {}, d.connected ? `Desde ${whenLabel(d.since)}${d.night ? ` · última copia nocturna: ${d.night}` : ''}` : 'Se conecta una vez, con la cuenta donde se guardarán las copias.')),
+          h('a', { class: `btn${d.connected ? '' : ' primary'}`, href: '/api/super/drive/conectar' }, d.connected ? 'Conectar otra cuenta' : 'Conectar Google Drive'))
+          : h('p', { class: 'muted' }, 'Falta la aplicación de Google en las variables de este sitio (GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET).'),
+        d.connected && h('div', { class: 'super-list' }, ...s.churches.map((c) => {
+          const last = d.last[c.host];
+          return h('div', { class: 'super-row', dataset: { host: c.host } },
+            h('span', { class: 'item-text' }, h('strong', {}, c.host),
+              h('small', {}, !last ? 'Sin copias todavía.' : last.ok ? `Última copia: ${whenLabel(last.at)}` : `La última falló: ${last.error}`)),
+            h('button', { class: 'btn', onclick: () => showCopies(c.host) }, 'Copias…'));
+        })));
+    });
+  },
+};
+
+createShell({ role: 'superadmin', isLocal: me.isLocal, user: me.user, modules: [iglesias, espacio, copias], layout: 'pestanas', createScene: () => ({}) });
