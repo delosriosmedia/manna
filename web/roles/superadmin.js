@@ -220,13 +220,13 @@ const copias = {
             h('small', {}, d.connected ? `Desde ${whenLabel(d.since)}${d.night ? ` · última copia nocturna: ${d.night}` : ''}` : 'Se conecta una vez, con la cuenta donde se guardarán las copias.')),
           h('a', { class: `btn${d.connected ? '' : ' primary'}`, href: '/api/super/drive/conectar' }, d.connected ? 'Conectar otra cuenta' : 'Conectar Google Drive'))
           : h('p', { class: 'muted' }, 'Falta la aplicación de Google en las variables de este sitio (GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET).'),
-        d.connected && h('div', { class: 'super-list' }, ...s.churches.map((c) => {
+        d.connected ? h('div', { class: 'super-list' }, ...s.churches.map((c) => {
           const last = d.last[c.host];
           return h('div', { class: 'super-row', dataset: { host: c.host } },
             h('span', { class: 'item-text' }, h('strong', {}, c.host),
               h('small', {}, !last ? 'Sin copias todavía.' : last.ok ? `Última copia: ${whenLabel(last.at)}` : `La última falló: ${last.error}`)),
             h('button', { class: 'btn', onclick: () => showCopies(c.host) }, 'Copias…'));
-        })));
+        })) : '');
     });
   },
 };

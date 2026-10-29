@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Copias en Google Drive**: el panel del superadministrador ya no muestra un «false» suelto antes de conectar la cuenta.
+
 ## 1.57.2 — 2026-10-29
 
 - **Página de privacidad** de Manna Iglesia (`/privacidad.html` en cada sitio): qué guarda Manna y cómo usa las copias en Google Drive. La pide Google para dejar que Manna guarde las copias.
