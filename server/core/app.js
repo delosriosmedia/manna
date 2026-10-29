@@ -4,7 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { Store } from './store.js';
 import { createStorage } from './storage.js';
-import { createRouter, HttpError, LOOPBACK } from './router.js';
+import { createRouter, HttpError } from './router.js';
 import { createSessions } from './sessions.js';
 import { createRealtime } from './realtime.js';
 import { createJobs } from './jobs.js';
@@ -32,8 +32,6 @@ const SECURE_PORT = 443;
 
 // Nombre con el que Manna se anuncia en la red ("manna" -> manna.local).
 export const networkName = () => (process.env.MANNA_NAME || 'manna').toLowerCase().replace(/[^a-z0-9-]/g, '') || 'manna';
-
-const MAX_ARRIVALS = 200;
 
 // El "app" es lo que recibe cada módulo: estado compartido, rutas, acciones y almacenamiento.
 export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsDir = null, contentDir = null }) {
@@ -100,9 +98,6 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
     altPort: null, // segundo puerto en el que también atiende, o null (ver ALT_PORT)
     secure: false, // ¿atiende también por https? (todos sus puertos sirven para las dos formas)
     securePort: null, // puerto propio de https (443), o null
-    // Quién ha llegado desde la red y cómo: ip -> { at, secure, error, errorAt }. Con ello un módulo
-    // puede explicar por qué un equipo no logra entrar (p. ej. un televisor que rechaza el certificado).
-    arrivals: new Map(),
     route: router.route,
     // mount('/himnario/', carpeta): sirve una carpeta de contenido (con saltos, para video y audio).
     mount: router.mount,
@@ -164,17 +159,6 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
   const extraServers = [];
   const host = () => process.env.MANNA_HOST || '0.0.0.0';
 
-  function noteArrival({ ip, secure, error }) {
-    if (LOOPBACK.has(ip)) return;
-    const previous = app.arrivals.get(ip);
-    const now = Date.now();
-    app.arrivals.delete(ip); // al volver a entrar queda como el más reciente
-    app.arrivals.set(ip, error
-      ? { ...previous, at: previous?.at || now, secure: true, error, errorAt: now }
-      : { at: now, secure, error: previous?.error || null, errorAt: previous?.errorAt || 0 });
-    if (app.arrivals.size > MAX_ARRIVALS) app.arrivals.delete(app.arrivals.keys().next().value);
-    store.emit('arrival', ip);
-  }
 
   // El certificado se crea la primera vez y se guarda con los datos. Si no se puede, Manna sigue
   // solo con http: nada de esto debe impedir el arranque.
@@ -192,7 +176,7 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
   // Si no se puede (otro programa usa ese puerto), Manna sigue con el principal.
   function listenAlso(port, secure) {
     return new Promise((resolve) => {
-      const extra = createListener(router.handle, secure, { onArrival: noteArrival });
+      const extra = createListener(router.handle, secure);
       extra.once('error', () => resolve(false));
       extra.listen(port, host(), () => {
         extraServers.push(extra);
@@ -206,7 +190,7 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
     const secure = await certificate();
     return new Promise((resolve, reject) => {
       const attempt = (i) => {
-        server = createListener(router.handle, secure, { onArrival: noteArrival });
+        server = createListener(router.handle, secure);
         server.once('error', (err) => {
           // Ocupado por otro programa, o el sistema no deja usarlo: se prueba el siguiente.
           if (['EADDRINUSE', 'EACCES'].includes(err.code) && i + 1 < ports.length) attempt(i + 1);

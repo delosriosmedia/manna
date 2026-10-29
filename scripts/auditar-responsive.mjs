@@ -53,7 +53,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { deadline, killOnExit, sleep, startChrome } from './lib/chrome.mjs';
 import { seedExample } from './lib/ejemplo.mjs';
-import { startFakeTv } from './lib/tv-falso.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Separados de dos en dos: si un puerto está ocupado, el servidor prueba el siguiente.
@@ -202,9 +201,6 @@ const SCREENS = [
     prepare: `document.querySelector('.ws[data-module=paginas] .web-pick').click()` },
   { name: 'Capas', url: '/control#capas', content: '.layers-list', inside: '.layer-row', settle: 600 },
   { name: 'Tiempo', url: '/control#tiempo', content: '.time-body', primary: '.time-bar .btn.primary', inside: '.time-row', settle: 700 },
-  { name: 'Televisores', url: '/control#televisores', content: '.tvs', inside: '.tv' },
-  { name: 'Televisores: control remoto', url: '/control#televisores', inside: '.modal', settle: 700,
-    prepare: `[...document.querySelectorAll('.tv-actions .btn')].find((b) => b.textContent === 'Control remoto').click()` },
   // Preparar el culto y Administrar la iglesia (fase 36): solo en la nube, con su servidor (cloud: la función con la que se
   // entra). Sin escenario: tabs cambia el control de lo que está al aire por el de las pestañas.
   { name: 'Preparar el culto: orden', url: '/preparacion#orden', cloud: 'preparacion', tabs: true, content: '.olist', longTitles: true },
@@ -422,12 +418,7 @@ async function worker(list, n) {
   const port = PORTS[n];
   const base = `http://localhost:${port}`;
   const data = path.join(tmp, `datos-${n + 1}`);
-  // Un televisor de mentira, ya vinculado, para revisar su tarjeta y su control remoto.
-  const fakeTv = await startFakeTv();
   fs.mkdirSync(data, { recursive: true });
-  fs.writeFileSync(path.join(data, 'televisores.json'), JSON.stringify({
-    list: [{ id: 'tele', ip: '192.168.1.50', name: 'Televisor del salón de jóvenes', model: 'QN00PRUEBA', token: fakeTv.token }],
-  }));
   // Tres páginas web, sin internet: se escriben ya "agregadas" (dos direcciones, una que se deja mostrar y otra
   // que no, y un archivo HTML), con nombres largos para ver que no desbordan.
   fs.mkdirSync(path.join(data, 'paginas'), { recursive: true });
@@ -451,7 +442,7 @@ async function worker(list, n) {
   const example = seedExample(data);
   const server = killOnExit(spawn(process.execPath, ['server/index.js'], {
     cwd: ROOT, stdio: 'ignore',
-    env: { ...process.env, MANNA_NAME: `manna-auditoria-${n + 1}`, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_DATA: data, PORT: String(port), MANNA_HIMNARIO: example.hymnal, MANNA_FALTA: 'navegador,yt-dlp', MANNA_TV_PRUEBA: JSON.stringify(fakeTv.endpoints) },
+    env: { ...process.env, MANNA_NAME: `manna-auditoria-${n + 1}`, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_DATA: data, PORT: String(port), MANNA_HIMNARIO: example.hymnal, MANNA_FALTA: 'navegador,yt-dlp' },
   }));
   // La nube (fase 36): otro servidor, en modo nube y con su ejemplo, para «Preparar el culto» y «Administrar la iglesia».
   // Se abre por 127.0.0.1 y no por localhost: la cookie de la sesión va por nombre de equipo y así no pisa la del otro.
@@ -563,7 +554,6 @@ async function worker(list, n) {
     server.kill();
     if (cloudServer) cloudServer.kill();
     if (superServer) superServer.kill();
-    await fakeTv.stop();
   }
 }
 

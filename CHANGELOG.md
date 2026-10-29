@@ -4,6 +4,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Televisores**, que estaba en pausa, se quita (decisión 65). Un televisor puede seguir mostrando la proyección abriendo la dirección de Manna en su navegador («Dispositivos» → «¿Es un televisor?»).
 - **Medios más ordenado y más compacto**: lo de cada categoría (y de «Principal») se ordena a mano arrastrándolo sobre otro, y las categorías, arrastrando su nombre. Y una **vista en lista**, que ocupa menos: una fila por elemento con la miniatura pequeña; al tocar uno se ve en grande.
 - **Texto fijo**, en Textos: un texto que va en una capa, encima de lo que se proyecte, como el reloj («Silencien sus celulares», el nombre de quien predica). Se elige entre cuatro letras que se leen bien de lejos, tres tamaños, nueve sitios, sin recuadro, en una franja o en una píldora, y quieto o pasando como una franja de noticias. Su color se ajusta solo a lo que haya detrás para que siempre se lea.
 - **Escribe y busca**: en el computador, lo que tecleas va directo al buscador del módulo abierto (Biblia, Himnario) o, si no tiene, a «Buscar en todo». Por eso **Negro y Solo fondo pasan a Mayús+B y Mayús+C**: ya nadie pone la pantalla en negro por tocar una letra sin querer.

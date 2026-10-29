@@ -29,7 +29,6 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 - **Espacio en disco** (Ajustes): cuánto ocupa lo subido o descargado desde Manna (YouTube, videos y audios, imágenes, presentaciones, páginas web) y lo libre del disco. Cada categoría tiene su **botón de borrar** (la papelera), que pregunta dos veces antes de borrar, y lo borrado se quita también del orden del culto; la carpeta Contenido (himnario, biblias y medios) y los fondos no se tocan. Las copias para celulares de los videos se borran con su video.
 - **Tamaño de la interfaz** (Ajustes → Este dispositivo): un deslizador entre una A pequeña y una grande agranda un poco toda la interfaz de ese dispositivo (cada uno tiene la suya).
 - **Tamaño de los subtítulos** (Ajustes → Apariencia): para los videos, YouTube y los himnos.
-- **Televisores** (en pausa y fuera de la barra, ver `docs/ESTADO.md`): un televisor Samsung de la misma red muestra la proyección desde su navegador, sin cables. Manna lo encuentra, le abre el navegador y le sirve de control remoto (teclas, puntero y texto); la primera vez le escribe la dirección por ti.
 - **Mandos en vivo**: lo que está al aire trae sus propios mandos, siempre a la vista en la barra de abajo (en el celular, en su hoja) y en el orden del culto. Con una imagen, una diapositiva o una página al aire, **Señalar** y **Mover** actúan sobre la propia proyección, como en el Presentador. Los tienen las imágenes, los videos, las diapositivas y la **imagen de prueba** (Ajustes → Proyector de este equipo), que sirve para encuadrar el proyector o un televisor y comprobar, con su cronómetro, que todas las pantallas van a la par.
 - **Revisión del equipo**: al abrirse, Manna comprueba que el equipo principal tiene los programas que necesita. Si falta alguno, dice qué módulos se ven afectados y lo instala con un botón. Nunca impide abrir la app.
 - **Preparado para crecer**: cada módulo nuevo aporta su pantalla y un tipo de elemento para el orden del culto.
@@ -295,20 +294,6 @@ Lo que pongas en una capa queda **encima de todo lo que se proyecte**, también 
 
 Una página con fondo transparente se ve transparente solo si su fondo lo es de verdad (y no declara un esquema oscuro, `color-scheme: dark`). Mientras haya una capa a la vista, una presentación de PowerPoint va como imágenes (PowerPoint, en su propia ventana, la taparía); al ocultar la capa vuelve a pasarla PowerPoint.
 
-### Un televisor como pantalla
-
-> **En pausa.** En la primera prueba con un televisor real, Manna le abrió el navegador pero el televisor no llegó a mostrar la proyección. El módulo no aparece en la barra; lo que sigue describe cómo está pensado y se retomará más adelante.
-
-Sirve para un televisor que está en la misma red y no se puede (o no se quiere) conectar por cable: la salida del equipo principal queda para el proyector.
-
-1. En el control, abre **Televisores** → **Añadir televisor** → **Buscar en la red**. Si no aparece, escribe su dirección (en el televisor: Configuración › Conexión › Red › Estado de red › Configuración IP).
-2. El televisor muestra un aviso preguntando si permite a "Manna": acéptalo con su control. Solo lo pregunta la primera vez.
-3. Pulsa **Abrir la proyección**: se abre el navegador del televisor.
-4. **La primera vez**, abre **Control remoto** → *La primera vez*: entra a la barra de direcciones del navegador del televisor y pulsa *Escribe la dirección de Manna*. Si aparece un aviso de seguridad, "Avanzado" y "Continuar". Cuando veas la proyección, guárdala como **página de inicio** en el menú del navegador del televisor.
-5. Desde entonces, **Abrir la proyección** basta. Al terminar, en el menú del televisor (⋯) está **Cerrar el navegador del televisor**.
-
-Conviene fijar en el router la dirección del equipo principal y la del televisor, para que no cambien. Hoy funciona con televisores Samsung (2016 en adelante).
-
 ## Atajos de teclado
 
 | Tecla | Acción |
@@ -368,8 +353,6 @@ server/
                         dentro de otra página y servir los archivos encerrados
     internet/           conexión por internet: abre el túnel de Cloudflare (cloudflared) mientras
                         esté encendida en Ajustes
-    tv/                 televisores de la red como pantalla: buscarlos, vincularlos, abrirles
-                        el navegador y hacerles de control remoto (samsung.js es lo propio de la marca)
     cloud/              el equipo oficial y su nube: emparejar con un código, y el bloqueo del anterior
 web/
   core/                 estructura de la app, conexión con el servidor, tipos de contenido,

@@ -7,7 +7,6 @@ import paginas from './web/workspace.js';
 import textos from './texts/workspace.js';
 import capas from './layers/workspace.js';
 import tiempo from './time/workspace.js';
-import televisores from './tv/workspace.js';
 import settings from './settings/workspace.js';
 
 // Módulos de la interfaz, en el orden en que aparecen en la barra.
@@ -27,7 +26,6 @@ export const MODULES = [
   paginas,
   capas,
   // En pausa por decisión del dueño (docs/ESTADO.md): al retomarlo, basta quitar `hidden`.
-  { ...televisores, hidden: true },
   settings,
 ];
 

@@ -86,9 +86,6 @@ export function createRealtime({ store, router, sessions }) {
   keepAlive.unref();
 
   return {
-    // ¿Hay algún dispositivo con esa dirección conectado con esa función? Lo usa quien necesita
-    // saber si un equipo concreto (un televisor) ya está mostrando la proyección.
-    has: (role, ip) => [...clients].some((c) => c.role === role && c.ip === ip),
     close() {
       clearInterval(keepAlive);
       for (const c of clients) c.res.end();

@@ -11,7 +11,6 @@ import users from './modules/users/index.js';
 import bible from './modules/bible/index.js';
 import projection from './modules/projection/index.js';
 import order from './modules/order/index.js';
-import tv from './modules/tv/index.js';
 import media from './modules/media/index.js';
 import slides from './modules/slides/index.js';
 import hymns from './modules/hymns/index.js';
@@ -25,7 +24,7 @@ import church from './modules/church/index.js';
 import superadmin from './modules/super/index.js';
 
 // Para añadir un módulo nuevo: crea su carpeta en server/modules y agrégalo aquí.
-const MODULES = [system, users, bible, projection, order, media, slides, hymns, web, texts, time, layers, internet, tv, cloud, church];
+const MODULES = [system, users, bible, projection, order, media, slides, hymns, web, texts, time, layers, internet, cloud, church];
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Instalado con «Instalar Manna», el programa vive en <base>/programa y el instalador apunta en
@@ -197,7 +196,7 @@ async function runInCloud(app) {
   const dir = app.r2 && path.join(app.dataDir, 'contenido');
   if (dir) app.setContent(dir);
   // El sitio del superadministrador (fase 39) solo lleva lo suyo.
-  for (const setup of app.super ? [system, users, superadmin] : MODULES.filter((m) => m !== tv && m !== internet)) await setup(app);
+  for (const setup of app.super ? [system, users, superadmin] : MODULES.filter((m) => m !== internet)) await setup(app);
   app.shutdown = async () => {
     await app.close();
     process.exit(0);

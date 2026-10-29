@@ -6,7 +6,7 @@ El **servidor es la única fuente de verdad**. Los dispositivos son vistas: reci
 
 ## Piezas
 
-- **Estado** (`server/core/store.js`): dividido por espacios. De los módulos: `system`, `users`, `bible`, `projection`, `live`, `pointer`, `order`, `media`, `slides`, `hymns`, `web`, `texts`, `time`, `layers`, `internet`, `tv`, `cloud`, `church` y, en el sitio del superadministrador, `super`. Del núcleo: `conexiones`, `jobs`, `tools`. `store.set(ns, patch)` lo cambia y lo envía a todos.
+- **Estado** (`server/core/store.js`): dividido por espacios. De los módulos: `system`, `users`, `bible`, `projection`, `live`, `pointer`, `order`, `media`, `slides`, `hymns`, `web`, `texts`, `time`, `layers`, `internet`, `deckcraft`, `cloud`, `church` y, en el sitio del superadministrador, `super`. Del núcleo: `conexiones`, `jobs`, `tools`. `store.set(ns, patch)` lo cambia y lo envía a todos.
 - **Tiempo real** (`server/core/realtime.js`): SSE en `GET /api/events?rol=<rol>`. Eventos `state` (todo, al conectar), `patch` (un espacio, en cada cambio) y `ping` (latido cada 10 s, con la hora del servidor). El cliente (`web/core/api.js`) rehace la conexión si pasan 25 s sin recibir nada y siempre recibe el estado completo al reconectar: ningún módulo necesita lógica propia de reconexión.
 - **Acciones** (`POST /api/action` con `{ type, payload }`): toda orden que cambia algo. Se registran con `app.action('modulo.verbo', { permission }, handler)`.
 - **Rutas** (`app.route`): solo para lecturas (`GET`) y subida de archivos. `app.mount('/prefijo/', carpeta)` sirve una carpeta de contenido.
@@ -115,7 +115,6 @@ Un contenido con muchos pasos no publica su lista en el estado: Diapositivas pub
 - Una página abierta por la dirección numérica pasa sola a la del nombre si el dispositivo la entiende (`web/core/upgrade.js`, que consulta `GET /api/ping`). Solo lo hacen la pantalla de inicio y la de proyección, antes de que exista sesión: la sesión es una cookie atada a la dirección, y cambiar de dirección con sesión abierta obligaría a repetir el PIN.
 - Las páginas no deben construir direcciones con la IP ni asumir un puerto: rutas relativas para lo propio, `state.system` para mostrar direcciones.
 - **`http` y `https` por el mismo puerto** (`server/core/listener.js`): se mira el primer byte de cada conexión y se entrega al servidor que corresponde. El certificado es propio (`server/core/cert.js`, guardado en `data/certificado/`) y no se rehace al cambiar la IP, para no invalidar lo que cada navegador ya aceptó. `system.secure` dice si hay `https`; `system.securePort`, si además se abrió el 443. Las direcciones que se muestran y el QR siguen siendo `http`.
-- `app.arrivals` (ip → cómo llegó: `http`, `https`, o saludo `https` cortado) y `app.realtime.has(rol, ip)` permiten a un módulo saber qué hace un equipo concreto de la red. Los usa el módulo de televisores para decir por qué uno no entra.
 
 ## Contenido que no cuadra
 
@@ -128,16 +127,6 @@ El servidor no tiene con qué abrir un PDF ni una imagen (no hay dependencias). 
 - Un **PDF** lo convierte en imágenes el navegador de quien lo sube (pdf.js, en `web/vendor/pdfjs/`) y las envía una a una: `POST /api/slides` crea la presentación sin publicarla, `POST /api/slides/:id/pages/:n` recibe cada página y `slides.finish` la publica cuando están todas. Lo que queda a medias se borra al arrancar.
 - Un **PowerPoint** lo convierte el equipo principal, como tarea con avance (la cola es `createExporter` de `server/modules/slides/powerpoint.js`): **DeckCraft** si está (fase 33, `server/modules/slides/deckcraft.js`: `info` para saber el tamaño y las ocultas, que se saltan, y `render --all` dos veces, las diapositivas y las miniaturas, en PNG; las miniaturas pueden ser PNG, `thumbExt`); si no, el PowerPoint del equipo (PowerShell en Windows, osascript en Mac). Sin ninguno, la interfaz pide el PDF o instalar DeckCraft.
 - Las **imágenes** las reduce y les hace miniatura el dispositivo que las sube (`web/core/images.js`).
-
-## Equipos de la red que Manna gobierna
-
-El módulo `tv` usa un televisor como pantalla de proyección por su navegador. Manna es quien se conecta al televisor (al revés que con los demás dispositivos):
-
-- Lo propio de cada marca vive en un archivo (`server/modules/tv/samsung.js`): datos del equipo, vincular, abrir y cerrar el navegador, teclas, puntero y texto. `index.js` no sabe de marcas.
-- Solo se conecta a direcciones de una red local (`isLocalAddress`) y solo envía las teclas de una lista (`KEYS`).
-- La clave que entrega el televisor al vincularse se guarda con `app.storage('televisores')` y **nunca** entra en el estado que reciben los dispositivos.
-- El estado de cada televisor se consulta bajo demanda (`tv.refresh`, que la pantalla pide mientras está a la vista), no con un temporizador del servidor.
-- El cliente WebSocket que hace falta para el mando es propio: `server/core/ws.js`.
 
 ## Lo que debe sobrevivir a un reinicio
 
