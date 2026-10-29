@@ -108,9 +108,11 @@ export function createSlidesPanel(ctx, lib) {
   }
 
   function renderList(all, air) {
+    // Con DeckCraft web instalado (fase 33, parte 3), «en vivo» lo pasa DeckCraft en la ventana del proyector.
+    const deckcraft = state.tools?.list?.some((t) => t.id === 'deckcraft-web' && t.found);
     list.replaceChildren(...all.map((deck) => {
       const usable = deck.status === 'ready';
-      const facts = [usable && plural(deck.pages), deck.live && deck.liveable ? 'PowerPoint en vivo' : SOURCES[deck.source], whenLabel(deck.added)].filter(Boolean).join(' · ');
+      const facts = [usable && plural(deck.pages), deck.live && deck.liveable ? (deckcraft ? 'Con animaciones' : 'PowerPoint en vivo') : SOURCES[deck.source], whenLabel(deck.added)].filter(Boolean).join(' · ');
       return h('div', { class: `deck${deck.id === deckId ? ' selected' : ''}${air?.id === deck.id ? ' live' : ''}${usable ? '' : ' pending'}`, dataset: { id: deck.id, status: deck.status, ...(ctx.canEdit && { drag: deck.id, name: deck.name }) } },
         h('button', { class: 'deck-pick', 'aria-pressed': deck.id === deckId, onclick: () => choose(deck.id) },
           h('span', { class: `deck-cover${usable ? '' : ' blank'}` },
@@ -121,10 +123,12 @@ export function createSlidesPanel(ctx, lib) {
         ctx.canEdit && h('button', { class: 'icon-btn sm deck-more', 'aria-label': `Opciones de ${deck.name}`, onclick: (e) => menu(e.currentTarget, [
           { label: 'Cambiar el nombre', icon: 'pencil-simple', onclick: () => askName(deck) },
           ...lib.menu(deck, e.currentTarget),
-          // En vivo la pasa el propio PowerPoint en el proyector, con sus videos y animaciones (solo Windows).
+          // En vivo la pasa DeckCraft en la ventana del proyector o, sin él, el propio PowerPoint (solo Windows).
           ...(deck.liveable ? [deck.live
             ? { label: 'Pasar como imágenes', note: 'Con zoom y puntero, sin animaciones', icon: 'images', onclick: guard(() => action('slides.live', { id: deck.id, on: false })) }
-            : { label: 'Pasar con PowerPoint', note: 'Con sus videos y animaciones', icon: 'monitor', onclick: guard(() => action('slides.live', { id: deck.id, on: true })) }] : []),
+            : deckcraft
+              ? { label: 'Pasar con animaciones', note: 'DeckCraft, con sus transiciones y animaciones', icon: 'monitor', onclick: guard(() => action('slides.live', { id: deck.id, on: true })) }
+              : { label: 'Pasar con PowerPoint', note: 'Con sus videos y animaciones', icon: 'monitor', onclick: guard(() => action('slides.live', { id: deck.id, on: true })) }] : []),
           '-',
           { label: 'Eliminar', icon: 'trash', onclick: () => confirmRemove(deck) },
         ]) }, icon('dots-three', 16)));

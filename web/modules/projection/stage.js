@@ -9,7 +9,7 @@ import '../kinds.js';
 // El escenario pone el fondo y decide qué se ve según el modo (al aire, solo fondo, negro).
 // El contenido lo dibuja el tipo de cada elemento (ver web/core/kinds.js).
 //
-// Encima de lo que está al aire van las tres capas (módulo Capas, fase 31), que solo dibuja quien llama a
+// Encima de lo que está al aire van las cuatro capas (módulo Capas, fase 31), que solo dibuja quien llama a
 // setLayers (la pantalla de proyección): siguen ahí con «Negro» y «Solo fondo».
 //
 // sound: esta pantalla es la que suena. Lo decide el servidor y puede cambiar (setSound).

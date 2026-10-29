@@ -91,9 +91,13 @@ export default function setup(app) {
   // pruebas, también sin ella). La presentación queda abierta tras el pase, para volver a ella enseguida; se
   // cierra al pasar otra, al quitarle el modo o al apagar Manna.
   const fake = Boolean(process.env.MANNA_POWERPOINT_PRUEBA);
-  const liveable = (deck) => Boolean(deck.original) && liveSupported() && app.tools.has('powerpoint');
+  const withPowerPoint = () => liveSupported() && app.tools.has('powerpoint');
+  const withDeckCraft = () => app.tools.has('deckcraft-web');
+  // Se puede pasar con animaciones: con DeckCraft (en cualquier equipo) o, sin él, con PowerPoint (en Windows).
+  const liveable = (deck) => Boolean(deck.original) && (withDeckCraft() || withPowerPoint());
   const failed = new Set(); // las que PowerPoint no pudo pasar: van como imágenes hasta que se vuelva a pedir
-  const inPowerPoint = (deck) => Boolean(deck.live) && liveable(deck) && !failed.has(deck.id);
+  const inPowerPoint = (deck) => Boolean(deck.live && deck.original) && !withDeckCraft() && withPowerPoint() && !failed.has(deck.id);
+  const inDeckCraft = (deck) => Boolean(deck.live && deck.original) && withDeckCraft();
   let session = null; // { deck, live, showing, at }: at = la diapositiva en que está PowerPoint (1…)
   // Acercada o desplazada («Mover»), PowerPoint se aparta y se ve la imagen de Manna con su encuadre; vuelve con la
   // vista completa o al pasar de diapositiva.
@@ -212,6 +216,44 @@ export default function setup(app) {
     closeSession();
   });
 
+  // ---- DeckCraft con animaciones (fase 33, parte 3) ----
+  // Con DeckCraft web instalado (la copia de Manna, en data/herramientas/deckcraft-web), una presentación con `live` la
+  // pasa DeckCraft dentro de la ventana del proyector, la pantalla que suena (siempre del equipo principal), con sus
+  // animaciones y transiciones y debajo de las capas; las demás pantallas ven la imagen de la diapositiva en que va.
+  // «Siguiente» y «Anterior» se le pasan a esa ventana (el espacio `deckcraft`: cuántas teclas lleva y cuál), y ella
+  // dice por dónde va (POST /api/slides/deckcraft), también cada 10 s: sin noticias suyas en 25 s, va como imágenes.
+  // Sin DeckCraft web, en Windows con PowerPoint, la pasa PowerPoint (arriba).
+  const ALIVE_MS = 25_000;
+  app.mount('/deckcraft/', () => path.join(app.dataDir, 'herramientas', 'deckcraft-web'));
+  store.register('deckcraft', { count: 0, key: null });
+  let shown = { id: null, page: null, step: 0, at: 0, ended: false }; // lo último que dijo la ventana del proyector
+  const showing = (id) => shown.id === id && !shown.ended && Date.now() - shown.at < ALIVE_MS;
+  // Solo el equipo principal: de ahí es la ventana del proyector (un túnel o un proxy de este equipo no cuenta).
+  const projector = (ctx) => { if (!ctx.isLocal) throw new HttpError(403, 'Esto solo lo pide la ventana del proyector del equipo principal.'); };
+  app.route('GET', '/api/slides/:id/original', (ctx) => {
+    projector(ctx);
+    const deck = ready(ctx.params.id);
+    if (!deck?.original || !inDeckCraft(deck)) throw new HttpError(404, 'Esa presentación no se pasa con DeckCraft.');
+    ctx.file(originalOf(deck));
+  });
+  app.route('POST', '/api/slides/deckcraft', async (ctx) => {
+    projector(ctx);
+    const { id, page, step, ended } = await ctx.json();
+    const deck = ready(String(id ?? ''));
+    if (!deck || !inDeckCraft(deck)) return { ok: false };
+    shown = { id: deck.id, page: Number.isInteger(page) && page >= 1 && page <= deck.pages ? page : null, step: Number(step) || 0, at: Date.now(), ended: ended === true };
+    const { item } = store.get('projection');
+    if (item?.kind !== 'slides' || item.source.data?.id !== deck.id) return { ok: true };
+    // Alguien pasó (o DeckCraft llegó a otra diapositiva): al aire, la imagen de esa. Pasada la última, desde la
+    // última sigue lo que venga en el orden, como con PowerPoint.
+    const at = shown.ended ? deck.pages : shown.page;
+    if (at && item.number !== at) {
+      try { app.services.projection.present({ kind: 'slides', data: { id: deck.id }, step: at - 1, orderId: item.source.orderId }); } catch { /* ya no está */ }
+    }
+    if (shown.ended) await Promise.resolve(app.run('projection.step', { delta: 1 })).catch(() => {});
+    return { ok: true };
+  });
+
   // ---- Tipo de contenido ----
   // data = { id }. Cada diapositiva es un paso; "siguiente" las recorre. Lo que se proyecta es
   // una imagen: sus mandos en vivo son los del encuadre (acercar y desplazar), que vuelven a la
@@ -226,6 +268,8 @@ export default function setup(app) {
       // de Manna a la vista (fase 31), PowerPoint la taparía: va como imágenes (covered) hasta que se oculte.
       powerpoint: inPowerPoint(deck) && !app.services.layers?.covering(),
       covered: inPowerPoint(deck) && Boolean(app.services.layers?.covering()),
+      // La pasa DeckCraft en la ventana del proyector (ver arriba).
+      deckcraft: inDeckCraft(deck),
       // La que viene, para verla antes de pasar a ella.
       next: n < deck.pages ? { number: n + 1, thumb: thumbUrl(deck, n + 1) } : null,
     };
@@ -255,6 +299,14 @@ export default function setup(app) {
     // Con PowerPoint en vivo, «siguiente» y «anterior» los da PowerPoint: así pasan también las animaciones. Al
     // terminar la presentación (o antes de la primera), Manna sigue como siempre: lo que venga en el orden.
     async step(item, delta) {
+      // Con DeckCraft: la tecla va a la ventana del proyector. «Anterior» en el principio de la primera sigue con lo de
+      // antes en el orden.
+      if (item.deckcraft && showing(item.source.data?.id)) {
+        if (delta < 0 && shown.page === 1 && !shown.step) return false;
+        const { count } = store.get('deckcraft');
+        store.set('deckcraft', { count: count + 1, key: delta > 0 ? 'ArrowRight' : 'ArrowLeft' });
+        return true;
+      }
       const mine = session;
       if (!mine?.showing || mine.deck.id !== item.source.data?.id) return false;
       const said = await mine.live.send(delta > 0 ? 'siguiente' : 'anterior');
@@ -365,7 +417,7 @@ export default function setup(app) {
             fs.mkdirSync(originals, { recursive: true });
             fs.renameSync(input, path.join(originals, `${id}${ext}`));
             Object.assign(deck, { original: `${id}${ext}` });
-            deck.live = liveable(deck);
+            deck.live = Boolean(deck.original) && withPowerPoint();
             then();
           } else if (still && !result.cancelled) Object.assign(deck, { status: 'error', error: result.error });
         } catch (err) {
@@ -492,8 +544,8 @@ export default function setup(app) {
   // Pasarla con PowerPoint (on) o como imágenes. Volver a pedirlo tras un fallo lo intenta de nuevo.
   app.action('slides.live', { permission: 'slides.edit' }, ({ id, on }) => {
     const deck = find(id);
-    if (on && !liveSupported()) throw new HttpError(409, 'Pasar con PowerPoint solo se puede en un equipo principal con Windows.');
-    if (on && !app.tools.has('powerpoint')) throw new HttpError(409, 'Este equipo no tiene PowerPoint.');
+    if (on && !withDeckCraft() && !liveSupported()) throw new HttpError(409, 'Para pasarla con animaciones hace falta «DeckCraft con animaciones» (Ajustes → Revisar el equipo) o, en Windows, PowerPoint.');
+    if (on && !withDeckCraft() && !app.tools.has('powerpoint')) throw new HttpError(409, 'Este equipo no tiene PowerPoint. Para pasarla con animaciones, instala «DeckCraft con animaciones» (Ajustes → Revisar el equipo).');
     if (on && !deck.original) throw new HttpError(409, 'De esta presentación no se guardó el PowerPoint original (se subió como PDF o antes de la versión 1.14). Súbela de nuevo como PowerPoint.');
     deck.live = Boolean(on);
     failed.delete(deck.id);

@@ -3,7 +3,7 @@ import { h, guard, menu, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { kindBadge } from '../../core/kinds.js';
 
-// Módulo Capas (fase 31): las tres capas que quedan encima de todo lo que se proyecte, también con «Negro» y «Solo
+// Módulo Capas (fase 31): las cuatro capas que quedan encima de todo lo que se proyecte, también con «Negro» y «Solo
 // fondo», hasta que se quiten. Arriba la 3, que va encima de todo; abajo la 1, la más cerca de lo que está al aire.
 // Lo de cada módulo se pone en una capa con su botón «Capa» (core/capas.js) o aquí, con «Poner aquí».
 

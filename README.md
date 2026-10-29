@@ -22,7 +22,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
   - **Presentaciones**: las de la iglesia, en PDF o en PowerPoint, convertidas en imágenes. Se recorren con «Siguiente», la barra de abajo muestra la diapositiva que viene y cuántas quedan, y cada una se puede acercar como una imagen. En Windows, un PowerPoint lo puede pasar **el propio PowerPoint en el proyector**, con sus videos y animaciones, y se sigue pasando desde cualquier celular.
 - **Textos**: mensajes (un anuncio, una bienvenida, un motivo de oración) y **citas con su autor**, para proyectarlos con el fondo y la letra de la Biblia. Se guardan para volver a usarlos y se añaden al orden del culto. Una línea en blanco parte un texto largo en pantallas, que se pasan con «Siguiente».
 - **Tiempo**: la hora, cronómetros y temporizadores con su título, en cinco estilos, a la proyección o a una capa. Un temporizador hace un tictac suave en los últimos 10 segundos y una alarma corta al llegar a cero.
-- **Capas**: tres capas que quedan encima de todo lo que se proyecte (también con «Negro» y «Solo fondo») hasta que las quites, por ejemplo una página web transparente que muestra algo de vez en cuando.
+- **Capas**: cuatro capas que quedan encima de todo lo que se proyecte (también con «Negro» y «Solo fondo») hasta que las quites, por ejemplo una página web transparente que muestra algo de vez en cuando.
 - **Páginas web**: presentaciones y juegos de internet (Canva, Google Slides, Genially, Kahoot) o un archivo HTML propio, a pantalla completa. Una dirección necesita internet durante el culto; si la página no se deja mostrar dentro de Manna, el proyector la abre en su propia ventana. Un archivo HTML se pasa con «Anterior» y «Siguiente» desde cualquier dispositivo.
 - **Fondos**: seis colores y las imágenes que subas, que quedan guardadas junto a ellos en Ajustes.
 - **Espacio en disco** (Ajustes): cuánto ocupa lo subido o descargado desde Manna (YouTube, videos y audios, imágenes, presentaciones, páginas web) y lo libre del disco. Cada categoría tiene su **botón de borrar** (la papelera), que pregunta dos veces antes de borrar, y lo borrado se quita también del orden del culto; la carpeta Contenido (himnario, biblias y medios) y los fondos no se tocan. Las copias para celulares de los videos se borran con su video.
@@ -58,6 +58,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 | yt-dlp | Descargar videos de YouTube | Igual |
 | Node.js para YouTube | Lo pide YouTube para dejar descargar: el mismo Node.js de Manna, si es de la 22 o más nuevo; si no, Manna instala uno propio (Windows) y lo pone al día solo | Igual |
 | DeckCraft (opcional) | Convertir las presentaciones de PowerPoint en diapositivas sin PowerPoint (programa libre; Manna lo instala) | Las convierte PowerPoint, si está; si no, se sube el PDF |
+| DeckCraft con animaciones (opcional) | Pasar las presentaciones de PowerPoint en el proyector con sus transiciones y animaciones, dentro de la ventana de Manna, en Windows y en Mac (la versión web de DeckCraft, en la copia de Manna; Manna la instala, unos 15 MB) | Se pasan como imágenes o, en Windows, con PowerPoint |
 | Microsoft PowerPoint (opcional) | Convertir las presentaciones de PowerPoint cuando no está DeckCraft y, en Windows, pasarlas en vivo | Se sube el PDF de la presentación, que no necesita ningún programa |
 | cloudflared (opcional) | La conexión por internet (Ajustes) | Manna funciona igual en la red de la iglesia; la conexión por internet avisa de que falta |
 
@@ -358,7 +359,7 @@ server/
                         en vivo (powerpoint.js), y proyectarlas
     texts/              textos y citas para proyectar: guardarlos, partirlos en pantallas (text.js)
     time/               la hora, cronómetros y temporizadores: guardarlos, sus relojes y cómo se ven (clock.js)
-    layers/             las tres capas encima de la proyección: guardarlas y ver si su página contesta
+    layers/             las cuatro capas encima de la proyección: guardarlas y ver si su página contesta
     web/                páginas web y archivos HTML: comprobar si una dirección se deja mostrar
                         dentro de otra página y servir los archivos encerrados
     internet/           conexión por internet: abre el túnel de Cloudflare (cloudflared) mientras
@@ -417,6 +418,12 @@ Empieza por `CLAUDE.md` y `docs/ESTADO.md`. Las reglas del proyecto están en `.
 
 Se incluye la Reina-Valera 1909, de dominio público ([eBible.org](https://ebible.org/spaRV1909/)). Las demás versiones tienen derechos de autor y no forman parte de este repositorio: cada iglesia copia en `Contenido/Biblias/` las que tenga derecho a usar. Lo mismo vale para los himnos en video y sus letras.
 
+## Licencia
+
+Manna es software libre, con la licencia **GNU AGPL 3.0** (`LICENSE`; decisión 65, 2026-10-29). © 2026 Los Ríos Multimedia. Cualquiera puede usarlo, estudiarlo, cambiarlo y compartirlo; quien lo cambie, o lo ofrezca a otros por internet (como Manna Iglesia en la nube), tiene que publicar su código con la misma licencia. La nube enlaza a este repositorio desde su portada.
+
+Lo de otros que Manna lleva dentro, o que descarga en el equipo principal, conserva su licencia (abajo, «Créditos»). Las biblias que no son la Reina-Valera 1909, los himnos y los medios de cada iglesia no son parte de Manna ni de esta licencia.
+
 ## Créditos
 
 - Logo: diseño del autor del proyecto, reconstruido en vector (`instalacion/icono/manna.svg`).
@@ -424,5 +431,5 @@ Se incluye la Reina-Valera 1909, de dominio público ([eBible.org](https://ebibl
 - Iconos [Phosphor](https://phosphoricons.com) (licencia MIT).
 - Lectura de PDF: [pdf.js](https://mozilla.github.io/pdf.js/) de Mozilla (licencia Apache 2.0), incluido en `web/vendor/pdfjs/`.
 - Códigos QR: [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) de Kazuhiko Arase (licencia MIT).
-- Programas que Manna puede instalar en el equipo principal y usa sin incluirlos, cada uno con su licencia: [ffmpeg](https://ffmpeg.org) (compilación para Windows de [gyan.dev](https://www.gyan.dev/ffmpeg/builds/), licencia GPL v3), [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense) y [cloudflared](https://github.com/cloudflare/cloudflared) de Cloudflare (licencia Apache 2.0).
+- Programas que Manna puede instalar en el equipo principal y usa sin incluirlos, cada uno con su licencia: [ffmpeg](https://ffmpeg.org) (compilación para Windows de [gyan.dev](https://www.gyan.dev/ffmpeg/builds/), licencia GPL v3), [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense) [cloudflared](https://github.com/cloudflare/cloudflared) de Cloudflare (licencia Apache 2.0), [Node.js](https://nodejs.org) (licencia MIT) y [DeckCraft](https://github.com/storytold/deckcraft) (MIT o Apache 2.0), también su versión web en [la copia de Manna](https://github.com/delosriosmedia/deckcraft), con las letras de [craft-fonts](https://github.com/storytold/craft-fonts).
 - Referencias de diseño: [taste-skill](https://github.com/Leonxlnx/taste-skill) y [awesome-design-md](https://github.com/voltagent/awesome-design-md).

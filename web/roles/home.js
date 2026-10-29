@@ -2,6 +2,7 @@ import { api, session } from '../core/api.js';
 import { $, h, dialog, toast } from '../core/dom.js';
 import { icon } from '../core/icons.js';
 import { preferStableAddress } from '../core/upgrade.js';
+import { newer } from '../core/versiones.js';
 
 // Pantalla de inicio: cada dispositivo elige su función. Las de control piden, una vez, quién eres (tu nombre, de una
 // lista) y tu PIN (fase 35); quien ya entró cambia de función sin volver a escribirlo.
@@ -21,12 +22,16 @@ function askPin(role, user, done = () => { location.href = role.path; }) {
   let busy = false;
   const dots = h('div', { class: 'pin-dots', role: 'img' });
   const error = h('p', { class: 'pin-error', role: 'alert' });
-  const key = (digit) => h('button', { 'aria-label': digit, onclick: () => type(digit) }, digit);
+  // Al apoyar el dedo, no al soltarlo: así se siente al instante. El clic que llega justo después no cuenta otra vez;
+  // uno sin dedo antes (el teclado, un lector de pantalla) sí.
+  let pressed = 0;
+  const press = (fn) => ({ onpointerdown: (e) => { e.preventDefault(); pressed = Date.now(); fn(); }, onclick: () => { if (Date.now() - pressed > 600) fn(); } });
+  const key = (digit) => h('button', { 'aria-label': digit, ...press(() => type(digit)) }, digit);
   const box = h('div', { class: 'pin-pad' },
     h('p', {}, `${user.name}, escribe tu PIN. Si no lo sabes, pídeselo al administrador de Manna.`),
     dots, error,
     h('div', { class: 'pin-keys' }, ...'123456789'.split('').map(key),
-      h('span', {}), key('0'), h('button', { 'aria-label': 'Borrar', onclick: () => erase() }, icon('arrow-left', 22))));
+      h('span', {}), key('0'), h('button', { 'aria-label': 'Borrar', ...press(() => erase()) }, icon('arrow-left', 22))));
   const paint = () => {
     dots.replaceChildren(...Array.from({ length: 4 }, (_, i) => h('span', { class: i < typed.length ? 'on' : '' })));
     dots.setAttribute('aria-label', `${typed.length} de 4 cifras`);
@@ -171,12 +176,6 @@ const INSTALLED = 'manna.instalacion'; // el número de la instalación bajada d
 const stored = () => { try { return localStorage.getItem(INSTALLED); } catch { return null; } };
 const installState = async () => (stored() ? api(`/api/nube/instalado?id=${stored()}`).catch(() => ({})) : {});
 const installedHere = async () => (await installState()).installed === true;
-// ¿La versión a es más nueva que la b? («1.51.0» > «1.50.2»)
-const newer = (a, b) => {
-  const [x, y] = [a, b].map((v) => v.split('.').map(Number));
-  const i = [0, 1, 2].find((n) => (x[n] || 0) !== (y[n] || 0));
-  return i !== undefined && (x[i] || 0) > (y[i] || 0);
-};
 const card = (glyph, title, text, tag, onclick) => h('button', { class: 'role install-role', disabled: !onclick, onclick },
   h('span', { class: 'role-icon' }, icon(glyph, 22)), h('span', { class: 'role-text' }, h('strong', {}, title), h('span', {}, text)), tag && h('span', { class: 'tag asks' }, tag));
 

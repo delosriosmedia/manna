@@ -258,21 +258,23 @@ html.touch .tool-chip { height: var(--control); padding: 0 14px; }
 .tool-chip[hidden] { display: none; }
 /* Encender y apagar las capas (escenario.js, Control completo), al estilo de la Dynamic Island (fase 34): una isla
    negra por capa con algo. La ficha lleva el icono de lo que tiene y su número (en «Historias», también su nombre) y,
-   encendida, brilla en cian; de ella se desprende la burbuja de un temporizador o un cronómetro: la cuenta y sus botones. */
+   encendida, brilla en cian. Con un temporizador o un cronómetro, la misma ficha crece, como la isla dinámica del
+   iPhone, y lleva dentro la cuenta y sus botones (pedido del dueño, 2026-10-29: no un botón al lado). */
 .layer-switches { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .layer-switches[hidden] { display: none; }
 .ls-head { display: inline-flex; color: var(--ink-3); padding: 0 2px; }
-.island { display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; }
-.layer-switch, .island-extra { display: inline-flex; align-items: center; height: 32px; border-radius: var(--r-pill); background: var(--canvas); border: 1px solid var(--glass-line); }
-html.touch :is(.layer-switch, .island-extra) { height: max(32px, var(--tap)); }
+.island { display: inline-flex; align-items: center; flex-shrink: 0; height: 32px; overflow: hidden; border-radius: var(--r-pill); background: var(--canvas); box-shadow: inset 0 0 0 1px var(--glass-line); transition: box-shadow 0.25s var(--ease); }
+html.touch .island { height: max(32px, var(--tap)); }
+.island[data-on='true'] { box-shadow: inset 0 0 0 1px var(--accent), 0 0 14px var(--accent-soft); }
+.layer-switch, .island-extra { display: inline-flex; align-items: center; align-self: stretch; }
 html.touch .layer-switch { min-width: var(--tap); }
-.layer-switch { justify-content: center; gap: 5px; padding: 0 11px 0 9px; color: var(--ink-3); font: 600 13px/1 var(--mono); transition: color 0.25s var(--ease), border-color 0.25s var(--ease), box-shadow 0.25s var(--ease), transform 0.12s var(--ease); }
+.layer-switch { justify-content: center; gap: 5px; padding: 0 11px 0 9px; border-radius: var(--r-pill); color: var(--ink-3); font: 600 13px/1 var(--mono); transition: color 0.25s var(--ease), transform 0.12s var(--ease); }
 .layer-switch:hover { color: var(--ink-2); }
-.layer-switch.on { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 14px var(--accent-soft); }
+.layer-switch.on { color: var(--accent); }
 /* Respuesta al pulsar, al instante. */
 .layer-switch:active, .ix-btn:active { transform: scale(0.94); }
 .layer-switch .ls-name { display: none; }
-.island-extra { flex-shrink: 0; gap: 1px; padding: 0 3px 0 11px; }
+.island-extra { flex-shrink: 0; gap: 1px; padding: 0 3px 0 9px; border-left: 1px solid var(--glass-line); }
 .ix-digits { flex-shrink: 0; min-width: 4.2ch; margin-right: 4px; color: var(--ink-2); font: 600 13px/1 var(--mono); font-variant-numeric: tabular-nums; }
 .island-extra[data-state='running'] .ix-digits { color: var(--ink); }
 .island-extra[data-state='done'] .ix-digits { color: var(--live-ink); }
@@ -497,7 +499,7 @@ body.pestanas .work { border-radius: 22px; background: var(--glass-2); border: 1
   .story-layers { flex-wrap: wrap; padding: 4px 4px 4px 10px; border-radius: var(--r-lg); background: var(--glass-1); border: 1px solid var(--glass-line); }
   .story-layers .island { flex: 1 1 auto; min-width: 0; }
   .story-layers .layer-switch { flex: 1 1 0; min-width: 0; min-height: 38px; }
-  .story-layers .island-extra { min-height: 38px; }
+  .story-layers .island { min-height: 38px; }
   .story-layers .ls-name { display: inline; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 13px/1.2 var(--font); }
   .story-volume { display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 12px; border-radius: var(--r-pill); background: var(--glass-1); border: 1px solid var(--glass-line); }
   .story-volume > .volume { flex: 1; min-width: 0; }

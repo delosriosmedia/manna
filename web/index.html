@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#05070a">
   <link rel="icon" type="image/svg+xml" href="/logo.svg">
   <link rel="alternate icon" type="image/png" href="/icono.png">
@@ -46,6 +46,9 @@
     .tag { flex: 0 0 auto; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: var(--r-pill); color: var(--accent-hover); background: var(--accent-soft); white-space: nowrap; }
     .tag.asks { color: #f0bc66; background: rgba(240, 188, 102, 0.12); }
     #who { margin-top: 10px; color: var(--ink-3); font-size: 13px; }
+    .free { margin-top: 28px; text-align: center; color: var(--ink-3); font-size: 12px; }
+    .free a { color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
+    .touch .free a { display: inline-block; min-height: var(--tap); line-height: var(--tap); }
     #who button { color: var(--accent); font: inherit; text-decoration: underline; text-underline-offset: 3px; }
     .touch #who button { min-height: var(--tap); padding: 0 4px; }
 
@@ -86,6 +89,7 @@
       <p id="who" hidden></p>
     </header>
     <div id="roles"></div>
+    <p class="free">Manna es software libre (<a href="https://github.com/delosriosmedia/manna" target="_blank" rel="noopener">código y licencia AGPL</a>).</p>
   </main>
   <script type="module" src="/roles/home.js"></script>
 </body>

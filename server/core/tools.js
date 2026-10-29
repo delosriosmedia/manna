@@ -116,6 +116,11 @@ const NODE = 'https://nodejs.org/dist/latest-v24.x';
 // En Windows solo viene dentro del .zip portátil, junto a la app: se saca de él el programa de órdenes.
 export const DECKCRAFT_VERSION = '0.10.0';
 const DC = `https://github.com/storytold/deckcraft/releases/download/v${DECKCRAFT_VERSION}`;
+// DeckCraft con animaciones (fase 33, parte 3): la versión web de la copia de Manna (delosriosmedia/deckcraft), con
+// el puente por el que Manna la maneja dentro de la ventana del proyector. Una versión fija, compilada en GitHub.
+export const DECKCRAFT_WEB = 'manna-web-0.12.0-2';
+const DCW = `https://github.com/delosriosmedia/deckcraft/releases/download/${DECKCRAFT_WEB}`;
+const DECKCRAFT_WEB_ZIP = { url: `${DCW}/deckcraft-web-manna.zip`, sums: `${DCW}/SHA256SUMS.txt`, folder: 'deckcraft-web', size: '15 MB' };
 const OFFICIAL = {
   ffmpeg: {
     win32: {
@@ -136,6 +141,7 @@ const OFFICIAL = {
     win32: { url: `${DC}/deckcraft-${DECKCRAFT_VERSION}-windows-${process.arch === 'arm64' ? 'arm64' : 'x64'}-portable.zip`, sums: `${DC}/SHA256SUMS.txt`, extract: ['deckcraft-cli.exe'], size: '77 MB' },
     darwin: { url: `${DC}/deckcraft-cli-${DECKCRAFT_VERSION}-macos-universal.zip`, sums: `${DC}/SHA256SUMS.txt`, extract: ['deckcraft-cli'], size: '69 MB' },
   },
+  'deckcraft-web': { win32: DECKCRAFT_WEB_ZIP, darwin: DECKCRAFT_WEB_ZIP },
   cloudflared: {
     win32: { url: `${CF}/cloudflared-windows-amd64.exe`, sums: CF_SUMS, release: true, file: 'cloudflared.exe', size: '65 MB' },
     // En Mac la huella publicada es la del programa, no la del .tgz que lo trae.
@@ -246,6 +252,21 @@ const CATALOG = [
     },
   },
   {
+    id: 'deckcraft-web',
+    name: 'DeckCraft con animaciones',
+    level: 'optional',
+    purpose: 'Pasa las presentaciones de PowerPoint en el proyector con sus animaciones y transiciones, dentro de la ventana de Manna (debajo de las capas), en Windows y en Mac. Es la versión web de DeckCraft, en la copia de Manna.',
+    link: 'https://github.com/delosriosmedia/deckcraft',
+    manual: {
+      other: { steps: ['Pulsa «Instalar por mí»: Manna lo descarga de la copia de Manna en GitHub y comprueba que llegó entero.'] },
+    },
+    // Es una página con su programa, no un ejecutable: está si su página está.
+    find: async (toolsDir) => {
+      const file = path.join(toolsDir, 'deckcraft-web', 'index.html');
+      return fs.existsSync(file) ? { file, detail: DECKCRAFT_WEB } : null;
+    },
+  },
+  {
     id: 'powerpoint',
     name: 'Microsoft PowerPoint',
     level: 'optional',
@@ -275,7 +296,7 @@ export function setupTools(app) {
 
   async function detect(tool) {
     if (tool.find) {
-      const hit = hidden.has(tool.id) ? null : await tool.find();
+      const hit = hidden.has(tool.id) ? null : await tool.find(toolsDir);
       return hit ? { files: { [tool.id]: hit.file }, version: null, detail: hit.detail || null, own: false } : null;
     }
     const dirs = searchDirs(toolsDir, !hidden.has(tool.id));
@@ -338,7 +359,7 @@ export function setupTools(app) {
     const job = app.jobs.start({ title: `Descargando ${tool.name}`, detail: spec.size || '', owner: 'tools', ref: id });
     try {
       // Un programa recién bajado tarda en arrancar la primera vez en Windows (el antivirus lo revisa): se le da un minuto.
-      const check = async (file) => (await output(file, tool.version.args, 60_000)) != null;
+      const check = tool.version && (async (file) => (await output(file, tool.version.args, 60_000)) != null);
       await installTool(spec, { dir: toolsDir, onProgress: (progress) => job.update({ progress }), check });
       installing.delete(id);
       await scan();

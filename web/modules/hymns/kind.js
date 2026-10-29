@@ -77,7 +77,7 @@ registerKind('lyrics', {
   title: (item) => `${item.number} · ${item.title} · ${item.index} de ${item.pages}`,
   key: (item) => item.url,
   background: false,
-  draw: drawPicture,
+  draw: (host, options) => drawPicture(host, { ...options, backdrop: true }),
 
   controls(host, tools) {
     const where = h('strong', {});

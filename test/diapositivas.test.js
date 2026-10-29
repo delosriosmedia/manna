@@ -321,6 +321,65 @@ test('PowerPoint en vivo: la pasa el propio PowerPoint, que da los pasos (tambi�
   }
 });
 
+test('DeckCraft con animaciones: la pasa la ventana del proyector, que da los pasos, y Manna la sigue (fase 33, parte 3)', async () => {
+  const dir = path.join(tmp, 'falso-dc');
+  const fake = writeFakePowerPoint(dir, { slides: 3, pause: 0 });
+  // DeckCraft web instalado por Manna: una carpeta con su página (aquí basta que esté).
+  const web = path.join(tmp, 'dc', 'herramientas', 'deckcraft-web');
+  fs.mkdirSync(web, { recursive: true });
+  fs.writeFileSync(path.join(web, 'index.html'), '<!doctype html><title>DeckCraft</title>');
+  const s = await start('dc', { MANNA_POWERPOINT_PRUEBA: fake, MANNA_FALTA: 'deckcraft' });
+  process.env.MANNA_POWERPOINT_PRUEBA = fake;
+  const onAir = async () => (await s.state()).projection.item;
+  const presses = async () => (await s.state()).deckcraft;
+  const step = (delta) => s.send('projection.step', { delta });
+  const report = (body, headers = {}) => s.request('/api/slides/deckcraft', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+  try {
+    assert.equal((await s.request('/deckcraft/index.html')).status, 200, 'su página se sirve en /deckcraft/');
+    const added = await s.put('/api/slides/powerpoint?name=Misiones&ext=.pptx', fakePresentation());
+    const deck = await s.settle(added.id, 'ready');
+    assert.equal((await s.send('slides.live', { id: deck.id, on: true })).http, 200);
+    const inOrder = (await s.send('order.add', { kind: 'slides', data: { id: deck.id } })).result;
+    await s.send('order.add', { kind: 'testcard', data: {} });
+    await s.send('order.show', { id: inOrder.id, step: 0 });
+    assert.deepEqual([(await onAir()).deckcraft, (await onAir()).powerpoint], [true, false], 'con DeckCraft web, la pasa DeckCraft y no PowerPoint');
+    const original = await s.request(`/api/slides/${deck.id}/original`);
+    assert.deepEqual([original.status, Buffer.from(await original.arrayBuffer()).equals(fakePresentation())], [200, true], 'la ventana del proyector recibe el PowerPoint original');
+    assert.equal((await s.request(`/api/slides/${deck.id}/original`, { headers: { 'X-Forwarded-For': '203.0.113.7' } })).status, 403, 'solo el equipo principal');
+    assert.equal((await report({ id: deck.id, page: 1, step: 0 }, { 'X-Forwarded-For': '203.0.113.7' })).status, 403);
+
+    // Sin noticias de la ventana del proyector, va como imágenes.
+    await step(1);
+    assert.equal((await onAir()).number, 2, 'si DeckCraft no está pasándola, «Siguiente» va como imágenes');
+    await s.send('order.show', { id: inOrder.id, step: 0 });
+    // La ventana dice que la está pasando: «Siguiente» y «Anterior» son teclas para ella, y Manna sigue lo que dice.
+    assert.equal((await report({ id: deck.id, page: 1, step: 0 })).status, 200);
+    const before = (await presses()).count;
+    await step(1);
+    assert.deepEqual([(await onAir()).number, (await presses()).count - before, (await presses()).key], [1, 1, 'ArrowRight'], '«Siguiente» se lo pasa a DeckCraft');
+    await report({ id: deck.id, page: 1, step: 1 });
+    assert.equal((await onAir()).number, 1, 'una animación no cambia de diapositiva');
+    await report({ id: deck.id, page: 2, step: 0 });
+    assert.equal((await onAir()).number, 2, 'Manna pone la imagen de la diapositiva en que va');
+    await step(-1);
+    assert.equal((await presses()).key, 'ArrowLeft');
+    await report({ id: deck.id, page: 1, step: 0 });
+    const count = (await presses()).count;
+    await step(-1);
+    assert.deepEqual([(await onAir()).number, (await presses()).count], [1, count], '«Anterior» en el principio no se le pasa');
+    await report({ id: deck.id, page: 3, step: 0, ended: true });
+    assert.equal((await onAir()).kind, 'testcard', 'al pasar de la última, Manna sigue con el orden del culto');
+    assert.ok(!fs.existsSync(path.join(dir, 'pase.jsonl')), 'PowerPoint no se abrió');
+
+    await s.send('slides.live', { id: deck.id, on: false });
+    await s.send('order.show', { id: inOrder.id, step: 0 });
+    assert.equal((await onAir()).deckcraft, false, '«Pasar como imágenes» la quita de DeckCraft');
+  } finally {
+    delete process.env.MANNA_POWERPOINT_PRUEBA;
+    await s.stop();
+  }
+});
+
 test('sin PowerPoint en el equipo, una presentación se rechaza diciendo que se suba el PDF', async () => {
   const s = await start('sin-powerpoint', { MANNA_FALTA: 'powerpoint,deckcraft' });
   try {

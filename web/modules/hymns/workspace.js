@@ -16,7 +16,8 @@ function mount(el, ctx) {
   let book = { version: -1, hymns: [], categories: [], report: null }; // lo que dice /api/hymns
   let selected = null;                                   // número del himno elegido
   let view = VIEWS.some(([id]) => id === prefs.get('himnario.vista')) ? prefs.get('himnario.vista') : 'grid';
-  let track = prefs.get('himnario.sonido') === 'instrumental' ? 'instrumental' : 'vocal';
+  // Siempre «cantado» al empezar y al elegir otro himno: la pista solo cuando se elige para ese (pedido del dueño, 2026-10-29).
+  let track = 'vocal';
   let found = null;  // resultados de la búsqueda, o null si no se está buscando
   let rows = [];     // los himnos de los resultados, en el orden en que se ven
   let active = -1;   // resultado señalado con las flechas
@@ -117,6 +118,7 @@ function mount(el, ctx) {
 
   // ---- Elegir ----
   function select(n, { reveal = false } = {}) {
+    if (n !== selected) track = 'vocal';
     selected = n;
     paint();
     if (reveal) body.querySelector('.hymn.selected')?.scrollIntoView({ block: 'center' });
@@ -130,7 +132,6 @@ function mount(el, ctx) {
   }
   function setTrack(id) {
     track = id;
-    prefs.set('himnario.sonido', id);
     paint();
   }
 

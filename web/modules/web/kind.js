@@ -1,4 +1,5 @@
-import { h } from '../../core/dom.js';
+import { action, subscribe } from '../../core/api.js';
+import { h, guard } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { registerKind } from '../../core/kinds.js';
 
@@ -100,9 +101,24 @@ registerKind('web', {
     const keys = h('div', { class: 'row web-keys' },
       h('button', { class: 'btn', 'aria-label': 'Página anterior', title: 'Página anterior (flecha izquierda de la página)', onclick: () => send({ key: 'ArrowLeft' }) }, icon('caret-left', 16), h('span', { class: 'lbl' }, 'Anterior')),
       h('button', { class: 'btn', 'aria-label': 'Página siguiente', title: 'Página siguiente (flecha derecha de la página)', onclick: () => send({ key: 'ArrowRight' }) }, h('span', { class: 'lbl' }, 'Siguiente'), icon('caret-right', 16)));
-    host.replaceChildren(h('div', { class: 'live-part' }, keys, text));
+    // S48: la página en su propia ventana tapa lo que se puso encima de la proyección (el reloj, los versículos…).
+    // Se dice con sus nombres, sin hablar de «capas», y se ofrece ocultarlo mientras se ve.
+    const covered = h('span', {});
+    const hide = h('button', { class: 'btn', onclick: guard(() => Promise.all(over.map((s) => action('layers.visible', { n: s.n, visible: false })))) }, 'Ocultarlos');
+    const warn = h('div', { class: 'web-covers', role: 'status' }, icon('warning', 16), covered, hide);
+    let over = [];
+    let windowed = false;
+    const paint = () => {
+      warn.hidden = !windowed || !over.length;
+      covered.textContent = `Esta página se ve en su propia ventana, encima de todo: tapa lo que está encima de la proyección (${over.map((s) => `«${s.title}»`).join(' y ')}).`;
+    };
+    const stop = subscribe('layers', (l) => { over = (l.slots || []).filter((s) => s.kind && s.visible); paint(); });
+    host.replaceChildren(h('div', { class: 'live-part' }, warn, keys, text));
     return {
+      destroy: stop,
       update(state, item) {
+        windowed = Boolean(item.window);
+        paint();
         keys.hidden = !(item.file || item.window);
         text.textContent = item.file
           ? 'Pasa la página como lo harían las flechas del teclado.'

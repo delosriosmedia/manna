@@ -12,7 +12,7 @@ import bible from '../server/modules/bible/index.js';
 import web from '../server/modules/web/index.js';
 import layers from '../server/modules/layers/index.js';
 
-// Las tres capas (fase 31) contra el servidor de verdad, con datos temporales y un sitio de mentira en este equipo:
+// Las cuatro capas (fase 31) contra el servidor de verdad, con datos temporales y un sitio de mentira en este equipo:
 // nada sale a internet.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-capas-'));
@@ -51,7 +51,7 @@ test('una página se pone en una capa, se oculta, se recarga y se quita; las dem
   const { app, run, slots } = await start();
   try {
     const page = await run('web.add', { url: at('/palabra'), name: 'Palabra del concurso' });
-    assert.deepEqual(slots().map((s) => s.n), [1, 2, 3]);
+    assert.deepEqual(slots().map((s) => s.n), [1, 2, 3, 4]);
     await run('layers.set', { n: 2, kind: 'web', data: { id: page.id } });
     let two = slots()[1];
     assert.equal(two.title, 'Palabra del concurso');
@@ -100,7 +100,7 @@ test('lo que no puede ir en una capa se rechaza con su motivo', async () => {
   try {
     const closed = await run('web.add', { url: at('/no-se-deja'), name: 'Juego' });
     await assert.rejects(run('layers.set', { n: 1, kind: 'web', data: { id: closed.id } }), /propia ventana/);
-    await assert.rejects(run('layers.set', { n: 4, kind: 'web', data: { id: closed.id } }), /son la 1, la 2 y la 3/);
+    await assert.rejects(run('layers.set', { n: 5, kind: 'web', data: { id: closed.id } }), /son de la 1 a la 4/);
     await assert.rejects(run('layers.set', { n: 1, kind: 'testcard', data: {} }), /no se puede poner en una capa/);
     await assert.rejects(run('layers.set', { n: 1, kind: 'web', data: { id: 'no-existe' } }), /ya no está/);
     await assert.rejects(run('layers.set', { n: 1, kind: 'web' }), /Falta qué poner/);

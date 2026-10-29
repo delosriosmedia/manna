@@ -1,17 +1,17 @@
 import { HttpError } from '../../core/router.js';
 
-// Módulo Capas (fase 31 de docs/PLAN.md): tres capas que quedan encima de todo lo que se proyecte, también con
-// «Negro» y «Solo fondo», hasta que alguien las quite. La 1 va encima de lo que está al aire, la 2 encima de la 1 y la
-// 3 encima de la 2. Cada una lleva un elemento de un tipo de contenido que lo admita (`layer: true` en su app.kind) y
+// Módulo Capas (fase 31 de docs/PLAN.md): cuatro capas (tres hasta el 2026-10-29) que quedan encima de todo lo que se proyecte, también con
+// «Negro» y «Solo fondo», hasta que alguien las quite. La 1 va encima de lo que está al aire, la 2 encima de la 1, la
+// 3 encima de la 2 y la 4 encima de la 3. Cada una lleva un elemento de un tipo de contenido que lo admita (`layer: true` en su app.kind) y
 // se dibuja en la ventana de proyección con el `draw` de ese tipo, sin fondo.
 //
 // Se guardan en data/capas.json y vuelven siempre al arrancar (sin el límite de 15 minutos de lo que está al aire).
-// Estado `layers.slots`: [{ n, kind, data, title, label, visible, ready, uid, content }] (n de 1 a 3; vacía: { n }).
+// Estado `layers.slots`: [{ n, kind, data, title, label, visible, ready, uid, content }] (n de 1 a 4; vacía: { n }).
 //   uid      cambia al poner un elemento y al recargarlo: la pantalla vuelve a cargarlo
 //   content  lo que da el `resolve` de su tipo (null si ya no existe)
 //   ready    se puede cargar ya: una página de internet solo cuando su dirección contesta (ver check)
 
-const COUNT = 3;
+const COUNT = 4;
 const RECHECK_MS = 60_000; // con respuesta, cada minuto, por si se va internet
 const CHECK_MS = 8_000;
 
@@ -82,7 +82,7 @@ export default function setup(app) {
   app.onClose(() => timers.forEach((t) => clearTimeout(t)));
 
   const slotIndex = (n) => {
-    if (!Number.isInteger(n) || n < 1 || n > COUNT) throw new HttpError(400, 'Esa capa no existe: son la 1, la 2 y la 3.');
+    if (!Number.isInteger(n) || n < 1 || n > COUNT) throw new HttpError(400, 'Esa capa no existe: son de la 1 a la 4.');
     return n - 1;
   };
   const filled = (n) => {

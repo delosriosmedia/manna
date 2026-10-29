@@ -21,11 +21,14 @@ const SMALL = 420;
 // está al aire se puede acercar y desplazar.
 //   thumbnail: es una miniatura de una lista: siempre la versión pequeña, mida lo que mida. Un
 //   iPhone triplica los píxeles, y con decenas de imágenes grandes a la vez Safari cierra la página.
-export function drawPicture(host, { thumbnail = false } = {}) {
+//   backdrop: en vez de franjas negras a los lados, la misma imagen desenfocada detrás (con su versión pequeña:
+//   gasta poco, y no se mueve). La usan las diapositivas de «Letras sin música» (S41).
+export function drawPicture(host, { thumbnail = false, backdrop = false } = {}) {
   const img = h('img', { alt: '' });
   // Que el ratón no la arrastre como una imagen (Presentador: señalar y mover). h() no pone atributos en false.
   img.draggable = false;
-  const box = h('div', { class: 'img-view' }, img);
+  const back = backdrop && h('img', { class: 'img-backdrop', alt: '' });
+  const box = h('div', { class: 'img-view' }, back, img);
   host.replaceChildren(box);
   let item = null;
   let view = null;
@@ -71,6 +74,7 @@ export function drawPicture(host, { thumbnail = false } = {}) {
     update(next) {
       if (item?.url !== next.url) full = false;
       item = next;
+      if (back && back.getAttribute('src') !== (next.thumb || next.url)) back.src = next.thumb || next.url;
       load();
       layout();
     },

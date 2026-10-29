@@ -49,6 +49,7 @@ import { makeImagePdf, makePdf } from './lib/pdf.mjs';
 import { makeDocx } from './lib/docx.mjs';
 import { makePptx } from './lib/pptx.mjs';
 import { writeFakeDeckCraft } from './lib/deckcraft-falso.mjs';
+import { writeFakeDeckCraftWeb } from './lib/deckcraft-web-falso.mjs';
 import { HYMN_FACTS, hymnTitle, seedHymnal } from './lib/himnario-falso.mjs';
 import { examplePoster } from './lib/png.mjs';
 import { checkContract, sourceFiles } from './lib/codigo.mjs';
@@ -422,10 +423,10 @@ async function reviewSection() {
     // página dibuje sus tarjetas, no un tiempo fijo (con 3 + 2 s fallaba a veces todo el grupo, 2026-10-26).
     for (let i = 0; i < 80 && !(await fetch('http://localhost:8125/api/ping').then((res) => res.ok, () => false)); i += 1) await sleep(250);
     await chrome.send('Page.navigate', { url: 'http://localhost:8125/requisitos' });
-    await until(`document.querySelectorAll('.req').length === 7 && document.querySelector('#modules .mod')`, 40);
+    await until(`document.querySelectorAll('.req').length === 8 && document.querySelector('#modules .mod')`, 40);
     const card = `document.querySelector('.req[data-id="yt-dlp"]')`;
     const mod = (id) => `document.querySelector('#modules .mod[data-id=${id}]')`;
-    check('la revisión lista los siete programas y marca los que faltan', await run(`return document.querySelectorAll('.req').length === 7 && ${card}.classList.contains('missing') && document.querySelector('.req[data-id=navegador]').classList.contains('missing') && document.querySelector('.req[data-id=cloudflared]').classList.contains('missing') && !document.querySelector('.req[data-id=node]').classList.contains('missing')`));
+    check('la revisión lista los ocho programas y marca los que faltan', await run(`return document.querySelectorAll('.req').length === 8 && ${card}.classList.contains('missing') && document.querySelector('.req[data-id=navegador]').classList.contains('missing') && document.querySelector('.req[data-id=cloudflared]').classList.contains('missing') && !document.querySelector('.req[data-id=node]').classList.contains('missing')`));
     check('explica para qué sirve y cómo instalarlo a mano', await run(`return ${card}.textContent.includes('YouTube') && Boolean(${card}.querySelector('details code'))`));
     check('dice qué módulos funcionarán completos y cuáles no', await run(`return ${mod('biblia')}.textContent.includes('Completo') && !${mod('biblia')}.classList.contains('limited') && ${mod('medios')}.classList.contains('limited') && ${mod('medios')}.textContent.includes('YouTube: falta yt-dlp') && !${mod('videos')} && ${mod('ajustes')}.textContent.includes('falta Google Chrome')`));
     check('no bloquea: Manna se puede abrir aunque falten programas', await run(`const a = document.querySelector('#footer a'); return a.textContent === 'Abrir Manna' && a.getAttribute('href') === '/control' && document.querySelector('#lead').textContent.startsWith('Manna funciona')`));
@@ -466,7 +467,7 @@ async function reviewSection() {
     // YouTube cambia a menudo y yt-dlp se queda atrás: Ajustes deja ponerlo al día con un botón.
     program = build('2026.02.02');
     const toolRow = `document.querySelector('.settings .tool[data-id="yt-dlp"]')`;
-    check('Ajustes ofrece actualizar yt-dlp e instalar lo que falta y Manna sabe instalar', await run(`return [...document.querySelectorAll('.settings .tool .btn')].map(b => b.closest('.tool').dataset.id + ':' + b.textContent).join() === 'yt-dlp:Actualizar,cloudflared:Instalar,deckcraft:Instalar' && ${toolRow}.textContent.includes('2026.01.01')`), await run(`return [...document.querySelectorAll('.settings .tool .btn')].map(b => b.closest('.tool').dataset.id + ':' + b.textContent).join()`));
+    check('Ajustes ofrece actualizar yt-dlp e instalar lo que falta y Manna sabe instalar', await run(`return [...document.querySelectorAll('.settings .tool .btn')].map(b => b.closest('.tool').dataset.id + ':' + b.textContent).join() === 'yt-dlp:Actualizar,cloudflared:Instalar,deckcraft:Instalar,deckcraft-web:Instalar' && ${toolRow}.textContent.includes('2026.01.01')`), await run(`return [...document.querySelectorAll('.settings .tool .btn')].map(b => b.closest('.tool').dataset.id + ':' + b.textContent).join()`));
     await click(`${toolRow}.querySelector('.btn')`);
     await sleep(900);
     check('"Actualizar" lo descarga de nuevo, a la vista y sin detener la app', await run(`const b = ${toolRow}.querySelector('.btn'); return b.disabled && b.textContent === 'Actualizando…' && [...document.querySelectorAll('.queue .scene-jobs .job strong')].some(s => s.textContent === 'Descargando yt-dlp')`) && (await text('#toast')).includes('Actualizando yt-dlp'));
@@ -1630,6 +1631,14 @@ try {
       await click(chip('instrumental'));
       await sleep(300);
       check('antes de proyectar se elige el sonido: cantado o pista', await run(`return ${chip('instrumental')}.classList.contains('on') && !${chip('vocal')}.classList.contains('on')`));
+      // «Cantado» por defecto (2026-10-29): al elegir otro himno, y al volver a este, el sonido vuelve a cantado.
+      await click(tile(HYMN_FACTS.single));
+      await sleep(250);
+      await click(tile(9));
+      await sleep(250);
+      check('al elegir otro himno, el sonido vuelve a «Cantado»', await run(`return ${chip('vocal')}.classList.contains('on') && !${chip('instrumental')}.classList.contains('on')`));
+      await click(chip('instrumental'));
+      await sleep(300);
       await press('Enter');
       await sleep(2200);
       let air = await onAir();
@@ -2262,6 +2271,32 @@ try {
       const converted = (await decksNow()).find((d) => d.name === 'bienvenida');
       check('DeckCraft la convierte: sin la oculta, en PNG y con miniaturas pequeñas', ready && converted.pages === 2 && converted.thumbs && converted.thumbExt === 'png' && converted.width === 2560
         && await until(`[...${ws}.querySelectorAll('.deck[data-id="${converted.id}"] img')].some(i => i.naturalWidth === 320 && i.getAttribute('src').endsWith('m1.png'))`, 10), JSON.stringify(converted));
+
+      // DeckCraft con animaciones (fase 33, parte 3), con una DeckCraft web de mentira: la pasa la pantalla que suena
+      // (aquí, sin ventana de proyección, el control), «Siguiente» le llega como una tecla y Manna sigue por dónde va.
+      const airBefore = JSON.parse(await run(`return JSON.stringify((await (await fetch('/api/state')).json()).projection)`));
+      const dcWeb = writeFakeDeckCraftWeb(path.join(tmp, 'data', 'herramientas'));
+      await run(`return await ${post('tools.scan')}`);
+      await until(`(await (await fetch('/api/state')).json()).tools.list.find(t => t.id === 'deckcraft-web')?.found`, 20);
+      await deckMenu(`${ws}.querySelector('.deck[data-id="${converted.id}"]')`, 'Pasar con animaciones');
+      check('con DeckCraft web, una presentación se pasa «con animaciones»', await until(`(await (await fetch('/api/state')).json()).slides.decks.find(d => d.id === ${JSON.stringify(converted.id)})?.live`, 10)
+        && await run(`return ${ws}.querySelector('.deck[data-id="${converted.id}"] small').textContent.includes('Con animaciones')`));
+      await run(`return await ${post('projection.show', { kind: 'slides', data: { id: converted.id }, step: 0 })}`);
+      const dcFrame = `[...document.querySelectorAll('.deckcraft-frame')].find((f) => !f.hidden)`;
+      const dcSaid = `(${dcFrame}?.contentWindow.__dc || [])`;
+      const onAirNumber = `(await (await fetch('/api/state')).json()).projection.item?.number`;
+      check('en la pantalla que suena la pasa DeckCraft, con el PowerPoint original', await until(`${dcSaid}.some((m) => m.deckcraft === 'open' && m.size > 0)`, 25),
+        await run(`return JSON.stringify({ frames: document.querySelectorAll('.deckcraft-frame').length, item: (await (await fetch('/api/state')).json()).projection.item?.deckcraft })`));
+      const next = () => run(`return await ${post('projection.step', { delta: 1 })}`);
+      await next();
+      check('«Siguiente» le llega a DeckCraft, y Manna pone la imagen de la diapositiva en que va', await until(`${onAirNumber} === 2 && ${dcSaid}.some((m) => m.deckcraft === 'key' && m.key === 'ArrowRight')`, 15));
+      await next();
+      check('una animación de DeckCraft no cambia de diapositiva', await until(`${dcFrame}?.contentDocument.body.textContent.includes('paso 1')`, 10) && (await run(`return ${onAirNumber}`)) === 2);
+      await next();
+      check('pasada la última, se ve la imagen de la última', await until(`!${dcFrame}`, 10) && (await run(`return ${onAirNumber}`)) === 2);
+      if (airBefore.item) await run(`return await ${post('projection.show', { kind: airBefore.item.source.kind, data: airBefore.item.source.data, step: airBefore.item.source.step })}`);
+      await run(`return await ${post('projection.mode', { mode: airBefore.mode })}`);
+      fs.rmSync(dcWeb, { recursive: true, force: true });
       await run(`return await ${post('slides.remove', { id: converted?.id })}`);
       fs.rmSync(dcFile, { force: true });
       await run(`return await ${post('tools.scan')}`);
@@ -2508,6 +2543,15 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       await projectPage('Concurso bíblico');
       check('la que no se deja mostrar se ve como una tarjeta que dice que va en su propia ventana, sin marco', await until(`${far}.querySelector('.web-card') && !${far}.querySelector('.web-card').hidden`, 15)
         && await run(`const c = ${far}.querySelector('.web-card'); return c.getClientRects().length > 0 && c.textContent.includes('Se ve en su propia ventana en el proyector') && c.textContent.includes('Concurso bíblico') && !${far}.querySelector('iframe')`), await run(`return ${far}.querySelector('.web-card')?.textContent`));
+      // S48: con algo encima de la proyección (aquí, un versículo), sus mandos avisan de que esa ventana lo tapa,
+      // por su nombre y sin hablar de «capas», y lo ocultan.
+      await run(`return await ${post('layers.set', { n: 1, kind: 'verses', data: { versionId: VERSION, ref: { book: 43, chapter: 3, verseStart: 16, verseEnd: 16 } } })}`);
+      const covers = `${LIVE}.querySelector('.web-covers')`;
+      check('una página en su propia ventana avisa de que tapa lo que está encima de la proyección, por su nombre', await until(`${covers} && !${covers}.hidden && ${covers}.textContent.includes('Juan 3:16') && !${covers}.textContent.toLowerCase().includes('capa')`, 15),
+        await run(`return ${covers}?.textContent || 'sin aviso'`));
+      await click(`${covers}.querySelector('.btn')`);
+      check('«Ocultarlos» lo oculta, y el aviso se va', await until(`(await (await fetch('/api/state')).json()).layers.slots[0].visible === false && ${covers}.hidden`, 15));
+      await run(`return await ${post('layers.clear', { n: 1 })}`);
       await run(`document.querySelector('#pantalla').remove()`);
 
       // Al orden del culto: en la miniatura, siempre una tarjeta.
@@ -2669,7 +2713,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
 
         await click(layerBtn);
         await sleep(300);
-        check('«Capa» ofrece las tres capas, vacías', await run(`const b = [...document.querySelectorAll('.menu button')]; return b.length === 3 && b.every((x, i) => x.textContent.includes('Capa ' + (i + 1)) && x.textContent.includes('vacía'))`));
+        check('«Capa» ofrece las cuatro capas, vacías', await run(`const b = [...document.querySelectorAll('.menu button')]; return b.length === 4 && b.every((x, i) => x.textContent.includes('Capa ' + (i + 1)) && x.textContent.includes('vacía'))`));
         await menuItem('Capa 2');
         await sleep(600);
         check('elegir «Capa 2» la pone en la capa 2 y lo dice', (await text('#toast')).includes('capa 2') && (await layersNow())[1].title === 'Palabra del concurso' && (await layersNow())[1].visible === true, await text('#toast'));
@@ -2745,7 +2789,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
         // El cajón «Capas»: la 3 arriba, el ojo, recargar y quitar.
         await goTo('capas');
         await sleep(500);
-        check('«Capas» muestra las tres, la 3 arriba, con lo que tiene la 2 a la vista', await run(`const r = [...${capas}.querySelectorAll('.layer-row')]; return document.title === 'Manna · Capas' && r.map(x => x.dataset.n).join() === '3,2,1' && ${row(2)}.classList.contains('shown') && ${row(2)}.textContent.includes('Palabra del concurso') && ${row(2)}.textContent.includes('A la vista') && ${row(3)}.textContent.includes('Vacía')`));
+        check('«Capas» muestra las cuatro, la 4 arriba, con lo que tiene la 2 a la vista', await run(`const r = [...${capas}.querySelectorAll('.layer-row')]; return document.title === 'Manna · Capas' && r.map(x => x.dataset.n).join() === '4,3,2,1' && ${row(2)}.classList.contains('shown') && ${row(2)}.textContent.includes('Palabra del concurso') && ${row(2)}.textContent.includes('A la vista') && ${row(3)}.textContent.includes('Vacía')`));
         await click(`${row(2)}.querySelector('.layer-eye')`);
         await sleep(600);
         check('el ojo la oculta: la capa se oculta sin quitarse, la página sabe que ya no se ve y la pastilla se va', (await layersNow())[1].visible === false && await run(`return getComputedStyle(${layerOf(2)}).visibility === 'hidden' && ${layerOf(2)}.querySelector('iframe').dataset.marca === 'sigue' && ${chip}.hidden`)
@@ -2789,7 +2833,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
           await menuItem('Quitar');
           await sleep(600);
         }
-        check('«Quitar» vacía las capas y la proyección deja de mostrarlas', (await layersNow()).every((sl) => !sl.kind) && await run(`return !${far}.querySelector('.stage-layer iframe') && ${chip}.hidden && ${capas}.querySelectorAll('.empty-layer').length === 3`));
+        check('«Quitar» vacía las capas y la proyección deja de mostrarlas', (await layersNow()).every((sl) => !sl.kind) && await run(`return !${far}.querySelector('.stage-layer iframe') && ${chip}.hidden && ${capas}.querySelectorAll('.empty-layer').length === 4`));
         await run(`document.querySelector('#pantalla').remove()`);
         await run(`return await ${post('web.remove', { id: (await pagesNow()).find((p) => p.name === 'Sin internet').id })}`);
         await run(`return await ${post('web.remove', { id: (await pagesNow()).find((p) => p.name === 'Palabra del concurso').id })}`);
@@ -2917,7 +2961,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await run(`const s = [...document.querySelectorAll('.settings .field')].find(f => f.textContent.includes('Tamaño de los subtítulos')).querySelector('input[type=range]'); s.value = 150; s.dispatchEvent(new Event('input'));`);
   await sleep(500);
   check('«Tamaño de los subtítulos» se guarda y agranda los de la proyección', await run(`const s = await (await fetch('/api/state')).json(); return s.projection.styles.subtitleSize === 150 && document.querySelector('.scene-screen').style.getPropertyValue('--cue') === '1.5'`));
-  check('Ajustes lista los programas del equipo principal', await run(`return document.querySelectorAll('.tools .tool').length === 7 && Boolean(document.querySelector('.tools .tool[data-id=deckcraft]')) && Boolean(document.querySelector('.tools .tool[data-id=node]'))`));
+  check('Ajustes lista los programas del equipo principal', await run(`return document.querySelectorAll('.tools .tool').length === 8 && Boolean(document.querySelector('.tools .tool[data-id=deckcraft]')) && Boolean(document.querySelector('.tools .tool[data-id=node]'))`));
   await tapEl(`[...document.querySelectorAll('.set-nav .btn')].find(b => b.textContent === 'Programas')`);
   await sleep(800);
   check('la fila de secciones de Ajustes tiene una por sección y lleva a la elegida', await run(`const s = [...document.querySelectorAll('.settings .set')].find(x => x.querySelector('h2').textContent === 'Programas del equipo principal'); const c = document.querySelector('.settings').getBoundingClientRect(); const r = s.getBoundingClientRect(); return document.querySelectorAll('.set-nav .btn').length === document.querySelectorAll('.settings .set').length && Math.abs(r.top - c.top) < 30`));
@@ -3645,6 +3689,10 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       check('«Entendido» cierra el aviso', await until(`!${conflictNote}`, 15));
 
       // Otro equipo (uno de mentira, con un código nuevo) pasa a ser el oficial: este se entera y queda bloqueado.
+      // S55: «Administrar» → Equipo dice la versión del equipo de la iglesia, dicho así.
+      await chrome.send('Page.navigate', { url: `${cloud}/administrar#equipo` });
+      check('«Administrar la iglesia» → Equipo dice la versión del equipo de la iglesia', await until(`document.querySelector('.admin-version')?.textContent === ${JSON.stringify(`Versión del equipo de la iglesia: Manna ${ownVersion}.`)}`, 25),
+        await run(`return document.querySelector('.admin-version')?.textContent || 'nada'`));
       const secondCode = await adminCode();
       const other = await fetch(`${cloud}/api/nube/emparejar`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Prueba': '1' }, body: JSON.stringify({ code: secondCode, id: 'f'.repeat(16), name: 'Equipo de prueba', confirm: true }) });
       check('la nube deja que otro equipo pase a ser el oficial', other.ok);

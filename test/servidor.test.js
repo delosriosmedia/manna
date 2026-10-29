@@ -460,7 +460,7 @@ test('usuarios (fase 35): cada uno entra con su nombre y su PIN en lo que puede 
 test('la revisión del equipo lista los programas y dice con qué página abrir', async () => {
   const { tools } = await main.state();
   assert.equal(tools.checked, true);
-  assert.deepEqual(tools.list.map((t) => t.id), ['navegador', 'ffmpeg', 'yt-dlp', 'node', 'cloudflared', 'deckcraft', 'powerpoint']);
+  assert.deepEqual(tools.list.map((t) => t.id), ['navegador', 'ffmpeg', 'yt-dlp', 'node', 'cloudflared', 'deckcraft', 'deckcraft-web', 'powerpoint']);
   // Con el Node.js de las pruebas (22 o más nuevo) no hace falta otro para YouTube.
   assert.equal(tools.list.find((t) => t.id === 'node').found, true);
   assert.equal(tools.pending, tools.list.filter((t) => t.level === 'feature' && !t.found).length);

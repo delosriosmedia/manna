@@ -4,6 +4,18 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.56.0 — 2026-10-29
+
+- **Presentaciones con animaciones, sin PowerPoint** (en prueba): con «DeckCraft con animaciones» instalado (Ajustes → Revisar el equipo → Instalar por mí), una presentación de PowerPoint se pasa en el proyector con sus transiciones y animaciones, dentro de la ventana de Manna y debajo de las capas, en Windows y en Mac. «Siguiente» avanza también las animaciones; los celulares ven la imagen de la diapositiva en que va. Se elige en el menú de la presentación: «Pasar con animaciones». Si no arranca en ese equipo, se ve como imágenes.
+- **En el celular, la interfaz ya no se agranda sola**: ni con dos toques rápidos ni al tocar un campo para escribir.
+- **El teclado del PIN responde al instante**, al apoyar el dedo.
+- **El himnario empieza siempre en «Cantado»**, también al elegir otro himno; la pista, solo si se elige para ese.
+- **«Letras sin música» sin franjas negras**: en un proyector ancho, a los lados se ve la misma diapositiva desenfocada.
+- **Una página que va en su propia ventana (Kahoot) avisa si tapa lo que está encima de la proyección** (el reloj, un versículo…), por su nombre, y ofrece ocultarlo.
+- **Cuatro capas** en vez de tres, y la ficha de cada una es un solo botón que crece, como la isla dinámica del iPhone, con la cuenta y los botones de un temporizador dentro.
+- **Manna es software libre, con la licencia AGPL 3.0**: cualquiera puede usarlo y cambiarlo, y quien lo cambie o lo ofrezca por internet publica sus cambios. La portada enlaza al código.
+- En «Administrar la iglesia» → Equipo, **la versión del equipo de la iglesia**, dicha así; y si la nube tiene otra más nueva, que se pondrá al día al encenderse.
+
 ## 1.55.0 — 2026-10-26
 
 - **El equipo de la iglesia y su nube, siempre en la misma versión**: si la nube tiene una versión más nueva de Manna, el equipo de la iglesia se pone al día solo al encenderse, antes de que nadie lo use (como «Actualizar ahora», sin preguntar). Nunca lo hace con Manna abierto. Si alguna vez tienen versiones que no se entienden, el equipo lo dice en Ajustes → Nube y sigue funcionando en local, sin sincronizar, con el himnario de siempre.

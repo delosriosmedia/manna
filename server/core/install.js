@@ -13,6 +13,7 @@ import { pipeline } from 'node:stream/promises';
 //   url       de dónde se descarga
 //   file      nombre con el que se guarda (descarga directa de un ejecutable)
 //   extract   ['ffmpeg.exe', …]: la descarga es un .zip y se sacan de él esos archivos
+//   folder    'deckcraft-web': la descarga es un .zip y se saca de él esa carpeta entera (reemplaza la que hubiera)
 //   sums      dirección de una lista "<sha256>  <nombre>" publicada junto a la descarga
 //   release   true: sums es una versión de GitHub (su API) y las huellas van en su texto como "<nombre>: <sha256>"
 //   inner     true: la huella publicada es la del programa de dentro del archivo, no la del archivo
@@ -82,6 +83,17 @@ function findInside(dir, name) {
   return null;
 }
 
+function findFolder(dir, name) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const full = path.join(dir, entry.name);
+    if (entry.name === name) return full;
+    const inside = findFolder(full, name);
+    if (inside) return inside;
+  }
+  return null;
+}
+
 // Lo que se dice si el programa nuevo no arranca. El que había no se toca.
 export const NOT_RUNNABLE = 'se descargó, pero este equipo no lo dejó abrir (a veces el antivirus lo revisa la primera vez). El que había sigue igual. Vuelve a intentarlo en un minuto; si se repite, en Ajustes pulsa «Revisar el equipo» y sigue «Prefiero instalarlo a mano».';
 
@@ -116,6 +128,17 @@ export async function installTool(spec, { dir, onProgress = () => {}, signal, ch
     }
 
     const installed = [];
+    if (spec.folder) {
+      const opened = path.join(work, 'abierto');
+      fs.mkdirSync(opened);
+      await unzip(download, opened);
+      const found = findFolder(opened, spec.folder);
+      if (!found) throw new Error(`El archivo descargado no contiene ${spec.folder}. Vuelve a intentarlo.`);
+      const target = path.join(dir, spec.folder);
+      fs.rmSync(target, { recursive: true, force: true });
+      fs.cpSync(found, target, { recursive: true });
+      return [target];
+    }
     if (spec.extract) {
       const opened = path.join(work, 'abierto');
       fs.mkdirSync(opened);

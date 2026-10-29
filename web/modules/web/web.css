@@ -22,6 +22,9 @@
 
 /* Mandos al aire */
 .web-keys { gap: 8px; margin-bottom: 6px; }
+.web-covers { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; padding: 8px 10px; border-radius: var(--r-sm); background: var(--accent-soft); color: var(--ink); font-size: 12.5px; line-height: 1.4; }
+.web-covers > span { flex: 1 1 180px; }
+.web-covers[hidden] { display: none; }
 .web-keys .btn { flex: 1; justify-content: center; }
 
 /* Cajón reducido del celular: la lista para elegir; agregar una página, al ampliarlo. */

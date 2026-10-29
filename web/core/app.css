@@ -93,6 +93,9 @@ html.touch { --control: 38px; --tap: 35px; }
 
 * { box-sizing: border-box; }
 html { zoom: var(--zoom); }
+/* En el celular la interfaz no se agranda sola: sin zoom con dos toques rápidos (con la cabecera de cada página, que no deja
+   agrandar ni al tocar un campo para escribir). Pedido del dueño, 2026-10-29. */
+html { touch-action: manipulation; }
 html, body { height: 100%; }
 
 body {

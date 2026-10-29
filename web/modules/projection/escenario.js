@@ -84,8 +84,12 @@ export function createEscenario(ctx) {
     const wrap = h('div', { class: 'island', dataset: { n: s.n } }, main, extra?.el);
     if (grow && !calm()) {
       wrap.animate([{ transform: 'scale(0.6)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 500, easing: SPRING });
-      // La burbuja se desprende de la ficha, un instante después.
-      extra?.el.animate([{ transform: 'translateX(-40%) scale(0.4)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 500, delay: 90, easing: SPRING, fill: 'backwards' });
+      // Con cuenta y botones, la misma ficha crece hasta llevarlos dentro, un instante después (como la isla dinámica).
+      if (extra) requestAnimationFrame(() => {
+        const full = wrap.offsetWidth;
+        wrap.animate([{ width: `${main.offsetWidth + 2}px` }, { width: `${full}px` }], { duration: 520, delay: 90, easing: SPRING, fill: 'backwards' });
+        extra.el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 220, fill: 'backwards' });
+      });
     }
     return { key: JSON.stringify([s.kind, s.data]), wrap, main, name, extra };
   }

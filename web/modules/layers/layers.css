@@ -1,4 +1,4 @@
-/* Módulo Capas: las tres capas, la 3 arriba. Cada fila, su número, qué tiene, el ojo y sus opciones. */
+/* Módulo Capas: las cuatro capas, la 4 arriba. Cada fila, su número, qué tiene, el ojo y sus opciones. */
 .layers-list { padding: 12px; display: grid; gap: 8px; align-content: start; overflow-y: auto; min-height: 0; }
 .layer-row { display: flex; gap: 10px; align-items: center; min-height: 56px; padding: 8px 8px 8px 10px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); }
 .layer-row.empty-layer { border-style: dashed; background: none; }
