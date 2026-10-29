@@ -1289,6 +1289,36 @@ try {
     await click(catChip('Principal'));
     await sleep(400);
     check('y en Principal vuelve a estar con los otros dos videos', await run(`return Boolean(${mainOnly}) && ${vids}.querySelectorAll('.media-card').length === 2`));
+    // S42: ordenar a mano. Con el ratón, soltar una tarjeta sobre otra (en su lado de después) la deja detrás de ella.
+    const vidIds = () => run(`return [...${vids}.querySelectorAll('.media-card')].map((c) => c.dataset.id).join()`);
+    const was = (await vidIds()).split(',');
+    {
+      const a = await centerOf(`${vids}.querySelectorAll('.media-card')[0]`);
+      const b = JSON.parse(await run(`const r = ${vids}.querySelectorAll('.media-card')[1].getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width * 0.85, y: r.top + r.height * 0.85 })`));
+      await dragMouse(a.x, a.y, b.x, b.y);
+    }
+    await sleep(600);
+    const mainOrder = () => run(`return (await (await fetch('/api/state')).json()).media.mainOrder.join()`);
+    check('arrastrar una tarjeta sobre otra la deja a su lado, y el orden se guarda', (await vidIds()) === [was[1], was[0]].join() && (await mainOrder()) === [was[1], was[0]].join() && await run(`return !document.querySelector('.drop-before, .drop-after')`),
+      `${await vidIds()} · ${await mainOrder()}`);
+    // La vista en lista: una fila por elemento; el elegido, con su miniatura en grande.
+    await click(`${med}.querySelector('.media-view')`);
+    await sleep(300);
+    check('«Ver en lista» pone una fila por elemento, con la miniatura pequeña', await run(`const c = [...${vids}.querySelectorAll('.media-card')]; return ${med}.querySelector('.media-body').dataset.view === 'lista' && c.length === 2 && c[1].getBoundingClientRect().top >= c[0].getBoundingClientRect().bottom - 2 && c[0].querySelector('.media-thumb').getBoundingClientRect().width < 100`));
+    await click(`${vids}.querySelector('.media-card .media-pick')`);
+    await sleep(300);
+    check('y el elegido muestra su miniatura en grande', await run(`return ${vids}.querySelector('.media-card.selected .media-thumb').getBoundingClientRect().width > 150`));
+    await click(`${med}.querySelector('.media-view')`);
+    await sleep(300);
+    // Las categorías se ordenan arrastrando su nombre.
+    await run(`return await ${post('media.categoryAdd', { name: 'Jóvenes' })}`);
+    await until(catChip('Jóvenes'), 10);
+    await dragCard(catChip('Jóvenes'), catChip('Niños y adolescentes'));
+    await sleep(500);
+    check('arrastrar el nombre de una categoría hasta otra la pone antes de ella', (await mediaCats()).map((c) => c.name).join() === 'Jóvenes,Niños y adolescentes'
+      && await run(`return [...${cats}.querySelectorAll('.chip[data-category]')].map((c) => c.dataset.category ? c.firstChild.textContent : 'Principal').join() === 'Principal,Jóvenes,Niños y adolescentes'`), JSON.stringify(await mediaCats()));
+    await run(`return await ${post('media.categoryRemove', { id: 'ID' })}`.replace('"ID"', JSON.stringify((await mediaCats()).find((c) => c.name === 'Jóvenes')?.id)));
+    await sleep(300);
     // Eliminar una categoría devuelve lo suyo a Principal.
     await moveFromMenu('Niños y adolescentes');
     await click(catChip('Niños y adolescentes'));

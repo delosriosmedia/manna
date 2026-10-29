@@ -148,6 +148,9 @@ const SCREENS = [
   // de la categoría elegida se vacía antes y se quita después, para que no pase a la pantalla siguiente.
   { name: 'Medios: imágenes', url: '/control#medios', content: '.media-body', primary: '.media-bar[data-panel=imagenes] .btn.primary', inside: '.media-bar[data-panel=imagenes]', settle: 600,
     prepare: `document.querySelector('.media-list[data-panel=imagenes] .media-card .media-pick').click()` },
+  // S42: Medios en lista, con una imagen elegida (su miniatura en grande).
+  { name: 'Medios en lista', url: '/control#medios', content: '.media-body', primary: '.media-bar[data-panel=imagenes] .btn.primary', inside: '.media-bar[data-panel=imagenes]', settle: 600,
+    prepare: `document.querySelector('.media-view').click(); document.querySelector('.media-list[data-panel=imagenes] .media-card .media-pick').click()` },
   { name: 'Medios: videos', url: '/control#medios', content: '.media-body', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.media-bar[data-panel=videos]', settle: 700,
     prepare: `document.querySelector('.media-list[data-panel=videos] .media-card .media-pick').click()` },
   // Con una categoría elegida: su menú (⋯) a la vista junto a ella.

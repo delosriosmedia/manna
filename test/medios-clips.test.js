@@ -361,8 +361,22 @@ test('categorías de Medios: con el nombre que se quiera, cada elemento en una s
       { id: sunday, name: 'Domingo de mañana', items: [folder.id, track.id, poster.id] },
       { id: children, name: 'Niños', items: [kids.id, welcome.id] },
     ]);
+    // S42: el orden a mano. En una categoría, los de un grupo cambian entre sí sin mover los demás.
+    assert.equal((await s.send('media.order', { category: sunday, items: [kids.id] })).http, 409, 'solo lo de esa categoría');
+    assert.equal((await s.send('media.order', { category: sunday, items: [track.id, track.id] })).http, 400);
+    await s.send('media.order', { category: sunday, items: [track.id, folder.id] });
+    assert.deepEqual((await categories())[0].items, [track.id, folder.id, poster.id]);
+    // Las categorías, en el orden que se diga (todas).
+    assert.equal((await s.send('media.categoryOrder', { ids: [children] })).http, 400, 'con todas');
+    await s.send('media.categoryOrder', { ids: [children, sunday] });
+    assert.deepEqual((await categories()).map((c) => c.id), [children, sunday]);
+    await s.send('media.categoryOrder', { ids: [sunday, children] });
     // Sin categoría, vuelve al principal.
     await s.send('media.categoryMove', { item: kids.id, to: null });
+    // En «Principal», el orden se guarda aparte; lo que está en una categoría no entra.
+    assert.equal((await s.send('media.order', { category: null, items: [welcome.id] })).http, 409);
+    await s.send('media.order', { category: null, items: [kids.id] });
+    assert.deepEqual((await s.state()).media.mainOrder, [kids.id]);
     assert.equal((await s.send('media.categoryRename', { id: children, name: 'Domingo de mañana' })).http, 409);
     await s.send('media.categoryRename', { id: children, name: 'Jóvenes' });
     assert.deepEqual((await categories())[1], { id: children, name: 'Jóvenes', items: [welcome.id] });
@@ -372,7 +386,7 @@ test('categorías de Medios: con el nombre que se quiera, cada elemento en una s
     await s.send('media.remove', { id: poster.id });
     fs.rmSync(path.join(s.mediaDir, 'Testimonio.mp4'));
     await s.app.services.media.rescan();
-    assert.deepEqual((await categories()).map((c) => c.items), [[folder.id, track.id], []]);
+    assert.deepEqual((await categories()).map((c) => c.items), [[track.id, folder.id], []], 'en el orden que se le dio');
     fs.writeFileSync(path.join(s.mediaDir, 'Testimonio.mp4'), Buffer.alloc(2000, 1));
     await s.app.services.media.rescan();
     assert.ok((await s.state()).media.videos.some((v) => v.id === folder.id), 'si vuelve a la carpeta, vuelve a su categoría');

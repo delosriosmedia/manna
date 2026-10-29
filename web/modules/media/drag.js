@@ -4,22 +4,34 @@ import { h } from '../../core/dom.js';
 // empieza al moverlo; con el dedo, al mantenerlo pulsado un momento (si se mueve antes, es que se quiere
 // desplazar la lista). Una etiqueta con su nombre sigue al puntero y se marca la categoría que hay debajo.
 // Lo que se arrastra lleva `data-drag` (su id) y `data-name`; una categoría, `data-category` ('' es Principal).
-// drop({ id, name }, categoría) recibe lo soltado sobre una categoría.
+// drop({ id, name }, categoría) recibe lo soltado sobre una categoría. Soltado sobre otro elemento de su misma lista
+// (S42), place({ id, name }, ids) recibe el orden nuevo de esa lista: queda antes o después de él, según el lado.
 const HOLD_MS = 350;
 const SLOP = 8;
 
-export function attachDrag(list, { drop }) {
+export function attachDrag(list, { drop, place: put }) {
   let press = null;     // { id, name, card, x, y, touch, timer }
   let ghost = null;
   let target = null;
+  let after = false;    // sobre otro elemento: va después de él (si no, antes)
   let quietUntil = 0;   // tras soltar, el clic que llega no elige nada
 
-  const under = (x, y) => document.elementFromPoint(x, y)?.closest('[data-category]') || null;
-  const mark = (next) => {
-    if (next === target) return;
-    target?.classList.remove('drop-on');
+  // Una categoría o, con place, otro elemento de la misma lista.
+  const under = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    const card = put && el?.closest('[data-drag]');
+    return el?.closest('[data-category]') || (card && card !== press.card && card.parentElement === press.card.parentElement ? card : null);
+  };
+  const mark = (next, x = 0, y = 0) => {
+    if (next?.dataset.drag) {
+      // En una lista de una columna cuenta la mitad de arriba o de abajo; en una rejilla, la de la izquierda o la derecha.
+      const r = next.getBoundingClientRect();
+      const column = r.width >= next.parentElement.getBoundingClientRect().width * 0.9;
+      after = column ? y > r.top + r.height / 2 : x > r.left + r.width / 2;
+    }
+    target?.classList.remove('drop-on', 'drop-before', 'drop-after');
     target = next;
-    target?.classList.add('drop-on');
+    target?.classList.add(target.dataset.drag ? (after ? 'drop-after' : 'drop-before') : 'drop-on');
   };
   function begin() {
     clearTimeout(press.timer);
@@ -31,7 +43,7 @@ export function attachDrag(list, { drop }) {
   }
   function place(x, y) {
     ghost.style.transform = `translate(${x + 12}px, ${y + 12}px)`;
-    mark(under(x, y));
+    mark(under(x, y), x, y);
   }
   function end(e) {
     window.removeEventListener('pointermove', move);
@@ -40,7 +52,14 @@ export function attachDrag(list, { drop }) {
     if (!press) return;
     clearTimeout(press.timer);
     if (ghost) {
-      const key = e.type === 'pointerup' ? target?.dataset.category : undefined;
+      const done = e.type === 'pointerup' && target;
+      const key = done ? target.dataset.category : undefined;
+      // El orden nuevo de la lista, si se soltó sobre otro elemento.
+      const order = done && target.dataset.drag && (() => {
+        const ids = [...press.card.parentElement.querySelectorAll(':scope > [data-drag]')].map((c) => c.dataset.drag).filter((id) => id !== press.id);
+        ids.splice(ids.indexOf(target.dataset.drag) + (after ? 1 : 0), 0, press.id);
+        return ids;
+      })();
       ghost.remove();
       ghost = null;
       mark(null);
@@ -48,6 +67,7 @@ export function attachDrag(list, { drop }) {
       document.documentElement.classList.remove('media-dragging');
       quietUntil = Date.now() + 400;
       if (key !== undefined) drop({ id: press.id, name: press.name }, key);
+      else if (order) put({ id: press.id, name: press.name }, order);
     }
     press = null;
   }

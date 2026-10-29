@@ -9,6 +9,8 @@ import { askText } from './dialogs.js';
 // presentación) está en una sola, y al ponerlo en una sale del principal. La elegida filtra lo que se ve (se
 // recuerda en este dispositivo). Un elemento se cambia de categoría arrastrándolo hasta su nombre (drag.js,
 // que busca `data-category`) o desde su menú (items). Borrar una categoría devuelve sus elementos al principal.
+// S42: lo de cada categoría se ve en su orden (el de sus `items`; en «Principal», `mainOrder`, con lo nuevo antes), que
+// se cambia soltando un elemento sobre otro; y las categorías se ordenan arrastrando su nombre.
 export function createCategories(ctx, onChange) {
   let active = prefs.get('medios.categoria') || null;
   const all = () => state.media?.categories || [];
@@ -69,7 +71,7 @@ export function createCategories(ctx, onChange) {
     if (active && state.media && !current()) active = null;
     const ids = new Set(library().map((x) => x.id));
     const taken = new Set(all().flatMap((c) => c.items));
-    const chip = (id, label, count) => h('button', { class: `chip${active === id ? ' on' : ''}`, 'aria-pressed': String(active === id), dataset: { category: id || '' }, onclick: () => choose(id) },
+    const chip = (id, label, count) => h('button', { class: `chip${active === id ? ' on' : ''}`, 'aria-pressed': String(active === id), dataset: { category: id || '', ...(id && ctx.canEdit && { drag: id, name: label }) }, onclick: () => choose(id) },
       label, h('small', {}, String(count)));
     el.replaceChildren(
       chip(null, 'Principal', [...ids].filter((id) => !taken.has(id)).length),
@@ -99,12 +101,22 @@ export function createCategories(ctx, onChange) {
   return {
     el,
     render,
-    // Lo de la categoría elegida o, en «Principal», lo que no está en ninguna.
+    // Lo de la categoría elegida o, en «Principal», lo que no está en ninguna; en su orden (S42).
     filter(list) {
       const c = current();
-      if (c) return list.filter((x) => c.items.includes(x.id));
+      if (c) return list.filter((x) => c.items.includes(x.id)).sort((a, b) => c.items.indexOf(a.id) - c.items.indexOf(b.id));
       const taken = new Set(all().flatMap((x) => x.items));
-      return list.filter((x) => !taken.has(x.id));
+      const order = state.media?.mainOrder || [];
+      return list.filter((x) => !taken.has(x.id)).map((x, i) => [x, order.indexOf(x.id), i])
+        .sort(([, a, i], [, b, j]) => (a - b) || (i - j)).map(([x]) => x);
+    },
+    // Soltado sobre otro elemento de su lista: ids, el orden nuevo de esa lista.
+    place: (item, ids) => guard(() => action('media.order', { category: current()?.id || null, items: ids }))(),
+    // Arrastrado el nombre de una categoría hasta otra: queda antes de ella (hasta «Principal», la primera).
+    reorder(item, key) {
+      const ids = all().map((c) => c.id).filter((id) => id !== item.id);
+      ids.splice(key ? Math.max(0, ids.indexOf(key)) : 0, 0, item.id);
+      guard(() => action('media.categoryOrder', { ids }))();
     },
     // Lo que se dice si no hay nada que mostrar, pero la biblioteca no está vacía.
     empty: () => (current()

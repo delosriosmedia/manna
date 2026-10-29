@@ -2,7 +2,10 @@
 .ws[data-module='medios'] .ws-head { flex-wrap: wrap; row-gap: 8px; }
 /* Las categorías, en la cabecera, en una fila propia que se desliza si no caben. Son también donde se suelta
    lo que se arrastra (drag.js). */
-.media-cats { order: 5; flex: 1 1 100%; min-width: 0; display: flex; align-items: center; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+/* Las categorías y, al final de su fila, cuadrícula o lista (S42). */
+.media-catrow { order: 5; flex: 1 1 100%; min-width: 0; display: flex; align-items: center; gap: 6px; }
+.media-view { flex-shrink: 0; margin-left: auto; }
+.media-cats { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; overflow-x: auto; scrollbar-width: none; }
 .media-cats .chip { display: inline-flex; align-items: center; gap: 6px; min-height: var(--control); padding: 0 12px; flex-shrink: 0; }
 .media-cats .chip small { color: var(--ink-3); font: 500 11px var(--mono); }
 .media-cats .chip.on small { color: inherit; }
@@ -111,10 +114,34 @@ html.touch .media-more { width: var(--tap); height: var(--tap); right: 2px; bott
   .ws[data-module='medios'] .ws-head { flex-wrap: nowrap; }
   .ws[data-module='medios'] .ws-head > .spacer, .media-upload span, .yt-add .btn span { display: none; }
   .ws[data-module='medios'] .media-entry { order: 0; flex: 3 1 0; max-width: 360px; }
-  .media-cats, html:not(.touch) .media-cats { order: 1; flex: 2 1 0; flex-wrap: nowrap; overflow-x: auto; }
+  .media-catrow { order: 1; flex: 2 1 0; }
+  .media-cats, html:not(.touch) .media-cats { flex-wrap: nowrap; overflow-x: auto; }
   .media-upload { order: 2; }
 }
 
 /* Cajón reducido del celular: las categorías y la lista para elegir; subir y el enlace de YouTube, al ampliarlo. */
 .compact .ws[data-module='medios'] .ws-head > .btn, .compact .ws[data-module='medios'] .media-entry { display: none; }
 .compact .ws[data-module='medios'] .ws-head { padding: 8px 12px; }
+
+/* Ordenar a mano (S42): al arrastrar sobre otro elemento, una raya cian dice si queda antes o después de él; los nombres
+   de las categorías se arrastran igual. */
+.media-card.drop-before, .deck.drop-before { box-shadow: -3px 0 0 var(--accent); }
+.media-card.drop-after, .deck.drop-after { box-shadow: 3px 0 0 var(--accent); }
+.media-body[data-view='lista'] .media-card.drop-before, .deck-list .deck.drop-before { box-shadow: 0 -3px 0 var(--accent); }
+.media-body[data-view='lista'] .media-card.drop-after, .deck-list .deck.drop-after { box-shadow: 0 3px 0 var(--accent); }
+.media-cats .chip[data-drag] { touch-action: pan-x; }
+
+/* Vista en lista (S42): una fila por elemento, con la miniatura pequeña; el elegido la muestra en grande. */
+.media-body[data-view='lista'] .media-grid { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.media-body[data-view='lista'] .media-pick { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 10px; align-items: center; padding: 6px 40px 6px 6px; }
+.media-body[data-view='lista'] .media-thumb { margin: 0; border-radius: var(--r-sm); }
+.media-body[data-view='lista'] .media-grid.audios .media-thumb { aspect-ratio: 16 / 9; }
+.media-body[data-view='lista'] .media-thumb .badge, .media-body[data-view='lista'] .media-cc { display: none; }
+.media-body[data-view='lista'] .media-duration { right: 3px; bottom: 3px; padding: 0 4px; font-size: 10px; }
+.media-body[data-view='lista'] .media-card .item-text { padding-right: 0; }
+.media-body[data-view='lista'] .media-more { top: 50%; bottom: auto; transform: translateY(-50%); }
+.media-body[data-view='lista'] .media-card.selected .media-pick { grid-template-columns: minmax(0, 1fr); }
+.media-body[data-view='lista'] .media-card.selected .media-thumb { width: min(100%, 420px); }
+.media-body[data-view='lista'] .media-card.selected .media-thumb .badge { display: inline-flex; }
+.media-body[data-view='lista'] .media-card.selected .media-more { top: auto; bottom: 9px; transform: none; }
+.media-body[data-view='lista'] .deck-pick { grid-template-columns: 72px minmax(0, 1fr); }

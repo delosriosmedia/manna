@@ -1,6 +1,7 @@
 import { state, subscribe } from '../../core/api.js';
 import { h, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
+import { prefs } from '../../core/prefs.js';
 import { IMAGE_ACCEPT } from '../../core/images.js';
 import { kindBadge } from '../../core/kinds.js';
 import { createCategories } from './categories.js';
@@ -71,10 +72,25 @@ function mount(el, ctx) {
       h('div', { class: 'media-group-head' }, kindBadge(g.kind), h('h2', {}, g.label), count), g.el);
   });
   const empty = h('div', {});
-  const body = h('div', { class: 'media-body' }, empty, ...sections);
+  // Cuadrícula o lista (S42): la lista ocupa menos; al elegir uno, su miniatura se ve en grande. Se recuerda aquí.
+  let view = prefs.get('medios.vista') === 'lista' ? 'lista' : 'cuadricula';
+  const body = h('div', { class: 'media-body', dataset: { view } }, empty, ...sections);
+  const viewButton = h('button', { class: 'icon-btn media-view', onclick: () => {
+    view = view === 'lista' ? 'cuadricula' : 'lista';
+    prefs.set('medios.vista', view);
+    paintView();
+  } });
+  const paintView = () => {
+    body.dataset.view = view;
+    const next = view === 'lista' ? ['squares-four', 'Ver en cuadrícula'] : ['rows', 'Ver en lista'];
+    viewButton.replaceChildren(icon(next[0], 18));
+    viewButton.title = next[1];
+    viewButton.setAttribute('aria-label', next[1]);
+  };
+  paintView();
   el.replaceChildren(
     h('div', { class: 'ws-head' }, h('h1', {}, 'Medios'), h('span', { class: 'spacer' }),
-      videos.entry && h('div', { class: 'media-entry' }, videos.entry), uploader, categories.el),
+      videos.entry && h('div', { class: 'media-entry' }, videos.entry), uploader, h('div', { class: 'media-catrow' }, categories.el, viewButton)),
     body, ...groups.map((g) => g.bar), picker);
 
   // Qué grupos se ven y cuántos tiene cada uno. Con `all`, cada grupo se vuelve a dibujar (otra categoría).
@@ -102,7 +118,8 @@ function mount(el, ctx) {
   if (ctx.canEdit) {
     // Arrastrar archivos desde el escritorio, o un elemento hasta el nombre de una categoría.
     acceptDrops(el, send);
-    attachDrag(body, { drop: categories.drop });
+    attachDrag(body, { drop: categories.drop, place: categories.place });
+    attachDrag(categories.el, { drop: categories.reorder });
   }
 
   render(true);

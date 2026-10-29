@@ -53,6 +53,8 @@ export default function setup(app) {
     // Con lo que ya no está, que la interfaz no muestra: uno de la carpeta que se borró a mano vuelve a su
     // categoría si regresa.
     categories: saved.data.categories.map((c) => ({ id: c.id, name: c.name, items: [...c.items] })),
+    // El orden a mano de lo que está en «Principal» (S42; el de cada categoría es el de sus `items`).
+    mainOrder: [...(saved.data.mainOrder || [])],
   });
   const exists = (id) => saved.data.images.some((i) => i.id === id) || library.has(id) || Boolean(app.services.slides?.has(id));
   const find = (id) => {
@@ -68,7 +70,7 @@ export default function setup(app) {
     app.services.projection?.refresh();
   };
 
-  store.register('media', { images: [], videos: [], audios: [], youtube: [], categories: [] });
+  store.register('media', { images: [], videos: [], audios: [], youtube: [], categories: [], mainOrder: [] });
   library = registerClips(app, { saved, commit });
   // De la nube al equipo de la iglesia (decisión 64): lo que se sube desde casa espera en la nube (pending) a que el
   // equipo lo baje y lo adopte con el mismo identificador (así los órdenes que lo usan no cambian); al recibirlo, la
@@ -307,6 +309,35 @@ export default function setup(app) {
     if (typeof item !== 'string' || !exists(item)) throw new HttpError(404, 'Eso ya no está en la biblioteca.');
     for (const c of saved.data.categories) c.items = c.items.filter((v) => v !== item);
     target?.items.push(item);
+    commit();
+  });
+  // Ordenar a mano (S42): `items` es el orden nuevo de lo que se ve de un grupo (imágenes, videos…) en una categoría
+  // (o en «Principal», con `category` vacía). En la categoría, esos ocupan sus mismos sitios en el orden nuevo (los de
+  // otros grupos no se mueven); en «Principal» se guardan juntos al final de su orden: lo que no está en él (lo nuevo)
+  // se ve antes.
+  app.action('media.order', { permission: 'media.edit' }, ({ category: id, items } = {}) => {
+    if (!Array.isArray(items) || !items.length || items.length > 2000 || new Set(items).size !== items.length || !items.every((x) => typeof x === 'string' && exists(x))) {
+      throw new HttpError(400, 'Ese orden no es válido.');
+    }
+    const given = new Set(items);
+    if (id) {
+      const c = category(id);
+      if (!items.every((x) => c.items.includes(x))) throw new HttpError(409, 'Algo de eso ya no está en esa categoría.');
+      const queue = [...items];
+      c.items = c.items.map((x) => (given.has(x) ? queue.shift() : x));
+    } else {
+      if (items.some((x) => saved.data.categories.some((c) => c.items.includes(x)))) throw new HttpError(409, 'Algo de eso ya está en una categoría.');
+      saved.data.mainOrder = [...(saved.data.mainOrder || []).filter((x) => !given.has(x) && exists(x)), ...items];
+    }
+    commit();
+  });
+  // El orden de las categorías (S42): `ids`, todas las que hay, en el orden nuevo.
+  app.action('media.categoryOrder', { permission: 'media.edit' }, ({ ids }) => {
+    const now = saved.data.categories;
+    if (!Array.isArray(ids) || ids.length !== now.length || new Set(ids).size !== ids.length || !ids.every((id) => now.some((c) => c.id === id))) {
+      throw new HttpError(400, 'Ese orden no tiene todas las categorías.');
+    }
+    saved.data.categories = ids.map((id) => now.find((c) => c.id === id));
     commit();
   });
 }
