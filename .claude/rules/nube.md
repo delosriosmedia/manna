@@ -29,7 +29,7 @@ El sitio del superadministrador (`admin.manna-iglesia.es`) lleva `MANNA_NUBE=1`,
 
 ### Conectar Google Drive (una vez, lo hace el dueño)
 
-Las copias de cada noche van a la carpeta «Manna Iglesia» del Drive que se conecte. Manna solo ve lo que crea él (permiso `drive.file`).
+Las copias de cada noche van a la carpeta «Manna Iglesia» del Drive que se conecte. Manna solo ve lo que crea él (permiso `drive.file`). Hecho el 2026-10-29 con la cuenta delosrios.media@gmail.com: proyecto «Manna Iglesia» (`manna-iglesia`). Para publicar la aplicación, Google pide en «Información de la marca» la página principal (`https://admin.manna-iglesia.es`), la política de privacidad (`https://admin.manna-iglesia.es/privacidad.html`, archivo `web/privacidad.html`, servido sin sesión en todos los sitios) y el dominio autorizado `manna-iglesia.es`.
 
 1. En https://console.cloud.google.com, con la cuenta del Drive donde irán las copias (la de Los Ríos Multimedia), crear un proyecto: «Manna Iglesia».
 2. «APIs y servicios» → «Biblioteca» → **Google Drive API** → «Habilitar».

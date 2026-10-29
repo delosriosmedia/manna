@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.57.2 — 2026-10-29
+
+- **Página de privacidad** de Manna Iglesia (`/privacidad.html` en cada sitio): qué guarda Manna y cómo usa las copias en Google Drive. La pide Google para dejar que Manna guarde las copias.
+
 ## 1.57.1 — 2026-10-29
 
 - **DeckCraft con animaciones**: «Siguiente» ya no devuelve la presentación a la diapositiva anterior. Pasaba en Windows, en la ventana del proyector: la presentación no avanzaba.
