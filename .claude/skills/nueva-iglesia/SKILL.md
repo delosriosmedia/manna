@@ -12,10 +12,10 @@ Al final, para la gente de esa iglesia todo entra por `https://<iglesia>.manna-i
 
 ## 1. La nube (el asistente, salvo las claves)
 
-1. **El sitio** en Hostinger y su registro A en Cloudflare, sin proxy (`nube.md`, «Desplegar», paso 2). Si ya existe (como `nv`), mirar sus variables: las que no llevan claves (`MANNA_NUBE=1`, `MANNA_NO_OPEN`, `MANNA_SIN_VENTANA`, `MANNA_DATA`) las pone el asistente, y solo mientras el sitio no tenga ninguna clave.
+1. **El sitio** en Hostinger y su registro A en Cloudflare, sin proxy (`nube.md`, «Desplegar», paso 2), **con su configuración guardada apuntando a `server/inicio.cjs`** (`hosting_nodejs_update-build-settings`): si no, al guardar las claves Hostinger recompila con otra entrada y Manna no arranca. Si ya existe (como `nv`), mirar sus variables: las que no llevan claves (`MANNA_NUBE=1`, `MANNA_NO_OPEN`, `MANNA_SIN_VENTANA`, `MANNA_DATA`) las pone el asistente, y solo mientras el sitio no tenga ninguna clave.
 2. **Su carpeta de datos vacía**: si el sitio ya se usó para otra cosa, el dueño mira `~/domains/<sitio>/manna-datos` en el administrador de archivos del panel (el conector no llega ahí). Tras desplegar, `GET /api/session` debe decir `alta: true`.
 3. **El túnel** «servidor-<iglesia>» en Cloudflare, con su CNAME (`nube.md`, paso 2).
-4. **Las claves**, que pone el dueño en Hostinger (Sitio → Node.js → Variables de entorno, sin borrar las otras): `MANNA_CLAVE_ALTA` (una que invente), `MANNA_CLAVE_SUPER` (la de siempre), una clave de R2 de solo lectura propia del sitio («manna-<iglesia>-solo-lectura», con `R2_ACCOUNT_ID` y `R2_BUCKET`) y `MANNA_TUNEL_CLAVE` (la del túnel). Guiarlo pantalla por pantalla.
+4. **Las claves**, que pone el dueño en Hostinger (Sitio → Node.js → Variables de entorno, sin borrar las otras): `MANNA_CLAVE_ALTA` (una que invente), `MANNA_CLAVE_SUPER` (la de siempre), una clave de R2 de solo lectura propia del sitio («manna-<iglesia>-solo-lectura», con `R2_ACCOUNT_ID` y `R2_BUCKET`) y `MANNA_TUNEL_CLAVE` (la del túnel). Guiarlo pantalla por pantalla, y que termine con **«Apply changes»**.
 5. **Desplegar** la versión aprobada en `pruebas` (`nube.md`, pasos 1, 3, 4 y 5).
 6. **El dueño**: en `admin.manna-iglesia.es` → Iglesias, añadirla (así entra en las copias de Google Drive); y en `https://<iglesia>.manna-iglesia.es/administrar`, con la clave de alta, su administrador (nombre y PIN).
 
