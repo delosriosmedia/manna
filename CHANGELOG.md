@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.57.0 — 2026-10-29
+
 - **Copias en Google Drive** (Manna Iglesia, panel del superadministrador): cada noche se guarda la copia de cada iglesia (usuarios, órdenes, textos, favoritos y ajustes) en Google Drive, con las de los últimos 30 días y una por mes durante un año. Se puede hacer una copia en el momento y volver a una copia; su equipo de la iglesia se pone igual al sincronizarse.
 - **Compartir una pestaña** (Páginas web, en el equipo principal): una pestaña de Chrome sale en vivo en el proyector tal como la tienes, con tus sesiones abiertas, y se maneja en la propia pestaña. Sirve para lo que no se deja mostrar de otra forma (un Kahoot, un Canva sin enlace para insertar). Se vuelve a proyectar o se deja de compartir desde su ficha, también desde un celular.
 - **Televisores**, que estaba en pausa, se quita (decisión 65). Un televisor puede seguir mostrando la proyección abriendo la dirección de Manna en su navegador («Dispositivos» → «¿Es un televisor?»).
