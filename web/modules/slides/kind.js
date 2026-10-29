@@ -78,19 +78,22 @@ function drawDeckCraft(host, picture) {
     if (frame.open) for (let i = 0; i < Math.min(fresh, 5); i += 1) tell({ deckcraft: 'key', key: d.key });
   });
 
-  function sync() {
+  // moved: llegó otra cosa al aire. Solo entonces se lleva DeckCraft a otra diapositiva: los mandos en vivo de la
+  // diapositiva nueva llegan antes que ella, y con lo de antes todavía aquí lo devolverían adonde estaba.
+  function sync(moved = false) {
     if (!item?.deckcraft || !sound) { close(); return; }
     if (frame?.id !== item.id) open();
     frame.el.hidden = !frame.open || zoomed;
     // Elegida otra diapositiva desde Manna (no la que acaba de decir DeckCraft): allá va.
-    if (frame.open && item.number !== frame.page && !frame.recent.some((r) => r.page === item.number)) tell({ deckcraft: 'goto', slide: toIndex(item.number) });
+    if (moved && frame.open && item.number !== frame.page && !frame.recent.some((r) => r.page === item.number)) tell({ deckcraft: 'goto', slide: toIndex(item.number) });
   }
   return {
     ...picture,
     update(next, extra) {
       picture.update(next, extra);
+      const moved = next?.uid !== item?.uid;
       item = next;
-      sync();
+      sync(moved);
     },
     live(state, extra) {
       picture.live(state, extra);

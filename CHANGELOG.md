@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.57.1 — 2026-10-29
+
+- **DeckCraft con animaciones**: «Siguiente» ya no devuelve la presentación a la diapositiva anterior. Pasaba en Windows, en la ventana del proyector: la presentación no avanzaba.
+
 ## 1.57.0 — 2026-10-29
 
 - **Copias en Google Drive** (Manna Iglesia, panel del superadministrador): cada noche se guarda la copia de cada iglesia (usuarios, órdenes, textos, favoritos y ajustes) en Google Drive, con las de los últimos 30 días y una por mes durante un año. Se puede hacer una copia en el momento y volver a una copia; su equipo de la iglesia se pone igual al sincronizarse.

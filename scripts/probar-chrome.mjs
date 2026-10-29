@@ -2363,6 +2363,11 @@ try {
       const next = () => run(`return await ${post('projection.step', { delta: 1 })}`);
       await next();
       check('«Siguiente» le llega a DeckCraft, y Manna pone la imagen de la diapositiva en que va', await until(`${onAirNumber} === 2 && ${dcSaid}.some((m) => m.deckcraft === 'key' && m.key === 'ArrowRight')`, 15));
+      // Lo que llega al aire tras la tecla (sus mandos, antes que ella) no puede devolver DeckCraft a la anterior: así pasó en
+      // Windows el 2026-10-29 con la de verdad, que contesta en milésimas.
+      await sleep(1500);
+      check('…y no la devuelve a la anterior', await run(`const m = ${dcSaid}; const k = m.findLastIndex((x) => x.deckcraft === 'key'); return k >= 0 && !m.slice(k).some((x) => x.deckcraft === 'goto') && ${onAirNumber} === 2`),
+        await run(`return JSON.stringify(${dcSaid}.slice(-4))`));
       await next();
       check('una animación de DeckCraft no cambia de diapositiva', await until(`${dcFrame}?.contentDocument.body.textContent.includes('paso 1')`, 10) && (await run(`return ${onAirNumber}`)) === 2);
       await next();
