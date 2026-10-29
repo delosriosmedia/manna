@@ -1770,12 +1770,15 @@ Hoy ninguna: las que había pasaron a la tanda del 2026-10-29 (decisión 65).
 | **Probar en el PC de Leidy, con `pruebas.manna-iglesia.es`** | Sustituye a la parte del equipo real de la fase 9; al pasarla sale la 2.0. El 2026-10-29 el asistente probó allí, por su cuenta: ponerse al día (con «Actualizar ahora» y solo, desde la nube), DeckCraft con animaciones en la ventana del proyector (encontró y arregló que «Siguiente» volvía atrás, 1.57.1) y compartir una pestaña en el proyector. Queda lo que pide manos y ojos: presentaciones reales con animaciones y videos, preparar desde «Preparar el culto» con su PIN y ver que llega al equipo, la portada desde un celular de la red, el PIN y el zoom en el celular, el texto fijo, «escribe y busca» y Medios ordenado |
 | **Conectar Google Drive** (fase 38) | Los pasos, en `.claude/rules/nube.md`: el proyecto de Google y su cliente los crea el asistente con la sesión del dueño abierta; el ID y el secreto los pega el dueño en las variables de `admin` en Hostinger |
 | **La clave de R2 de solo lectura** (S54) | El dueño crea en Cloudflare una clave «Object Read only» para el depósito del himnario y la pone en las variables de `pruebas` (y luego de `nv`), sin borrar la de subir de este Mac |
+| **El túnel fijo del equipo de `pruebas`** | Creado el túnel «Manna-pruebas» (`equipo-pruebas.manna-iglesia.es`). El dueño copia su clave en Cloudflare (Zero Trust → Networks → Tunnels → Manna-pruebas) y la pega en el Manna del PC de Leidy, Ajustes → Conexión por internet → «Usar un dominio propio» |
 
 ### 4. En pausa o a futuro (se retoma cuando lo diga el dueño)
 
 | Qué | Detalle |
 | --- | --- |
 | **Fase 40: funciones para el celular**, desde cero | En pausa |
+| S56 · **El túnel del equipo, sin pegar claves** | Que la nube le dé al equipo oficial, al emparejarlo, la clave de su túnel con nombre (creado por el superadministrador), para que nadie tenga que copiarla. Cruda |
+| S57 · **Una sola dirección también para controlar el equipo** | Que al controlar el equipo la barra siga diciendo la dirección de la nube (hoy salta a la del túnel): la nube tendría que reenviar todo el tráfico del culto al equipo. Grande; el dueño lo pidió el 2026-10-29: estudiar costo y riesgos antes de decidir. Cruda |
 
 **Eliminado** el 2026-10-29 (decisión 65): S53 (los nombres para entrar pueden verse) y la fase 3 con la S9 (televisores, cancelados). **Pasaron a la tanda del 2026-10-29**: S35, S41, S42, S48, S50, S54, S55 y el aviso fijo (ahora «texto fijo»).
 
