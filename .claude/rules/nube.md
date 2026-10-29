@@ -22,14 +22,14 @@ Las que no llevan claves (`MANNA_NUBE`, `MANNA_DATA`, `MANNA_NO_OPEN`, `MANNA_SI
 | `MANNA_DATA` | `/home/u887958304/domains/<sitio>/manna-datos` (el asistente) |
 | `MANNA_CLAVE_ALTA` | la clave de un solo uso con la que entra el primer administrador (la elige el dueño) |
 | `R2_ACCOUNT_ID`, `R2_BUCKET` | los de `~/.manna-r2` |
-| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | una clave de R2 **de solo lectura** para ese depósito (S54), no la de subir |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | una clave de R2 **de solo lectura**, solo para el depósito `manna-contenido` y **una por sitio** (S54): «manna-<sitio>-solo-lectura» (Cloudflare → R2 → Manage API tokens → Create Account API token, «Object Read only»). `pruebas` usa «manna-pruebas-solo-lectura» desde el 2026-10-29. Nunca la de subir («R2 Account Token», de lectura y escritura, la de `~/.manna-r2` de este Mac) |
 | `MANNA_CLAVE_SUPER` | la clave con la que el superadministrador habla con la iglesia: **la misma** en cada sitio de iglesia y en `admin` (la elige el dueño) |
 
 El sitio del superadministrador (`admin.manna-iglesia.es`) lleva `MANNA_NUBE=1`, `MANNA_SUPER=1`, `MANNA_NO_OPEN`, `MANNA_SIN_VENTANA` y su `MANNA_DATA` (el asistente), y `MANNA_CLAVE_ALTA` (con la que crea su cuenta, con contraseña) y `MANNA_CLAVE_SUPER` (el dueño); para las copias en Google Drive (fase 38), `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` (el dueño, abajo). No lleva R2. Se despliega con el mismo paquete que las iglesias.
 
 ### Conectar Google Drive (una vez, lo hace el dueño)
 
-Las copias de cada noche van a la carpeta «Manna Iglesia» del Drive que se conecte. Manna solo ve lo que crea él (permiso `drive.file`). Hecho el 2026-10-29 con la cuenta delosrios.media@gmail.com: proyecto «Manna Iglesia» (`manna-iglesia`). Para publicar la aplicación, Google pide en «Información de la marca» la página principal (`https://admin.manna-iglesia.es`), la política de privacidad (`https://admin.manna-iglesia.es/privacidad.html`, archivo `web/privacidad.html`, servido sin sesión en todos los sitios) y el dominio autorizado `manna-iglesia.es`.
+Las copias de cada noche van a la carpeta «Manna Iglesia» del Drive que se conecte. Manna solo ve lo que crea él (permiso `drive.file`). Hecho el 2026-10-29 con la cuenta delosrios.media@gmail.com: proyecto «Manna Iglesia» (`manna-iglesia`), aplicación en producción, cliente web «admin.manna-iglesia.es»; conectada desde el panel y con la primera copia de `pruebas` hecha ese día. Para publicar la aplicación, Google pide en «Información de la marca» la página principal (`https://admin.manna-iglesia.es`), la política de privacidad (`https://admin.manna-iglesia.es/privacidad.html`, archivo `web/privacidad.html`, servido sin sesión en todos los sitios) y el dominio autorizado `manna-iglesia.es`.
 
 1. En https://console.cloud.google.com, con la cuenta del Drive donde irán las copias (la de Los Ríos Multimedia), crear un proyecto: «Manna Iglesia».
 2. «APIs y servicios» → «Biblioteca» → **Google Drive API** → «Habilitar».
