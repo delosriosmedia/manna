@@ -1,11 +1,12 @@
 import crypto from 'node:crypto';
 import { HttpError } from '../../core/router.js';
 import { cleanName } from '../../core/names.js';
-import { MAX_AUTHOR, MAX_TEXT, STYLES, cleanText, splitParts, titleOf } from './text.js';
+import { MAX_AUTHOR, MAX_TEXT, STYLES, cleanLook, cleanText, splitParts, titleOf } from './text.js';
 
 // Módulo Textos (fase 18 de docs/PLAN.md): mensajes y citas para proyectar, guardados para volver a usarlos.
-// Ficha de cada uno (data/textos.json): { id, style: 'normal' | 'quote', text, author, added, updated }.
-// Una línea en blanco parte el texto en pantallas (pasos); la cita lleva su autor debajo.
+// Ficha de cada uno (data/textos.json): { id, style: 'normal' | 'quote' | 'fixed', text, author, look, added, updated }.
+// Una línea en blanco parte el texto en pantallas (pasos); la cita lleva su autor debajo. El texto fijo (tipo `fixed`)
+// va solo en una capa, con su aspecto (`look`); no se proyecta ni va al orden.
 
 const MAX_TEXTS = 500;
 
@@ -28,12 +29,12 @@ export default function setup(app) {
   const find = (id) => saved.data.texts.find((t) => t.id === id) || null;
 
   // Crea uno (sin id) o cambia el que se diga. Devuelve su id.
-  app.action('texts.save', { permission: 'texts.edit' }, ({ id, style, text, author }) => {
+  app.action('texts.save', { permission: 'texts.edit' }, ({ id, style, text, author, look }) => {
     const clean = cleanText(text);
     if (!clean) throw new HttpError(400, 'Escribe el texto que quieres proyectar.');
     if (clean.length > MAX_TEXT) throw new HttpError(400, `El texto es demasiado largo (${MAX_TEXT} letras como mucho). Pártelo en dos.`);
-    if (!STYLES.includes(style)) throw new HttpError(400, 'Elige si es un texto o una cita.');
-    const fields = { style, text: clean, author: style === 'quote' ? cleanName(author, MAX_AUTHOR) : '', updated: Date.now() };
+    if (!STYLES.includes(style)) throw new HttpError(400, 'Elige si es un texto, una cita o un texto fijo.');
+    const fields = { style, text: clean, author: style === 'quote' ? cleanName(author, MAX_AUTHOR) : '', look: style === 'fixed' ? cleanLook(look) : undefined, updated: Date.now() };
     if (id) {
       const existing = find(id);
       if (!existing) throw new HttpError(404, 'Ese texto ya no existe.');
@@ -73,12 +74,12 @@ export default function setup(app) {
     label: 'Texto',
     describe(data) {
       const t = find(data?.id);
-      if (!t) return null;
+      if (!t || t.style === 'fixed') return null;
       return { title: titleOf(t.text), subtitle: t.style === 'quote' ? `Cita${t.author ? ` · ${t.author}` : ''}` : 'Texto', steps: splitParts(t.text).length, data: { id: t.id } };
     },
     resolve(data, step) {
       const t = find(data?.id);
-      if (!t) return null;
+      if (!t || t.style === 'fixed') return null;
       const parts = splitParts(t.text);
       const i = Number.isInteger(step) ? Math.max(0, Math.min(parts.length - 1, step)) : null;
       return {
@@ -90,6 +91,22 @@ export default function setup(app) {
       const t = find(data?.id);
       const target = (Number.isInteger(step) ? step : 0) + delta;
       return t && target >= 0 && target < splitParts(t.text).length ? { data: { id: t.id }, step: target } : null;
+    },
+  });
+
+  // El texto fijo: solo en una capa (`onlyLayer`: ni se proyecta ni va al orden). data = { id }.
+  const fixed = (data) => { const t = find(data?.id); return t?.style === 'fixed' ? t : null; };
+  app.kind('fixed', {
+    label: 'Texto fijo',
+    layer: true,
+    onlyLayer: true,
+    describe(data) {
+      const t = fixed(data);
+      return t && { title: titleOf(t.text), subtitle: 'Texto fijo', steps: 1, data: { id: t.id } };
+    },
+    resolve(data) {
+      const t = fixed(data);
+      return t && { id: t.id, title: titleOf(t.text), text: t.text, look: cleanLook(t.look) };
     },
   });
 }

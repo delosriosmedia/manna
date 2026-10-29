@@ -179,6 +179,9 @@ const SCREENS = [
   { name: 'Textos', url: '/control#textos', content: '.text-list', inside: '.text-card', settle: 500 },
   { name: 'Textos: una cita', url: '/control#textos', content: '.text-editor', primary: '.text-bar .btn.primary', inside: '.text-bar', settle: 600,
     prepare: `document.querySelector('.text-card[data-id=ejemplo-cita] .text-pick').click()` },
+  // El texto fijo (2026-10-29): su aspecto, con «Pasando» (y su velocidad) a la vista.
+  { name: 'Textos: texto fijo', url: '/control#textos', content: '.text-editor', primary: '.text-bar .btn.primary:not([hidden])', inside: '.text-bar', settle: 600,
+    prepare: `document.querySelector('.text-card[data-id=ejemplo-cita] .text-pick').click(); document.querySelector('.text-styles [data-style=fixed]').click(); document.querySelector('.text-look [data-key=motion][data-value=scroll]').click()` },
   // Las presentaciones son el último grupo de Medios (fase 22): la lista y, con una elegida, solo sus diapositivas.
   { name: 'Medios: presentaciones', url: '/control#medios', content: '.media-body', inside: '.deck', settle: 500,
     prepare: `document.querySelector('.media-group[data-group=diapositivas]').scrollIntoView()` },

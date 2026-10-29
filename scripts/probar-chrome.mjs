@@ -322,9 +322,10 @@ const layerOnTop = (doc, n) => `(() => { const d = ${doc}; const l = d.querySele
 const live = async () => JSON.parse(await run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ mode: s.projection.mode, ref: s.projection.item?.reference, kind: s.projection.item?.kind, order: s.order.items.map(i => i.title), size: s.projection.styles.fontSize, pattern: s.live.state?.pattern, clock: s.live.state?.clock })`));
 // "1:02.5" -> 62.5
 const seconds = (text) => String(text).split(':').reduce((total, part) => total * 60 + Number(part), 0);
-const CODES = { Enter: 13, Escape: 27, ArrowDown: 40, ArrowUp: 38, ArrowRight: 39, ArrowLeft: 37, b: 66 };
-async function press(key) {
-  for (const type of ['keyDown', 'keyUp']) await chrome.send('Input.dispatchKeyEvent', { type, key, windowsVirtualKeyCode: CODES[key] });
+const CODES = { Enter: 13, Escape: 27, ArrowDown: 40, ArrowUp: 38, ArrowRight: 39, ArrowLeft: 37, b: 66, B: 66 };
+// modifiers: 8 es Mayús. Una letra con text la escribe, como el teclado de verdad.
+async function press(key, modifiers = 0, text) {
+  for (const type of ['keyDown', 'keyUp']) await chrome.send('Input.dispatchKeyEvent', { type, key, modifiers, windowsVirtualKeyCode: CODES[key] || key.toUpperCase().charCodeAt(0), ...(type === 'keyDown' && text && { text }) });
   await sleep(450);
 }
 const type = (selector, value) => run(`const i = document.querySelector(${JSON.stringify(selector)}); i.value = ${JSON.stringify(value)}; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));`);
@@ -579,10 +580,22 @@ try {
   await sleep(900);
   await press('Enter');
   check('queda como estaba para seguir: Juan 3:18 al aire', (await live()).ref === 'Juan 3:18');
-  await press('b');
-  check('B pone la pantalla en negro', (await live()).mode === 'black');
-  await press('b');
-  check('B otra vez vuelve al contenido', (await live()).mode === 'live');
+  await press('B', 8);
+  check('Mayús+B pone la pantalla en negro', (await live()).mode === 'black');
+  await press('B', 8);
+  check('Mayús+B otra vez vuelve al contenido', (await live()).mode === 'live');
+  // Escribe y busca (S50): fuera de un campo, lo tecleado va al buscador del módulo abierto; sin él, a «Buscar en todo».
+  await run(`document.activeElement?.blur()`);
+  await press('s', 0, 's');
+  check('una letra sola va al buscador de la Biblia, abierto', await run(`const i = document.querySelector('.ws[data-module=biblia] .search input'); return document.activeElement === i && i.value === 's'`) && (await live()).mode === 'live',
+    await run(`return document.activeElement?.outerHTML.slice(0, 120) + ' · ' + document.querySelector('.ws[data-module=biblia] .search input').value`));
+  await press('Escape');
+  await press('Escape');
+  await run(`document.activeElement?.blur()`);
+  await press('j', 0, 'j');
+  check('sin un módulo con buscador abierto, va a «Buscar en todo»', await until(`!document.querySelector('.finder-layer, .search-layer')?.hidden && document.activeElement?.value === 'j'`, 10),
+    await run(`return document.activeElement?.outerHTML.slice(0, 120)`));
+  await press('Escape');
 
   console.log('\n1. Interfaz · Orden del culto');
   await goTo('orden');
@@ -1760,6 +1773,34 @@ try {
     await modalButton('Eliminar');
     await sleep(600);
     check('un texto se elimina desde su menú', (await textsNow()).length === 1 && await run(`return ${ws}.querySelectorAll('.text-card').length === 1`));
+
+    // Texto fijo (2026-10-29): su aspecto y, en una capa, encima de lo que se proyecte, con un color según lo de detrás.
+    await click(`[...${ws}.querySelectorAll('.ws-head .btn')].find(b => b.textContent.includes('Nuevo texto'))`);
+    await sleep(300);
+    await click(`${ws}.querySelector('.text-styles [data-style=fixed]')`);
+    await sleep(200);
+    await type(area, 'Silencien sus celulares');
+    await sleep(200);
+    check('«Fijo» muestra su aspecto (cuatro letras, nueve sitios) y cambia «Proyectar» por «Poner en una capa»', await run(`return !${ws}.querySelector('.text-look').hidden && ${ws}.querySelectorAll('.text-look [data-key=font]').length === 4 && ${ws}.querySelectorAll('.text-place').length === 9
+      && [...${tbar}.querySelectorAll('.btn')].filter((b) => !b.hidden).map((b) => b.textContent.trim()).join() === 'Poner en una capa'`), await run(`return [...${tbar}.querySelectorAll('.btn')].filter((b) => !b.hidden).map((b) => b.textContent.trim()).join()`));
+    for (const [key, value] of [['font', 'atkinson'], ['box', 'stripe'], ['place', 'tc'], ['motion', 'scroll']]) await click(`${ws}.querySelector('.text-look [data-key=${key}][data-value=${value}]')`);
+    await sleep(200);
+    check('«Pasando» ofrece su velocidad', await run(`return !${ws}.querySelector('.text-look-row[data-key=speed]').hidden`));
+    await click(`${ws}.querySelector('.text-look [data-key=speed][data-value=fast]')`);
+    await click(`[...${tbar}.querySelectorAll('.btn')].find(b => b.textContent.includes('Poner en una capa'))`);
+    await sleep(600);
+    await menuItem('Capa 4');
+    await sleep(700);
+    const slot4 = JSON.parse(await run(`return JSON.stringify((await (await fetch('/api/state')).json()).layers.slots[3])`));
+    check('«Poner en una capa» lo guarda con su aspecto y lo pone en la capa elegida', slot4.kind === 'fixed' && slot4.title === 'Silencien sus celulares'
+      && JSON.stringify(slot4.content?.look) === JSON.stringify({ font: 'atkinson', size: 'm', place: 'tc', box: 'stripe', motion: 'scroll', speed: 'fast' }), JSON.stringify(slot4));
+    await run(`const f = document.createElement('iframe'); f.id = 'pantalla'; f.src = '/proyeccion'; f.style.cssText = 'position:fixed;left:0;bottom:0;width:640px;height:360px;z-index:99;border:0'; document.body.append(f);`);
+    const fix = `document.querySelector('#pantalla')?.contentDocument?.querySelector('.stage-layer[data-n="4"] .fix')`;
+    check('en la proyección va arriba, en una franja, pasando, con su letra y un color que se lee sobre lo de detrás', await until(`${fix}?.dataset.place === 'tc' && ${fix}.dataset.box === 'stripe'
+      && getComputedStyle(${fix}.querySelector('.fix-text')).animationName === 'fix-scroll' && getComputedStyle(${fix}.querySelector('.fix-box')).fontFamily.includes('Atkinson') && ['light', 'dark'].includes(${fix}.dataset.tone)`, 25),
+      await run(`return ${fix}?.outerHTML.slice(0, 300) || 'nada'`));
+    await run(`return await ${post('layers.clear', { n: 4 })}`);
+    await run(`document.querySelector('#pantalla')?.remove()`);
   }
 
   console.log('\n1. Interfaz · Tiempo');

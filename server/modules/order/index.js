@@ -188,6 +188,7 @@ export default function setup(app) {
     return o;
   };
   const describeItem = (kind, content) => {
+    if (app.kinds.get(kind)?.onlyLayer) return null; // va solo en una capa (el texto fijo)
     const described = app.kinds.get(kind)?.describe(content);
     return described && { id: crypto.randomUUID(), kind, title: described.title, subtitle: described.subtitle, steps: described.steps, data: described.data };
   };

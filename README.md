@@ -20,7 +20,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
   - **Imágenes** (anuncios, carteles, fotos): se suben desde el equipo principal o desde la galería del celular, con el nombre que quieras; se elige si la imagen se ve completa o llenando la pantalla; y, mientras está al aire, se acerca y se desplaza desde la barra de abajo.
   - **Audios**: se suben o se copian a `Contenido/Medios/`, y se gobiernan como un video.
   - **Presentaciones**: las de la iglesia, en PDF o en PowerPoint, convertidas en imágenes. Se recorren con «Siguiente», la barra de abajo muestra la diapositiva que viene y cuántas quedan, y cada una se puede acercar como una imagen. En Windows, un PowerPoint lo puede pasar **el propio PowerPoint en el proyector**, con sus videos y animaciones, y se sigue pasando desde cualquier celular.
-- **Textos**: mensajes (un anuncio, una bienvenida, un motivo de oración) y **citas con su autor**, para proyectarlos con el fondo y la letra de la Biblia. Se guardan para volver a usarlos y se añaden al orden del culto. Una línea en blanco parte un texto largo en pantallas, que se pasan con «Siguiente».
+- **Textos**: mensajes (un anuncio, una bienvenida, un motivo de oración) y **citas con su autor**, para proyectarlos con el fondo y la letra de la Biblia. Se guardan para volver a usarlos y se añaden al orden del culto. Una línea en blanco parte un texto largo en pantallas, que se pasan con «Siguiente». Y el **texto fijo**: va en una capa, encima de lo que se proyecte, con su letra, su tamaño, su sitio, su recuadro y, si se quiere, pasando como una franja de noticias; su color se ajusta solo a lo que haya detrás.
 - **Tiempo**: la hora, cronómetros y temporizadores con su título, en cinco estilos, a la proyección o a una capa. Un temporizador hace un tictac suave en los últimos 10 segundos y una alarma corta al llegar a cero.
 - **Capas**: cuatro capas que quedan encima de todo lo que se proyecte (también con «Negro» y «Solo fondo») hasta que las quites, por ejemplo una página web transparente que muestra algo de vez en cuando.
 - **Páginas web**: presentaciones y juegos de internet (Canva, Google Slides, Genially, Kahoot) o un archivo HTML propio, a pantalla completa. Una dirección necesita internet durante el culto; si la página no se deja mostrar dentro de Manna, el proyector la abre en su propia ventana. Un archivo HTML se pasa con «Anterior» y «Siguiente» desde cualquier dispositivo.
@@ -260,6 +260,8 @@ Cada diapositiva queda como una imagen: las **animaciones, las transiciones y lo
 4. **Proyectar** lo pone con el fondo, la letra y los colores de la proyección (Ajustes → Apariencia); la letra se reduce sola para que quepa. La cita va entre comillas y con «— Autor» debajo.
 5. Para quitar uno, en su menú (⋯), **Eliminar**.
 
+**Texto fijo**: elige **Fijo** en lugar de Texto o Cita. Debajo eliges la **letra** (Sora, Atkinson, Lexend o Merriweather: las cuatro se leen bien de lejos), el **tamaño**, **dónde va** (los nueve sitios, como el reloj), el **recuadro** (sin recuadro, una franja de lado a lado o una píldora) y si va **quieto** o **pasando** (con su velocidad). El color no se elige: Manna mira lo que hay detrás (la imagen, el video o el fondo) y lo pone claro u oscuro para que siempre se lea. **Poner en una capa** lo guarda y lo pone en la capa que elijas; también se pone desde el cajón **Capas** («Poner aquí»). No va al orden del culto ni se proyecta solo.
+
 Solo «Control completo» crea y cambia textos; las demás funciones los proyectan desde el orden del culto.
 
 ### Páginas web
@@ -312,8 +314,9 @@ Conviene fijar en el router la dirección del equipo principal y la del televiso
 | --- | --- |
 | → ← (o Av Pág / Re Pág) | Siguiente / anterior de lo que está al aire, desde cualquier módulo |
 | Ctrl K (⌘ K en Mac) | Buscar en todo: versículos, himnos, medios, presentaciones y páginas |
-| B | Pantalla en negro |
-| C | Solo el fondo, sin texto |
+| Mayús + B | Pantalla en negro |
+| Mayús + C | Solo el fondo, sin texto |
+| Cualquier letra o cifra | Escribe y busca: va al buscador del módulo abierto (Biblia, Himnario) o, si no tiene, a «Buscar en todo». En el buscador vacío, ← → siguen pasando lo que está al aire |
 | ↓ ↑ | Mover la selección (versículo en Biblia, elemento en el orden) |
 | Enter | Proyectar lo marcado en la cola del culto (o, en un módulo, lo elegido) |
 | / | Ir al buscador de la Biblia |

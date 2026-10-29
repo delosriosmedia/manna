@@ -127,8 +127,8 @@ export function createEscenario(ctx) {
   power?.classList.add('scene-power', 'glass');
   // «Solo fondo» y «Negro», como iconos aparte de lo que está al aire, que se confundía con ellos (pedido del dueño,
   // 2026-10-18). En el celular van en «Historias».
-  const clear = h('button', { class: 'mode-btn', 'aria-label': 'Solo fondo', title: 'Solo fondo (C): oculta el texto y deja el fondo', onclick: () => toggleMode('clear') }, icon('text-t-slash', 18));
-  const black = h('button', { class: 'mode-btn', 'aria-label': 'Negro', title: 'Negro (B): la pantalla en negro', onclick: () => toggleMode('black') }, icon('pantalla-negra', 18));
+  const clear = h('button', { class: 'mode-btn', 'aria-label': 'Solo fondo', title: 'Solo fondo (Mayús+C): oculta el texto y deja el fondo', onclick: () => toggleMode('clear') }, icon('text-t-slash', 18));
+  const black = h('button', { class: 'mode-btn', 'aria-label': 'Negro', title: 'Negro (Mayús+B): la pantalla en negro', onclick: () => toggleMode('black') }, icon('pantalla-negra', 18));
   const modeBar = h('div', { class: 'scene-modes glass', role: 'group', 'aria-label': 'Qué se ve en la proyección' }, clear, black);
   const status = h('div', { class: 'scene-status glass' }, livePill(), caption, layerChip());
   // En el celular, la cabecera del cajón dice lo que está al aire (el cajón tapa el recuadro).

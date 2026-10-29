@@ -13,6 +13,7 @@ const SOURCES = [
   () => [{ kind: 'clock', data: { type: 'hora' }, title: 'Hora', group: 'Tiempo', icon: 'clock' },
     ...(state.time?.timers || []).map((t) => ({ kind: 'clock', data: { id: t.id }, title: t.title, group: 'Tiempo', icon: t.type === 'timer' ? 'hourglass-medium' : 'timer' }))],
   () => (state.web?.pages || []).filter((p) => p.framable).map((p) => ({ kind: 'web', data: { id: p.id }, title: p.name, group: 'Páginas web', icon: 'globe' })),
+  () => (state.texts?.list || []).filter((t) => t.style === 'fixed').map((t) => ({ kind: 'fixed', data: { id: t.id }, title: t.text.trim().split('\n')[0].slice(0, 60), group: 'Textos fijos', icon: 'push-pin' })),
 ];
 
 function mount(el) {
@@ -20,7 +21,7 @@ function mount(el) {
   el.replaceChildren(
     h('div', { class: 'ws-head' }, h('h1', {}, 'Capas')),
     list,
-    h('p', { class: 'muted layers-note' }, 'Lo que está en una capa queda encima de todo lo que se proyecte, también con «Negro» y «Solo fondo», hasta que lo quites. La capa 3 va encima de la 2, y la 2 encima de la 1.'));
+    h('p', { class: 'muted layers-note' }, 'Lo que está en una capa queda encima de todo lo que se proyecte, también con «Negro» y «Solo fondo», hasta que lo quites. Cada capa va encima de la de número más bajo: la 4 arriba de todo.'));
 
   const place = (anchor, n) => {
     const options = SOURCES.flatMap((source) => source());

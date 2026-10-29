@@ -375,9 +375,11 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   }
 
   // ---- Atajos de teclado ----
-  // Ctrl K (⌘ K) abre «Buscar en todo». ← → y B / C gobiernan lo que está al aire desde cualquier módulo;
+  // Ctrl K (⌘ K) abre «Buscar en todo». ← → y Mayús+B / Mayús+C gobiernan lo que está al aire desde cualquier módulo;
   // Intro proyecta lo marcado; Esc cierra la capa de arriba (los mandos, la búsqueda o el cajón).
-  // El resto lo decide el módulo abierto.
+  // Escribe y busca (S50, 2026-10-29): en el computador, una letra o una cifra va al buscador del módulo abierto o, si
+  // no tiene (o no hay ninguno abierto), a «Buscar en todo»; por eso Negro y Solo fondo llevan Mayús. En el buscador
+  // vacío, ← → siguen pasando lo que está al aire. El resto lo decide el módulo abierto.
   const step = guard((delta) => action('projection.step', { delta }));
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && scene?.search && !document.querySelector('.modal-backdrop')) {
@@ -388,7 +390,8 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target.matches('input, select, textarea')) {
       if (e.key === 'Escape') e.target.blur();
-      return;
+      const passing = e.target.matches('input[type=search]') && !e.target.value && ['ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown'].includes(e.key);
+      if (!passing) return;
     }
     if (document.querySelector('.modal-backdrop, .menu')) return;
     if (e.key === 'Escape' && !bare) {
@@ -401,12 +404,24 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
       e.preventDefault();
       return;
     }
+    // Lo tecleado entra en el buscador: se le da el foco antes de que llegue la letra (sin preventDefault).
+    if (!document.documentElement.classList.contains('touch') && e.key.length === 1 && /[\p{L}\p{N}]/u.test(e.key) && !(e.shiftKey && /^[bc]$/i.test(e.key))) {
+      const own = (full || isOpen()) && current && mounted.get(current.id)?.el.querySelector('input[type=search]');
+      if (own) {
+        own.focus();
+        own.select();
+        return;
+      }
+      if (scene?.search) {
+        scene.search.open();
+        return;
+      }
+    }
     if (tabs) return; // sin proyección, no hay nada que pasar
     const global = {
       ArrowRight: () => step(1), PageDown: () => step(1),
       ArrowLeft: () => step(-1), PageUp: () => step(-1),
-      b: () => scene?.toggleMode('black'), B: () => scene?.toggleMode('black'),
-      c: () => scene?.toggleMode('clear'), C: () => scene?.toggleMode('clear'),
+      ...(e.shiftKey && { B: () => scene?.toggleMode('black'), C: () => scene?.toggleMode('clear') }),
       Enter: () => scene?.projectPrepared(),
     }[e.key];
     if (!global) return;

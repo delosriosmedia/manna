@@ -33,7 +33,7 @@ const ICONS = [
   // himnario: favoritos
   'star',
   // textos (fase 18)
-  'text-aa', 'quotes',
+  'text-aa', 'quotes', 'push-pin',
   // «Solo fondo» en la barra de arriba (1.31): el texto se va
   'text-t-slash',
   // citas de un texto o documento (fase 27)

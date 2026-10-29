@@ -8,6 +8,18 @@
 .text-area { min-height: 160px; resize: vertical; line-height: 1.5; font: inherit; }
 .text-author { display: flex; align-items: center; gap: 8px; color: var(--ink-3); }
 .text-author .input { flex: 1; min-width: 0; }
+/* El aspecto del texto fijo: una fila por opción y el sitio en la cuadrícula de 3 × 3, como el reloj. */
+.text-look { display: grid; gap: 10px; }
+.text-look[hidden], .text-look-row[hidden] { display: none; }
+.text-look-row { display: grid; gap: 6px; }
+.text-look-title { color: var(--ink-3); font-size: 12px; font-weight: 600; }
+.text-look-chips { flex-wrap: wrap; gap: 6px; }
+.text-look-chips .chip { min-height: var(--control); padding: 0 12px; }
+.text-places { display: grid; grid-template-columns: repeat(3, 36px); gap: 4px; }
+html.touch .text-places { grid-template-columns: repeat(3, var(--tap)); }
+.text-place { width: 100%; height: 26px; min-height: 0; padding: 0; border-radius: var(--r-sm); }
+html.touch .text-place { height: var(--tap); }
+.text-look-note { margin: 0; font-size: 12px; }
 .text-foot { display: flex; align-items: center; gap: 10px; }
 .text-info { flex: 1; color: var(--ink-3); font-size: 12px; }
 

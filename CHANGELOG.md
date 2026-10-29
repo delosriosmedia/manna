@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Texto fijo**, en Textos: un texto que va en una capa, encima de lo que se proyecte, como el reloj («Silencien sus celulares», el nombre de quien predica). Se elige entre cuatro letras que se leen bien de lejos, tres tamaños, nueve sitios, sin recuadro, en una franja o en una píldora, y quieto o pasando como una franja de noticias. Su color se ajusta solo a lo que haya detrás para que siempre se lea.
+- **Escribe y busca**: en el computador, lo que tecleas va directo al buscador del módulo abierto (Biblia, Himnario) o, si no tiene, a «Buscar en todo». Por eso **Negro y Solo fondo pasan a Mayús+B y Mayús+C**: ya nadie pone la pantalla en negro por tocar una letra sin querer.
 ## 1.56.0 — 2026-10-29
 
 - **Presentaciones con animaciones, sin PowerPoint** (en prueba): con «DeckCraft con animaciones» instalado (Ajustes → Revisar el equipo → Instalar por mí), una presentación de PowerPoint se pasa en el proyector con sus transiciones y animaciones, dentro de la ventana de Manna y debajo de las capas, en Windows y en Mac. «Siguiente» avanza también las animaciones; los celulares ven la imagen de la diapositiva en que va. Se elige en el menú de la presentación: «Pasar con animaciones». Si no arranca en ese equipo, se ve como imágenes.

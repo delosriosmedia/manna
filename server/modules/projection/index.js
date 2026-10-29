@@ -107,6 +107,7 @@ export default function setup(app) {
   //   previous  { state, at }: mandos en vivo que tenía antes de un reinicio del servidor
   function present({ kind, data, step = null, orderId = null }, mode = 'live', previous = null) {
     const def = app.kinds.get(kind);
+    if (def?.onlyLayer) throw new HttpError(400, 'Eso va en una capa, no se proyecta solo.');
     const content = def?.resolve(data, step);
     if (!content) throw new HttpError(404, 'Ese contenido ya no está disponible.');
     // Existe, pero aún no se puede mostrar (un video que se está convirtiendo): el tipo dice por qué.
