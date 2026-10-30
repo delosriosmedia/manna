@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.59.0 — 2026-10-29
+
 - **Presentaciones en Medios, más claras**: tocar una presentación solo la elige; sus diapositivas se ven con **Ver diapositivas**, al lado de la lista en el computador o aparte en el celular, y al cerrarlas la lista sigue igual y la presentación elegida. Y la **vista en lista** ya sirve también con las presentaciones (una por fila); en cuadrícula se ven con la portada grande, como las imágenes.
 - **Texto fijo, mejor acomodado**: en el computador, las opciones a la izquierda y la vista previa a la derecha, siempre a la vista y sin que nada pase por detrás; en el celular, la vista previa arriba. El cuadro de escribir es más bajo y la cuadrícula «Dónde va» se ve sobre cualquier fondo.
 - **Las presentaciones con sus letras**: DeckCraft con animaciones ya usa las letras instaladas en el equipo principal (antes ponía otras parecidas, aunque las miniaturas se vieran bien). Si una presentación usa una letra que no está en el equipo ni viene dentro, Medios lo dice bajo su nombre y el administrador puede pulsar **Instalar las que faltan**: Manna baja de Google Fonts las que estén ahí, las instala y vuelve a convertir la presentación. **Convertir de nuevo** (en su menú) rehace sus imágenes después de instalar una a mano. Y DeckCraft con animaciones usa también las letras que la presentación trae guardadas dentro, y se pone al día sola al abrir Manna.

@@ -118,7 +118,7 @@ export const DECKCRAFT_VERSION = '0.10.0';
 const DC = `https://github.com/storytold/deckcraft/releases/download/v${DECKCRAFT_VERSION}`;
 // DeckCraft con animaciones (fase 33, parte 3): la versión web de la copia de Manna (delosriosmedia/deckcraft), con
 // el puente por el que Manna la maneja dentro de la ventana del proyector. Una versión fija, compilada en GitHub.
-export const DECKCRAFT_WEB = 'manna-web-0.12.0-2';
+export const DECKCRAFT_WEB = 'manna-web-0.12.0-3';
 const DCW = `https://github.com/delosriosmedia/deckcraft/releases/download/${DECKCRAFT_WEB}`;
 const DECKCRAFT_WEB_ZIP = { url: `${DCW}/deckcraft-web-manna.zip`, sums: `${DCW}/SHA256SUMS.txt`, folder: 'deckcraft-web', version: DECKCRAFT_WEB, size: '15 MB' };
 const OFFICIAL = {
