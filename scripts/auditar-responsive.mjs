@@ -32,7 +32,7 @@
 //     Negro, las herramientas de señalar y mover y los mandos en vivo, y su lista de presentaciones cabe
 //   - Páginas web: la lista (una de internet que se deja mostrar, otra que no y un archivo HTML, con nombres
 //     largos) y la barra de la elegida caben y dejan a la vista «Proyectar»
-//   - en la función de alabanza, el volumen de Manna está a la vista (barra de transporte; en el celular, grande bajo el recuadro)
+//   - en la función de alabanza, el volumen de Manna está a la vista (barra de transporte; en el celular, lo miden las pantallas «En vivo de Alabanza»)
 //   - en YouTube, el campo del enlace cabe en la cabecera y los mandos de un video con subtítulos
 //     en dos idiomas (botón y lista) caben en la capa de mandos
 //
@@ -120,6 +120,11 @@ const SCREENS = [
     prepare: `fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'layers.set', payload: { n: 4, kind: 'clock', data: { type: 'hora' } } }) })`,
     cleanup: `fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'layers.clear', payload: { n: 4 } }) })` },
   { name: 'En vivo: módulo abierto', url: '/control#orden', movil: true, tactil: true, settle: 500 },
+  // «En vivo» de Alabanza (fase 45).
+  { name: 'En vivo de Alabanza: himno', url: '/alabanza', plain: '.ev-slot', movil: true, tactil: true, show: 'song', settle: 500 },
+  { name: 'En vivo de Alabanza: versículos', url: '/alabanza', plain: '.ev-slot', movil: true, tactil: true, show: 'live', settle: 500 },
+  { name: 'En vivo de Alabanza: nada al aire', url: '/alabanza', plain: '.ev-slot', movil: true, tactil: true, settle: 500, restore: true, prepare: `fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'projection.clear', payload: {} }) })` },
+  { name: 'En vivo de Alabanza: módulo abierto', url: '/alabanza#himnario', movil: true, tactil: true, settle: 700 },
   // prefs: preferencias de este dispositivo con las que se abre la pantalla (se quitan al terminar).
   { name: 'Biblia: comparar', url: '/control#biblia', prefs: { 'biblia.comparar': true }, primary: '.abar .btn.primary', content: '.col-verses', inside: '.cmp-bar' },
   // wideOnly: solo donde hay escenario (860 px o más); ahí, el módulo en el cajón estrecho de 440 px.
@@ -154,7 +159,7 @@ const SCREENS = [
   // En el escritorio, «Más mandos» (en la barra de abajo) abre la misma capa, con todos los mandos de lo que está al aire.
   { name: 'Capa de mandos en el escritorio', url: '/control#orden', show: 'slides', wideOnly: true, inside: '.controls-pop', closes: ['.controls-layer', '.controls-pop'], controls: '.controls-pop .live-controls', settle: 600, prepare: `document.querySelector('.tb-more').click()` },
   // La función de alabanza lleva el volumen de Manna siempre a la vista: en el celular, bajo la barra de "Al aire".
-  { name: 'Alabanza', url: '/alabanza#himnario', content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: { wide: '.transport-bar .tb-volume', narrow: '.story-volume.big' }, settle: 700,
+  { name: 'Alabanza', url: '/alabanza#himnario', content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: { wide: '.transport-bar .tb-volume', narrow: '.ev-next' }, settle: 700,
     prepare: `document.querySelector('.ws[data-module=himnario] .hymn')?.click()` },
   { name: 'Orden con mandos en vivo', url: '/control#orden', show: 'testcard', controls: '.odetail .live-controls' },
   // Un pasaje al aire con la capa de versículos abierta (fase 24): su recuadro cabe en la pantalla, con los números a la

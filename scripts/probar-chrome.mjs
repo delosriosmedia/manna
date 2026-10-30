@@ -155,7 +155,6 @@ for (const port of [PORT, ...(inGroup('red') ? [8125] : [])]) {
 const UNTOUCHED = {
   'projection.over': 'la pulsa «Encima» del Orador (fase 46); probada en test/en-vivo.test.js',
   'projection.overClear': 'la pulsa «Quitar» de la capa del Orador (fase 46); probada en test/en-vivo.test.js',
-  'order.setTrack': 'la pulsa la lista de Alabanza (fase 45); probada en test/en-vivo.test.js',
   'POST /api/nube/emparejar': 'la pide el equipo de la iglesia a su nube (cloud.pair), no la interfaz',
   'GET /api/nube/estado': 'la pide el equipo de la iglesia a su nube cada minuto, no la interfaz',
   'GET /api/nube/usuarios': 'la pide el equipo de la iglesia a su nube para traer los usuarios, no la interfaz',
@@ -3582,6 +3581,10 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   check('pero sí puede proyectar', (await run(`return await ${post('order.show', { id: psalm })}`)) === 200 && (await live()).ref === 'Salmos 23:1');
 
   console.log('\n1. Interfaz · Alabanza');
+  // Una capa, puesta por quien puede: Alabanza solo la enciende y la apaga.
+  await chrome.send('Page.navigate', { url: `${local}/control` });
+  await sleep(1500);
+  await run(`await ${post('layers.set', { n: 1, kind: 'clock', data: { type: 'hora' } })}`);
   await chrome.send('Page.navigate', { url: `${local}/alabanza` });
   await sleep(2200);
   const praise = `document.querySelector('.transport-bar .tb-volume')`;
@@ -3594,12 +3597,60 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   check('ese mando es el volumen general', await run(`return (await (await fetch('/api/state')).json()).live.volume === 0.35`));
   check('puede preparar el orden, pero no tocar los ajustes ni instalar programas', (await run(`return await ${post('order.addSection', { title: 'Alabanza' })}`)) === 200
     && (await run(`return await ${post('projection.styles', { fontSize: 50 })}`)) === 403 && (await run(`return await ${post('tools.install', { id: 'yt-dlp' })}`)) === 403);
+  // «En vivo» de Alabanza (fase 45): el reproductor, con la lista de la sección.
+  console.log('\n1. Interfaz · En vivo de Alabanza (celular, 390 px)');
+  const praiseCall = (type, payload = {}) => run(`const r = await fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Prueba': '1' }, body: JSON.stringify(${JSON.stringify({ type, payload })}) }); return JSON.stringify((await r.json()).result ?? null)`).then(JSON.parse);
+  await praiseCall('order.addSection', { title: 'Cantos de la prueba' });
+  const songOne = (await praiseCall('order.add', { kind: 'song', data: { number: 1, track: 'vocal' } })).id;
+  const songTwo = (await praiseCall('order.add', { kind: 'song', data: { number: 2, track: 'vocal' } })).id;
+  await praiseCall('order.show', { id: songOne });
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-  await sleep(500);
-  const storyVolume = () => run(`const e = document.querySelector('.story-volume.big'); const r = e.getBoundingClientRect(); return Boolean(e.querySelector('input[type=range]')) && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight`);
-  check('en el celular el volumen, grande, sigue a la vista bajo la proyección, sin abrir nada', await storyVolume() && await run(`return !document.querySelector('.scene-bg > .stage') && Boolean(document.querySelector('.story-frame > .stage')) && !document.body.classList.contains('drawer-open')`));
+  await sleep(1800); // pasar del computador al celular vuelve a abrir la página
+  const praiseShown = (selector) => `document.querySelector(${JSON.stringify(selector)})?.getClientRects().length > 0`;
+  check('en el celular, su dock: En vivo, Himnario, Medios y Biblia', await until(praiseShown('.ev-screen.stage'), 12) && await run(`return [...document.querySelectorAll('.dock-item')].map((b) => b.textContent).join() === 'En vivo,Himnario,Medios,Biblia' && !document.querySelector('.scene-bg, .transport-bar, .queue, .story')`));
+  check('un himno: Cantado o Pista, la letra, el avance, y el volumen y el transporte en una fila', await until(praiseShown('.ev-seekbox .ev-slider'), 10) && await run(`return ${praiseShown('.ev-seg')} && ${praiseShown('.ev-trans .ev-pause')} && ${praiseShown('.ev-volsteps')} && ${praiseShown('.ev-seekbox .ev-elapsed')} && document.querySelector('.ev-seekbox .ev-time').textContent.startsWith('−')`));
+  const praiseRows = () => run(`return JSON.stringify([...document.querySelectorAll('.ev-row')].filter((r) => r.getClientRects().length).map((r) => r.querySelector('.ev-n').textContent + ' ' + r.querySelector('b').textContent))`).then(JSON.parse);
+  const praiseNow = await praiseRows();
+  check('la lista es la sección del canto al aire, y el número es el del himno', praiseNow.length === 2 && praiseNow[0] === `1 ${hymnTitle(1)}` && praiseNow[1] === `2 ${hymnTitle(2)}`, JSON.stringify(praiseNow));
+  const volumeNow = () => run(`return (await (await fetch('/api/state')).json()).live.volume`);
+  const volumeBefore = await volumeNow();
+  await tapEl(`document.querySelector('.ev-volsteps [aria-label="Bajar el volumen"]')`);
+  await sleep(300);
+  check('el volumen va a pasos de 5 %, sin bola', Math.abs(await volumeNow() - (volumeBefore - 0.05)) < 0.001 && await run(`return !document.querySelector('.ev-vol .ev-ball')`));
+  const clockPlaying = () => run(`return (await (await fetch('/api/state')).json()).live.state.clock.playing`);
+  await tapEl(`document.querySelector('.ev-trans .ev-pause')`);
+  await sleep(300);
+  check('la pausa la da el transporte', await clockPlaying() === false);
+  await tapEl(`document.querySelector('.ev-trans .ev-pause')`);
+  await sleep(300);
+  const chip = `document.querySelector('.ev-row[data-id="${songTwo}"] .ev-pista')`;
+  check('el canto que viene dice con qué sonido saldrá', await run(`return ${chip}?.textContent === 'Cantado'`));
+  await tapEl(chip);
+  await sleep(400);
+  check('y se cambia antes de que salga, sin ponerlo al aire', (await run(`return JSON.stringify((await (await fetch('/api/state')).json()).order.items.find((i) => i.id === ${JSON.stringify(songTwo)}).data.track)`)) === '"instrumental"' && await run(`return ${chip}?.textContent === 'Pista'`) && (await run(`return (await (await fetch('/api/state')).json()).projection.item.source.orderId`)) === songOne);
+  await tapEl(`document.querySelector('.ev-row[data-id="${songTwo}"] .ev-row-main')`);
+  check('tocar una fila la marca: su ▶ ocupa el sitio de la pista', await run(`const r = document.querySelector('.ev-row[data-id="${songTwo}"]'); return r.classList.contains('marked') && getComputedStyle(r.querySelector('.ev-play')).display !== 'none' && getComputedStyle(r.querySelector('.ev-pista')).display === 'none'`));
+  await tapEl(`document.querySelector('.ev-row[data-id="${songTwo}"] .ev-play')`);
+  await sleep(400);
+  check('y el ▶ la pone al aire, con la pista elegida', await run(`const s = (await (await fetch('/api/state')).json()); return s.projection.item.source.orderId === ${JSON.stringify(songTwo)} && s.live.state.track === 'instrumental'`));
+  await tapEl(`document.querySelector('.ev-back')`);
+  await sleep(400);
+  check('las capas son una pastilla que abre una hoja, donde se encienden y se apagan, sin poner ni quitar', await run(`return document.querySelector('.ev-chip-capas').textContent === '1 capa' && !document.querySelector('.ev-add')`), await run(`return document.querySelector('.ev-chip-capas').textContent + ' · ' + document.querySelectorAll('.ev-isle').length`));
+  await tapEl(`document.querySelector('.ev-chip-capas')`);
+  const isleVisible = () => run(`return (await (await fetch('/api/state')).json()).layers.slots[0].visible`);
+  const isleWas = await isleVisible();
+  await tapEl(`document.querySelector('.modal .ev-isle[data-n="1"]')`);
+  await sleep(300);
+  check('un toque en la hoja la cambia', await isleVisible() !== isleWas);
+  await clickAt(10, 10);
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+  await sleep(1800);
+  await praiseCall('order.remove', { id: songOne });
+  await praiseCall('order.remove', { id: songTwo });
   await run(`await ${post('projection.volume', { volume: 1 })}`);
+  await chrome.send('Page.navigate', { url: `${local}/control` });
+  await sleep(2000);
+  await run(`await ${post('layers.clear', { n: 1 })}`);
 
   // ---- Versión nueva en GitHub ----
   console.log('\n1. Interfaz · Versión nueva');

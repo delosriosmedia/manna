@@ -2,6 +2,7 @@ import { ensureRole } from '../core/session.js';
 import { createShell } from '../core/shell.js';
 import { ALABANZA_MODULES } from '../modules/registry.js';
 import { createEscenario } from '../modules/projection/escenario.js';
+import { createEnVivo } from '../modules/envivo/escena.js';
 
 // Alabanza: centrado en himnos, videos y orden del culto, con volumen permanente.
 const me = await ensureRole('alabanza');
@@ -13,4 +14,6 @@ createShell({
   modules: ALABANZA_MODULES,
   church: me.church,
   createScene: createEscenario,
+  createLiveScene: (ctx) => createEnVivo(ctx, { variant: 'alabanza' }),
+  liveDock: ['himnario', 'medios', 'biblia'],
 });

@@ -92,7 +92,8 @@ export function allPagesButton({ pages, now }) {
 
 // La fila de lo que suena: pausa, −10, +10, el avance (solo se mueve su bola) y lo que queda. Mientras salen órdenes o se
 // arrastra, lo que llega del servidor es más viejo que lo que se ve.
-export function clipRow({ send }) {
+//   seekHost, transportHost: en Alabanza, el avance y el transporte van cada uno en su sitio (y entonces `el` es null).
+export function clipRow({ send, seekHost, transportHost }) {
   const sender = createSender(send, { onIdle: () => apply() });
   let latest = null;
   let clock = null;
@@ -101,22 +102,31 @@ export function clipRow({ send }) {
   const jump = (seconds) => () => sender.push({ position: Math.max(0, Math.min(clock?.duration ?? Infinity, positionAt(clock) + seconds)) });
   const bar = ballSlider({ label: 'Avance', thick: true, step: 5, onCommit: (position) => sender.push({ position }) });
   const time = h('span', { class: 'ev-time' });
-  const el = h('div', { class: 'ev-seek' }, toggle,
-    mando({ label: '−10', cls: 'ev-jump', title: 'Retroceder 10 segundos', onclick: jump(-10) }),
-    mando({ label: '+10', cls: 'ev-jump', title: 'Adelantar 10 segundos', onclick: jump(10) }),
-    bar.el, time);
+  const elapsed = h('span', { class: 'ev-elapsed' });
+  const back = mando({ label: '−10', cls: 'ev-jump', title: 'Retroceder 10 segundos', onclick: jump(-10) });
+  const ahead = mando({ label: '+10', cls: 'ev-jump', title: 'Adelantar 10 segundos', onclick: jump(10) });
+  const hosted = Boolean(seekHost);
+  const el = hosted ? null : h('div', { class: 'ev-seek' }, toggle, back, ahead, bar.el, time);
+  if (hosted) {
+    seekHost.replaceChildren(elapsed, bar.el, time);
+    transportHost.replaceChildren(back, toggle, ahead);
+  }
   function paint() {
     const position = positionAt(clock);
     const known = clock?.duration != null;
     bar.set(position, known ? clock.duration : Math.max(1, position));
-    time.textContent = known ? `−${formatTime(Math.max(0, clock.duration - position))}` : formatTime(position);
+    const left = known ? Math.max(0, clock.duration - position) : 0;
+    time.textContent = known ? `${left > 0.5 ? '−' : ''}${formatTime(left)}` : formatTime(position);
+    elapsed.textContent = formatTime(position);
   }
   const frames = everyFrame(paint);
   function apply() {
     if (latest && !(clock && sender.busy)) clock = latest.clock;
     const playing = Boolean(clock?.playing) && !ended();
     const verb = playing ? 'Pausar' : ended() ? 'Otra vez' : 'Reproducir';
-    toggle.replaceChildren(icon(playing ? 'pause' : 'play', 16));
+    const again = hosted && ended();
+    toggle.replaceChildren(...(again ? [icon('arrow-clockwise', 14), h('span', {}, verb)] : [icon(playing ? 'pause' : 'play', 16)]));
+    if (hosted) transportHost.classList.toggle('ended', again);
     toggle.setAttribute('aria-label', verb);
     toggle.title = verb;
     paint();
@@ -125,7 +135,12 @@ export function clipRow({ send }) {
   return {
     el,
     update(live) { latest = live; apply(); },
-    destroy: () => frames.stop(),
+    destroy() {
+      frames.stop();
+      seekHost?.replaceChildren();
+      transportHost?.replaceChildren();
+      transportHost?.classList.remove('ended');
+    },
   };
 }
 

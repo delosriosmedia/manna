@@ -3,7 +3,7 @@ import { icon } from '../../core/icons.js';
 import { registerKind } from '../../core/kinds.js';
 import { clipControls, drawClip } from '../projection/clip.js';
 import { drawPicture, pictureControls } from '../projection/picture.js';
-import { allPagesButton, clipRow, mando, stepCells } from '../projection/slot.js';
+import { allPagesButton, clipRow, goToStep, mando, stepCells } from '../projection/slot.js';
 import { openLyrics } from './lyrics.js';
 
 // Tipo de contenido "himno": el video del himno, con el sonido cantado o con la pista
@@ -70,10 +70,10 @@ registerKind('song', {
   // En la ranura de «En vivo»: el sonido, la letra y, debajo, lo de cualquier cosa que suena.
   slot(host, api) {
     let number = null;
-    const tracks = TRACKS.map(([id, label]) => h('button', { class: 'ev-seg-btn', dataset: { track: id }, onclick: () => api.send({ track: id }) }, label));
+    const tracks = TRACKS.map(([id, label]) => h('button', { class: 'ev-seg-btn', dataset: { track: id }, onclick: () => api.send({ track: id }) }, icon(id === 'vocal' ? 'music-notes' : 'waveform', 13), h('span', {}, label)));
     const clip = clipRow(api);
     host.replaceChildren(h('div', { class: 'ev-seg', role: 'group', 'aria-label': 'Sonido del himno' }, ...tracks),
-      mando({ label: 'Letra', glyph: 'file-text', onclick: guard(() => openLyrics(number)) }), api.more(), clip.el);
+      mando({ label: 'Letra', glyph: 'file-text', onclick: guard(() => openLyrics(number)) }), api.more(), clip.el || '');
     return {
       update(live, item) {
         number = item.number;
@@ -83,7 +83,7 @@ registerKind('song', {
           button.classList.toggle('on', id === current);
           button.setAttribute('aria-pressed', id === current);
           button.disabled = id === 'instrumental' && !item.instrumental;
-          if (id === 'instrumental') button.textContent = item.instrumental ? 'Pista' : 'Sin pista';
+          if (id === 'instrumental') button.lastChild.textContent = item.instrumental ? 'Pista' : 'Sin pista';
         }
         clip.update(live);
       },
@@ -91,6 +91,37 @@ registerKind('song', {
     };
   },
 });
+
+function lyricsStrip(host, now) {
+  let item = null;
+  const pages = (next) => next.thumbs.map((thumb, k) => ({ thumb, label: k === 0 ? 'Portada' : String(k) }));
+  const cells = Array.from({ length: 3 }, (_, i) => {
+    const picture = h('img', { alt: '' });
+    const label = h('small', {});
+    const el = h('button', { class: 'ev-tira-pic', onclick: () => item && goToStep(item, Number(el.dataset.k)) }, h('span', {}, picture), label);
+    return { el, picture, label, i };
+  });
+  const all = allPagesButton({ now, pages });
+  host.replaceChildren(h('div', { class: 'ev-tira' }, ...cells.map((c) => c.el), all.el));
+  return {
+    update(_, next) {
+      item = next;
+      all.update(next);
+      const at = now(next);
+      const list = pages(next);
+      const from = Math.max(0, Math.min(at - 1, list.length - 3));
+      for (const c of cells) {
+        const k = from + c.i;
+        c.el.classList.toggle('ev-off', k >= list.length);
+        if (k >= list.length) continue;
+        c.el.dataset.k = k;
+        if (c.picture.getAttribute('src') !== list[k].thumb) c.picture.src = list[k].thumb;
+        c.label.textContent = `${list[k].label}${k === at ? ' · al aire' : k === at + 1 ? ' · sigue' : ''}`;
+        c.el.classList.toggle('on', k === at);
+      }
+    },
+  };
+}
 
 // Tipo «Letra del himno» (Letras sin música): las diapositivas del himnario original, una por paso, como una
 // imagen que se acerca y se desplaza. Se pasa a mano y no sale del himno: tras la última viene otra vez la portada
@@ -131,6 +162,8 @@ registerKind('lyrics', {
 
   slot(host, api) {
     const now = (item) => item.index - 1;
+    // En Alabanza, una tira con sus imágenes: la de antes, la que sale y las que siguen.
+    if (api.seekHost) return lyricsStrip(host, now);
     const cells = stepCells(4, { total: (item) => item.pages, now, name: (k) => (k === 0 ? 'Portada' : String(k)) });
     const all = allPagesButton({ now, pages: (item) => item.thumbs.map((thumb, k) => ({ thumb, label: k === 0 ? 'Portada' : String(k) })) });
     host.replaceChildren(...cells.els, api.tool('point'), api.tool('move'), all.el, api.more());

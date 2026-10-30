@@ -335,6 +335,109 @@ html[data-disposicion='tableta-acostada'] .ev:has(> .drawer.wide:not([hidden])) 
 html[data-disposicion='tableta-acostada'] .ev:has(> .drawer.wide:not([hidden])) .ev-top { grid-column: 2 / 5; }
 html[data-disposicion='tableta-acostada'] body.envivo .ev:has(> .drawer.wide:not([hidden])) .drawer { grid-column: 2 / 5; }
 
+/* ---- Alabanza (fase 45, tableros T3, T4, U2, U6 y E16): el reproductor. De pie: el sonido y la letra; el avance; el volumen a
+   pasos y el transporte, con la pausa del lado del pulgar. Lo que no suena usa la ranura de siempre, en el mismo alto. ---- */
+.ev-seg-btn .ic { display: none; }
+.ev[data-variant='alabanza'] .ev-seg-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.ev[data-variant='alabanza'] .ev-seg-btn .ic { display: block; }
+.ev[data-variant='alabanza'] .ev-slot[data-player='true'] { display: flex; gap: 5px; height: var(--ev-h); }
+.ev[data-variant='alabanza'] .ev-slot[data-player='true'] .ev-seg { flex: 1 1 0; }
+.ev[data-variant='alabanza'] .ev-slot[data-player='true'] .ev-btn { flex: none; width: auto; padding: 0 10px; }
+.ev[data-variant='alabanza'] .ev-slot[data-player='true'] .ev-mas { width: 35px; padding: 0; }
+.ev[data-variant='alabanza'] .ev-slot[data-player='true'] .ev-mas > span { display: none; }
+.ev-seekbox { flex: none; display: flex; align-items: center; gap: 8px; height: 28px; min-width: 0; margin-top: 2px; } /* su bola sobresale: que no llegue a lo de arriba */
+.ev-seekbox:empty, .ev-trans:empty { display: none; }
+.ev-seekbox .ev-slider { height: 28px; }
+.ev-elapsed { flex: none; color: var(--ink-3); font: 500 11px var(--mono); }
+.ev-seekbox .ev-time { font-size: 15px; }
+.ev[data-variant='alabanza'] .ev-mid { height: 36px; gap: 12px; }
+.ev[data-variant='alabanza'] .ev-vol { margin: 0; }
+.ev-trans { flex: none; display: flex; align-items: center; gap: 6px; height: 36px; }
+.ev .ev-trans .ev-jump { width: 40px; height: 36px; }
+.ev .ev-trans .ev-pause { width: 54px; height: 36px; }
+.ev-trans.ended { flex: 1 1 0; }
+.ev-trans.ended .ev-jump { display: none; }
+.ev .ev-trans.ended .ev-pause { flex: 1 1 0; width: auto; gap: 6px; padding: 0 12px; }
+.ev-volsteps { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 8px 0 0; box-sizing: border-box; border: 1px solid var(--line); border-radius: 999px; background: var(--s1); }
+.ev-volsteps .ev-mute { height: 34px; }
+.ev-level { flex: 1 1 0; min-width: 0; height: 4px; border-radius: 4px; background: var(--line-2); overflow: hidden; }
+.ev-level i { display: block; height: 100%; background: var(--ink-2); }
+.ev-chip-capas { position: relative; flex: none; margin-left: auto; height: 22px; padding: 0 7px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--s2); color: var(--ink); font-size: 10px; white-space: nowrap; }
+.ev-chip-capas::after { content: ''; position: absolute; inset: -8px 0; }
+.ev-chip-capas[hidden] { display: none; }
+.ev-chip-capas > .ic { display: none; }
+.modal .ev-capas { flex-wrap: wrap; gap: 8px; }
+.modal .ev-isle-name { max-width: 180px; }
+.ev-now { display: none; }
+.ev-pista { position: relative; flex: none; height: 26px; padding: 0 9px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--s2); color: var(--ink); font-size: 11px; }
+.ev-pista::after { content: ''; position: absolute; inset: -6px 0; }
+.ev-row.live .ev-pista, .ev-row.marked .ev-pista { display: none; }
+.ev-before, .ev-out { display: none; }
+.ev-all { display: block; width: 100%; min-height: 36px; color: var(--accent); font-size: 12px; font-weight: 500; }
+.ev-tira { grid-column: 1 / -1; grid-row: span 2; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 58px; gap: 4px; }
+.ev-tira-pic { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ev-tira-pic > span { flex: 1 1 0; min-height: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--media-bg); }
+.ev-tira-pic.on > span { border: 2px solid var(--ink-3); }
+.ev[data-state='live'] .ev-tira-pic.on > span { border-color: var(--live); }
+.ev-tira-pic.ev-off { visibility: hidden; }
+.ev-tira-pic img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.ev-tira-pic small { color: var(--ink-2); font: 500 10px var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev-tira .ev-btn { height: 100%; flex-direction: column; border-radius: 12px; font-size: 10px; }
+body.envivo.drawer-open .ev-seekbox { display: none; }
+
+/* De pie en la tableta, más grande. Lo que viene después de la sección sigue a la vista, atenuado. */
+html[data-disposicion^='tableta'] .ev-out { display: flex; }
+html[data-disposicion^='tableta'] .ev-sec.ev-out { display: flex; }
+html[data-disposicion^='tableta'] .ev-row.ev-out .ev-t b { color: var(--ink-3); }
+html[data-disposicion^='tableta'] .ev-row.ev-out .ev-t small, html[data-disposicion^='tableta'] .ev-row.ev-out .ev-n { color: #7d8696; }
+html[data-disposicion^='tableta'] .ev[data-variant='alabanza'] .ev-mid { height: 40px; }
+html[data-disposicion^='tableta'] .ev-volsteps { height: 38px; }
+html[data-disposicion^='tableta'] .ev .ev-trans .ev-jump { width: 64px; height: 38px; }
+html[data-disposicion^='tableta'] .ev .ev-trans .ev-pause { width: 76px; height: 40px; }
+html[data-disposicion^='tableta'] .ev-trans { height: 40px; gap: 8px; }
+html[data-disposicion^='tableta'] .ev-elapsed { font-size: 12px; }
+html[data-disposicion^='tableta'] .ev-pista { height: 30px; font-size: 12px; }
+html[data-disposicion^='tableta'] .ev-chip-capas { height: 24px; font-size: 11px; }
+
+/* Acostado en el teléfono: el título, el avance y el volumen bajo la vista; el sonido, el transporte y la lista, a la derecha. */
+html[data-disposicion='telefono-acostado'] .ev[data-variant='alabanza'] { grid-template-rows: 32px 32px 34px minmax(0, 1fr) 14px 20px 47px;
+  grid-template-areas: 'dock head head top' 'dock head head slot' 'dock head head trans' 'dock head head list' 'dock now now list' 'dock seek seek list' 'dock modos vol pasos'; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='alabanza'] .ev-slot[data-player='false'] { grid-row: 2 / 4; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='alabanza'] .ev-title { display: none; }
+/* Sin sitio para la palabra: con un estado largo, cede él antes que meter las capas debajo de buscar. */
+html[data-disposicion='telefono-acostado'] .ev[data-variant='alabanza'] .ev-status { padding-right: 3px; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='alabanza'] .ev-pill { flex: 0 1 auto; min-width: 0; overflow: hidden; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='alabanza'] .ev-pill i { display: none; }
+html[data-disposicion='telefono-acostado'] .ev-chip-capas { min-width: 36px; padding: 0 5px; }
+html[data-disposicion='telefono-acostado'] .ev-chip-capas > .ic { display: inline-block; margin-right: 2px; vertical-align: -2px; }
+html[data-disposicion='telefono-acostado'] .ev-chip-capas > span { display: none; }
+html[data-disposicion='telefono-acostado'] .ev-now { grid-area: now; display: block; font-size: 12px; font-weight: 600; line-height: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html[data-disposicion='telefono-acostado'] .ev-seekbox { grid-area: seek; height: 20px; margin-top: 0; }
+html[data-disposicion='telefono-acostado'] .ev-seekbox .ev-slider { height: 20px; }
+html[data-disposicion='telefono-acostado'] .ev-trans { grid-area: trans; height: 34px; }
+html[data-disposicion='telefono-acostado'] .ev .ev-trans .ev-jump { flex: 0 0 62px; width: auto; height: 34px; }
+html[data-disposicion='telefono-acostado'] .ev .ev-trans .ev-pause { flex: 1 1 0; width: auto; height: 34px; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='alabanza'] .ev-vol { align-self: end; height: 38px; }
+html[data-disposicion='telefono-acostado'] body.envivo.drawer-open .ev-trans { display: none; }
+html[data-disposicion='telefono-acostado'] body.envivo.drawer-open .ev-seekbox { display: flex; }
+
+/* Acostado en la tableta: el sonido y el transporte en una fila, bajo el avance. */
+html[data-disposicion='tableta-acostada'] .ev[data-variant='alabanza'] { --v: min(calc((100dvh / var(--zoom) - 181px) * 16 / 9), calc(100vw / var(--zoom) - 360px));
+  grid-template-columns: 56px 214px 116px calc(var(--v) - 342px) minmax(0, 1fr); grid-template-rows: 36px calc(var(--v) * 9 / 16 - 37px) 18px 24px 40px minmax(0, 1fr) 46px;
+  grid-template-areas: 'dock head head head top' 'dock head head head list' 'dock now now now list' 'dock seek seek seek list' 'dock slot slot trans list' 'dock . . . list' 'dock modos vol vol pasos'; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='alabanza'] .ev-listbox { margin-bottom: 0; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='alabanza'] .ev-slot[data-player='false'] { grid-column: 2 / 5; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='alabanza'] .ev-title { display: none; }
+html[data-disposicion='tableta-acostada'] .ev-now { grid-area: now; display: block; font-size: 14px; font-weight: 600; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html[data-disposicion='tableta-acostada'] .ev-seekbox { grid-area: seek; height: 24px; margin-top: 0; }
+html[data-disposicion='tableta-acostada'] .ev-seekbox .ev-slider { height: 24px; }
+html[data-disposicion='tableta-acostada'] .ev-trans { grid-area: trans; }
+html[data-disposicion='tableta-acostada'] .ev .ev-trans .ev-jump { flex: 1 1 0; width: auto; }
+html[data-disposicion='tableta-acostada'] .ev .ev-trans .ev-pause { flex: 1 1 0; width: auto; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='alabanza'] .ev-vol { align-self: center; }
+html[data-disposicion='tableta-acostada'] body.envivo .ev[data-variant='alabanza'] .drawer { grid-column: 5; grid-row: 2 / 7; }
+html[data-disposicion='tableta-acostada'] body.envivo.drawer-open .ev-seekbox { display: flex; }
+
 @media (prefers-reduced-motion: reduce) {
   body.envivo .drawer:not([hidden]) { animation: fade 0.16s linear; }
 }

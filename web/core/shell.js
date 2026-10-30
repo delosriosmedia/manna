@@ -33,7 +33,8 @@ import { chooseContent, contentMissing } from './contenido.js';
 // topTools: [(ctx) => nodo]: lo que va al final de la barra de arriba (el wifi y el QR del Control total).
 // createLiveScene: la pantalla de un celular o una tableta («En vivo», modules/envivo/escena.js), si la función la tiene. Su compose() la arma
 // con la marca, el dock y el cajón, que son de aquí; el módulo abierto sube dentro de ella, sin fondo oscuro.
-export function createShell({ role, isLocal, user = null, modules, topTools = [], createScene, createLiveScene = null, layout = 'escena', church = null }) {
+// liveDock: los módulos que van en su dock; los demás se abren desde la pantalla (Alabanza: «Ver todo el orden»).
+export function createShell({ role, isLocal, user = null, modules, topTools = [], createScene, createLiveScene = null, liveDock = null, layout = 'escena', church = null }) {
   // Lo que el superadministrador dejó a esta iglesia (fase 39): sin los módulos apagados y, si los ordenó, en su orden
   // (el primero es el que se abre cuando este dispositivo no recuerda otro).
   const arranged = church?.layout?.[role] || [];
@@ -107,8 +108,8 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   // Ajustes se abre con el logo (arriba), no desde el dock.
   const docked = listed.filter((m) => m !== settings);
   // «En vivo»: primero ella, aunque la iglesia ordene los módulos; luego cinco módulos y, si hay más, «Módulos».
-  const inDock = inline && docked.length > 6 ? docked.slice(0, 5) : docked;
-  const inMenu = docked.filter((m) => !inDock.includes(m));
+  const inDock = !inline ? docked : liveDock ? docked.filter((m) => liveDock.includes(m.id)) : docked.length > 6 ? docked.slice(0, 5) : docked;
+  const inMenu = liveDock ? [] : docked.filter((m) => !inDock.includes(m));
   const liveItem = inline && h('button', { class: 'dock-item', 'aria-label': 'En vivo', 'aria-pressed': 'false', onclick: () => closeDrawer() }, icon('screencast', 16), h('span', { class: 'dock-name' }, 'En vivo'));
   const moreItem = inMenu.length > 0 && h('button', { class: 'dock-item', 'aria-label': 'Más módulos', 'aria-haspopup': 'menu', onclick: () => menu(moreItem, inMenu.map((m) => ({ label: m.name, icon: m.icon, onclick: () => show(m.id) }))) }, icon('dots-three', 16), h('span', { class: 'dock-name' }, 'Módulos'));
   if (inline) dockbar.append(...[liveItem, ...inDock.map(dockButton), moreItem].filter(Boolean));

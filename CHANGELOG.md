@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.64.0 — 2026-10-30
+
+- **Alabanza estrena «En vivo» en el celular y la tableta**: el reproductor (Cantado o Pista, la letra, el avance, el volumen a pasos de 5 % y la pausa al alcance del pulgar) y la lista de la sección, donde se elige la pista de cada canto antes de que salga. Las capas se encienden y se apagan desde una pastilla arriba. Al terminar un canto, «Otra vez» o Siguiente.
+
 ## 1.63.0 — 2026-10-30
 
 - **Control total estrena «En vivo» en el celular y la tableta**: lo que sale al proyector se ve tal cual arriba; debajo, los mandos de lo que está al aire en un sitio fijo, las capas y el volumen, el orden y, bajo el pulgar, Solo fondo, Negro, Anterior y Siguiente. Siguiente dice lo que va a poner.

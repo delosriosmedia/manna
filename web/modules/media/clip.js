@@ -53,7 +53,7 @@ const video = {
     ]) });
     pick.append(icon('caret-down', 11));
     const clip = clipRow(api);
-    host.replaceChildren(pick, api.tool('point'), mandoVacio(), api.more(), clip.el);
+    host.replaceChildren(pick, api.tool('point'), mandoVacio(), api.more(), clip.el || '');
     return {
       update(live, item) {
         tracks = item.subtitles || [];
@@ -89,7 +89,7 @@ registerKind('audio', {
 
   slot(host, api) {
     const clip = clipRow(api);
-    host.replaceChildren(notaMando('Suena en el equipo principal.', 3), api.more(), clip.el);
+    host.replaceChildren(notaMando('Suena en el equipo principal.', 3), api.more(), clip.el || '');
     return { update: (live) => clip.update(live), destroy: clip.destroy };
   },
 });

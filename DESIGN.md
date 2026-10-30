@@ -305,6 +305,8 @@ Un módulo abierto sube entre la vista y la franja, de pie, y ocupa la columna d
 - **«Volver a …»** tapa la primera fila durante 10 s, y «Volver al orden» mientras lo al aire no venga de él.
 - En la **tableta**, «Marcada» enseña la imagen de la fila marcada y lleva su propio «Poner».
 
+**«En vivo» de Alabanza** (fase 45; tableros T3, T4, U2, U6 y E16): la misma pantalla, con el reproductor en vez de la ranura. Cantado o Pista, Letra y «⋯» arriba; el avance con lo que lleva y lo que queda; y, en una fila, el volumen a pasos de 5 % (sin bola: el nivel solo se muestra) y −10, la pausa y +10. La lista es la sección del canto al aire; la columna de números, el número del himno; y cada canto que viene dice con qué sonido saldrá, y se cambia ahí. Las capas son una pastilla en la barra que abre una hoja. «Letras sin música» lleva una tira con sus imágenes. Cuando un canto termina, la pastilla dice «Terminó» y el transporte, «Otra vez». El dock: En vivo, Himnario, Medios y Biblia; el orden entero, en «Ver todo el orden».
+
 **Cómo se comprueba.** `scripts/auditar-responsive.mjs` mide, en los cuatro tamaños mínimos, lo que se puede medir (fase 42): zonas de toque que se pisan, distancias a lo peligroso, letra, contraste, lo que se sale, brillo y rojo fuera del aire. La prueba en Chrome, los gestos y los estados. Lo que depende de la mano (alcance, deslumbramiento, navegadores reales) se prueba en un celular y una tableta de verdad, y lo que falte se anota en `docs/ESTADO.md`.
 
 ## 13. Lo que no se hace

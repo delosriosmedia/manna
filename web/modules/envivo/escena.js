@@ -2,6 +2,8 @@ import { action, api, connectionId, silenceMs, state, stepAir, subscribe } from 
 import { h, dialog, guard, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { kindBadge, kindOf, titleOf } from '../../core/kinds.js';
+import { positionAt } from '../../core/playback.js';
+import { createSender } from '../../core/sender.js';
 import { attachGestures } from '../projection/gestures.js';
 import { createLiveControls } from '../projection/live.js';
 import { createPreview } from '../projection/preview.js';
@@ -23,7 +25,10 @@ const SEGMENTS = 24; // desde 25 pasos, una barra continua: ningún segmento baj
 const NO_SOUND = 'Ahora mismo no suena en ningún sitio. El sonido sale por el equipo principal: abre ahí la proyección o el control.';
 const toolLabels = { point: ['Señalar', 'hand-pointing'], move: ['Mover', 'arrows-out-cardinal'] };
 
-export function createEnVivo(ctx) {
+//   variant  'control' (Control total) o 'alabanza': el reproductor, con el avance y el transporte aparte; el volumen a pasos;
+//            la lista, la sección del canto al aire, con la pista de cada canto; y las capas, una pastilla que abre una hoja
+export function createEnVivo(ctx, { variant = 'control' } = {}) {
+  const player = variant === 'alabanza';
   // ---- La vista: se ve tal cual y no responde al toque, salvo con «Señalar» o «Mover» ----
   const screen = h('div', { class: 'ev-screen', 'data-vista': '' });
   const stage = createStage(screen, { thumbnail: !ctx.isLocal, moving: !ctx.isLocal });
@@ -35,12 +40,14 @@ export function createEnVivo(ctx) {
   const infoStep = h('small', {});
   const infoNext = h('small', {});
   const info = h('div', { class: 'ev-info' }, infoTitle, infoStep, infoNext);
+  const nowName = player && h('strong', { class: 'ev-now' }); // acostado, el título va bajo la vista
 
   // ---- La barra de arriba: el estado ----
   const pill = h('span', { class: 'ev-pill' });
   const statusTitle = h('strong', { class: 'ev-title' });
   const statusWhere = h('small', { class: 'ev-where' });
-  const status = h('div', { class: 'ev-status glass', role: 'status' }, pill, statusTitle, statusWhere);
+  const capasChip = player && h('button', { class: 'ev-chip-capas', hidden: true, onclick: () => dialog('Capas', capas) });
+  const status = h('div', { class: 'ev-status glass', role: 'status' }, pill, statusTitle, statusWhere, capasChip);
   const search = ctx.can('order.edit') ? createSearch() : null;
   const preview = ctx.isLocal ? null : createPreview();
 
@@ -60,8 +67,13 @@ export function createEnVivo(ctx) {
   const slot = h('div', { class: 'ev-slot' });
   const send = guard((patch) => action('projection.control', patch));
   const toolButtons = new Set();
+  // En Alabanza, lo que suena lleva su avance y su transporte en su propio sitio (clipRow).
+  const seekBox = player && h('div', { class: 'ev-seekbox' });
+  const trans = player && h('div', { class: 'ev-trans' });
   const slotApi = {
     send,
+    seekHost: seekBox,
+    transportHost: trans,
     more: () => mando({ label: 'Más', glyph: 'dots-three', cls: 'ev-mas', onclick: () => ctx.openControls?.() }),
     tool(id) {
       const [label, glyph] = toolLabels[id];
@@ -79,15 +91,15 @@ export function createEnVivo(ctx) {
   const addLayer = ctx.can('layers.edit') && ctx.has('capas') && h('button', { class: 'ev-isle ev-add', 'aria-label': 'Poner algo en una capa', onclick: () => ctx.go('capas') }, h('span', { class: 'num' }, icon('plus', 12)));
   if (addLayer) capas.append(addLayer);
   const isles = new Map(); // n -> { el, name, slot }
-  const volume = createBallVolume();
+  const volume = player ? createStepVolume() : createBallVolume();
   const noSound = h('button', { class: 'ev-nosound', hidden: true, 'aria-label': 'No suena en ningún sitio', title: NO_SOUND, onclick: () => toast(NO_SOUND, 'error') }, icon('warning', 16));
   let volumeBox = null;
   const volumeAsButton = h('button', { class: 'ev-vol-btn', 'aria-label': 'Volumen', onclick: () => {
     volumeBox ||= createBallVolume();
     dialog('Volumen', volumeBox.el);
   } }, icon('speaker-high', 14), h('span', { class: 'ev-amount' }));
-  const vol = h('div', { class: 'ev-vol' }, noSound, volume.el, volumeAsButton);
-  const mid = h('div', { class: 'ev-mid' }, capas, vol);
+  const vol = h('div', { class: 'ev-vol' }, noSound, volume.el, !player && volumeAsButton);
+  const mid = h('div', { class: 'ev-mid' }, !player && capas, vol, trans);
 
   // ---- La franja del pulgar ----
   const modeButton = (mode, label, glyph) => h('button', { class: 'ev-mode', 'data-peligro': '', dataset: { mode }, 'aria-pressed': 'false', title: label, onclick: () => toggleMode(mode) }, icon(glyph, 15), h('span', {}, label));
@@ -103,7 +115,7 @@ export function createEnVivo(ctx) {
   const pasos = h('div', { class: 'ev-pasos', role: 'group', 'aria-label': 'Pasar' }, prev, next);
   const strip = h('div', { class: 'ev-strip' }, modos, pasos);
 
-  const root = h('div', { class: 'ev' });
+  const root = h('div', { class: 'ev', dataset: { variant } });
   const touches = guardTouches(root, { list, controls: slot, cover: back });
 
   // ---- Lo que se dice de lo que está al aire ----
@@ -144,8 +156,10 @@ export function createEnVivo(ctx) {
       statusWhere.textContent = total ? String(total) : '';
       return;
     }
-    statusTitle.textContent = shortTitle(p.item);
-    statusWhere.textContent = at ? `${at} de ${total}` : '';
+    const clock = state.live?.uid === p.item?.uid ? state.live?.state?.clock : null;
+    const ended = player && p.mode === 'clear' && clock?.duration != null && positionAt(clock) >= clock.duration - 0.5;
+    statusTitle.textContent = `${ended ? 'Terminó · ' : ''}${shortTitle(p.item)}`;
+    statusWhere.textContent = at && !player ? `${at} de ${total}` : '';
     if (at && state.order?.name) statusWhere.dataset.name = state.order.name; else delete statusWhere.dataset.name;
   }
 
@@ -193,6 +207,7 @@ export function createEnVivo(ctx) {
         : Array.from({ length: total }, (_, k) => h('i', { class: k === now ? 'on' : k < now ? 'done' : '' }))));
     }
     infoTitle.textContent = shortTitle(p.item) || 'Nada al aire';
+    if (nowName) nowName.textContent = shortTitle(p.item);
     const version = p.item?.version ? ` · ${p.item.version}` : '';
     infoStep.textContent = p.item ? `${total > 1 ? `Paso ${now + 1} de ${total}` : kindOf(p.item.kind)?.label ?? ''}${version}` : '';
     const follows = whatFollows(p);
@@ -215,6 +230,7 @@ export function createEnVivo(ctx) {
     const make = def?.slot ?? plainSlot(def?.controls ? 'Sus mandos están en «Más».' : 'Sin mandos.');
     mounted = { key, view: make(slot, slotApi) || {} };
   }
+  const paintPlayer = () => { slot.dataset.player = String(Boolean(seekBox?.firstChild)); };
   function paintSlot() {
     const item = state.projection?.item;
     const key = item?.kind ?? 'nada';
@@ -224,6 +240,7 @@ export function createEnVivo(ctx) {
       const nowKey = now?.kind ?? 'nada';
       if (mounted?.key !== nowKey || (!now && mounted.has !== rows().length)) mountSlot(nowKey, now);
       if (now) mounted.view.update?.(state.live?.uid === now.uid ? state.live.state : null, now);
+      paintPlayer();
       paintTools();
     };
     // Otro tipo cambia los mandos de sitio: si hay un dedo encima, espera.
@@ -249,6 +266,7 @@ export function createEnVivo(ctx) {
   let prepared = null; // { id, project }
   let shape = null;
   const rowOf = new Map(); // id -> { row, tag }
+  let listEls = [];        // lo que hay en la lista, en el orden de items()
   const markRow = (item) => {
     if (item.id === state.projection?.item?.source?.orderId && state.projection.mode === 'live') return;
     prepared = { id: item.id, project: () => action('order.show', { id: item.id }) };
@@ -266,30 +284,57 @@ export function createEnVivo(ctx) {
   });
   function buildRows() {
     const all = items();
-    const signature = JSON.stringify(all.map((i) => [i.id, i.kind, i.title, i.subtitle]));
+    const signature = JSON.stringify(all.map((i) => [i.id, i.kind, i.title, i.subtitle, i.data?.track]));
     if (signature === shape) return false;
     shape = signature;
     rowOf.clear();
+    listEls = [];
     if (!rows().length) {
       list.replaceChildren(h('div', { class: 'ev-vacio' }, h('b', {}, 'El orden está vacío'), h('small', {}, 'Añade algo desde Biblia, Himnario o Medios.'),
         ctx.has('orden') && mando({ label: 'Abrir Orden', glyph: 'list-numbers', onclick: () => ctx.go('orden') })));
       return true;
     }
     let n = 0;
-    list.replaceChildren(...all.map((item) => {
+    listEls = all.map((item) => {
       if (item.kind === 'section') return h('div', { class: 'ev-sec' }, h('span', {}, item.title));
       n += 1;
       const tag = h('span', { class: 'ev-tag' });
+      // En Alabanza, el número es el del himno; y la pista de cada canto se elige antes de que salga.
+      const number = player ? item.data?.number ?? '' : n;
+      const track = player && item.kind === 'song' && ctx.can('order.edit') && trackChip(item);
       const row = h('div', { class: 'ev-row', dataset: { id: item.id } },
         h('button', { class: 'ev-row-main', title: item.title, onclick: () => markRow(item) },
-          h('span', { class: 'ev-n' }, String(n)), kindBadge(item.kind),
+          h('span', { class: 'ev-n' }, String(number)), kindBadge(item.kind),
           h('span', { class: 'ev-t' }, h('b', {}, item.title), item.subtitle && h('small', {}, item.subtitle))),
+        track,
         h('button', { class: 'ev-play', 'aria-label': `Poner «${item.title}»`, title: 'Poner (Intro)', onclick: () => projectPrepared() }, icon('play', 12)),
         tag);
       rowOf.set(item.id, { row, tag });
       return row;
-    }));
+    });
+    list.replaceChildren(...listEls, player && ctx.has('orden') ? h('button', { class: 'ev-all', onclick: () => ctx.go('orden') }, 'Ver todo el orden') : '');
     return true;
+  }
+  const trackChip = (item) => {
+    const pista = item.data?.track === 'instrumental';
+    return h('button', { class: 'ev-pista', 'aria-label': `${item.title}: suena ${pista ? 'la pista' : 'cantado'}. Cambiar`, onclick: guard(() => action('order.setTrack', { id: item.id, track: pista ? 'vocal' : 'instrumental' })) },
+      pista && icon('waveform', 12), pista ? 'Pista' : 'Cantado');
+  };
+  // En Alabanza, la lista es la sección del canto al aire; en la tableta, lo que viene después sigue a la vista, atenuado.
+  function paintSection() {
+    if (!player) return;
+    const all = items();
+    const at = all.findIndex((i) => i.id === state.projection?.item?.source?.orderId);
+    let from = 0;
+    let to = all.length;
+    if (at >= 0) {
+      for (let i = at; i >= 0; i -= 1) if (all[i].kind === 'section') { from = i; break; }
+      for (let i = at + 1; i < all.length; i += 1) if (all[i].kind === 'section') { to = i; break; }
+    }
+    listEls.forEach((el, i) => {
+      el.classList.toggle('ev-before', i < from);
+      el.classList.toggle('ev-out', i >= to);
+    });
   }
   function paintRows() {
     const p = state.projection;
@@ -324,6 +369,7 @@ export function createEnVivo(ctx) {
   function paintList() {
     buildRows();
     paintRows();
+    paintSection();
     bringLive();
   }
   // La tableta enseña lo marcado con su imagen, y «Poner» aparte.
@@ -381,6 +427,11 @@ export function createEnVivo(ctx) {
     capas.dataset.many = String(loaded.length >= 3);
     mid.dataset.many = String(loaded.length >= 3);
     mid.dataset.none = String(!loaded.length);
+    if (capasChip) {
+      capasChip.hidden = !loaded.length;
+      capasChip.setAttribute('aria-label', loaded.length === 1 ? '1 capa' : `${loaded.length} capas`);
+      capasChip.replaceChildren(icon('stack', 12), `${loaded.length} `, h('span', {}, loaded.length === 1 ? 'capa' : 'capas')); // acostado, su icono en vez de la palabra
+    }
     for (const [n, isle] of isles) if (!loaded.some((s) => s.n === n)) { isle.el.remove(); isles.delete(n); }
     for (const s of loaded) {
       let isle = isles.get(s.n);
@@ -474,13 +525,40 @@ export function createEnVivo(ctx) {
     // La rejilla (envivo.css), con lo que es del shell: la marca, el dock y el cajón.
     compose({ brand, dockbar, drawer }) {
       const top = h('header', { class: 'ev-top' }, brand, status, search?.button);
-      const head = h('div', { class: 'ev-head' }, vista, info);
-      root.append(top, head, slot, mid, prep, listBox, drawer, strip, dockbar);
+      const head = h('div', { class: 'ev-head' }, vista, info, nowName);
+      root.append(...[top, head, slot, seekBox, mid, !player && prep, listBox, drawer, strip, dockbar].filter(Boolean));
       paintPrep(null);
       return root;
     },
     gestures,
   };
+}
+
+// El volumen de Alabanza: a pasos de 5 %, sin bola; su nivel solo se muestra.
+function createStepVolume() {
+  let current = 1;
+  const sender = createSender(guard((patch) => action('projection.volume', patch)));
+  const fill = h('i', {});
+  const amount = h('span', { class: 'ev-amount' });
+  const paint = (v) => {
+    current = v;
+    fill.style.width = `${v * 100}%`;
+    amount.textContent = `${Math.round(v * 100)} %`;
+    amount.classList.toggle('warn', v === 0);
+  };
+  const by = (d) => () => {
+    const v = Math.max(0, Math.min(1, Math.round((current + d) * 20) / 20));
+    paint(v);
+    sender.push({ volume: v });
+  };
+  const el = h('div', { class: 'ev-volsteps', role: 'group', 'aria-label': 'Volumen de Manna' },
+    h('button', { class: 'ev-mute', 'aria-label': 'Bajar el volumen', onclick: by(-0.05) }, icon('minus', 14)),
+    h('span', { class: 'ev-level' }, fill),
+    h('button', { class: 'ev-mute', 'aria-label': 'Subir el volumen', onclick: by(0.05) }, icon('plus', 14)),
+    amount);
+  subscribe('live', ({ volume }) => { if (!sender.busy) paint(volume ?? 1); });
+  paint(state.live?.volume ?? 1);
+  return { el };
 }
 
 // El volumen, con silencio y cifra. Solo se arrastra su bola; se aplica al soltar (DESIGN.md 12 ter, regla 2).
