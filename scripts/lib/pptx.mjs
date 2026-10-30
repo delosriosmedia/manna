@@ -2,7 +2,7 @@ import zlib from 'node:zlib';
 
 // Hace una presentación de PowerPoint (.pptx) para las pruebas, sin depender de ninguna guardada en el repositorio: lo
 // mínimo que PowerPoint y DeckCraft aceptan (un patrón, un diseño, un tema y las diapositivas), con un recuadro de color
-// y un texto en cada una. Una diapositiva con `hidden` va oculta (show="0"); con `font`, su texto lleva esa letra (si
+// y un texto en cada una. Una diapositiva con `hidden` va oculta (show="0"); con `transition`, entra con un fundido; con `font`, su texto lleva esa letra (si
 // no, Arial). `embedded`: las letras que trae dentro, cada una con su parte (solo la cabecera EOT, sin la letra), comprimida
 // como la guarda PowerPoint (MicroType Express) si lleva `compressed`.
 //
@@ -19,9 +19,9 @@ const MASTER = `${HEAD}<p:sldMaster ${NS}><p:cSld><p:bg><p:bgPr><a:solidFill><a:
 const LAYOUT = `${HEAD}<p:sldLayout ${NS} type="blank" preserve="1"><p:cSld name="En blanco"><p:spTree>${TREE}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`;
 const rels = (list) => `${HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${list.map(([id, type, target]) => `<Relationship Id="${id}" Type="${type.startsWith('http') ? type : `${REL}/${type}`}" Target="${target}"/>`).join('')}</Relationships>`;
 
-function slide({ text = '', hidden = false, font = 'Arial' }, i) {
+function slide({ text = '', hidden = false, font = 'Arial', transition = false }, i) {
   const box = `<p:sp><p:nvSpPr><p:cNvPr id="2" name="Texto"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="1500000" y="2500000"/><a:ext cx="9000000" cy="1800000"/></a:xfrm><a:prstGeom prst="roundRect"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="${COLORS[i % COLORS.length]}"/></a:solidFill><a:ln><a:noFill/></a:ln></p:spPr><p:txBody><a:bodyPr wrap="square" anchor="ctr"/><a:lstStyle/><a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="es-CO" sz="3200"><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:latin typeface="${escape(font)}"/></a:rPr><a:t>${escape(text)}</a:t></a:r></a:p></p:txBody></p:sp>`;
-  return `${HEAD}<p:sld ${NS}${hidden ? ' show="0"' : ''}><p:cSld><p:spTree>${TREE}${box}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
+  return `${HEAD}<p:sld ${NS}${hidden ? ' show="0"' : ''}><p:cSld><p:spTree>${TREE}${box}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>${transition ? '<p:transition spd="med"><p:fade/></p:transition>' : ''}</p:sld>`;
 }
 
 export function makePptx(slides, { embedded = [] } = {}) {

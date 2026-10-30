@@ -13,6 +13,7 @@ import slides from '../server/modules/slides/index.js';
 import { collect, explain, exportPlan, isPresentation, LIVE_SCRIPT, livePlan, MAC_SCRIPT, readLine, readLiveLine, WIN_SCRIPT } from '../server/modules/slides/powerpoint.js';
 import { fakePresentation, writeFakePowerPoint } from '../scripts/lib/powerpoint-falso.mjs';
 import { makePng } from '../scripts/lib/png.mjs';
+import { makePptx } from '../scripts/lib/pptx.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-diapositivas-'));
@@ -248,9 +249,13 @@ test('PowerPoint en vivo: la pasa el propio PowerPoint, que da los pasos (tambi�
   const onAir = async () => (await s.state()).projection.item;
   const step = (delta) => s.send('projection.step', { delta });
   try {
-    const added = await s.put('/api/slides/powerpoint?name=Misiones&ext=.pptx', fakePresentation());
+    // Una sin nada que se mueva va como imágenes; con una transición (o animaciones, video o sonido), en vivo.
+    const still = await s.settle((await s.put('/api/slides/powerpoint?name=Quieta&ext=.pptx', makePptx([{ text: 'Uno' }]))).id, 'ready');
+    assert.deepEqual([still.live, still.liveable], [false, true], 'sin nada que se mueva, como imágenes');
+    await s.send('slides.remove', { id: still.id });
+    const added = await s.put('/api/slides/powerpoint?name=Misiones&ext=.pptx', makePptx([{ text: 'Uno', transition: true }, { text: 'Dos' }, { text: 'Tres' }]));
     const deck = await s.settle(added.id, 'ready');
-    assert.deepEqual([deck.live, deck.liveable], [true, true], 'en Windows con PowerPoint, una presentación nueva se pasa en vivo');
+    assert.deepEqual([deck.live, deck.liveable], [true, true], 'con algo que se mueve, se pasa en vivo sin elegirlo');
     assert.deepEqual(fs.readdirSync(path.join(s.dataDir, 'presentaciones')), [`${deck.id}.pptx`], 'se guarda el original, fuera de lo que se sirve');
     const inOrder = (await s.send('order.add', { kind: 'slides', data: { id: deck.id } })).result;
     await s.send('order.add', { kind: 'testcard', data: {} });

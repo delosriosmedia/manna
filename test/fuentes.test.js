@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { deckFonts, fontDirs, fontNames, fontsFor, installedFonts, installFont, readZip, userFontDir } from '../server/modules/slides/fuentes.js';
+import { deckFonts, fontDirs, fontNames, fontsFor, installedFonts, installFont, userFontDir } from '../server/modules/slides/fuentes.js';
+import { hasMotion, readZip } from '../server/modules/slides/pptx.js';
 import { makeFont, serveFonts } from '../scripts/lib/letra.mjs';
 import { makePptx } from '../scripts/lib/pptx.mjs';
 
@@ -27,6 +28,14 @@ test('del .pptx se leen solo las partes pedidas, descomprimidas', () => {
 
 test('las letras que usa: las del tema y las de cada diapositiva; aparte, las que trae dentro sin comprimir', () => {
   assert.deepEqual(deckFonts(deck), { used: ['Arial', 'Letra Comprimida', 'Letra Que Falta', 'Letra de Dentro', 'Letra de Prueba'], embedded: ['Letra de Dentro'] });
+});
+
+test('si algo se mueve en una presentación: una transición sí; nada, o un archivo que no se lee, no', () => {
+  const moving = path.join(tmp, 'se-mueve.pptx');
+  fs.writeFileSync(moving, makePptx([{ text: 'Uno' }, { text: 'Dos', transition: true }]));
+  assert.equal(hasMotion(moving), true);
+  assert.equal(hasMotion(deck), false);
+  assert.equal(hasMotion(path.join(tmp, 'no-existe.pptx')), false);
 });
 
 test('el nombre de familia de un archivo de letra, de su tabla «name»', () => {

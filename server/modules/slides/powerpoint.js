@@ -528,8 +528,9 @@ export function createExporter(app, { platform = process.platform } = {}) {
     running = queue.shift();
     const current = running;
     const { task, job } = current;
-    // Con DeckCraft instalado, convierte él (fase 33): sin ventanas ni permisos, igual en Windows y en Mac.
-    if (app.tools.has('deckcraft')) {
+    // Con DeckCraft instalado, convierte él (fase 33): sin ventanas ni permisos, igual en Windows y en Mac. Salvo
+    // que se pida PowerPoint (task.powerpoint): al abrirla, Office baja las letras suyas que usa (Aptos, Jumble…).
+    if (app.tools.has('deckcraft') && !task.powerpoint) {
       job.update({ detail: 'Convirtiendo con DeckCraft' });
       fs.mkdirSync(task.dir, { recursive: true });
       const done = await convertWithDeckCraft(app, {
@@ -585,7 +586,7 @@ export function createExporter(app, { platform = process.platform } = {}) {
   return {
     forget,
     run(task) {
-      const job = app.jobs.start({ title: `Convirtiendo «${task.name}»`, detail: 'En cola', owner: 'slides', ref: task.id });
+      const job = app.jobs.start({ title: task.title || `Convirtiendo «${task.name}»`, detail: 'En cola', owner: 'slides', ref: task.id });
       queue.push({ task, job });
       next();
       return job;

@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import zlib from 'node:zlib';
+import { readZip } from './pptx.js';
 
 // Las letras (fuentes) de una presentación de PowerPoint. DeckCraft con animaciones corre en el navegador y no ve
 // las letras del equipo: Manna busca entre las instaladas las que usa la presentación y se las entrega al abrirla
@@ -12,39 +12,6 @@ import zlib from 'node:zlib';
 const MAX_FONT = 32 * 1024 ** 2; // una letra más grande (las de chino o japonés) no se manda
 const MAX_TOTAL = 64 * 1024 ** 2;
 const FONT_FILE = /\.(ttf|otf|ttc|otc)$/i;
-
-// ---- Un .pptx es un .zip: se leen solo las partes que se piden, sin cargar el archivo entero ----
-export function readZip(file, wanted) {
-  const fd = fs.openSync(file, 'r');
-  const read = (at, length) => {
-    const buffer = Buffer.alloc(length);
-    if (fs.readSync(fd, buffer, 0, length, at) !== length) throw new Error('El archivo está cortado.');
-    return buffer;
-  };
-  try {
-    const size = fs.fstatSync(fd).size;
-    const tail = read(Math.max(0, size - 65_557), Math.min(size, 65_557));
-    const end = tail.lastIndexOf(Buffer.from('PK\x05\x06', 'latin1'));
-    if (end < 0) throw new Error('No es un archivo .zip.');
-    const dir = read(tail.readUInt32LE(end + 16), tail.readUInt32LE(end + 12));
-    const parts = new Map();
-    for (let at = 0; at + 46 <= dir.length && dir.readUInt32LE(at) === 0x02014b50;) {
-      const method = dir.readUInt16LE(at + 10);
-      const packed = dir.readUInt32LE(at + 20);
-      const nameLength = dir.readUInt16LE(at + 28);
-      const local = dir.readUInt32LE(at + 42);
-      const name = dir.toString('utf8', at + 46, at + 46 + nameLength);
-      at += 46 + nameLength + dir.readUInt16LE(at + 30) + dir.readUInt16LE(at + 32);
-      if (!wanted(name) || (method !== 0 && method !== 8)) continue;
-      const head = read(local, 30);
-      const data = read(local + 30 + head.readUInt16LE(26) + head.readUInt16LE(28), packed);
-      parts.set(name, method === 8 ? zlib.inflateRawSync(data) : data);
-    }
-    return parts;
-  } finally {
-    fs.closeSync(fd);
-  }
-}
 
 const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
 const unescape = (text) => text.replace(/&(#x[0-9a-f]+|#\d+|\w+);/gi, (all, e) => (e[0] === '#'
@@ -131,9 +98,17 @@ export function fontNames(file) {
   }
 }
 
+// Las carpetas que existen pero no se dejan leer: en Mac, la de Office está protegida (macOS pide permiso para leer
+// lo de otro programa).
+let blocked = new Set();
 function fontFiles(dir, depth = 3) {
   let entries = [];
-  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return []; }
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch (err) {
+    if (err.code === 'EPERM' || err.code === 'EACCES') blocked.add(dir);
+    return [];
+  }
   return entries.flatMap((e) => {
     const full = path.join(dir, e.name);
     if (e.isDirectory()) return depth > 0 ? fontFiles(full, depth - 1) : [];
@@ -147,6 +122,7 @@ let cached = { stamp: null, index: new Map() };
 export function installedFonts(dirs = fontDirs()) {
   const stamp = dirs.map((dir) => { try { return fs.statSync(dir).mtimeMs; } catch { return 0; } }).join('|');
   if (stamp === cached.stamp) return cached.index;
+  blocked = new Set();
   const index = new Map();
   for (const file of dirs.flatMap((dir) => fontFiles(dir))) {
     for (const name of fontNames(file).map(same)) index.set(name, [...(index.get(name) || []), file]);
@@ -154,6 +130,9 @@ export function installedFonts(dirs = fontDirs()) {
   cached = { stamp, index };
   return index;
 }
+
+// Si el sistema no deja leer las letras que baja Office (en Mac, sin permiso; se sabe tras revisar las carpetas).
+export const officeBlocked = () => [...blocked].some((dir) => /UBF8T346G9\.Office|FontCache/i.test(dir));
 
 // Lo que necesita DeckCraft para una presentación: los archivos de las letras que usa y están instaladas
 // (todos los de cada familia: negrita, cursiva…), y las que no se encuentran en ninguna parte. Un archivo repetido

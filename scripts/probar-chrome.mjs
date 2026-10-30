@@ -2255,7 +2255,7 @@ try {
     await openSlides();
     await sleep(400);
     const lesson = path.join(tmp, 'escuela sabatica.pptx');
-    fs.writeFileSync(lesson, fakePresentation());
+    fs.writeFileSync(lesson, makePptx([{ text: 'Uno', transition: true }, { text: 'Dos' }, { text: 'Tres' }]));
     await pickFile(lesson);
     check('un PowerPoint se sube tal cual: lo convertirá el PowerPoint del equipo', await run(`return ${modal}.querySelector('input').value === 'escuela sabatica' && ${modal}.querySelector('.deck-up-status').textContent.includes('PowerPoint del equipo principal') && !${modal}.querySelector('.btn.primary').disabled`));
     await modalButton('Subir');
@@ -2269,7 +2269,7 @@ try {
     // animación en la diapositiva 2); Manna pone la foto de cada diapositiva.
     const madeCard = `${ws}.querySelector('.deck[data-id="${made.id}"]')`;
     const pptSaid = () => { try { return fs.readFileSync(path.join(tmp, 'powerpoint', 'pase.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l)).map((o) => [o.order, o.value].filter(Boolean).join(' ')); } catch { return []; } };
-    check('en Windows con PowerPoint, un PowerPoint nuevo se pasa en vivo, y la tarjeta lo dice', made.live === true && await run(`return ${madeCard}.querySelector('small').textContent.includes('PowerPoint en vivo')`), await run(`return ${madeCard}?.querySelector('small')?.textContent`));
+    check('en Windows con PowerPoint, un PowerPoint nuevo con una transición se pasa en vivo sin elegirlo, y la tarjeta lo dice', made.live === true && await run(`return ${madeCard}.querySelector('small').textContent.includes('PowerPoint en vivo')`), await run(`return ${madeCard}?.querySelector('small')?.textContent`));
     await click(slide(1));
     await sleep(400);
     await press('Enter');

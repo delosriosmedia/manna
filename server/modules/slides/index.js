@@ -5,7 +5,8 @@ import { HttpError } from '../../core/router.js';
 import { imageInfo, readImageInfo } from '../../core/images.js';
 import { cleanName } from '../../core/names.js';
 import { applyView, initialView } from '../../core/view.js';
-import { fontsFor, installFont } from './fuentes.js';
+import { fontsFor, installFont, officeBlocked } from './fuentes.js';
+import { hasMotion } from './pptx.js';
 import { createExporter, isPresentation, liveSupported, openLive, PRESENTATION_EXTENSIONS } from './powerpoint.js';
 
 // Módulo Diapositivas: presentaciones convertidas en imágenes, una por diapositiva. Así se ven
@@ -26,7 +27,8 @@ import { createExporter, isPresentation, liveSupported, openLive, PRESENTATION_E
 //   church:    en la nube, un PowerPoint que se convierte en el equipo de la iglesia al llegar (decisión 64)
 //   atChurch:  en la nube, ya llegó a la iglesia: quedan su ficha y sus miniaturas
 //   original:  el PowerPoint tal cual se subió (desde la 1.14), en data/presentaciones/: no se sirve
-//   live:      se pasa con el propio PowerPoint mientras está al aire (ver «PowerPoint en vivo», abajo)
+//   live:      se pasa «con animaciones» (DeckCraft o PowerPoint en vivo, abajo), si se eligió en su menú (liveChosen);
+//              si nadie lo eligió, va así cuando tiene animaciones, transiciones, video o sonido (motion, pptx.js)
 //   missingFonts: las letras que usa y no están en el equipo ni dentro de la presentación (fuentes.js)
 //   redone:    cuándo se convirtió de nuevo: va en la dirección de cada imagen, para que nadie vea la de antes
 
@@ -72,7 +74,7 @@ export default function setup(app) {
     status: deck.status, error: deck.error || null, base: `/media/${FOLDER}/${deck.id}/`, ext: deck.ext || 'jpg', thumbs: Boolean(deck.thumbs), thumbExt: deck.thumbExt || 'jpg', ...(deck.atChurch && { atChurch: true }), ...(deck.cover && { cover: true }),
     ...(deck.missingFonts?.length && { missingFonts: deck.missingFonts }), ...(deck.redone && { redone: deck.redone }),
     // Tras un fallo de PowerPoint va como imágenes, y el menú ofrece volver a intentarlo.
-    live: Boolean(deck.live) && !failed.has(deck.id), liveable: liveable(deck),
+    live: liveOf(deck) && !failed.has(deck.id), liveable: liveable(deck),
   });
   // Las categorías de Medios aceptan presentaciones: así saben si una existe.
   app.services.slides = { has: (id) => decks().some((d) => d.id === id && d.status !== 'receiving') };
@@ -101,8 +103,10 @@ export default function setup(app) {
   // Se puede pasar con animaciones: con DeckCraft (en cualquier equipo) o, sin él, con PowerPoint (en Windows).
   const liveable = (deck) => Boolean(deck.original) && (withDeckCraft() || withPowerPoint());
   const failed = new Set(); // las que PowerPoint no pudo pasar: van como imágenes hasta que se vuelva a pedir
-  const inPowerPoint = (deck) => Boolean(deck.live && deck.original) && !withDeckCraft() && withPowerPoint() && !failed.has(deck.id);
-  const inDeckCraft = (deck) => Boolean(deck.live && deck.original) && withDeckCraft();
+  // Con animaciones: lo elegido en su menú o, si nadie eligió, si algo se mueve en ella (pedido del dueño, 2026-10-29).
+  const liveOf = (deck) => Boolean(deck.original) && Boolean(deck.liveChosen ? deck.live : deck.motion);
+  const inPowerPoint = (deck) => liveOf(deck) && !withDeckCraft() && withPowerPoint() && !failed.has(deck.id);
+  const inDeckCraft = (deck) => liveOf(deck) && withDeckCraft();
   let session = null; // { deck, live, showing, at }: at = la diapositiva en que está PowerPoint (1…)
   // Acercada o desplazada («Mover»), PowerPoint se aparta y se ve la imagen de Manna con su encuadre; vuelve con la
   // vista completa o al pasar de diapositiva.
@@ -435,8 +439,8 @@ export default function setup(app) {
               fs.mkdirSync(originals, { recursive: true });
               fs.renameSync(input, path.join(originals, `${id}${ext}`));
               Object.assign(deck, { original: `${id}${ext}` });
-              deck.live = Boolean(deck.original) && withPowerPoint();
             } else deck.redone = Date.now();
+            deck.motion = hasMotion(originalOf(deck));
             checkFonts(deck);
             then();
           } else if (still && !result.cancelled) Object.assign(deck, first ? { status: 'error', error: result.error } : { status: 'ready' });
@@ -567,7 +571,7 @@ export default function setup(app) {
     if (on && !withDeckCraft() && !liveSupported()) throw new HttpError(409, 'Para pasarla con animaciones hace falta «DeckCraft con animaciones» (Ajustes → Revisar el equipo) o, en Windows, PowerPoint.');
     if (on && !withDeckCraft() && !app.tools.has('powerpoint')) throw new HttpError(409, 'Este equipo no tiene PowerPoint. Para pasarla con animaciones, instala «DeckCraft con animaciones» (Ajustes → Revisar el equipo).');
     if (on && !deck.original) throw new HttpError(409, 'De esta presentación no se guardó el PowerPoint original (se subió como PDF o antes de la versión 1.14). Súbela de nuevo como PowerPoint.');
-    deck.live = Boolean(on);
+    Object.assign(deck, { live: Boolean(on), liveChosen: true });
     failed.delete(deck.id);
     if (session?.deck === deck) closeSession();
     commit();
@@ -590,8 +594,15 @@ export default function setup(app) {
       return [];
     }
   }
-  // Al abrir, las de las presentaciones que ya estaban (se pudo instalar o quitar alguna letra desde entonces).
-  const review = setTimeout(() => decks().forEach(checkFonts), 5000);
+  // Al abrir, las de las presentaciones que ya estaban (se pudo instalar o quitar alguna letra desde entonces), y si algo
+  // se mueve en las de antes de la 1.59.1, que no lo apuntaban.
+  const review = setTimeout(() => decks().forEach((deck) => {
+    if (deck.original && deck.motion === undefined && !app.cloud) {
+      deck.motion = hasMotion(originalOf(deck));
+      commit();
+    }
+    checkFonts(deck);
+  }), 5000);
   review.unref();
   app.onClose(() => clearTimeout(review));
 
@@ -619,16 +630,36 @@ export default function setup(app) {
     if (app.cloud || !deck.missingFonts?.length) throw new HttpError(409, 'A esta presentación no le falta ninguna letra en este equipo.');
     const job = app.jobs.start({ title: 'Instalando sus letras', owner: 'slides', ref: deck.id });
     (async () => {
-      const absent = [];
+      let absent = [];
       let installed = 0;
       for (const family of deck.missingFonts) {
         job.update({ detail: family });
         if ((await installFont(family)).length) installed += 1;
         else absent.push(family);
       }
+      // Las de Microsoft Office (Aptos, Jumble…) no están en ningún repositorio: si el equipo tiene PowerPoint, se abre
+      // la presentación con él y Office baja las suyas que use, a su carpeta, que Manna ya mira (así pasó en un Mac,
+      // 2026-10-29: al convertirla con PowerPoint, Office bajó Jumble y Fredoka One).
+      const office = absent.length > 0 && app.tools.has('powerpoint');
+      if (office) {
+        job.update({ detail: 'Pidiéndoselas a Office' });
+        const ext = path.extname(deck.original);
+        const input = path.join(app.tmpDir, `presentacion-${deck.id}-office${ext}`);
+        const dir = path.join(app.tmpDir, `office-${deck.id}`);
+        fs.mkdirSync(app.tmpDir, { recursive: true });
+        fs.copyFileSync(originalOf(deck), input);
+        await new Promise((done) => exporter.run({ id: deck.id, name: deck.name, input, dir, powerpoint: true, title: `Pidiendo a Office las letras de «${deck.name}»`, onDone: done }));
+        fs.rmSync(input, { force: true });
+        fs.rmSync(dir, { recursive: true, force: true });
+        const still = fontsFor(originalOf(deck)).missing;
+        installed += absent.filter((family) => !still.includes(family)).length;
+        absent = absent.filter((family) => still.includes(family));
+      }
       checkFonts(deck);
       if (installed) reconvert(deck);
-      const note = absent.length ? `${absent.join(', ')} no ${absent.length === 1 ? 'está' : 'están'} en Google Fonts, Fontsource ni Font Squirrel: hay que instalarla${absent.length === 1 ? '' : 's'} a mano y elegir «Convertir de nuevo».` : '';
+      const one = absent.length === 1;
+      const note = !absent.length ? '' : `${absent.join(', ')} no ${one ? 'está' : 'están'} en Google Fonts, Fontsource ni Font Squirrel${office ? `, ni Office ${one ? 'la' : 'las'} bajó` : ''}: hay que instalarla${one ? '' : 's'} a mano y elegir «Convertir de nuevo».`
+        + (officeBlocked() ? ' En este Mac, macOS no deja a Manna leer las letras de Office: en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco, activa Manna y vuelve a abrirlo.' : '');
       if (note) job.fail(installed ? `Las demás se instalaron. ${note}` : note);
       else job.done('Instaladas');
     })().catch((err) => job.fail(err.message || 'No se pudieron instalar.'));
