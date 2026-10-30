@@ -1900,7 +1900,7 @@ Desde el 2026-10-25 **todo lo pendiente de Manna está aquí**, en cuatro grupos
 
 | Qué | Estado |
 | --- | --- |
-| S62 · **Los manuales de `manna-iglesia.es` con las funciones y las pantallas de hoy** | Se hicieron el 2026-10-29 (decisión 67) y las fases 42 a 48 los dejaron atrás: siguen hablando del Presentador y sus capturas de celular son de «Historias». Hay que reescribir `sitio/manuales/`, rehacer las capturas (`node scripts/sitio.mjs`) y volver a publicarlo. Espera el visto bueno del dueño: es una página pública |
+| S62 · **Los manuales de `manna-iglesia.es` con las funciones y las pantallas de hoy** | Se hicieron el 2026-10-29 (decisión 67) y las fases 42 a 48 los dejaron atrás: dicen «cola del culto» y el control en el celular sale con la pantalla de «Historias». Hay que poner al día `sitio/manuales/usuarios.html` e `instalacion.html`, rehacer las capturas (`node scripts/sitio.mjs`) y volver a publicarlo. Espera el visto bueno del dueño: es una página pública |
 
 ### 3. Tareas del dueño
 
