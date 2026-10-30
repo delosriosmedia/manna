@@ -4,7 +4,7 @@ import { isMobile, layoutFor } from './disposicion.js';
 import { can } from './session.js';
 import { watchBlocked } from './blocked.js';
 import { mountConnectionBar } from './connection.js';
-import { h, allowLeaving, confirmBeforeClose, dialog, go, guard, pageZoom, toast } from './dom.js';
+import { h, allowLeaving, confirmBeforeClose, dialog, go, guard, menu, pageZoom, toast } from './dom.js';
 import { icon } from './icons.js';
 import { joinNames, missingFor, toolsOf } from './needs.js';
 import { prefs } from './prefs.js';
@@ -31,7 +31,9 @@ import { chooseContent, contentMissing } from './contenido.js';
 // layout 'pestanas' (Preparar el culto, en la nube; fase 36): sin escenario ni proyección. El dock son las pestañas (a la
 // izquierda; abajo en el celular) y el módulo elegido ocupa el resto. createScene solo da { preview } (escuchar).
 // topTools: [(ctx) => nodo]: lo que va al final de la barra de arriba (el wifi y el QR del Control total).
-export function createShell({ role, isLocal, user = null, modules, topTools = [], createScene, layout = 'escena', church = null }) {
+// createLiveScene: la pantalla de un celular o una tableta («En vivo», modules/envivo/escena.js), si la función la tiene. Su compose() la arma
+// con la marca, el dock y el cajón, que son de aquí; el módulo abierto sube dentro de ella, sin fondo oscuro.
+export function createShell({ role, isLocal, user = null, modules, topTools = [], createScene, createLiveScene = null, layout = 'escena', church = null }) {
   // Lo que el superadministrador dejó a esta iglesia (fase 39): sin los módulos apagados y, si los ordenó, en su orden
   // (el primero es el que se abre cuando este dispositivo no recuerda otro).
   const arranged = church?.layout?.[role] || [];
@@ -48,7 +50,15 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   // Qué disposición le toca a este dispositivo (decisión 71): la dicen data-disposicion y `ctx.layout()`.
   const mobile = isMobile({ main: isLocal, forced: /[?&]tactil/.test(location.search), coarse: matchMedia('(pointer: coarse)').matches, ipad: navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1, android: /Android/.test(navigator.userAgent) });
   const layoutNow = () => layoutFor({ mobile, width: innerWidth, height: innerHeight });
-  const paintLayout = () => { document.documentElement.dataset.disposicion = layoutNow(); };
+  // Entre el computador y el resto cambian las piezas enteras: se vuelve a abrir la página (lo compartido está en el servidor).
+  const onComputer = layoutNow() === 'computador';
+  const paintLayout = () => {
+    document.documentElement.dataset.disposicion = layoutNow();
+    if (createLiveScene && (layoutNow() === 'computador') !== onComputer) {
+      allowLeaving();
+      location.reload();
+    }
+  };
   paintLayout();
   addEventListener('resize', paintLayout);
   if (mobile && !tabs) keepAwake();
@@ -57,7 +67,8 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   const work = h('div', { class: 'work' });
   // go(id, parte): abre un módulo y, si lo admite (part en lo que devuelve su mount), una de sus pestañas.
   const ctx = { role, isLocal, user, can, layout: layoutNow, canProject: !tabs, has: (id) => usable.some((m) => m.id === id), go: (id, part) => { show(id); if (part) current?.api.part?.(part); } };
-  const scene = full ? null : createScene({ ...ctx, openControls: () => openControls() });
+  const inline = !bare && Boolean(createLiveScene) && !onComputer; // «En vivo»: el cajón va dentro de la pantalla
+  const scene = full ? null : (inline ? createLiveScene : createScene)({ ...ctx, openControls: () => openControls() });
   // Escuchar algo solo en este dispositivo antes de añadirlo ({ url, title }); null en el equipo principal.
   ctx.listen = scene?.preview ? (what) => scene.preview.play(what) : null;
 
@@ -74,7 +85,14 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
     : h('span', { class: 'brand-mark' }, logo);
   const brand = h('div', { class: 'brand glass' }, brandMark,
     h('span', { class: 'brand-text', 'aria-hidden': 'true' }, h('strong', {}, 'Manna'), version),
-    h('button', { class: 'brand-switch', title: `Cambiar de función (ahora, ${ROLE_NAMES[role] || role})`, 'aria-label': 'Cambiar de función', onclick: () => go('/') }, icon('arrows-left-right', 16)));
+    h('button', { class: 'brand-switch', title: `Cambiar de función (ahora, ${ROLE_NAMES[role] || role})`, 'aria-label': 'Cambiar de función', onclick: () => {
+      if (!inline || !state.projection?.item) { go('/'); return; }
+      // En un celular, un toque de más en pleno culto no saca a nadie de su pantalla (DESIGN.md 12 ter, regla 3).
+      const box = dialog('¿Cambiar de función?', h('p', {}, 'Hay algo al aire. Seguirá al aire aunque salgas de esta pantalla.'),
+        h('div', { class: 'row', style: 'justify-content: flex-end;' },
+          h('button', { class: 'btn', onclick: () => box.close() }, 'Quedarme'),
+          h('button', { class: 'btn primary', onclick: () => go('/') }, 'Cambiar')));
+    } }, icon('arrows-left-right', 16)));
   // Tres columnas: a la izquierda la marca y «Solo fondo» y «Negro»; al centro, «Al aire» en su burbuja; a la derecha
   // el proyector, «Buscar en todo» y lo de cada función (wifi y QR).
   const top = h('header', { class: 'topbar' },
@@ -87,7 +105,14 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   const dockButton = (m) => h('button', { class: 'dock-item', dataset: { id: m.id }, title: m.name, 'aria-label': m.name, 'aria-pressed': 'false', onclick: () => (current?.id === m.id && isOpen() && !tabs ? closeDrawer() : show(m.id)) },
     icon(m.icon, 20), h('span', { class: 'dock-name' }, m.name));
   // Ajustes se abre con el logo (arriba), no desde el dock.
-  dockbar.append(...listed.filter((m) => m !== settings && m.place !== 'bottom').map(dockButton), h('span', { class: 'dock-fill' }), ...listed.filter((m) => m !== settings && m.place === 'bottom').map(dockButton));
+  const docked = listed.filter((m) => m !== settings);
+  // «En vivo»: primero ella, aunque la iglesia ordene los módulos; luego cinco módulos y, si hay más, «Módulos».
+  const inDock = inline && docked.length > 6 ? docked.slice(0, 5) : docked;
+  const inMenu = docked.filter((m) => !inDock.includes(m));
+  const liveItem = inline && h('button', { class: 'dock-item', 'aria-label': 'En vivo', 'aria-pressed': 'false', onclick: () => closeDrawer() }, icon('screencast', 16), h('span', { class: 'dock-name' }, 'En vivo'));
+  const moreItem = inMenu.length > 0 && h('button', { class: 'dock-item', 'aria-label': 'Más módulos', 'aria-haspopup': 'menu', onclick: () => menu(moreItem, inMenu.map((m) => ({ label: m.name, icon: m.icon, onclick: () => show(m.id) }))) }, icon('dots-three', 16), h('span', { class: 'dock-name' }, 'Módulos'));
+  if (inline) dockbar.append(...[liveItem, ...inDock.map(dockButton), moreItem].filter(Boolean));
+  else dockbar.append(...docked.filter((m) => m.place !== 'bottom').map(dockButton), h('span', { class: 'dock-fill' }), ...docked.filter((m) => m.place === 'bottom').map(dockButton));
   if (listed.length < 2 && !full) dockbar.classList.add('single');
   if (tabs) dockbar.setAttribute('aria-label', 'Pestañas');
 
@@ -110,25 +135,28 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   // De partida, ancho en el escritorio y reducido en el celular (decisión del dueño, 2026-10-15), salvo en uno
   // bajo (menos de 700 px), donde reducido no deja sitio. Un módulo con `full` (Ajustes) se abre siempre completo
   // en el celular.
-  const wideKey = () => (narrow.matches ? 'cajon.completo' : 'cajon.ancho');
-  const forcedFull = () => narrow.matches && Boolean(usable.find((m) => m.id === current?.id)?.full);
-  const preferredWide = () => forcedFull() || prefs.get(wideKey(), !narrow.matches || innerHeight < 700);
+  // En «En vivo» se abre siempre entre la vista y la franja (ampliado, tapa la vista); salvo en la tableta de pie, lleva lo esencial.
+  const wideKey = () => (inline ? 'envivo.ancho' : narrow.matches ? 'cajon.completo' : 'cajon.ancho');
+  const forcedFull = () => (inline || narrow.matches) && Boolean(usable.find((m) => m.id === current?.id)?.full);
+  const preferredWide = () => forcedFull() || prefs.get(wideKey(), inline ? false : !narrow.matches || innerHeight < 700);
   function setWide(wide) {
     prefs.set(wideKey(), wide);
     paintSize(wide);
   }
   function paintSize(wide) {
     drawer.classList.toggle('wide', wide);
-    drawer.classList.toggle('compact', narrow.matches && !wide);
+    drawer.classList.toggle('compact', (inline ? layoutNow() !== 'tableta-pie' : narrow.matches) && !wide);
     wideButton.hidden = forcedFull();
     wideButton.replaceChildren(icon(wide ? 'arrows-in' : 'arrows-out', 16));
-    const label = narrow.matches ? (wide ? 'Reducir el cajón' : 'Ampliar a pantalla completa') : (wide ? 'Hacer el cajón más estrecho' : 'Ampliar el cajón');
+    const label = inline || narrow.matches ? (wide ? 'Reducir el cajón' : 'Ampliar a pantalla completa') : (wide ? 'Hacer el cajón más estrecho' : 'Ampliar el cajón');
     wideButton.setAttribute('aria-label', label);
     wideButton.title = label;
     dockActions();
   }
   function dockActions() {
-    const head = !drawer.classList.contains('compact') && mounted.get(current?.id)?.el.querySelector(':scope > .ws-head');
+    // En «En vivo», siempre con el módulo: cada fila cuenta, y su nombre ya lo dice el dock.
+    const own = mounted.get(current?.id)?.el.querySelector(':scope > .ws-head');
+    const head = own && (inline ? getComputedStyle(own).display !== 'none' : !drawer.classList.contains('compact')) && own;
     (head || drawerHead).append(actions); // append mueve el nodo: el foco no se pierde
     actions.classList.toggle('in-ws', Boolean(head));
     drawerHead.hidden = Boolean(head);
@@ -141,7 +169,7 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   // del dock al cerrarlo.
   function openDrawer() {
     drawer.hidden = false;
-    backdrop.hidden = !narrow.matches;
+    backdrop.hidden = inline || !narrow.matches;
     document.body.classList.add('drawer-open');
     if (!drawer.contains(document.activeElement)) drawer.focus({ preventScroll: true });
   }
@@ -221,6 +249,10 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
       b.classList.toggle('on', on);
       b.setAttribute('aria-pressed', String(on));
     });
+    if (!inline) return;
+    liveItem.classList.toggle('on', !isOpen());
+    liveItem.setAttribute('aria-pressed', String(!isOpen()));
+    moreItem && moreItem.classList.toggle('on', isOpen() && inMenu.some((m) => m.id === current?.id));
   }
 
   // ---- Mandos de lo que está al aire: una capa que se cierra al tocar fuera ----
@@ -443,6 +475,12 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
     document.body.append(h('div', { class: 'shell' }, work));
   } else if (tabs) {
     document.body.append(h('div', { class: 'shell' }, dockbar, work), scene.preview?.bar || '');
+  } else if (inline) {
+    document.body.classList.replace('escena', 'envivo');
+    grip.remove();
+    document.body.append(scene.compose({ brand, dockbar, drawer }), ...[update, fresh, content, controlsLayer, scene.search?.layer, scene.preview?.bar].filter(Boolean));
+    addEventListener('resize', () => { if (isOpen()) paintSize(preferredWide()); });
+    paintDock();
   } else {
     const place = () => {
       document.body.classList.toggle('narrow', narrow.matches);

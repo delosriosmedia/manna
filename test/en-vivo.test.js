@@ -113,7 +113,7 @@ test('Siguiente: dos toques casi juntos no pasan dos pasos, y se sabe qué pondr
     const b = (await s.send('order.add', { kind: 'verses', data: passage(s, 1, 1, 1) })).result;
     const shown = (await s.send('order.show', { id: a.id, step: 0 })).result;
     let now = await s.state();
-    assert.deepEqual(now.projection.next, { title: a.title, kind: 'verses', step: 1, steps: 3, inside: true });
+    assert.deepEqual(now.projection.next, { title: a.title, kind: 'verses', orderId: a.id, step: 1, steps: 3, inside: true });
     assert.equal(now.projection.back, null, 'lo primero no tiene a qué volver');
 
     const first = await s.send('projection.step', { delta: 1, uid: shown.uid });
@@ -123,7 +123,7 @@ test('Siguiente: dos toques casi juntos no pasan dos pasos, y se sabe qué pondr
     assert.equal((await s.send('projection.step', { delta: 1, uid: first.result.uid })).result.source.step, 2, 'con lo que se ve ahora, sí');
 
     now = await s.state();
-    assert.deepEqual(now.projection.next, { title: b.title, kind: 'verses', step: 0, steps: 1, inside: false });
+    assert.deepEqual(now.projection.next, { title: b.title, kind: 'verses', orderId: b.id, step: 0, steps: 1, inside: false });
     assert.equal(now.projection.back, null, 'el paso que tocaba no se ofrece deshacer');
     const last = (await s.send('projection.step', { delta: 1 })).result;
     assert.equal(last.source.orderId, b.id);

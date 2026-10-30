@@ -2,6 +2,7 @@ import { h } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { registerKind } from '../../core/kinds.js';
 import { drawPicture, pictureControls } from '../projection/picture.js';
+import { framingButtons, mando } from '../projection/slot.js';
 
 // Tipo de contenido "imagen": ocupa la pantalla entera, completa (con bandas negras) o llenándola,
 // y mientras está al aire se puede acercar y desplazar. El dibujo y los mandos del encuadre son
@@ -15,6 +16,20 @@ registerKind('image', {
   background: false,
   draw: drawPicture,
   controls: pictureControls,
+
+  slot(host, api) {
+    const fits = [['contain', 'Completa'], ['cover', 'Llenar']].map(([id, label]) => mando({ label, onclick: () => api.send({ fit: id }) }));
+    const framing = framingButtons(api);
+    host.replaceChildren(...fits, framing.minus, framing.plus, api.tool('point'), api.tool('move'), framing.all, api.more());
+    return {
+      update(state, item) {
+        const fit = state?.fit || item.fit;
+        fits[0].classList.toggle('sel', fit !== 'cover');
+        fits[1].classList.toggle('sel', fit === 'cover');
+        framing.update(state);
+      },
+    };
+  },
 });
 
 // Un video de YouTube añadido por su enlace desde la nube (fase 36): solo se ve en el orden hasta que lo descargue la

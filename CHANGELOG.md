@@ -4,6 +4,14 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.63.0 — 2026-10-30
+
+- **Control total estrena «En vivo» en el celular y la tableta**: lo que sale al proyector se ve tal cual arriba; debajo, los mandos de lo que está al aire en un sitio fijo, las capas y el volumen, el orden y, bajo el pulgar, Solo fondo, Negro, Anterior y Siguiente. Siguiente dice lo que va a poner.
+- **Un toque accidental ya no hace nada**: en el orden, un toque solo marca la fila y su ▶ la pone al aire; si el dedo se movió o se quedó mucho, no pasa nada. Un salto se deshace con «Volver a …» durante 10 s, y Negro y Solo fondo se quitan con «Quitar», sin un solo rojo a la vista.
+- **El volumen y el avance solo se mueven por su bola**, se aplican al soltar y se cancelan alejando el dedo.
+- **Siempre se sabe si llegó**: el botón pulsado cambia al instante, a los 2 s avisa si Manna no contesta y, a los 12 s sin noticias, la pantalla dice «SIN CONEXIÓN» sin mover nada.
+- **Señalar también sobre un video**, en todas las pantallas.
+
 ## 1.62.0 — 2026-10-30
 
 - **El celular ve lo mismo que el proyector**: las capas de texto (versículos, reloj, texto fijo) y el video en movimiento, sin sonido. Para no cargar el wifi de la iglesia, Manna prepara de fondo una copia muy liviana de lo que está en el orden en uso y de lo que se proyecta; mientras no está, se ve la imagen. Una página web en una capa se ve como una tarjeta que dice cuál es.

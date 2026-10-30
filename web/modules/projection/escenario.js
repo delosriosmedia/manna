@@ -4,7 +4,7 @@ import { icon } from '../../core/icons.js';
 import { createJobsList } from '../../core/jobs.js';
 import { kindBadge, kindOf } from '../../core/kinds.js';
 import { prefs } from '../../core/prefs.js';
-import { createStage, withOver } from './stage.js';
+import { createStage, lightLayer, withOver } from './stage.js';
 import { createLiveControls } from './live.js';
 import { createDisplayToggle, describeLive, toggleMode } from './controls.js';
 import { createVolume } from './volume.js';
@@ -241,7 +241,8 @@ export function createEscenario(ctx) {
   function paintTools() {
     const item = state.projection?.item;
     const live = state.live?.uid === item?.uid ? state.live?.state : null;
-    const pointable = Boolean(item) && state.projection.mode === 'live' && stage.pointable();
+    // Lo que suena se señala en «En vivo»; aquí su barra ya va llena.
+    const pointable = Boolean(item) && state.projection.mode === 'live' && stage.pointable() && !live?.clock;
     // Lo que pasa PowerPoint también: al acercarlo, PowerPoint se aparta (server/modules/slides).
     const movable = pointable && Boolean(live?.zoom);
     if ((tool === 'point' && !pointable) || (tool === 'move' && !movable)) tool = null;
@@ -386,13 +387,7 @@ export function createEscenario(ctx) {
     renderQueue();
     renderStory(p);
   });
-  // Una página no se carga aquí: en el equipo principal correría dos veces, y en un celular gastaría datos y memoria. En un
-  // celular se ve una tarjeta en su lugar (decisión 69: la vista previa, tal cual, dicho lo que no se puede mostrar).
-  const lightLayer = (s) => {
-    if (s.kind !== 'web') return s;
-    return ctx.isLocal ? { n: s.n } : { n: s.n, kind: 'web-card', visible: s.visible, ready: true, uid: s.uid, content: { title: s.title } };
-  };
-  const paintLayers = () => stage.setLayers(withOver((state.layers?.slots || []).map(lightLayer), state.projection));
+  const paintLayers = () => stage.setLayers(withOver((state.layers?.slots || []).map(lightLayer(ctx.isLocal)), state.projection));
   // La capa del orador va y viene con lo que está al aire.
   subscribe('projection', paintLayers);
   // Después de hacer todas las piezas: subscribe avisa enseguida si el estado ya está.

@@ -1,5 +1,6 @@
 import { h } from '../../core/dom.js';
 import { registerKind } from '../../core/kinds.js';
+import { notaMando, stepCells, wholeCell } from '../projection/slot.js';
 import { applyTextStyles, fitText } from '../projection/text.js';
 
 // Tipo de contenido "texto" (módulo Textos): un mensaje o una cita sobre el fondo de la proyección, con la letra
@@ -10,6 +11,7 @@ registerKind('text', {
   label: 'Texto',
   unit: ['parte', 'partes'],
   wholeUpTo: 3,
+  stepLabel: (_item, k) => `Parte ${k + 1}`,
   title: (item) => (item.parts > 1 && item.part ? `${item.title} · ${item.part} de ${item.parts}` : item.title),
   key: (item) => `${item.id}|${item.part}|${item.style}|${item.author}|${item.text}`,
 
@@ -38,6 +40,19 @@ registerKind('text', {
       destroy() {
         observer.disconnect();
         stage.style.removeProperty('--fit');
+      },
+    };
+  },
+
+  slot(host, api) {
+    const cells = stepCells(2, { total: (item) => item.parts, now: (item) => (item.parts === 1 ? 0 : item.source.step), name: (k) => `Parte ${k + 1}` });
+    const whole = wholeCell();
+    host.replaceChildren(...cells.els, whole.el, api.more(), notaMando('Sin más mandos. Se escribe en Textos.'));
+    return {
+      update(_, item) {
+        cells.update(item);
+        whole.update(item);
+        whole.el.classList.toggle('ev-off', item.parts < 2);
       },
     };
   },

@@ -2,6 +2,7 @@ import { action, subscribe } from '../../core/api.js';
 import { h, guard } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { registerKind } from '../../core/kinds.js';
+import { mando, mandoVacio, notaMando } from '../projection/slot.js';
 
 // Tipo de contenido "página web": la página ocupa la pantalla dentro de un marco (iframe). Se dibuja
 // siempre a 1920 × 1080 y se escala, para que tenga la misma disposición en el proyector y en una
@@ -125,6 +126,18 @@ registerKind('web', {
           : item.window
             ? 'Se ve en su propia ventana en el proyector. Anterior y Siguiente le llegan como las flechas; lo demás, con el ratón del equipo principal.'
             : 'Se maneja con el ratón sobre la pantalla de proyección.';
+      },
+    };
+  },
+
+  slot(host, api) {
+    const pages = [['caret-left', 'ArrowLeft', 'Página anterior'], ['caret-right', 'ArrowRight', 'Página siguiente']].map(([glyph, key, aria]) => mando({ label: 'Pág.', glyph, aria, onclick: () => api.send({ key }) }));
+    const note = notaMando('');
+    host.replaceChildren(...pages, mandoVacio(), api.more(), note);
+    return {
+      update(_, item) {
+        pages.forEach((b) => { b.disabled = !(item.file || item.window); });
+        note.textContent = item.window ? 'En su propia ventana, tapa lo que hay encima.' : item.file ? 'Pasa la página como las flechas del teclado.' : 'Se maneja con el ratón en el equipo principal.';
       },
     };
   },

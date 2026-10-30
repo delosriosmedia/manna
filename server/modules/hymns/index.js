@@ -430,7 +430,7 @@ export default function setup(app) {
       const { width, height } = sizeOf(hymn.number, s);
       return {
         number: hymn.number, title: hymn.title, reference: i === 0 ? 'Portada' : `Diapositiva ${i + 1}`, index: i + 1, pages: s.files.length,
-        url: slideUrl(s, i), thumb: slideUrl(s, i), width, height, fit: 'contain',
+        url: slideUrl(s, i), thumb: slideUrl(s, i), thumbs: s.files.map((_, k) => slideUrl(s, k)), width, height, fit: 'contain',
         // La que viene: tras la última, otra vez la portada.
         next: s.files.length > 1 ? { index: next + 1, thumb: slideUrl(s, next) } : null,
       };

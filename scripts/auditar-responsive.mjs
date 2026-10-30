@@ -69,10 +69,10 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-responsive-'));
 const DEVICES = [
   { name: 'Celular pequeño, vertical', w: 360, h: 640, touch: true },
   { name: 'Celular, vertical', w: 390, h: 844, touch: true },
-  { name: 'Celular grande, vertical', w: 430, h: 932, touch: true },
-  { name: 'Celular, horizontal', w: 844, h: 390, touch: true },
+  { name: 'Celular grande, vertical', w: 430, h: 932, touch: true, movil: true },
+  { name: 'Celular, horizontal', w: 844, h: 390, touch: true, movil: true },
   { name: 'Tableta, vertical', w: 768, h: 1024, touch: true },
-  { name: 'Tableta, horizontal', w: 1024, h: 768, touch: true },
+  { name: 'Tableta, horizontal', w: 1024, h: 768, touch: true, movil: true },
   { name: 'Tableta pequeña, horizontal', w: 960, h: 540, touch: true },
   { name: 'Tableta grande, horizontal', w: 1366, h: 1024, touch: true },
   { name: 'Portátil', w: 1280, h: 720, touch: false },
@@ -89,7 +89,7 @@ const DEVICES = [
 
 // Abre la capa «Mandos» (en el celular, con el botón de la tarjeta de lo al aire; en el resto, el de la barra de transporte).
 // En el escritorio los mandos van siempre a la vista en la barra de abajo (fase 14); en el celular, en su capa.
-const OPEN_CONTROLS = `if (matchMedia('(max-width: 859px)').matches) document.querySelector('.story-controls').click()`;
+const OPEN_CONTROLS = `if (matchMedia('(max-width: 859px)').matches) document.querySelector('.story-controls, .ev-mas').click()`;
 const LIVE_CONTROLS = '.tb-extra .live-controls, .controls-pop .live-controls';
 
 // Pantallas a revisar. prepare: lo que hay que hacer tras cargar. primary: la acción principal.
@@ -106,8 +106,20 @@ const SCREENS = [
   { name: 'Buscar en todo, con una fila marcada', url: '/control#biblia', inside: '.finder', marcada: true, settle: 1400, prepare: `(() => { document.querySelector('.finder-chip').click(); const i = document.querySelector('.finder-input input'); i.value = 'luz'; i.dispatchEvent(new Event('input')); setTimeout(() => document.querySelectorAll('.finder-row')[1]?.click(), 800); })()` },
   // El wifi y el QR de la barra de arriba se abren en su sitio como una tarjeta (1.31): cabe en la pantalla y se cierra
   // al tocar fuera.
-  { name: 'Tarjeta del QR', url: '/control#orden', inside: '.tools-card', closesOutside: '.tools-card.open', settle: 900, prepare: `document.querySelector('.tool-qr').click()` },
-  { name: 'Tarjeta del wifi', url: '/control#orden', inside: '.tools-card', closesOutside: '.tools-card.open', settle: 900, prepare: `document.querySelector('.tool-wifi').click()` },
+  { name: 'Tarjeta del QR', url: '/control#orden', wideOnly: true, inside: '.tools-card', closesOutside: '.tools-card.open', settle: 900, prepare: `document.querySelector('.tool-qr').click()` },
+  { name: 'Tarjeta del wifi', url: '/control#orden', wideOnly: true, inside: '.tools-card', closesOutside: '.tools-card.open', settle: 900, prepare: `document.querySelector('.tool-wifi').click()` },
+  // «En vivo» de Control total (fase 44), con las reglas de móviles (movil) y como la ve un celular o una tableta (?tactil).
+  { name: 'En vivo: versículos', url: '/control', plain: '.ev-slot', movil: true, tactil: true, show: 'live', settle: 500 },
+  { name: 'En vivo: himno', url: '/control', plain: '.ev-slot', movil: true, tactil: true, show: 'song', settle: 500 },
+  { name: 'En vivo: video', url: '/control', plain: '.ev-slot', movil: true, tactil: true, show: 'video', settle: 500 },
+  { name: 'En vivo: imagen', url: '/control', plain: '.ev-slot', movil: true, tactil: true, show: 'image', settle: 500 },
+  { name: 'En vivo: diapositivas', url: '/control', plain: '.ev-slot', movil: true, tactil: true, show: 'slides', settle: 500 },
+  { name: 'En vivo: nada al aire', url: '/control', plain: '.ev-slot', movil: true, tactil: true, settle: 500, restore: true, prepare: `fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'projection.clear', payload: {} }) })` },
+  { name: 'En vivo: en Negro', url: '/control', plain: '.ev-slot', movil: true, tactil: true, settle: 500, restore: true, prepare: `fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'projection.mode', payload: { mode: 'black' } }) })` },
+  { name: 'En vivo: cuatro capas', url: '/control', plain: '.ev-slot', movil: true, tactil: true, settle: 500,
+    prepare: `fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'layers.set', payload: { n: 4, kind: 'clock', data: { type: 'hora' } } }) })`,
+    cleanup: `fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'layers.clear', payload: { n: 4 } }) })` },
+  { name: 'En vivo: módulo abierto', url: '/control#orden', movil: true, tactil: true, settle: 500 },
   // prefs: preferencias de este dispositivo con las que se abre la pantalla (se quitan al terminar).
   { name: 'Biblia: comparar', url: '/control#biblia', prefs: { 'biblia.comparar': true }, primary: '.abar .btn.primary', content: '.col-verses', inside: '.cmp-bar' },
   // wideOnly: solo donde hay escenario (860 px o más); ahí, el módulo en el cajón estrecho de 440 px.
@@ -122,10 +134,10 @@ const SCREENS = [
   // «Órdenes» (fase 35): por semanas, con uno de nombre muy largo y otro de la semana pasada, marcado favorito.
   // El ejemplo trae uno solo («Orden del culto»); se crean los otros si aún no están, y se vuelve a abrir el de ejemplo
   // (crear uno lo abre), para que las demás pantallas del Orden sigan mostrando el suyo.
-  { name: 'Orden: órdenes por semana', url: '/control#orden', prefs: { 'orden.vista': 'ordenes', 'cajon.completo': true }, content: '.obrowse', inside: '.order-saved', settle: 900,
+  { name: 'Orden: órdenes por semana', url: '/control#orden', prefs: { 'orden.vista': 'ordenes', 'cajon.completo': true, 'envivo.ancho': true }, content: '.obrowse', inside: '.order-saved', settle: 900,
     prepare: `(async () => { const s = await (await fetch('/api/state')).json(); const send = (type, payload) => fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, payload }) }).then((r) => r.json()); if (s.orders.list.length < 3) { await send('order.create', { name: 'Culto del sábado por la tarde con un nombre muy largo para ver cómo se corta en el celular' }); const d = new Date(Date.now() - 7 * 86400000); const { result } = await send('order.create', { name: 'Santa Cena', date: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }); await send('order.favorite', { id: result.id, on: true }); } await send('order.open', { id: s.order.active }); })()` },
   // La ventana de «Nuevo orden»: fecha y nombre.
-  { name: 'Orden: nuevo orden', url: '/control#orden', prefs: { 'orden.vista': 'ordenes', 'cajon.completo': true }, inside: '.modal', settle: 700,
+  { name: 'Orden: nuevo orden', url: '/control#orden', prefs: { 'orden.vista': 'ordenes', 'cajon.completo': true, 'envivo.ancho': true }, inside: '.modal', settle: 700,
     prepare: `document.querySelector('.obrowse-head .btn').click()` },
   // Citas de un texto o documento (fase 27): una lista larga, por páginas, con una dudosa; «Añadir» siempre a la vista.
   { name: 'Orden: citas de un documento', url: '/control#orden', inside: '.citas-where + .review-actions', settle: 1800,
@@ -171,7 +183,7 @@ const SCREENS = [
   { name: 'Medios: audios', url: '/control#medios', content: '.media-body', inside: '.media-group[data-group=audios] .media-card', settle: 500,
     prepare: `document.querySelector('.media-group[data-group=audios]').scrollIntoView()` },
   // El equipo de la auditoría "no tiene" yt-dlp: Medios lleva su aviso encima, y el enlace de YouTube a la vista.
-  { name: 'Medios: YouTube', url: '/control#medios', prefs: { 'cajon.completo': true, 'medios.categoria': null }, content: '.media-body', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.yt-add', settle: 700,
+  { name: 'Medios: YouTube', url: '/control#medios', prefs: { 'cajon.completo': true, 'envivo.ancho': true, 'medios.categoria': null }, content: '.media-body', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.yt-add', settle: 700,
     prepare: `(() => { [...document.querySelectorAll('.media-cats .chip')].find(c => c.textContent.startsWith('Domingo')).click(); setTimeout(() => document.querySelector('.media-list[data-panel=videos] .media-card[data-status=ready][data-id=ejemplo-youtube] .media-pick').click(), 150); })()` },
   // Varios videos de YouTube (fase 28): la lista con doce enlaces de un mensaje; «Descargar» siempre a la vista.
   { name: 'Medios: varios videos de YouTube', url: '/control#medios', inside: '.review-scroll + .review-actions', settle: 1500,
@@ -274,7 +286,8 @@ const MEASURE = (screen, touch, narrow) => {
     const narrowNow = document.body.classList.contains('narrow');
     const scrim = (y) => { if (narrowNow) return 0; if (document.body.classList.contains('drawer-open')) return 0.35; const f = y / vh; return f < 0.22 ? 0.55 * (1 - f / 0.22) : f > 0.7 ? 0.65 * ((f - 0.7) / 0.3) : 0; };
     const low = [];
-    for (const el of document.querySelectorAll('.topbar *, .dockbar *, .queue *, .transport-bar *, .drawer *, .story *')) {
+    // En «En vivo» nada flota sobre la proyección: el contraste lo miden las reglas de móviles.
+    for (const el of document.querySelectorAll('.topbar *, body:not(.envivo) .dockbar *, .queue *, .transport-bar *, body:not(.envivo) .drawer *, .story *')) {
       const own = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim();
       // Solo texto que se lee (con letras o cifras), no marcas decorativas como «·».
       if (!shown(el) || el.closest('[hidden], [disabled], .soon, .stage') || !(own.toLowerCase() !== own.toUpperCase() || /[0-9]/.test(own))) continue;
@@ -308,7 +321,7 @@ const MEASURE = (screen, touch, narrow) => {
   // Para el dedo, 35 px (--tap en app.css, decisión del dueño del 2026-10-17); se admite medio píxel de redondeo.
   if (${JSON.stringify(touch)}) {
     const small = [...document.querySelectorAll('button, a[href], select, summary, input:not([type=range]):not([type=color]):not([type=file])')]
-      .filter((el) => shown(el) && !el.disabled && !el.closest('.soon') && !el.closest('[hidden]'))
+      .filter((el) => shown(el) && !el.disabled && !el.closest('.soon') && !el.closest('[hidden]') && !el.closest('.ev > :not(.drawer)')) // «En vivo» se ve de 32 con 35 de toque: lo miden las reglas de móviles
       // Lo que se toca a través de su etiqueta (el buscador, una casilla en su fila) mide lo que mide la etiqueta.
       .filter((el) => { const r = box(el); const p = el.matches('input[type=checkbox], input[type=radio]') ? el.closest('label') : el.closest('label.search'); const b = p ? box(p) : r; return Math.min(b.width, b.height) < 34.5; })
       .map((el) => (el.getAttribute('aria-label') || el.textContent || el.className).trim().slice(0, 24));
@@ -336,6 +349,9 @@ const MEASURE = (screen, touch, narrow) => {
     const dr = shown(drawer) ? box(drawer) : null;
     if (${JSON.stringify(Boolean(screen.tabs))}) {
       // Sin escenario ni proyección (pestañas, fase 36): no hay nada al aire que vigilar.
+    } else if (q('.ev')) {
+      // «En vivo»: el estado arriba y, abajo, Siguiente; lo demás lo miden las reglas de móviles.
+      out.alAire = inView(q('.ev-status')) && inView(q('.ev-next'));
     } else if (!${JSON.stringify(narrow)}) {
       // Escritorio y tableta horizontal: la barra de estado y los botones de transporte, a la vista y fuera del cajón.
       // Anterior y Siguiente abajo; «Solo fondo» y «Negro» arriba, junto al estado (fase 14).
@@ -377,7 +393,8 @@ const MEASURE = (screen, touch, narrow) => {
       // dos (130) con el estrecho, tres (150, menos que antes con la fila del cajón aparte) en un cajón de menos de 420 px, y más
       // (Medios, por sus categorías) sin tope fijo.
       const most = wide ? 60 : dw < 420 ? 150 : 130;
-      out.cajonUnaFila = inView(acts) && (compact ? dh.contains(acts) && shown(dh) : !shown(dh) && (mod === 'ajustes' || mod === 'medios' || hh <= most) && (mod === 'ajustes' || head.contains(acts)));
+      // En «En vivo» van con el módulo si su cabecera se ve (cada fila cuenta).
+      out.cajonUnaFila = inView(acts) && (q('.ev') ? head?.contains(acts) || shown(dh) : compact ? dh.contains(acts) && shown(dh) : !shown(dh) && (mod === 'ajustes' || mod === 'medios' || hh <= most) && (mod === 'ajustes' || head.contains(acts)));
       out.cajonDetalle = JSON.stringify({ reducido: compact, alto: Math.round(hh), ancho: Math.round(box(d).width), filaDelCajon: shown(dh), enLaCabecera: Boolean(head?.contains(acts)), aLaVista: inView(acts) });
     }
   }
@@ -400,7 +417,7 @@ const MEASURE = (screen, touch, narrow) => {
 // Espera a que la pantalla haya terminado de dibujarse (hasta 8 s), en vez de una pausa fija.
 async function ready(chrome, screen) {
   const done = screen.plain ? `document.querySelector(${JSON.stringify(screen.plain)})`
-    : `document.querySelector('.ws:not([hidden])') && (!document.querySelector('.ws:not([hidden]) .picker') || document.querySelector('.ws:not([hidden]) .verse')) && (${Boolean(screen.tabs)} || document.querySelector('.scene-caption')?.textContent)`;
+    : `document.querySelector('.ws:not([hidden])') && (!document.querySelector('.ws:not([hidden]) .picker') || document.querySelector('.ws:not([hidden]) .verse')) && (${Boolean(screen.tabs)} || document.querySelector('.scene-caption, .ev-pill')?.textContent)`;
   for (let i = 0; i < 40; i += 1) {
     await sleep(200);
     if (await chrome.evaluate(`Boolean(${done})`)) break;
@@ -527,7 +544,7 @@ async function worker(list, n) {
       // Lo de cada tamaño se escribe de una vez al terminarlo, para que no se mezcle con el de los otros Chrome.
       const lines = [`\n${device.name} (${device.w} × ${device.h})`];
       for (const screen of screens) {
-        if ((screen.narrowOnly && !narrow) || (screen.wideOnly && narrow) || (device.min && !screen.movil)) continue;
+        if ((screen.narrowOnly && !narrow) || (screen.wideOnly && narrow) || (device.min && !screen.movil) || (screen.movil && !device.min && !device.movil)) continue;
         if (screen.cloud) await cloudLogin(screen.cloud);
         if (screen.prefs) await setPrefs(screen.prefs);
         if (screen.show) await showInOrder(example[screen.show]);
@@ -535,9 +552,11 @@ async function worker(list, n) {
         // La dirección cambia en cada visita para forzar una carga limpia de la página.
         const [pathname, hash = ''] = screen.url.split('#');
         progress[n] = `${device.w}x${device.h} «${screen.name}»`;
-        await chrome.send('Page.navigate', { url: `${screen.cloud === 'superadmin' ? superBase : screen.cloud ? cloudBase : base}${pathname}?t=${Date.now()}${BIG ? '&escala=1.08' : ''}${hash ? `#${hash}` : ''}` });
+        await chrome.send('Page.navigate', { url: `${screen.cloud === 'superadmin' ? superBase : screen.cloud ? cloudBase : base}${pathname}?t=${Date.now()}${BIG ? '&escala=1.08' : ''}${screen.tactil ? '&tactil' : ''}${hash ? `#${hash}` : ''}` });
         await ready(chrome, screen);
         if (screen.prepare) { await chrome.evaluate(screen.prepare); await sleep(screen.settle || 500); }
+        // Con el equipo ocupado, lo que se abre aún puede ir por su fundido (un 3 % más pequeño): se mide ya quieto.
+        await chrome.evaluate(`Promise.race([new Promise((r) => setTimeout(r, 1000)), Promise.allSettled(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished))])`);
         const result = await chrome.evaluate(`JSON.stringify(${MEASURE(screen, device.touch, narrow)})`);
         const m = JSON.parse(result || '{}');
         if (screen.closes) {
@@ -565,7 +584,8 @@ async function worker(list, n) {
           const file = path.join(tmp, `${device.w}x${device.h} ${screen.name.replace(/[:"]/g, '')}.png`);
           fs.writeFileSync(file, Buffer.from(png.result.data, 'base64'));
         }
-        if (screen.show || screen.page) await showInOrder(example.live);
+        if (screen.cleanup) await chrome.evaluate(screen.cleanup);
+        if (screen.show || screen.page || screen.restore) await showInOrder(example.live);
         if (screen.prefs) await setPrefs(screen.prefs, true);
       }
       console.log(lines.join('\n'));

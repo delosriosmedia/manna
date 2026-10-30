@@ -13,13 +13,26 @@ export const MOBILE_RULES = `(() => {
     return r.width > 0 && r.height > 0 && c.visibility !== 'hidden' && c.display !== 'none' && r.bottom > 0 && r.right > 0 && r.top < H && r.left < W;
   };
   const name = (e) => (e.getAttribute('aria-label') || e.textContent || e.className || e.tagName).trim().replace(/\\s+/g, ' ').slice(0, 30);
-  const inView = (e) => Boolean(e.closest('[data-vista]'));
+  const inView = (e) => Boolean(e.closest('[data-vista], .stage')); // lo que se proyecta, también en una miniatura
   const taps = [...document.querySelectorAll('button, a[href], input:not([type=hidden]), select, textarea, [role=button]')].filter((e) => seen(e) && !inView(e) && !e.disabled);
   const mine = (e, x, y) => {
     const t = document.elementFromPoint(x, y);
-    return Boolean(t) && (t === e || e.contains(t) || (t.tagName === 'LABEL' && t.contains(e)));
+    // data-tapa: tapa la primera fila a propósito («Volver a…»), y lo que tapa así no responde.
+    return Boolean(t) && (t === e || e.contains(t) || (t.tagName === 'LABEL' && t.contains(e)) || Boolean(t.closest('[data-tapa]')));
   };
 
+  // Lo que se ve de algo: una fila que la lista esconde al desplazarse no está cerca de nada, y una a medio ver no responde.
+  const visibleBox = (e) => {
+    const b = e.getBoundingClientRect();
+    let [left, top, right, bottom] = [b.left, b.top, b.right, b.bottom];
+    for (let n = e.parentElement; n; n = n.parentElement) {
+      const c = getComputedStyle(n);
+      if (!/auto|scroll|hidden/.test(c.overflowX + c.overflowY)) continue;
+      const p = n.getBoundingClientRect();
+      left = Math.max(left, p.left); top = Math.max(top, p.top); right = Math.min(right, p.right); bottom = Math.min(bottom, p.bottom);
+    }
+    return { left, top, right, bottom };
+  };
   // Regla 11: 35 px de toque. A 17 px del centro sigue siendo suyo: cuenta lo que amplía la zona sin verse. Lo que tapa
   // otra capa no se mide. Lo que pisa a otro falla aquí también.
   for (const e of taps) {
@@ -27,14 +40,18 @@ export const MOBILE_RULES = `(() => {
     const x = r.left + r.width / 2;
     const y = r.top + r.height / 2;
     if (!mine(e, x, y)) continue;
-    const short = [[x - 17, y], [x + 17, y], [x, y - 17], [x, y + 17]].some(([px, py]) => px >= 0 && py >= 0 && px < W && py < H && !mine(e, px, py));
+    const v = visibleBox(e);
+    if (v.bottom - v.top < r.height - 1 || v.right - v.left < r.width - 1) continue;
+    // Con medio píxel de margen: lo que cae en una posición fraccionaria se redondea al tocarlo.
+    const short = [[x - 16.5, y], [x + 16.5, y], [x, y - 16.5], [x, y + 16.5]].some(([px, py]) => px >= 0 && py >= 0 && px < W && py < H && !mine(e, px, py));
     if (short) fails.push('Zona de toque de menos de 35 px, o pisada: ' + name(e));
   }
 
   // Regla 4: lo peligroso, lejos.
   const gap = (a, b) => {
-    const r = a.getBoundingClientRect();
-    const s = b.getBoundingClientRect();
+    const r = visibleBox(a);
+    const s = visibleBox(b);
+    if (r.right <= r.left || r.bottom <= r.top || s.right <= s.left || s.bottom <= s.top) return Infinity;
     return Math.max(0, Math.max(r.left, s.left) - Math.min(r.right, s.right), Math.max(r.top, s.top) - Math.min(r.bottom, s.bottom));
   };
   for (const e of taps.filter((t) => t.matches('[data-peligro]'))) {

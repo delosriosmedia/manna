@@ -1,7 +1,9 @@
-import { api, subscribe } from '../../core/api.js';
+import { api, state as shared, subscribe } from '../../core/api.js';
 import { h } from '../../core/dom.js';
 import { registerKind } from '../../core/kinds.js';
 import { drawPicture, pictureControls } from '../projection/picture.js';
+import { allPagesButton, framingButtons } from '../projection/slot.js';
+import { thumbUrl } from './deck.js';
 
 // DeckCraft con animaciones (fase 33, parte 3): una presentación con `deckcraft` la pasa DeckCraft (su versión web, la
 // copia de Manna) en la pantalla que suena, que es la ventana del proyector del equipo principal, encima de la imagen
@@ -122,6 +124,7 @@ registerKind('slides', {
   icon: 'presentation-chart',
   label: 'Diapositivas',
   unit: ['diapositiva', 'diapositivas'],
+  stepLabel: (_item, k) => `Diapositiva ${k + 1}`,
   title: (item) => `${item.title} · ${item.number} de ${item.pages}`,
   // Con DeckCraft, toda la presentación es una: el escenario no funde al pasar (DeckCraft hace su transición).
   key: (item) => (item.deckcraft ? `deckcraft|${item.id}` : item.url),
@@ -163,6 +166,24 @@ registerKind('slides', {
         view.update(state, item);
       },
       destroy: () => view.destroy(),
+    };
+  },
+
+  slot(host, tools) {
+    const now = (item) => item.number - 1;
+    const where = h('span', { class: 'ev-where-cell' });
+    const all = allPagesButton({ now, pages: (item) => {
+      const deck = shared.slides?.decks?.find((d) => d.id === item.id);
+      return Array.from({ length: deck ? item.pages : 0 }, (_, k) => ({ thumb: thumbUrl(deck, k + 1), label: String(k + 1) }));
+    } });
+    const framing = framingButtons(tools);
+    host.replaceChildren(where, all.el, tools.more(), tools.tool('point'), tools.tool('move'), framing.minus, framing.plus);
+    return {
+      update(state, item) {
+        where.replaceChildren(h('b', {}, `${item.number} de ${item.pages}`), item.next ? ` · sigue la ${item.next.number}` : ' · la última');
+        all.update(item);
+        framing.update(state);
+      },
     };
   },
 });

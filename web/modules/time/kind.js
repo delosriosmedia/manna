@@ -3,6 +3,7 @@ import { icon } from '../../core/icons.js';
 import { action, serverNow, state, subscribe } from '../../core/api.js';
 import { registerKind } from '../../core/kinds.js';
 import { everyFrame, positionAt } from '../../core/playback.js';
+import { mando, mandoVacio } from '../projection/slot.js';
 import { SHADOWS, applyTextStyles } from '../projection/text.js';
 import { chime, tick } from './sounds.js';
 
@@ -184,6 +185,35 @@ registerKind('clock', {
         frames.stop();
         off();
       },
+    };
+  },
+
+  // La cuenta de un reloj, para su isla de «En vivo».
+  count: (item) => readout(item, item.id ? timerOf(item.id) : null).text,
+
+  slot(host, api) {
+    let item = null;
+    const send = (type, extra = {}) => item?.id && action(type, { id: item.id, ...extra }).catch(() => {});
+    const digits = h('strong', { class: 'ev-count' });
+    const toggle = mando({ cls: 'ev-span2', onclick: () => send(toggle.dataset.playing === 'true' ? 'time.pause' : 'time.start') });
+    const less = mando({ label: '−1 min', onclick: () => send('time.adjust', { minutes: -1 }) });
+    const more = mando({ label: '+1 min', onclick: () => send('time.adjust', { minutes: 1 }) });
+    host.replaceChildren(digits, toggle, less, more, mandoVacio(), api.more());
+    const paint = () => { digits.textContent = item ? readout(item, item.id ? timerOf(item.id) : null).text : ''; };
+    const frames = everyFrame(paint);
+    const refresh = () => {
+      const timer = item?.id ? timerOf(item.id) : null;
+      const playing = Boolean(timer?.clock.playing) && !readout(item, timer).done;
+      toggle.dataset.playing = String(playing);
+      toggle.replaceChildren(icon(playing ? 'pause' : 'play', 14), h('span', {}, playing ? 'Pausar' : 'Empezar'));
+      for (const b of [toggle, less, more]) b.disabled = !timer;
+      paint();
+      if (playing || item?.type === 'hora') frames.start(); else frames.stop();
+    };
+    const off = subscribe('time', () => item && refresh());
+    return {
+      update(_, next) { item = next; refresh(); },
+      destroy() { frames.stop(); off(); },
     };
   },
 

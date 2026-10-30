@@ -34,6 +34,14 @@ export function drawClip(host, { build, make, onItem = () => {}, sources = (item
   const failed = new Set(); // archivos que este navegador, al final, no pudo reproducir
   // El primero de los archivos posibles que no haya fallado aquí.
   const pick = (entry, live = state) => (entry ? sources(entry, live).filter(Boolean).find((url) => !failed.has(url)) || null : null);
+  const shown = () => {
+    const r = box.getBoundingClientRect();
+    if (!r.width) return null;
+    const ratio = media?.videoWidth ? media.videoWidth / media.videoHeight : 16 / 9;
+    const width = Math.min(r.width, r.height * ratio);
+    const height = width / ratio;
+    return { left: r.left + (r.width - width) / 2, top: r.top + (r.height - height) / 2, width, height };
+  };
 
   function fresh() {
     player?.release();
@@ -101,6 +109,18 @@ export function drawClip(host, { build, make, onItem = () => {}, sources = (item
     },
     stop: () => player.stop(),
     destroy: () => player.release(),
+    // Para el puntero: lo que se ve del video, que va entero, con bandas si no llena su recuadro.
+    locate(x, y) {
+      const r = shown();
+      return r && { x: r.left + x * r.width, y: r.top + y * r.height };
+    },
+    spot(clientX, clientY) {
+      const r = shown();
+      if (!r) return null;
+      const x = (clientX - r.left) / r.width;
+      const y = (clientY - r.top) / r.height;
+      return x >= 0 && x <= 1 && y >= 0 && y <= 1 ? { x, y } : null;
+    },
   };
 }
 

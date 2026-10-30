@@ -297,6 +297,14 @@ Un módulo abierto sube entre la vista y la franja, de pie, y ocupa la columna d
 - Una cita, en «En vivo», se escribe con el teclado de números propio. Una hoja de teclado no lleva tiras que se deslizan y, como toda ventana con campos, no se cierra al tocar fuera: solo con su × o con Esc, sin perder lo escrito.
 - Movimiento: solo `transform` y `opacity`, 200 ms o menos, sin rebote. Sin animar: el contenido de Siguiente y lo que está al aire. Con «reducir movimiento», solo opacidad.
 
+**La pantalla «En vivo»** (fase 44, Control total; tableros T1, T2, U1, U5 y E1 a E15). De arriba abajo: la barra (marca, estado, buscar), la vista con su banda de pasos, la ranura de mandos, las capas y el volumen, el orden y, abajo, la franja del pulgar y el dock.
+- La **pastilla** dice AL AIRE (rojo), NEGRO o SOLO FONDO (blanca), NADA o SIN CONEXIÓN (gris); a su lado, qué es y por dónde va.
+- La **ranura** tiene dos filas de cuatro en el teléfono y una de ocho en la tableta, de alto fijo, sea lo que sea que esté al aire. Lo raro va en «Más», una hoja que sube.
+- Cada **capa** es una isla con su número y su nombre o su cuenta, y un toque la enciende o la apaga; con 3 o 4, su número y su icono, y el volumen de pie pasa a ser un botón con su cifra.
+- **Siguiente** dice lo que pondrá: `v. 17`, `11 · ¡Despierta, pueblo!`, `Vuelve con …` en Negro; al final, «Ir al primero», sin cian; sin nada al aire, «Empezar».
+- **«Volver a …»** tapa la primera fila durante 10 s, y «Volver al orden» mientras lo al aire no venga de él.
+- En la **tableta**, «Marcada» enseña la imagen de la fila marcada y lleva su propio «Poner».
+
 **Cómo se comprueba.** `scripts/auditar-responsive.mjs` mide, en los cuatro tamaños mínimos, lo que se puede medir (fase 42): zonas de toque que se pisan, distancias a lo peligroso, letra, contraste, lo que se sale, brillo y rojo fuera del aire. La prueba en Chrome, los gestos y los estados. Lo que depende de la mano (alcance, deslumbramiento, navegadores reales) se prueba en un celular y una tableta de verdad, y lo que falte se anota en `docs/ESTADO.md`.
 
 ## 13. Lo que no se hace

@@ -2,6 +2,7 @@ import { action, connectionId, connectionIsLocal, connectionRole, onConnection, 
 import { h } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { registerKind } from '../../core/kinds.js';
+import { notaMando } from '../projection/slot.js';
 
 // S35 · compartir una pestaña de Chrome en el proyector (ver server/modules/web/share.js). Quien comparte es el control
 // del equipo principal: captura la pestaña (Chrome pregunta cuál, cada vez) y la manda por WebRTC a cada pantalla de
@@ -110,6 +111,10 @@ registerKind('share', {
   title: () => 'Pestaña compartida',
   key: (item) => item.id,
   background: false,
+  slot(host) {
+    host.replaceChildren(notaMando('Sin mandos. Se detiene en Páginas web.'));
+    return {};
+  },
 
   // La recibe solo una pantalla de proyección del equipo principal; las demás y las miniaturas ven una tarjeta.
   draw(host, { thumbnail }) {

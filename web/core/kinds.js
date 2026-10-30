@@ -20,6 +20,11 @@
 //                             aire: una vista previa), el volumen general y si esta pantalla suena
 //     controls?(host, { send }) -> { update(state, item), destroy?() }
 //                             mandos en vivo. send(patch) ejecuta projection.control
+//     slot?(host, api) -> { update?(state, item), destroy?() }
+//                             la ranura de mandos de «En vivo» (fase 44, projection/slot.js): dos filas de cuatro, de alto
+//                             fijo. api: { send(patch), more() -> botón «Más», tool('point' | 'move') -> «Señalar» o «Mover» }
+//     stepLabel?(item, k),    cómo se llama el paso k de lo que está al aire: lo dice Siguiente («v. 17», «Parte 2»)
+//     count?(item),           la cuenta de un reloj, para su isla de «En vivo»
 //     island?(item) -> { el, destroy?() } | null
 //                             en la barra de capas (escenario), la burbuja que se desprende de la ficha de una capa con
 //                             esto: la cuenta y los botones de un temporizador (item es el contenido de la capa)

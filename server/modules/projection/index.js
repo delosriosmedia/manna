@@ -127,7 +127,7 @@ export default function setup(app) {
     // Primero los mandos y después el contenido: cuando una pantalla recibe lo nuevo,
     // su estado en vivo ya está ahí.
     store.set('live', { uid, state: def.live?.(content, previous) ?? null });
-    setLive({ item, mode, over: null, back: back && { uid, title: titleOf(before.item), kind: before.item.kind } });
+    setLive({ item, mode, over: null, back: back && { uid, title: titleOf(before.item), kind: before.item.kind, orderId: before.item.source?.orderId ?? null } });
     scheduleEnd();
     return item;
   }
@@ -531,7 +531,7 @@ export default function setup(app) {
     const { kind, data, step, orderId } = item.source;
     if (orderId && services.order?.has(orderId)) {
       const next = services.order.neighbor(orderId, step, 1);
-      return next ? { title: next.title, kind: next.kind, step: next.step, steps: next.steps, inside: next.orderId === orderId } : { end: true };
+      return next ? { title: next.title, kind: next.kind, orderId: next.orderId, step: next.step, steps: next.steps, inside: next.orderId === orderId } : { end: true };
     }
     const next = def?.neighbor?.(data, step, 1);
     if (!next) return { end: true };

@@ -50,10 +50,16 @@ export function upload(path, body, { headers = {}, onProgress } = {}) {
   });
 }
 
+// Quien quiera enterarse de las órdenes que salen (cuánto tardan: «En vivo» lo dice en el botón pulsado).
+let actionWatcher = null;
+export const watchActions = (fn) => { actionWatcher = fn; };
+
 // Ejecuta una acción de un módulo, p. ej. action('projection.show', { versionId, ref }).
 // options.timeout: lo que puede tardar en contestar (como en api()); 0, sin límite (una ventana en el equipo principal).
 export async function action(type, payload = {}, options = {}) {
-  return (await postJson('/api/action', { type, payload }, options)).result;
+  const sent = postJson('/api/action', { type, payload }, options);
+  actionWatcher?.(sent);
+  return (await sent).result;
 }
 
 export const session = {
@@ -96,8 +102,11 @@ export function onConnection(fn) {
   fn(online);
 }
 
+// Un error al pintar algo no deja sin pintar lo demás: se lanza aparte, y sigue constando como error de la página.
 function emit(ns) {
-  listeners.get(ns)?.forEach((fn) => fn(state[ns]));
+  listeners.get(ns)?.forEach((fn) => {
+    try { fn(state[ns]); } catch (err) { setTimeout(() => { throw err; }); }
+  });
 }
 
 function setOnline(value) {
@@ -143,6 +152,9 @@ export const reconnect = () => reopen();
 
 // Corta la conexión y deja de reintentar (al apagar Manna desde esta página).
 export const disconnect = () => stop();
+// Cuánto hace que no se oye al servidor (late cada 10 s). Lo dice «En vivo».
+let heardAt = Date.now();
+export const silenceMs = () => Date.now() - heardAt;
 
 // Abre el canal en tiempo real y lo mantiene vivo: reconecta tras cualquier corte
 // y, al volver, recibe el estado completo, así que nunca queda desfasado.
@@ -151,7 +163,7 @@ export function connect(role) {
   let source = null;
   let lastSeen = Date.now();
   let retry = null;
-  const seen = () => { lastSeen = Date.now(); };
+  const seen = () => { lastSeen = Date.now(); heardAt = lastSeen; };
 
   function open() {
     clearTimeout(retry);

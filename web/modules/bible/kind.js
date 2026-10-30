@@ -1,8 +1,25 @@
 import { h } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
+import { chooseLayer } from '../../core/capas.js';
 import { registerKind } from '../../core/kinds.js';
+import { can } from '../../core/session.js';
+import { mando, mandoVacio, stepCells, wholeCell } from '../projection/slot.js';
 import { applyTextStyles, fitText } from '../projection/text.js';
 import { createBibleBar } from './onair.js';
+
+// La ranura de «En vivo»: los versículos del pasaje al aire (la que sale, la que sigue) y lo que se hace con él.
+const verseCount = (item) => { const { verseStart, verseEnd } = item.source.data.ref; return verseEnd - verseStart + 1; };
+const verseCells = (count) => stepCells(count, {
+  total: verseCount,
+  now: (item) => (verseCount(item) === 1 ? 0 : item.source.step),
+  name: (k, item) => `v. ${item.source.data.ref.verseStart + k}`,
+});
+// «Encima»: el pasaje en una capa, sobre lo que se proyecte. Una comparación va con su primera versión.
+const verseLayer = (getItem) => can('layers.edit') && mando({ label: 'Encima', glyph: 'stack', title: 'Ponerlo en una capa, encima de lo que se proyecte', onclick: (e) => {
+  const item = getItem();
+  const { ref, versionId, versions } = item.source.data;
+  chooseLayer(e.currentTarget, { kind: 'verses', data: { versionId: versionId ?? versions[0], ref }, title: item.reference });
+} });
 
 // Tipo de contenido "pasaje bíblico": el texto de los versículos y la cita.
 registerKind('verses', {
@@ -10,6 +27,7 @@ registerKind('verses', {
   label: 'Biblia',
   unit: ['versículo', 'versículos'],
   wholeUpTo: 6, // un pasaje de hasta seis versículos también se puede proyectar entero
+  stepLabel: (item, k) => `v. ${item.source.data.ref.verseStart + k}`,
   title: (item) => (item.version ? `${item.reference} (${item.version})` : item.reference),
   key: (item) => `${item.versionId}|${item.reference}`,
   cover: true, // en una capa, con su fondo: tapa un momento la presentación que está al aire
@@ -49,6 +67,27 @@ registerKind('verses', {
     host.replaceChildren(bar.el);
     return { update: (_mandos, item) => bar.update(item), destroy: bar.destroy };
   },
+
+  slot(host, api) {
+    let item = null;
+    const bar = createBibleBar({ compact: true });
+    const cells = verseCells(3);
+    const whole = wholeCell();
+    host.replaceChildren(bar.el, verseLayer(() => item) || mandoVacio(), ...cells.els, whole.el, api.more());
+    return {
+      update(_mandos, next) {
+        item = next;
+        bar.update(item);
+        cells.update(item);
+        whole.update(item);
+        // Hasta seis versículos también se ven juntos, en el sitio de la tercera casilla.
+        const offered = verseCount(item) > 1 && verseCount(item) <= 6;
+        whole.el.hidden = !offered;
+        cells.els[2].hidden = offered;
+      },
+      destroy: bar.destroy,
+    };
+  },
 });
 
 const LAYOUTS = [['columns', 'columns', 'Lado a lado'], ['rows', 'rows', 'Una sobre otra']];
@@ -66,6 +105,7 @@ registerKind('compare', {
   label: 'Comparador',
   unit: ['versículo', 'versículos'],
   wholeUpTo: 3,
+  stepLabel: (item, k) => `v. ${item.source.data.ref.verseStart + k}`,
   title: (item) => `${item.reference} (${item.sides.map((side) => side.version).join(' · ')})`,
   key: (item) => `${item.sides.map((side) => side.versionId).join('+')}|${item.reference}`,
 
@@ -122,6 +162,25 @@ registerKind('compare', {
         const layout = state?.layout || item.layout;
         buttons.forEach((b) => b.classList.toggle('on', b.dataset.layout === layout));
         bar.update(item);
+      },
+      destroy: bar.destroy,
+    };
+  },
+
+  slot(host, { send }) {
+    let item = null;
+    const bar = createBibleBar({ compact: true });
+    const cells = verseCells(2);
+    const layouts = [['columns', 'Lado', 'Lado a lado'], ['rows', 'Arriba', 'Una sobre otra']].map(([id, label, title]) => mando({ label, glyph: id, title, onclick: () => send({ layout: id }) }));
+    host.replaceChildren(bar.el, verseLayer(() => item) || mandoVacio(), ...cells.els, ...layouts);
+    return {
+      update(state, next) {
+        item = next;
+        bar.update(item);
+        cells.update(item);
+        const layout = state?.layout || item.layout;
+        layouts[0].classList.toggle('sel', layout !== 'rows');
+        layouts[1].classList.toggle('sel', layout === 'rows');
       },
       destroy: bar.destroy,
     };

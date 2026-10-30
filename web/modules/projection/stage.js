@@ -17,6 +17,12 @@ import '../kinds.js';
 // Una miniatura (thumbnail) no reproduce lo que suena: un video muestra su imagen, sin gastar batería, red ni
 // procesador en un celular (still).
 // La capa del orador va encima de las demás y, a diferencia de ellas, obedece a «Negro» y «Solo fondo».
+// Una página no se carga en un dispositivo: en el equipo principal correría dos veces, y en un celular gastaría datos y memoria.
+// En un celular se ve una tarjeta en su lugar (decisión 69: la vista previa, tal cual, dicho lo que no se puede mostrar).
+export const lightLayer = (isLocal) => (s) => {
+  if (s.kind !== 'web') return s;
+  return isLocal ? { n: s.n } : { n: s.n, kind: 'web-card', visible: s.visible, ready: true, uid: s.uid, content: { title: s.title } };
+};
 export const withOver = (slots = [], { over, mode } = {}) => (over ? [...slots, { ...over, n: slots.length + 1, ready: true, visible: mode === 'live' }] : slots);
 
 // moving: la proyección de fondo de un dispositivo remoto: un video se mueve, con su copia de vista previa (decisión 69).

@@ -3,6 +3,7 @@ import { icon } from '../../core/icons.js';
 import { registerKind } from '../../core/kinds.js';
 import { clipControls, drawClip } from '../projection/clip.js';
 import { drawPicture, pictureControls } from '../projection/picture.js';
+import { allPagesButton, clipRow, mando, stepCells } from '../projection/slot.js';
 import { openLyrics } from './lyrics.js';
 
 // Tipo de contenido "himno": el video del himno, con el sonido cantado o con la pista
@@ -65,6 +66,30 @@ registerKind('song', {
       destroy: () => clip.destroy(),
     };
   },
+
+  // En la ranura de «En vivo»: el sonido, la letra y, debajo, lo de cualquier cosa que suena.
+  slot(host, api) {
+    let number = null;
+    const tracks = TRACKS.map(([id, label]) => h('button', { class: 'ev-seg-btn', dataset: { track: id }, onclick: () => api.send({ track: id }) }, label));
+    const clip = clipRow(api);
+    host.replaceChildren(h('div', { class: 'ev-seg', role: 'group', 'aria-label': 'Sonido del himno' }, ...tracks),
+      mando({ label: 'Letra', glyph: 'file-text', onclick: guard(() => openLyrics(number)) }), api.more(), clip.el);
+    return {
+      update(live, item) {
+        number = item.number;
+        const current = live?.track || item.track;
+        for (const button of tracks) {
+          const id = button.dataset.track;
+          button.classList.toggle('on', id === current);
+          button.setAttribute('aria-pressed', id === current);
+          button.disabled = id === 'instrumental' && !item.instrumental;
+          if (id === 'instrumental') button.textContent = item.instrumental ? 'Pista' : 'Sin pista';
+        }
+        clip.update(live);
+      },
+      destroy: clip.destroy,
+    };
+  },
 });
 
 // Tipo «Letra del himno» (Letras sin música): las diapositivas del himnario original, una por paso, como una
@@ -74,6 +99,7 @@ registerKind('lyrics', {
   icon: 'images',
   label: 'Letra del himno',
   unit: ['diapositiva', 'diapositivas'],
+  stepLabel: (_item, k) => (k === 0 ? 'Portada' : `Diapositiva ${k + 1}`),
   title: (item) => `${item.number} · ${item.title} · ${item.index} de ${item.pages}`,
   key: (item) => item.url,
   background: false,
@@ -101,6 +127,14 @@ registerKind('lyrics', {
       },
       destroy: () => view.destroy(),
     };
+  },
+
+  slot(host, api) {
+    const now = (item) => item.index - 1;
+    const cells = stepCells(4, { total: (item) => item.pages, now, name: (k) => (k === 0 ? 'Portada' : String(k)) });
+    const all = allPagesButton({ now, pages: (item) => item.thumbs.map((thumb, k) => ({ thumb, label: k === 0 ? 'Portada' : String(k) })) });
+    host.replaceChildren(...cells.els, api.tool('point'), api.tool('move'), all.el, api.more());
+    return { update(_, item) { cells.update(item); all.update(item); } };
   },
 });
 

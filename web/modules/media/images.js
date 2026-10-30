@@ -91,7 +91,7 @@ export function createImagesPanel(ctx, lib) {
   });
   const bar = h('div', { class: 'abar media-bar', hidden: true, dataset: { panel: 'imagenes' } },
     name, ctx.canProject && h('span', { class: 'hint' }, 'Doble clic para proyectar'), preview.see,
-    h('button', { class: `btn${ctx.canProject ? '' : ' primary'}`, onclick: () => add() }, icon('plus', 16), 'Añadir al orden'),
+    h('button', { class: `btn${ctx.canProject ? '' : ' primary'}`, title: 'Añadir al orden', onclick: () => add() }, icon('plus', 16), h('span', {}, 'Añadir al orden')),
     ctx.canProject && h('button', { class: 'btn primary', onclick: () => project() }, icon('play', 16), 'Proyectar', h('kbd', {}, '↵')));
 
   // Lo recién subido puede no haber llegado aún con el estado (la respuesta de la subida se

@@ -1,8 +1,9 @@
 import { connectionIsLocal } from '../../core/api.js';
-import { h } from '../../core/dom.js';
+import { h, menu } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { registerKind } from '../../core/kinds.js';
 import { clipControls, drawClip } from '../projection/clip.js';
+import { clipRow, mando, mandoVacio, notaMando } from '../projection/slot.js';
 import { watchOriginals } from './probe.js';
 
 // Tipos de contenido "video", "youtube" y "audio". Se reproducen con las piezas comunes de lo que
@@ -42,6 +43,28 @@ const video = {
   },
   controls: clipControls,
   // Fuera del equipo principal se oye la copia, la que reproduce cualquiera.
+
+  slot(host, api) {
+    let tracks = [];
+    let shown = false;
+    const pick = mando({ label: 'Subtítulos', onclick: (e) => menu(e.currentTarget, [
+      { label: 'Sin subtítulos', note: shown ? null : 'ahora', onclick: () => api.send({ subtitles: false }) },
+      ...tracks.map((track) => ({ label: track.label, note: shown === track.lang ? 'ahora' : null, onclick: () => api.send({ subtitles: track.lang }) })),
+    ]) });
+    pick.append(icon('caret-down', 11));
+    const clip = clipRow(api);
+    host.replaceChildren(pick, api.tool('point'), mandoVacio(), api.more(), clip.el);
+    return {
+      update(live, item) {
+        tracks = item.subtitles || [];
+        shown = live?.subtitles || false;
+        pick.disabled = !tracks.length;
+        pick.classList.toggle('sel', Boolean(shown));
+        clip.update(live);
+      },
+      destroy: clip.destroy,
+    };
+  },
 };
 registerKind('video', video);
 registerKind('youtube', { ...video, icon: 'youtube-logo', label: 'YouTube' });
@@ -63,6 +86,12 @@ registerKind('audio', {
     });
   },
   controls: clipControls,
+
+  slot(host, api) {
+    const clip = clipRow(api);
+    host.replaceChildren(notaMando('Suena en el equipo principal.', 3), api.more(), clip.el);
+    return { update: (live) => clip.update(live), destroy: clip.destroy };
+  },
 });
 
 // Las pantallas del equipo principal comprueban qué videos pueden reproducir sin convertir.

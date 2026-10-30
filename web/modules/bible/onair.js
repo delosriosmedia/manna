@@ -47,21 +47,24 @@ const layoutNow = (item) => {
   return live || (LAYOUTS.includes(saved) ? saved : 'columns');
 };
 
+// compact: en la ranura de «En vivo», cada botón es una casilla: «Comparar» con su nombre, y el capítulo en vez de la cita.
 // Devuelve { el, update(item), destroy() }.
-export function createBibleBar() {
+export function createBibleBar({ compact = false } = {}) {
   let item = null;
   let layer = null; // la capa de versículos abierta: { close(), repaint() }
   let opening = false; // la capa se está preparando (pide el capítulo): un segundo toque no abre otra
   let destroyed = false;
 
   const swap = guard((content) => action('projection.swap', content));
-  const caret = () => icon('caret-down', 12);
+  const caret = () => icon('caret-down', compact ? 11 : 12);
+  const cls = `btn bar-btn${compact ? ' ev-btn' : ''}`;
   const versionLabel = h('span', {});
   const compareLabel = h('span', {});
   const versesLabel = h('span', {});
-  const versionBtn = h('button', { class: 'btn bar-btn', 'aria-haspopup': 'menu', title: 'Versión de la Biblia', onclick: () => versionMenu() }, versionLabel, caret());
-  const compareBtn = h('button', { class: 'btn bar-btn', 'aria-haspopup': 'menu', onclick: () => compareMenu() }, icon('columns', 16), compareLabel, caret());
-  const versesBtn = h('button', { class: 'btn bar-btn bar-verses', 'aria-haspopup': 'dialog', title: 'Otro versículo', onclick: () => (layer ? layer.close() : !opening && openVerses()) }, versesLabel, caret());
+  const versionBtn = h('button', { class: cls, 'aria-haspopup': 'menu', title: 'Versión de la Biblia', onclick: () => versionMenu() }, versionLabel, caret());
+  const compareCaret = caret();
+  const compareBtn = h('button', { class: cls, 'aria-haspopup': 'menu', onclick: () => compareMenu() }, !compact && icon('columns', 16), compareLabel, compareCaret);
+  const versesBtn = h('button', { class: `${cls} bar-verses`, 'aria-haspopup': 'dialog', title: 'Otro versículo', onclick: () => (layer ? layer.close() : !opening && openVerses()) }, versesLabel, caret());
   const el = h('div', { class: 'bible-bar' }, versionBtn, compareBtn, versesBtn);
 
   // ---- Versión y comparar ----
@@ -222,12 +225,13 @@ export function createBibleBar() {
       const can = versions().length > 1;
       versionLabel.textContent = abbrOf(ids[0]);
       versionBtn.setAttribute('aria-label', `Versión de la Biblia: ${abbrOf(ids[0])}`);
-      compareLabel.textContent = ids.length > 1 ? abbrOf(ids[1]) : '';
+      compareLabel.textContent = ids.length > 1 ? abbrOf(ids[1]) : compact ? 'Comparar' : '';
+      if (compact) compareCaret.style.display = ids.length > 1 ? '' : 'none';
       compareBtn.classList.toggle('on', ids.length > 1);
       compareBtn.disabled = !can;
       compareBtn.title = can ? 'El mismo pasaje en dos versiones' : 'Para comparar hacen falta dos biblias en «Contenido/Biblias»';
       compareBtn.setAttribute('aria-label', can ? `Comparar con otra versión${ids.length > 1 ? `: ${abbrOf(ids[1])}` : ''}` : compareBtn.title);
-      versesLabel.textContent = item.reference;
+      versesLabel.textContent = compact ? item.reference.replace(/:[^:]*$/, '') : item.reference;
       versesBtn.setAttribute('aria-label', `Otro versículo: ${item.reference}`);
       layer?.repaint();
     },

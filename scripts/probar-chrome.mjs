@@ -153,7 +153,6 @@ for (const port of [PORT, ...(inGroup('red') ? [8125] : [])]) {
 // Lo que el servidor ofrece y esta prueba no puede usar pulsando, con el motivo. Todo lo demás
 // tiene que usarse (ver "Vigilancia de toda la prueba", al final).
 const UNTOUCHED = {
-  'projection.back': 'la pulsa «Volver» de las pantallas «En vivo» (fase 44); probada en test/en-vivo.test.js',
   'projection.over': 'la pulsa «Encima» del Orador (fase 46); probada en test/en-vivo.test.js',
   'projection.overClear': 'la pulsa «Quitar» de la capa del Orador (fase 46); probada en test/en-vivo.test.js',
   'order.setTrack': 'la pulsa la lista de Alabanza (fase 45); probada en test/en-vivo.test.js',
@@ -394,7 +393,7 @@ const MEDIA_FILES = '.ws[data-module=medios] > input[type=file]';
 // Los mandos del tipo al aire: en el escritorio, siempre a la vista en la barra de abajo (fase 14); en el celular, en
 // una capa que se abre con el botón de la tarjeta de lo al aire. LIVE es el que se ve.
 const LIVE = `([...document.querySelectorAll('.tb-extra .live-controls, .controls-pop .live-controls')].find((c) => c.getClientRects().length) || document.querySelector('.tb-extra .live-controls'))`;
-const openControls = async () => { await run(`if (!document.querySelector('.tb-extra .live-controls')?.getClientRects().length && document.querySelector('.controls-layer').hidden) document.querySelector('.story-controls').click();`); await sleep(250); };
+const openControls = async () => { await run(`if (!document.querySelector('.tb-extra .live-controls')?.getClientRects().length && document.querySelector('.controls-layer').hidden) document.querySelector('.story-controls, .ev-mas').click();`); await sleep(250); };
 const closeControls = async () => { await run(`document.querySelector('.controls-layer').hidden = true`); };
 const modalButton = (label) => click(`[...document.querySelectorAll('.modal .btn')].find(b => b.textContent.trim() === ${JSON.stringify(label)})`);
 // Un botón de la tarjeta del wifi o del QR de la barra de arriba (se abren en su sitio, 1.31).
@@ -506,6 +505,7 @@ try {
 
   // ================= 1. La interfaz =================
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+  await sleep(1500); // pasar del computador al celular, o al revés, vuelve a abrir la página
   await chrome.send('Page.navigate', { url: `${local}/control#biblia` });
   await sleep(2500);
   const modal = `document.querySelector('.modal')`;
@@ -783,68 +783,153 @@ try {
   await tapEl(transportBtn('Solo fondo'));
   check('y otro toque lo devuelve', (await live()).mode === 'live');
 
-  console.log('\n1. Interfaz · Escenario (celular, 375 px)');
+  console.log('\n1. Interfaz · En vivo (celular, 375 px)');
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
-  await sleep(700);
-  check('en el celular lo al aire va en «Historias»: recuadro con la proyección, tres modos y lo que sigue; sin cola ni barra de transporte', await run(`const shown = (s) => document.querySelector(s).getClientRects().length > 0; return shown('.story-frame > .stage') && !document.querySelector('.scene-bg > .stage') && shown('.story-caption .live-pill') && document.querySelectorAll('.story-modes .seg-btn').length === 3 && document.querySelectorAll('.story-next-list .story-card').length >= 1 && !shown('.queue') && !shown('.transport-bar')`));
-  await goTo('orden');
-  await sleep(600);
-  const backdropAt = () => run(`const b = document.querySelector('.drawer-backdrop'); if (b.hidden) return 'null'; for (let y = 6; y < innerHeight; y += 8) for (let x = 6; x < innerWidth; x += 20) if (document.elementFromPoint(x, y) === b) return JSON.stringify({ x, y }); return 'null'`).then(JSON.parse);
-  const outside = await backdropAt();
-  check('con un cajón abierto, el fondo de atrás está a la vista para tocarlo', Boolean(outside) && await drawerOpen());
-  if (outside) await clickAt(outside.x, outside.y);
-  check('tocar fuera del cajón lo cierra', !await drawerOpen() && await run(`return document.querySelector('.drawer-backdrop').hidden`));
-  // De partida el cajón se abre reducido, con solo lo esencial: en la Biblia, la versión y el buscador en una fila, la
-  // cita, los versículos y abajo «Añadir» (el icono) y «Proyectar». Se agranda arrastrando su borde de arriba.
-  await goTo('biblia');
-  await sleep(700);
-  check('en el celular el cajón se abre reducido y la Biblia enseña solo lo esencial', await run(`const d = document.querySelector('.drawer'); const ws = d.querySelector('.ws[data-module=biblia]'); const head = ws.querySelector('.ws-head'); const sel = head.querySelector('.select').getBoundingClientRect(); const search = head.querySelector('.search').getBoundingClientRect(); const seen = (e) => Boolean(e) && e.getClientRects().length > 0;
-    return d.classList.contains('compact') && !d.classList.contains('wide') && d.querySelector('.drawer-head h2').textContent === 'Biblia' && Math.abs(sel.top - search.top) < 4 && ![...head.querySelectorAll(':scope > .btn')].some(seen) && seen(ws.querySelector('.abar .btn.primary')) && !seen(ws.querySelector('.abar .sel-ref')) && ws.querySelector('.col-verses').getBoundingClientRect().height > 150`));
-  const short0 = await drawerBox();
-  g = await gripAt();
-  await dragMouse(g.x, g.y, g.x, g.y - 120);
-  const short1 = await drawerBox();
-  check('arrastrar el borde de arriba lo agranda (sin moverse de abajo) y lo recuerda', Math.abs(short0.top - short1.top - 120) < 8 && short1.bottom === short0.bottom && Number(await run(`return localStorage.getItem('manna.cajon.alto')`)) > 0, JSON.stringify([short0.top, short1.top]));
-  g = await gripAt();
-  await dragMouse(g.x, g.y, g.x, 0);
-  check('y no tapa la barra de arriba', (await drawerBox()).top >= await run(`return document.querySelector('.topbar').getBoundingClientRect().bottom`));
-  await run(`localStorage.removeItem('manna.cajon.alto'); document.querySelector('.drawer').style.removeProperty('--drawer-top')`);
-  await goTo('ajustes');
+  await sleep(1800); // pasar del computador al celular vuelve a abrir la página
+  const evShown = (selector) => `document.querySelector(${JSON.stringify(selector)})?.getClientRects().length > 0`;
+  const evRow = (title) => `[...document.querySelectorAll('.ev-row')].find((r) => r.textContent.includes(${JSON.stringify(title)}))`;
+  check('en el celular se abre «En vivo»: la vista, los mandos, el orden y la franja del pulgar; sin escenario, cola ni barra de abajo', await until(evShown('.ev-screen.stage'), 12) && await run(`return document.documentElement.dataset.disposicion === 'telefono-pie' && ${evShown('.ev-slot')} && ${evShown('.ev-list')} && ${evShown('.ev-next')} && !document.querySelector('.scene-bg, .transport-bar, .queue, .story') && document.querySelector('.ev-pill').textContent === 'AL AIRE'`));
+  check('Siguiente dice lo que pondrá', await run(`return document.querySelector('.ev-next small').textContent.includes('Salmos 23')`));
+  await tapEl(`document.querySelector('.ev-next')`);
+  await sleep(400);
+  check('Siguiente pasa', (await live()).ref === 'Salmos 23:1');
+  await tapEl(`document.querySelector('.ev-prev')`);
+  await sleep(400);
+  check('y Anterior vuelve', (await live()).ref === 'Juan 3:19');
+  const evMode = (mode) => `document.querySelector('.ev-mode[data-mode=${mode}]')`;
+  await tapEl(evMode('black'));
+  check('«Negro» se llena de blanco y dice «Quitar», sin un píxel rojo, y Siguiente dice con qué vuelve', (await live()).mode === 'black' && await run(`const b = ${evMode('black')}; return b.textContent === 'Quitar' && b.getAttribute('aria-pressed') === 'true' && document.querySelector('.ev').dataset.state === 'black' && document.querySelector('.ev-pill').textContent === 'NEGRO' && document.querySelector('.ev-next small').textContent.startsWith('Vuelve con') && getComputedStyle(document.querySelector('.ev-pill')).backgroundColor === getComputedStyle(b).backgroundColor`));
+  await tapEl(evMode('black'));
+  check('«Quitar» devuelve lo que había', (await live()).mode === 'live' && (await live()).ref === 'Juan 3:19');
+  await tapEl(evMode('clear'));
+  check('«Solo fondo» también dice «Quitar»', (await live()).mode === 'clear' && await run(`return ${evMode('clear')}.textContent === 'Quitar' && document.querySelector('.ev-pill').textContent === 'SOLO FONDO'`));
+  await tapEl(evMode('clear'));
+
+  // Un toque accidental no hace nada (DESIGN.md 12 ter, regla 2).
+  const rowCenter = await centerOf(`${evRow('Salmos 23')}.querySelector('.ev-row-main')`);
+  await dragMouse(rowCenter.x, rowCenter.y, rowCenter.x + 20, rowCenter.y);
+  check('si el dedo se mueve, no se marca nada', await run(`return !document.querySelector('.ev-row.marked')`));
+  await chrome.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: rowCenter.x, y: rowCenter.y, button: 'left', buttons: 1, clickCount: 1 });
+  await sleep(900);
+  await chrome.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: rowCenter.x, y: rowCenter.y, button: 'left', buttons: 0, clickCount: 1 });
+  await sleep(200);
+  check('un toque muy largo tampoco', await run(`return !document.querySelector('.ev-row.marked')`));
+  await tapEl(`${evRow('Salmos 23')}.querySelector('.ev-row-main')`);
+  check('un toque en una fila solo la marca: lleva su ▶ y no sale al aire', (await live()).ref === 'Juan 3:19' && await run(`const r = ${evRow('Salmos 23')}; return r.classList.contains('marked') && getComputedStyle(r.querySelector('.ev-play')).display !== 'none'`));
+  await tapEl(`${evRow('Salmos 23')}.querySelector('.ev-play')`);
+  await sleep(300);
+  check('el ▶ la pone al aire, la fila lo dice y aparece «Volver a…» en su sitio fijo', (await live()).ref === 'Salmos 23:1' && await run(`const r = ${evRow('Salmos 23')}; const b = document.querySelector('.ev-back'); return r.classList.contains('live') && !r.classList.contains('marked') && r.querySelector('.ev-tag').textContent === 'AL AIRE' && !b.hidden && b.textContent.includes('Juan 3:19')`));
+  await tapEl(`document.querySelector('.ev-back')`);
+  await sleep(400);
+  check('y «Volver a…» deshace el salto', (await live()).ref === 'Juan 3:19' && await run(`return document.querySelector('.ev-back').hidden`));
+
+  // La ranura de mandos: un pasaje de dos versículos, con sus casillas.
+  const evCall = (type, payload = {}) => run(`const r = await fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Prueba': '1' }, body: JSON.stringify(${JSON.stringify({ type, payload })}) }); return JSON.stringify((await r.json()).result ?? null)`).then(JSON.parse);
+  const versionId = await run(`return (await (await fetch('/api/state')).json()).bible.versions[0].id`);
+  const twoId = (await evCall('order.add', { kind: 'verses', data: { versionId, ref: { book: 43, chapter: 3, verseStart: 16, verseEnd: 17 } } })).id;
+  await evCall('order.show', { id: twoId, step: 0 });
   await sleep(500);
-  check('Ajustes se abre siempre completo, sin el botón de reducir', await run(`const d = document.querySelector('.drawer'); return d.classList.contains('wide') && !d.classList.contains('compact') && document.querySelector('.drawer-wide').hidden`));
-  await goTo('biblia');
-  await sleep(300);
-  check('y al volver a otro módulo, el cajón vuelve a su tamaño reducido', await run(`return document.querySelector('.drawer').classList.contains('compact')`));
-  await run(`document.querySelector('.drawer-backdrop').click()`);
-  await sleep(300);
-  await tapEl(`document.querySelector('.story-zone.next')`);
-  await sleep(400);
-  check('tocar la zona derecha del recuadro avanza', (await live()).ref === 'Salmos 23:1');
-  await tapEl(`document.querySelector('.story-zone.prev')`);
-  await sleep(400);
-  check('y la izquierda retrocede', (await live()).ref === 'Juan 3:19');
-  const storyMode = (mode) => `document.querySelector('.story-modes [data-mode=${mode}]')`;
-  const modeIs = (mode) => run(`return ${storyMode(mode)}.getAttribute('aria-pressed') === 'true' && ${storyMode(mode)}.classList.contains('on') && document.querySelectorAll('.story-modes [aria-pressed=true]').length === 1 && document.querySelector('.story-frame').dataset.state === ${JSON.stringify(mode)}`);
-  await tapEl(storyMode('black'));
-  check('el modo «Negro» de Historias pone la pantalla en negro', (await live()).mode === 'black' && await modeIs('black'));
-  await tapEl(storyMode('clear'));
-  check('«Solo fondo»', (await live()).mode === 'clear' && await modeIs('clear'));
-  await tapEl(storyMode('live'));
-  check('y «Al aire» la devuelve', (await live()).mode === 'live' && await modeIs('live'));
-  await tapEl(`document.querySelector('.story-card .story-main')`);
-  check('tocar una tarjeta de «A continuación» la marca, con su ▶ (de 35 px o más) a la vista, sin proyectarla', await run(`const c = document.querySelector('.story-card'); const p = c.querySelector('.story-play'); const r = p.getBoundingClientRect(); return c.classList.contains('prepared') && getComputedStyle(p).display !== 'none' && r.width >= 34.5 && r.height >= 34.5 && p.getAttribute('aria-label').includes('Salmos 23') && !document.querySelector('.prep')`) && (await live()).ref === 'Juan 3:19');
-  await tapEl(`document.querySelector('.story-card .story-play')`);
-  check('el ▶ de la tarjeta la proyecta', (await live()).ref === 'Salmos 23:1' && await run(`return !document.querySelector('.story-card.prepared')`));
+  const cellsNow = () => run(`return JSON.stringify([...document.querySelectorAll('.ev-slot .ev-cell')].filter((c) => c.getClientRects().length && !c.classList.contains('ev-off')).map((c) => c.textContent + (c.classList.contains('on') ? '*' : c.classList.contains('nx') ? '>' : '')))`);
+  check('los mandos de un pasaje: la versión, comparar, el capítulo, «Encima», sus versículos y «Juntos», en dos filas de alto fijo', await cellsNow() === JSON.stringify(['v. 16*', 'v. 17>', 'Juntos']) && await run(`const s = document.querySelector('.ev-slot'); return s.textContent.includes('Comparar') && s.textContent.includes('Juan 3') && s.textContent.includes('Encima') && s.textContent.includes('Más') && s.getBoundingClientRect().height === 67`), await cellsNow());
+  await tapEl(`document.querySelector('.ev-slot .ev-cell.nx')`);
+  await sleep(600);
+  check('tocar el siguiente pasa a él', await cellsNow() === JSON.stringify(['v. 16', 'v. 17*', 'Juntos']), await cellsNow());
+  await sleep(350);
+  await tapEl(`[...document.querySelectorAll('.ev-slot .ev-cell')].find((c) => c.textContent === 'Juntos')`);
+  await sleep(600);
+  check('«Juntos» lo pone entero', await cellsNow() === JSON.stringify(['v. 16', 'v. 17', 'Juntos*']), await cellsNow());
+  await evCall('order.remove', { id: twoId });
   await run(`await ${post('projection.show', { kind: 'testcard', data: {} })}`);
   await sleep(500);
-  await tapEl(`document.querySelector('.story-controls')`);
-  check('el botón de mandos de Historias abre la capa con los mandos', await run(`const l = document.querySelector('.controls-layer'); return !l.hidden && document.querySelectorAll('.controls-pop .live-controls button').length === 5 && document.querySelector('.controls-pop').getClientRects().length > 0`));
+  check('fuera del orden, «Volver al orden» lo dice en el mismo sitio', await run(`const b = document.querySelector('.ev-back'); return !b.hidden`));
+  await tapEl(`document.querySelector('.ev-slot .ev-mas')`);
+  check('«Más» abre la hoja con todos los mandos', await run(`const l = document.querySelector('.controls-layer'); return !l.hidden && document.querySelectorAll('.controls-pop .live-controls button').length === 5 && document.querySelector('.controls-pop').getClientRects().length > 0`));
   await clickAt(10, 10);
   check('y tocar fuera la cierra', await run(`return document.querySelector('.controls-layer').hidden`));
-  const juan = await run(`return (await (await fetch('/api/state')).json()).order.items.find(i => i.title === 'Juan 3:19').id`);
-  await run(`await ${post('order.show', { id: 'ID' })}`.replace('"ID"', JSON.stringify(juan)));
-  await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+
+  // El deslizador: solo se arrastra su bola, se aplica al soltar y se cancela alejándose.
+  const volumeNow = () => run(`return (await (await fetch('/api/state')).json()).live.volume`);
+  const volumeStart = await volumeNow();
+  const volBar = JSON.parse(await run(`const r = document.querySelector('.ev-vol .ev-slider').getBoundingClientRect(); return JSON.stringify({ left: r.left, width: r.width, y: r.top + r.height / 2 })`));
+  const ballX = volBar.left + volBar.width * volumeStart;
+  await clickAt(volBar.left + 4, volBar.y);
+  check('tocar la barra del volumen no hace nada', await volumeNow() === volumeStart);
+  await chrome.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: ballX - 4, y: volBar.y, button: 'left', buttons: 1, clickCount: 1 });
+  await chrome.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: volBar.left + volBar.width / 2, y: volBar.y, button: 'left', buttons: 1 });
+  check('arrastrar su bola no cambia nada hasta soltarla', await volumeNow() === volumeStart);
+  await chrome.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: volBar.left + volBar.width / 2, y: volBar.y - 60, button: 'left', buttons: 1 });
+  await chrome.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: volBar.left + volBar.width / 2, y: volBar.y - 60, button: 'left', buttons: 0, clickCount: 1 });
+  await sleep(300);
+  check('y alejarse 40 px la cancela', await volumeNow() === volumeStart);
+  await dragMouse(ballX - 4, volBar.y, volBar.left + volBar.width / 2, volBar.y);
+  const volumeHalf = await volumeNow();
+  check('al soltarla, se aplica', Math.abs(volumeHalf - 0.5) < 0.1 && await run(`return document.querySelector('.ev-amount').textContent === ${JSON.stringify(`${Math.round(volumeHalf * 100)} %`)}`), String(volumeHalf));
+  await run(`await ${post('projection.volume', { volume: 1 })}`);
+
+  // Las capas: su estado y su cuenta, y se encienden y apagan con un toque; con tres o cuatro, cada una es su número y su icono.
+  const clockForIsle = (await evCall('time.save', { type: 'timer', title: 'Isla', seconds: 300 })).id;
+  const setLayer = (n, data) => evCall('layers.set', { n, kind: 'clock', data });
+  await setLayer(1, { id: clockForIsle });
+  check('una capa con un reloj dice su cuenta', await until(`document.querySelector('.ev-isle[data-n="1"] .ev-isle-name')?.textContent === '5:00'`, 8));
+  await tapEl(`document.querySelector('.ev-isle[data-n="1"]')`);
+  await sleep(300);
+  const isleOn = () => run(`return (await (await fetch('/api/state')).json()).layers.slots[0].visible`);
+  const isleBefore = await isleOn();
+  await tapEl(`document.querySelector('.ev-isle[data-n="1"]')`);
+  await sleep(300);
+  check('un toque la enciende o la apaga', await isleOn() !== isleBefore && await run(`return document.querySelector('.ev-isle[data-n="1"]').classList.contains('on') === ${!isleBefore}`));
+  await setLayer(2, { type: 'hora' });
+  await setLayer(3, { type: 'hora' });
+  check('con tres, cada una es su número y su icono, y el volumen pasa a ser un botón con su cifra', await until(`document.querySelector('.ev-capas').dataset.many === 'true' && ${evShown('.ev-isle[data-n="3"] .ev-isle-icon')} && !${evShown('.ev-isle[data-n="3"] .ev-isle-name')} && ${evShown('.ev-vol-btn')} && !${evShown('.ev-vol .ev-volume')}`, 8));
+  await tapEl(`document.querySelector('.ev-vol-btn')`);
+  check('que abre el volumen', await run(`return ${evShown('.modal .ev-volume')}`));
+  await clickAt(10, 10);
+  await chrome.send('Page.reload', {});
+  await sleep(1500);
+  check('al abrir la página con capas ya puestas, salen en su orden', await until(`document.querySelectorAll('.ev-isle[data-n]').length === 3`, 10) && await run(`return [...document.querySelectorAll('.ev-isle[data-n]')].map((b) => b.dataset.n).join() === '1,2,3'`));
+  for (const n of [1, 2, 3]) await evCall('layers.clear', { n });
+  await evCall('time.remove', { id: clockForIsle });
+  const juan = await run(`return (await (await fetch('/api/state')).json()).order.items.find((i) => i.title === 'Juan 3:19').id`);
+  await evCall('order.show', { id: juan });
+  await sleep(500);
+
+  // Un módulo sube entre la vista y la franja, sin fondo oscuro: lo que está al aire y Siguiente siguen vivos.
+  await goTo('orden');
+  await sleep(500);
+  check('un módulo abierto sube entre la vista y la franja, con lo que está al aire y Siguiente a la vista, y sin fondo oscuro', await drawerOpen() && await run(`const d = document.querySelector('.drawer').getBoundingClientRect(); const v = document.querySelector('.ev-screen').getBoundingClientRect(); const n = document.querySelector('.ev-next').getBoundingClientRect(); return d.top >= v.bottom && d.bottom <= n.top && v.width < 200 && ${evShown('.ev-info')} && !document.querySelector('.drawer-backdrop')?.isConnected && !${evShown('.ev-list')}`));
+  await tapEl(`[...document.querySelectorAll('.dock-item')].find((b) => b.textContent === 'En vivo')`);
+  check('y «En vivo» lo cierra', !await drawerOpen() && await run(`return ${evShown('.ev-list')} && [...document.querySelectorAll('.dock-item')].find((b) => b.textContent === 'En vivo').classList.contains('on')`));
+  await goTo('biblia');
   await sleep(600);
+  check('en el teléfono, un módulo enseña solo lo esencial', await run(`const d = document.querySelector('.drawer'); return d.classList.contains('compact') && !d.classList.contains('wide')`));
+  await click(`document.querySelector('.drawer-wide')`);
+  await sleep(200);
+  check('ampliado, tapa la vista; Siguiente sigue ahí', await run(`return document.querySelector('.drawer').classList.contains('wide') && !${evShown('.ev-screen')} && ${evShown('.ev-next')}`));
+  await click(`document.querySelector('.drawer-wide')`);
+  await goTo('ajustes');
+  await sleep(500);
+  check('Ajustes se abre siempre ampliado, sin el botón de reducir', await run(`const d = document.querySelector('.drawer'); return d.classList.contains('wide') && !d.classList.contains('compact') && document.querySelector('.drawer-wide').hidden`));
+  await goTo('biblia');
+  await sleep(300);
+  check('y al volver a otro módulo, vuelve a su tamaño', await run(`return document.querySelector('.drawer').classList.contains('compact')`));
+  await tapEl(`[...document.querySelectorAll('.dock-item')].find((b) => b.textContent === 'En vivo')`);
+  await tapEl(`[...document.querySelectorAll('.dock-item')].find((b) => b.textContent === 'Módulos')`);
+  check('lo que no cabe en el dock, en «Módulos»', await run(`return [...document.querySelectorAll('.menu button')].some((b) => b.textContent.includes('Tiempo'))`));
+  await run(`document.querySelector('.menu')?.remove()`);
+
+  // Acostado: el dock a la izquierda, sin rehacer nada.
+  await run(`document.querySelector('.ev-list').dataset.same = 'si'`);
+  await chrome.send('Emulation.setDeviceMetricsOverride', { width: 812, height: 375, deviceScaleFactor: 1, mobile: true });
+  await sleep(500);
+  check('al girarlo, las mismas piezas: el dock a la izquierda, la vista, y la lista y Siguiente a la derecha', await run(`const r = (s) => document.querySelector(s).getBoundingClientRect(); return document.documentElement.dataset.disposicion === 'telefono-acostado' && document.querySelector('.ev-list').dataset.same === 'si' && r('.dockbar').right <= r('.ev-screen').left && r('.ev-screen').right <= r('.ev-next').left && r('.ev-mode').bottom <= innerHeight && r('.ev-next').bottom <= innerHeight`));
+  await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
+  await sleep(500);
+
+  // Sin conexión: sin barra nueva, para que nada se mueva. (Lleva 13 s: es lo que tarda en darse por perdida.)
+  await run(`window.dispatchEvent(new Event('pagehide'))`); // suelta la conexión: el servidor deja de oírse
+  check('sin noticias del servidor en 12 s, la pastilla lo dice en gris, la vista se atenúa y Siguiente se apaga', await until(`document.querySelector('.ev').dataset.state === 'offline' && document.querySelector('.ev-pill').textContent === 'SIN CONEXIÓN' && document.querySelector('.ev-next').disabled && document.querySelector('.ev-next').textContent.includes('Reconectando')`, 45) && await run(`return !${evShown('.offline-bar')} && getComputedStyle(document.querySelector('.ev-screen')).opacity < 1`));
+  await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+  await sleep(1800);
 
   console.log('\n1. Interfaz · Buscar en todo');
   {
@@ -1234,13 +1319,13 @@ try {
   await click(`${modal}.querySelector('.btn.danger')`);
   await sleep(600);
   check('una imagen se puede eliminar de la biblioteca', await run(`return !${modal} && ${med}.querySelectorAll('.media-card').length === 1 && (await fetch(${JSON.stringify(lib.find((i) => i.id !== ad?.id)?.url || '/x')})).status === 404`));
-  // En el celular (< 860 px) el mismo dock va abajo con todos los módulos y su nombre, sin «Más»; se desliza si no caben.
+  // En el celular, «En vivo» lleva el dock abajo: ella primero, cinco módulos y lo demás en «Módulos»; Ajustes, en el logo.
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-  await sleep(500);
+  await sleep(1800);
   const dockNames = `[...document.querySelectorAll('.dockbar .dock-item')].map(b => b.querySelector('.dock-name').textContent).join('|')`;
-  check('en el celular, el dock va abajo con todos los módulos y su nombre, sin «Más» (Ajustes, en el logo de arriba)', await run(`const r = document.querySelector('.dockbar').getBoundingClientRect(); const logo = document.querySelector('.topbar .brand-mark[data-id=ajustes]').getBoundingClientRect(); return ${dockNames} === 'Orden|Biblia|Himnario|Medios|Textos|Tiempo|Páginas web|Capas' && logo.width >= 30 && logo.top >= 0 && logo.bottom <= innerHeight && getComputedStyle(document.querySelector('.dock-name')).display !== 'none' && r.bottom > innerHeight - 30 && r.top > innerHeight / 2 && !document.querySelector('.tabbar') && ![...document.querySelectorAll('.dockbar button')].some(b => b.textContent === 'Más') && document.querySelector('.dock-item.on').dataset.id === 'medios'`), await run(`return ${dockNames}`));
+  check('en el celular, el dock va abajo: «En vivo», cinco módulos y «Módulos», con su nombre (Ajustes, en el logo de arriba)', await run(`const r = document.querySelector('.dockbar').getBoundingClientRect(); const logo = document.querySelector('.ev-top .brand-mark[data-id=ajustes]').getBoundingClientRect(); return ${dockNames} === 'En vivo|Orden|Biblia|Himnario|Medios|Textos|Módulos' && logo.width >= 30 && logo.top >= 0 && logo.bottom <= innerHeight && getComputedStyle(document.querySelector('.dock-name')).display !== 'none' && r.bottom > innerHeight - 30 && r.top > innerHeight / 2`), await run(`return ${dockNames}`));
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
-  await sleep(400);
+  await sleep(1800);
 
   console.log('\n1. Interfaz · Medios (videos, audios y categorías)');
   if (!HAS_FFMPEG) console.log('  (este equipo no tiene ffmpeg: no se pueden fabricar los videos de ejemplo y esta parte se salta)');
@@ -1403,6 +1488,7 @@ try {
     check('lo que está en el orden en uso tiene su copia de vista previa, hecha de fondo', madePreview());
     const phone = (await call('users.create', { name: 'Celular', pin: '4321', functions: ['control'] })).result;
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+    await sleep(1500); // pasar del computador al celular, o al revés, vuelve a abrir la página
     await chrome.send('Page.navigate', { url: `${byIp}/api/ping` });
     await sleep(600);
     await run(`await fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'control', user: ${JSON.stringify(phone.id)}, pin: '4321' }) })`);
@@ -1411,18 +1497,19 @@ try {
     check('en un celular, un video mudo mantiene la pantalla encendida', await until(`document.querySelector('.keep-awake')?.paused === false`, 8) && await run(`return document.querySelector('.keep-awake').muted`));
     check('y dice qué disposición le toca', await run(`return document.documentElement.dataset.disposicion === 'telefono-pie'`));
     await call('projection.show', { kind: main.kind, data: { id: main.id } });
-    const phoneVideo = `document.querySelector('.story-frame .stage video.clip-video')`;
+    const phoneVideo = `document.querySelector('.ev-screen video.clip-video')`;
     check('la vista previa del celular muestra el video en movimiento, con la copia ligera y sin sonido', await until(`${phoneVideo}?.getAttribute('src')?.includes('/vista-previa/') && ${phoneVideo}.currentTime > 0.1 && !${phoneVideo}.paused`, 8) && await run(`return ${phoneVideo}.muted`), await run(`const v = ${phoneVideo}; return v ? JSON.stringify({ src: v.getAttribute('src'), t: v.currentTime, paused: v.paused }) : 'sin video'`));
     const clockId = (await call('time.save', { type: 'stopwatch', title: 'Reloj de la prueba' })).result.id;
     await call('layers.set', { n: 1, kind: 'clock', data: { id: clockId } });
-    check('y dibuja las capas de texto, como el proyector', await until(`document.querySelector('.story-frame .stage-layer[data-n="1"] .clk') && getComputedStyle(document.querySelector('.story-frame .stage-layer[data-n="1"]')).visibility === 'visible'`, 6));
+    check('y dibuja las capas de texto, como el proyector', await until(`document.querySelector('.ev-screen .stage-layer[data-n="1"] .clk') && getComputedStyle(document.querySelector('.ev-screen .stage-layer[data-n="1"]')).visibility === 'visible'`, 6));
     await call('layers.set', { n: 2, kind: 'web', data: { id: aPage.id } });
-    check('una página en una capa no se carga en el celular: se ve una tarjeta que dice cuál es', await until(`document.querySelector('.story-frame .layer-card')?.textContent === 'Una página de la prueba'`, 6) && await run(`return !document.querySelector('.story-frame .stage-layer iframe')`));
+    check('una página en una capa no se carga en el celular: se ve una tarjeta que dice cuál es', await until(`document.querySelector('.ev-screen .layer-card')?.textContent === 'Una página de la prueba'`, 6) && await run(`return !document.querySelector('.ev-screen .stage-layer iframe')`));
     await call('layers.clear', { n: 2 });
     await call('layers.clear', { n: 1 });
     await call('time.remove', { id: clockId });
     await call('projection.clear');
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+    await sleep(1500); // pasar del computador al celular, o al revés, vuelve a abrir la página
     await chrome.send('Page.navigate', { url: `${local}/control?v=${Date.now()}#medios` });
     await sleep(2500);
     await call('order.remove', { id: inOrder.id });
@@ -2352,12 +2439,17 @@ try {
       && [...${detail}.querySelectorAll('.slide-cap span')].map(s => s.textContent).join() === 'Diapositiva 1,Diapositiva 2,Diapositiva 3,Diapositiva 4'`, 30)
       && await run(`return ${detail}.querySelector('.odetail-head small').textContent === 'Diapositivas · PDF · 4 diapositivas'`), await run(`return [...${detail}.querySelectorAll('.slide img')].map(i => (i.getAttribute('src') || '').split('/').pop() + ' ' + i.naturalWidth).join(', ')`));
     // Un iPhone triplica los píxeles de cada miniatura: no por eso se pide la imagen grande (decenas de ellas cerraban Safari).
+    const pickReport = () => click(`[...document.querySelectorAll('.ws[data-module=orden] .orow')].find(r => r.textContent.includes('Informe de tesorería'))`);
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
-    await sleep(900);
+    await sleep(1800); // vuelve a abrir la página
+    await pickReport();
+    await until(`${detail}?.querySelectorAll('.slide img').length === 4 && [...${detail}.querySelectorAll('.slide img')].every(i => i.naturalWidth)`, 20);
     check('en un celular de pantalla densa (iPhone) las miniaturas del orden siguen con la imagen pequeña', await run(`return devicePixelRatio === 3 && ${detail}.querySelectorAll('.slide img').length === 4 && [...${detail}.querySelectorAll('.slide img')].every(i => i.naturalWidth === 320)`),
       await run(`return devicePixelRatio + ' · ' + [...${detail}.querySelectorAll('.slide img')].map(i => i.clientWidth + '>' + i.naturalWidth).join(', ')`));
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
-    await sleep(500);
+    await sleep(1800);
+    await pickReport();
+    await until(`${detail}?.querySelectorAll('.slide').length >= 4`, 20);
     await click(`${detail}.querySelectorAll('.slide')[1]`);
     await sleep(600);
     air = await onAir();
@@ -2580,6 +2672,7 @@ try {
     // En el celular: tocar una presentación la elige; sus diapositivas, solo con «Ver diapositivas», aparte, encima
     // de la lista, y «Presentaciones» vuelve a la lista donde estaba.
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+    await sleep(1500); // pasar del computador al celular, o al revés, vuelve a abrir la página
     await chrome.send('Page.navigate', { url: `${local}/control?m=${Date.now()}#medios` });
     await sleep(2500);
     // Se ve: tiene caja y no está escondido (debajo de las diapositivas, la lista sigue en su sitio, invisible).
@@ -2601,6 +2694,7 @@ try {
     check('«Presentaciones» vuelve a la lista donde estaba, con la presentación aún elegida', pane.list && !pane.pages && pane.groups === 'imagenes,videos,audios,diapositivas' && chosen.top > 0 && pane.top === chosen.top
       && await run(`return ${ws}.querySelector('.deck').classList.contains('selected')`), JSON.stringify({ chosen, pane }));
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+    await sleep(1500); // pasar del computador al celular, o al revés, vuelve a abrir la página
     await chrome.send('Page.navigate', { url: `${local}/control?d=${Date.now()}#medios` });
     await sleep(2500);
   }
@@ -2689,6 +2783,7 @@ try {
 
     // En el celular: la grande y la fila Anterior / Siguiente / Negro, sin desplazarse.
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
+    await sleep(1500); // pasar del computador al celular, o al revés, vuelve a abrir la página
     await chrome.send('Page.navigate', { url: `${local}/orador?m=${Date.now()}` });
     await sleep(2500);
     const inView = (selector) => run(`const e = ${pr}.querySelector(${JSON.stringify(selector)}); const r = e.getBoundingClientRect(); return r.width > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth`);
@@ -2708,6 +2803,7 @@ try {
     await sleep(500);
     check('con «Señalar» encendido, el toque señala en la proyección y no pasa', pointed.x != null && (await num()) === 2, JSON.stringify(pointed));
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+    await sleep(1500); // pasar del computador al celular, o al revés, vuelve a abrir la página
     await chrome.send('Page.navigate', { url: `${local}/control?p=${Date.now()}#medios` });
     await sleep(2500);
     // Lo que señala el Presentador también se ve en el fondo del control.
@@ -2975,6 +3071,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
 
         // En el celular, con la página al aire (la sigue sola al entrar).
         await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
+        await sleep(1500); // pasar del computador al celular, o al revés, vuelve a abrir la página
         await chrome.send('Page.navigate', { url: `${local}/orador?p=${Date.now()}` });
         await sleep(2500);
         check('en 375 px, con una página, la grande y sus botones se ven sin desbordar', await run(`const w = 375; /* el ancho pedido, no innerWidth */ const fits = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= w && r.top >= 0 && r.bottom <= innerHeight; }; const t = [...${pr}.querySelectorAll('.pr-main .transport .btn')];
@@ -3052,8 +3149,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
         check('un pasaje en una capa tapa con su fondo la presentación, que sigue al aire; al apagar la capa, se ve otra vez', verseShown && overSlides === 'capa 1' && underIt === 'al aire' && (await live()).kind === 'slides', `${overSlides} → ${underIt}`);
         await run(`return await ${post('layers.clear', { n: 1 })}`);
 
-        // Encenderla y apagarla desde la barra de abajo, sin abrir «Capas» (pedido del dueño, 2026-10-25); en el celular,
-        // desde «Historias».
+        // Encenderla y apagarla desde la barra de abajo, sin abrir «Capas» (pedido del dueño, 2026-10-25).
         const sw = (where) => `document.querySelector('${where} .layer-switch[data-n="2"]')`;
         const flips = async (where) => {
           await click(sw(where));
@@ -3066,11 +3162,6 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
         check('en la barra de abajo, una ficha por capa con algo: la 2, encendida, con su número', await until(`${sw('.tb-layers')}?.classList.contains('on')`, 10)
           && await run(`return document.querySelectorAll('.tb-layers .layer-switch').length === 1 && ${sw('.tb-layers')}.querySelector('.ls-n').textContent === '2' && ${sw('.tb-layers')}.getClientRects().length > 0`));
         check('un clic en ella la apaga en la proyección y otro la enciende', await flips('.tb-layers'));
-        await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
-        await sleep(800);
-        check('en el celular, en «Historias», con su nombre, y también la enciende y la apaga', await run(`const b = ${sw('.story-layers')}; return b?.getClientRects().length > 0 && b.querySelector('.ls-name').getClientRects().length > 0 && b.textContent.includes('Palabra del concurso')`) && await flips('.story-layers'));
-        await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
-        await sleep(800);
 
         // Lo que está al aire cambia por debajo; la capa sigue y no se recarga, también con «Negro» y «Solo fondo».
         await run(`${layerOf(2)}.querySelector('iframe').dataset.marca = 'sigue'`);
@@ -3157,6 +3248,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
 
       // En el celular.
       await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
+      await sleep(1500); // pasar del computador al celular, o al revés, vuelve a abrir la página
       await chrome.send('Page.navigate', { url: `${local}/control?w=${Date.now()}#paginas` });
       await sleep(2500);
       await pickPage(longName);
@@ -3164,6 +3256,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
         return document.documentElement.scrollWidth <= w && ${ws}.querySelectorAll('.web-item').length === 2 && [...${ws}.querySelectorAll('.web-item')].every(fits) && fits(bar) && bar.getBoundingClientRect().bottom <= innerHeight && [...bar.querySelectorAll('button')].every(fits)`),
       await run(`return document.documentElement.scrollWidth + ' de ' + innerWidth`));
       await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+      await sleep(1500); // pasar del computador al celular, o al revés, vuelve a abrir la página
       await chrome.send('Page.navigate', { url: `${local}/control?g=${Date.now()}#paginas` });
       await sleep(2500);
     } finally {
@@ -3644,7 +3737,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     await sleep(1200);
     heardBefore = await pv();
     check('en el Orden, el elemento de un himno se puede escuchar aquí antes de pasarlo', heardBefore.shown && /\/himnos\/005/.test(heardBefore.src || ''), JSON.stringify(heardBefore));
-    await run(`document.querySelector('.drawer-backdrop').click()`);
+    await run(`document.querySelector('.drawer-actions [aria-label="Cerrar el cajón"]').click()`);
     await sleep(300);
     check('al cerrar el cajón, la escucha se detiene', !(await pv()).shown);
     // Se sale del control (aceptando el «¿Salir del sitio?») para que lo siguiente empiece sin ventanas abiertas.
