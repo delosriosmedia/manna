@@ -161,8 +161,16 @@ De menor a mayor riesgo; cada fase deja algo usable y **se publica al cerrarla**
 | 32 | Tiempo: la hora, cronómetros y temporizadores, a la proyección o a una capa (decisión 51) | M | 1.37 |
 | 33 | Presentaciones sin PowerPoint, con DeckCraft: medir la fidelidad, convertir y pasar en vivo dentro de Manna (decisión 51) | L | 1.38 y 1.39 |
 | 34 | Versículos en una capa y la barra de capas al estilo Dynamic Island (decisiones 51 y 54) | M | 1.40 |
-| 40 | Investigación desde cero: funciones especializadas para el celular (decisión 56), en pausa hasta que lo diga el dueño (decisión 60) | M | sin versión (documento) |
+| 40 | Investigación desde cero: pantallas de control del celular para tres funciones, Control total, Alabanza y Orador (decisión 56; retomada por el dueño el 2026-10-29) | M | sin versión (documento) |
 | 41 | Organizar la interfaz desde el superadministrador (la idea I5, decisión 60), después de la 39 | por planear | |
+| 42 | Cimientos de «En vivo» en el servidor y las funciones: Orador completo (desde Presentador) y Orador sencillo, sin Control del orden, permisos por permiso, Siguiente sin pasos dobles, «Volver», lo que sigue, la capa momentánea del orador, qué pantalla le toca a cada dispositivo y las reglas de móviles en la auditoría (decisiones 68 a 72) | L | aprobada |
+| 43 | La vista previa del celular tal cual (capas y video en movimiento) y la pantalla que no se apaga (decisión 69) | M | aprobada |
+| 44 | «En vivo» de Control total (A1 · Consola), en teléfono y tableta | L | aprobada |
+| 45 | «En vivo» de Alabanza (B1 con la lista de B2), en teléfono y tableta | M | aprobada |
+| 46 | «En vivo» del Orador completo (C2 · Pestañas del mensaje), en teléfono y tableta, con la hoja «Versículo» | M | aprobada |
+| 47 | «En vivo» del Orador sencillo (C4 · Control de bolsillo), en teléfono y tableta | S | aprobada |
+| 48 | «En vivo» en el computador y el retiro de «Historias» | S | aprobada |
+| 49 | Los módulos y las demás pantallas, con las reglas de móviles (`DESIGN.md`, 12 ter) | M | propuesta |
 
 **Orden cambiado el 2026-10-04 (decisión 20)**: la fase 6 va antes que la 5, mientras el dueño revisa las letras de los himnos. La reproducción (pausa, avance, volumen, una sola pantalla que suena), que iba a estrenarse con el himnario, se construye con los videos.
 
@@ -1047,9 +1055,11 @@ El dueño probó `pruebas.manna-iglesia.es` con la 1.48.0 y pidió estos cambios
 
 Después de estas cuatro partes siguen la 6 y la 7 de la fase 37 (la portada que sabe si el equipo está encendido y la misma versión) y las copias en Drive de la fase 38.
 
-### Fase 40 · Investigación desde cero: funciones especializadas para el celular — en pausa hasta que lo diga el dueño (decisiones 56 y 60)
+### Fase 40 · Investigación desde cero: pantallas de control del celular — hecha el 2026-10-30 (decisiones 56 y 68 a 72)
 
 Decisión 56. El encargo de la fase 19 (cancelada), hecho **otra vez desde cero** cuando el dueño lo pida. No tiene fecha ni va antes de ninguna otra fase.
+
+**Retomada por el dueño el 2026-10-29**, con su encargo: tres funciones para quien entra desde el celular, cada una con su pantalla de control como casa. **Control total** (todos los módulos y un módulo para manejar lo que está al aire, con todos los mandos), **Alabanza** (Himnario, Medios y Biblia, y primero una vista para el momento de alabanza: el orden y lo que suena) y **Orador** (Biblia, Medios y Textos, y una vista para pasar sus diapositivas y saltar a un versículo). En Control total y Alabanza manda la vista previa de lo que está al aire, tal cual. Pidió cuatro alternativas por pantalla de control para elegir la distribución. **Entregado**: `docs/pantallas-de-control.md` (diagnóstico, principios comunes, las tres funciones con sus permisos, las doce alternativas, la revisión, lo que haría falta nuevo, riesgos y decisiones) y los bocetos en el lienzo «Pantallas de control» de claude.ai. **Elegidas el mismo día (decisión 68)**: A1 · Consola (Control total), B1 · Reproductor (Alabanza) y C1 · Dos carriles (Orador); el 2026-10-30, los detalles que cambian cómo se construye (decisión 69) y el ajuste final (decisión 70): Alabanza, B1 con la lista de B2; el Orador, dos funciones (C2 y C4); y todo resuelto primero para el teléfono más pequeño, de pie y acostado. **Auditoría de los bocetos** (2026-10-30, decisión 72): `docs/auditoria-bocetos-moviles.md`, de la que salen las reglas de móviles de `DESIGN.md`, sección 12 ter. **Siguen**: las fases 42 a 49.
 
 - En el celular, en vez de entrar a «Control completo», funciones especializadas, una por necesidad, con pocas cosas en pantalla: qué funciones habría, qué puede y qué no puede cada una, qué tiene en pantalla y cómo se usa, pensando en la experiencia y no solo en la interfaz.
 - **Sin partir de la propuesta cancelada** ni de cómo esté repartida la app en ese momento. Sí se tiene en cuenta lo que Manna haga entonces: desde la fase 19 llegaron, entre otras, las capas, Tiempo y los órdenes guardados, y con las fases 35 a 39 llegarán los usuarios y la preparación en la nube.
@@ -1083,6 +1093,107 @@ Idea del dueño del 2026-10-25 (I5, de la antigua bandeja de ideas). Depende de 
 - **Volver atrás**: un botón «Volver al diseño original».
 
 **Cuidado**: cada combinación es una pantalla más que la auditoría tiene que revisar en sus 10 tamaños. Conviene un número cerrado de opciones (pocas variantes por elemento, órdenes que se pueden probar) antes que una libertad total que nadie haya visto en un celular.
+
+### Fases 42 a 49 · Las pantallas «En vivo» y las reglas de móviles — aprobadas el 2026-10-30, salvo la 49, propuesta (decisiones 68 a 72)
+
+Salen de la fase 40 (`docs/pantallas-de-control.md`). Cada fase deja algo usable y se publica al cerrarla.
+
+**Elegidas (decisiones 68 y 70)**: Control total, A1 · Consola. Alabanza, B1 · Reproductor con la lista de B2. Orador completo, C2 · Pestañas del mensaje. Orador sencillo, C4 · Control de bolsillo, con su hoja «Versículo». Se ven en el lienzo «Pantallas de control», en su página «Aprobados» (T, teléfono; U, tableta en su tamaño más pequeño; E, estados y casos). **Toda fase de aquí cumple las reglas de `DESIGN.md`, sección 12 ter.**
+
+**Regla de tamaños (decisión 70)**: toda pantalla «En vivo» se resuelve primero para el teléfono de menor resolución: 360 × 640 con las barras del navegador ya descontadas (unos 80 px), es decir, **360 × 560 de pie y 640 × 280 acostado**. **Las listas mandan** (orden, cantos, versículos): los mandos se ven de 32 px, cada 35 px, con 35 px de zona de toque (el mínimo de `DESIGN.md`); Siguiente, Anterior, Solo fondo y Negro miden 38; el dock, 36; y cada fila de una lista, 36. Lo que repite otra parte de la pantalla se quita. En uno mejor crecen la vista y la lista; nada cambia de sitio. Son dos disposiciones, sin una tercera para la tableta:
+- **De pie**: la vista arriba, los mandos debajo, y abajo la franja del pulgar y el dock.
+- **Acostado**: el dock a la izquierda; la vista con «Solo fondo» y «Negro» bajo el pulgar izquierdo; los mandos, la lista, Anterior y Siguiente bajo el derecho.
+
+**Qué pantalla le toca a cada dispositivo (decisión 71)**: un dispositivo móvil nunca ve la versión de computador. Vale para Control total, Alabanza y los dos oradores.
+
+| Dispositivo | Ventana | Pantalla |
+| --- | --- | --- |
+| Computador (ratón) | Cualquiera, desde 860 px de ancho | Escenario |
+| Móvil | De pie, menos de 600 px de ancho | Teléfono de pie (mínimo 360 × 560) |
+| Móvil | Acostado, menos de 480 px de alto | Teléfono acostado (mínimo 640 × 280) |
+| Móvil | De pie, 600 px de ancho o más | Tableta de pie (mínimo 600 × 880) |
+| Móvil | Acostado, 480 px de alto o más | Tableta acostada (mínimo 960 × 520) |
+
+- **Móvil** es `pointer: coarse` (lo que ya usa `html.touch`), un iPad aunque tenga teclado o ratón (se presenta como Mac con pantalla táctil) o un Android. El **equipo principal** es siempre computador. Un portátil con pantalla táctil, también (su puntero principal es el ratón).
+- **Por qué dos límites**: se mira el lado corto de la ventana, así que girar el dispositivo no cambia de familia. Acostado, las barras del navegador se comen la altura: una tableta de 7 pulgadas (600 px) deja unos 520, y el teléfono más grande no pasa de unos 430.
+- **Ejemplos**: 360 × 640, 412 × 915 y 430 × 932 son teléfono; 600 × 960, iPad mini, iPad y iPad Pro son tableta. Un iPad en pantalla dividida con menos de 600 px usa la de teléfono.
+- El teclado del sistema no cambia de disposición (`interactive-widget=resizes-visual`). Un computador con la ventana de menos de 860 px usa la de teléfono o tableta: **«Historias» se retira**, y con ella una disposición que mantener.
+
+**Decidido (decisión 69)**: se quita Control del orden; el versículo de los oradores va encima, en una capa propia y momentánea; la pantalla del celular se mantiene encendida con un video mudo en bucle; la vista previa del celular muestra el video en movimiento, sin sonido.
+
+**Por defecto, salvo que el dueño diga otra cosa** (las demás preguntas de la sección 12 del documento):
+- Alabanza ve las capas y las enciende o apaga, pero no las pone ni las quita. Edita el orden y sube medios, como hoy.
+- Los dos oradores proyectan los textos que hay sin escribirlos (como se decidió el 2026-10-17) y no editan el orden: lo no previsto va encima.
+- «Otra cita», en los dos oradores, abre el teclado de números propio (la hoja «Versículo»), no el del celular: en estos tamaños, el del celular tapa casi toda la pantalla.
+- Con el versículo encima, Siguiente pasa sus versículos para todos, también si lo pulsa Control total. Tras el último, la capa se quita y queda la diapositiva donde estaba.
+- Todos los operadores valen igual, y Siguiente no pasa dos veces.
+- Elegir otro versículo desde los mandos puede sacar del orden, y lo dice con «Volver al orden».
+- En «En vivo», tocar la vista previa no pasa nada: solo se mira y, con «Señalar», se señala.
+- Un toque en una fila la marca, y solo la marcada lleva ▶ (como dice `DESIGN.md` §7): saltar a otra fila son dos toques, a cambio de quitar el accidente más probable (decisión 72).
+- El Orador sencillo lleva «Bloquear», y Solo fondo y Negro arriba de los botones grandes; su Siguiente grande va con fondo oscuro para no deslumbrar (decisión 72).
+- El Orador completo abre en la pestaña Diapositivas.
+- **El reloj de los dos oradores es la hora** del equipo principal, sin segundos (lo decidió el dueño, 2026-10-30).
+- «Tal cual» con excepciones (animaciones de DeckCraft o PowerPoint, páginas web, pestaña compartida), dichas en la vista previa.
+- Las partes del orden: la lista de Alabanza es la sección del canto al aire; los «versículos del mensaje», los de la sección de la presentación del orador.
+- Siguiente con la pantalla en Negro vuelve al aire con lo que sigue, para todos los tipos.
+- La sesión con PIN de un dispositivo que no es el equipo principal caduca al día siguiente, y «Salir» está a un toque desde «En vivo».
+- En el computador sigue el Escenario, con «En vivo» como su panel derecho. «En vivo» es la primera pestaña aunque la iglesia ordene los demás módulos.
+- Siguiente a la derecha (una opción para zurdos, más adelante).
+- Nombres: «Control total», «Alabanza», «Orador completo», «Orador sencillo» y, para la pantalla, «En vivo».
+
+**Fase 42 · Cimientos en el servidor y las funciones** (L)
+- Funciones: «Presentador» pasa a **«Orador completo»**: conserva el identificador `presentador`, así los usuarios y la nube no cambian, y `/presentador` lleva a `/orador`. **«Orador sencillo»** es una función nueva (`orador-sencillo`, en `/orador-sencillo`) con los mismos permisos (`projection.control`, `slides.edit` y `hymns.read`): solo cambia su pantalla. Se quita «Control del orden»: quien solo la tenía queda sin función hasta que el administrador le dé otra, y Ajustes → Usuarios lo avisa (hoy `users.js` deja «orden» por defecto).
+- Permisos por permiso, no por nombre: `ctx.can(permiso)` en la interfaz en lugar de `ctx.canEdit` por nombre, y un permiso para encender y apagar capas aparte del de ponerlas y quitarlas.
+- `projection.step` con el `uid` al aire, para que dos toques casi juntos no pasen dos pasos. `projection.back` vuelve a lo anterior si nadie lo cambió. El servidor publica qué pondrá Siguiente (o «animación») y avisa al llegar al «Fin del orden».
+- La capa momentánea del orador: aparte de las 4 de Control total, sin guardar, se quita sola si cambia lo que está al aire, obedece a Negro y Solo fondo, avanza sus versículos con Siguiente y no depende del módulo Capas.
+- Al volver al aire después de Negro o Solo fondo, se reanuda lo que se pausó.
+- `order.setTrack`: elegir Cantado o Pista de un canto del orden antes de que salga.
+- Una sola función dice qué pantalla le toca a cada dispositivo (arriba), y `?tactil` la sigue forzando en las pruebas. `scripts/auditar-responsive.mjs` suma los tamaños mínimos, 360 × 560, 640 × 280, 600 × 880 y 960 × 520, para que todas las fases siguientes se midan ahí desde el principio.
+- `DESIGN.md` §12 ter pasa a medirse: la auditoría suma también 360 × 512 y 592 × 280 y comprueba zonas de toque que se pisan (contando deslizadores), distancias a lo peligroso, letra, contraste, lo que se sale, brillo y rojo fuera del aire.
+- Pruebas: lógica pura con su prueba y `test/servidor.test.js`.
+
+**Fase 43 · La vista previa del celular, tal cual, y la pantalla que no se apaga** (M)
+- Los celulares dibujan las capas de texto (versículos, reloj, texto fijo) y una tarjeta en lugar de una página web.
+- Video en movimiento, sin sonido, al punto del reloj compartido. Para no cargar el wifi de la iglesia (con la copia ligera de hoy serían unos 6 Mbps por celular), ffmpeg hace de fondo una **copia de vista previa** de baja resolución (unos 360p, menos de 1 Mbps) de lo que está en el orden en uso y de lo que se proyecta. Mientras no está, y con un himno de la nube que aún no bajó, se ve la imagen con su avance.
+- Un video mudo en bucle mantiene la pantalla encendida mientras «En vivo» está abierta, y Wake Lock donde se pueda.
+- Pruebas: en Chrome, que la vista previa de un celular muestre la capa y el video avance. En el PC de Leidy, medir la red con tres celulares a la vez y probar el video mudo en un iPhone.
+
+**Fase 44 · «En vivo» de Control total (A1 · Consola, tableros T1 y T2)** (L)
+- Lo común a todas las pantallas: las medidas de arriba, que pasan a `DESIGN.md`; las dos disposiciones; la franja del pulgar (Solo fondo y Negro con su nombre y su estado, Anterior y «Siguiente · lo que pone»), partida entre los dos pulgares al acostarlo; la ranura de mandos de alto fijo para todos los tipos, con un «Más»; las capas con su estado y su cuenta; el volumen con silencio y cifra (acostado, en la barra de arriba); el orden con los pasos del elemento y «Volver al orden».
+- Sale la línea «Sigue: …»: ya lo dicen Siguiente y la lista.
+- Lo que protege de los errores, para todas: marcar la fila antes del ▶, «Volver a …» durante 10 s, la lista quieta bajo el dedo, deslizar no es tocar, un solo dedo, Negro y Solo fondo con «Quitar» y sin rojo, y la respuesta (pulsado, espera, «Manna no ha contestado» y sin conexión). Tableros E3, E4, E5, E12, E13, E14 y E15.
+- De pie, un módulo sube entre la vista previa y la franja, sin fondo oscuro (E9); acostado, ocupa la columna derecha y la vista sigue a la izquierda (E10).
+- La ranura de mandos de cada tipo, como en E2; las capas, como en E1.
+- En la tableta (boceto H1), el orden entero a la derecha y «Preparado» con su propio botón.
+- Se audita primero en los tamaños mínimos; después, en los demás.
+
+**Fase 45 · «En vivo» de Alabanza (B1 con la lista de B2, tableros T3 y T4)** (M)
+- El reproductor (Cantado o Pista, el tiempo que queda, la pausa, el volumen con pasos de 5 %, sin bola). De pie, el título queda solo en la barra de arriba, el tiempo que queda va junto al avance, y el transporte y el volumen comparten fila, con la pausa del lado del pulgar, para dejarle sitio a la lista; acostado, el título, el tiempo y el avance quedan bajo la vista.
+- La columna de números es solo el número del himno. Las capas, una pastilla en la barra que abre una hoja.
+- La lista de la sección, con la pista de cada canto antes de que salga (`order.setTrack`). «Volver al principio» pasa a «Más», lejos de −10.
+- La tira de diapositivas de «Letras sin música» y el estado «terminó» («Otra vez», «Siguiente: …», E16).
+- En la tableta (boceto H2), el reproductor bajo la vista y la lista a la derecha.
+- Dock: En vivo, Himnario, Medios y Biblia.
+
+**Fase 46 · «En vivo» del Orador completo (C2 · Pestañas del mensaje, tableros T5, T6, T9 y T10)** (M)
+- Las pestañas Diapositivas, Versículos y Textos (T5, E17 y E18). Cada versículo del mensaje es una fila con su «Encima»; al tocarla, su texto entero y «Proyectar». Lo ya leído, plegado. Lo que no existe en la versión elegida se apaga y dice dónde está (E8).
+- La hoja «Versículo», que comparten los dos oradores: los versículos del mensaje y el teclado de números propio. De pie, los números de siempre (tres por cuatro) caben sin perder la vista; acostado, van en dos filas de seis.
+- Señalar, Mover y Todas; «Volver a la diapositiva N»; los mandos de un video en la misma ranura; y por dónde va DeckCraft («animación 1 de 3»).
+- En la tableta acostada (boceto H3), sin pestañas: los versículos y los textos en una sola lista.
+- Dock: En vivo, Biblia, Medios y Textos.
+
+**Fase 47 · «En vivo» del Orador sencillo (C4 · Control de bolsillo, tableros T7 y T8)** (S)
+- Siguiente y Anterior enormes, con Siguiente de fondo oscuro; por cuál va y la que sigue; arriba de ellos, Solo fondo y Negro, Versículo (la hoja de la 46), Volver y Todas (la rejilla de la 46). «Bloquear» (E20), y «Fin» en la última (E19).
+- En la tableta acostada (boceto H4), Siguiente enorme a la derecha.
+- El mismo dock que el Orador completo.
+
+**Fase 48 · El computador y el retiro de «Historias»** (S)
+- Sigue el Escenario, con «En vivo» como panel derecho y el Orador con una columna de Biblia.
+- Se retira «Historias»: lo que queda de ella pasa a las pantallas de teléfono y tableta, y `DESIGN.md` §12 se reescribe.
+
+**Fase 49 · Los módulos y las demás pantallas, con las reglas de móviles** (M, propuesta)
+- Lo que no es «En vivo» también se usa en el celular: Biblia, Himnario, Medios, Textos, Tiempo, Capas, Páginas web, Orden, Ajustes, el inicio con su PIN, Preparar el culto, Administrar la iglesia y el superadministrador.
+- Se pasan por la auditoría de la 42 y se corrige lo que falle, módulo a módulo, sin rediseñarlos. Medios parte con ventaja: tocar ya solo elige y nada cambia de tamaño (2026-10-30).
 
 ### Fase 13 · Rediseño «Escenario» de la interfaz de control
 
@@ -1252,6 +1363,11 @@ Tomadas el 2026-10-04.
 | 62 | `/preparacion` y el primer administrador (2026-10-25) | **`/preparacion` con cinco pestañas**: Orden, Biblia, Himnario, Medios y Textos, cada una a pantalla completa y sin proyección (en el celular, las pestañas abajo; en el computador, a la izquierda), con los mismos módulos de siempre y «Añadir al orden» en lugar de «Proyectar». En la nube, Medios añade videos de YouTube por su enlace (se descargan en la iglesia); la biblioteca de la iglesia llega con la sincronización (fase 37). **El primer administrador de cada iglesia entra con una clave de alta** de un solo uso, que el dueño pone en las variables del sitio en el hosting: la primera vez, `/administrar` la pide y deja crear el administrador con su nombre, su PIN y su contraseña; después esa clave ya no sirve. |
 | 63 | La fase 37 (2026-10-25) | **Sí al plan detallado de la fase 37**, con sus recomendaciones salvo la D. **A**: el equipo se empareja con un código de 6 cifras que da `/administrar` y se escribe en Ajustes del equipo. **B**: emparejado, los usuarios se cambian solo en `/administrar`. **C**: un orden cambiado en los dos lados sin conexión: gana el último cambio, con un aviso a su dueño. **D**: al emparejar otro equipo como oficial, **el anterior queda bloqueado** hasta que se vuelva a emparejar (se entera al conectarse a la nube: sin internet sigue funcionando). |
 | 64 | Tras probar la nube (2026-10-25) | **Cuatro partes, en orden** (ver «Tras probar la nube: cuatro partes», en la fase 37). **1**: el nombre del orden se escribe junto al título y se guarda solo; el propuesto es «Orden <quien lo crea> <día>»; el administrador de la iglesia entra con su PIN (sale la contraseña; la clave de alta, solo la primera vez); en Preparar, un himno se añade con pista aunque no se pueda oír (**sin subir pistas a R2**). **2**: instalar Manna en el equipo principal desde la portada de la nube, con el PIN de un administrador, el aviso del equipo oficial anterior, el himnario desde la nube o completo y el instalador emparejado; ya instalado, «Abrir Manna»; en celular y tableta, solo Preparar y Administrar. **3**: el superadministrador en `admin.manna-iglesia.es` (**permiso dado**), con **contraseña**; por iglesia: activar o suspender, **los módulos que puede usar**, los archivos y su espacio (**5 GB** al empezar) y el máximo de órdenes, más su estado y recuperar el acceso de su administrador (el himnario de la nube **no** se apaga por iglesia); el **espacio total del plan**, lo repartido y lo libre con margen, sin repartir de más; **ordenar la interfaz** (la fase 41: el orden de los módulos de cada función). **4**: fotos, videos, PowerPoint y PDF desde Preparar. **Todo se prueba primero en `pruebas`** y, con autorización del dueño, se despliega igual en las demás (hoy `nv`, tras la prueba de instalar). |
+| 72 | Principios y reglas de móviles para todo Manna (2026-10-30) | Pedido del dueño: auditar solo los bocetos aprobados, con las skills de diseño, y sacar de ahí principios y reglas para todo el proyecto. Medidos a tamaño real y con tres revisiones independientes; los bocetos se corrigieron y las reglas son `DESIGN.md`, sección 12 ter. El reloj de los oradores es la hora. El detalle y lo que no se adoptó, en `docs/auditoria-bocetos-moviles.md`. Se propone la fase 49 |
+| 71 | Un móvil nunca ve la versión de computador (2026-10-30) | Pedido del dueño: en un celular o una tableta **nunca** se ve la versión de computador, que queda solo para el computador. El dueño dejó los límites al asistente: de pie, tableta desde **600 px de ancho**; acostado, desde **480 px de alto**. La tableta se construye con cada pantalla, y la fase 48 queda para el computador |
+| 70 | Dos oradores y el teléfono más pequeño (2026-10-30) | El Orador pasa a **dos funciones**: **Orador completo** (C2 · Pestañas del mensaje) y **Orador sencillo** (C4 · Control de bolsillo). **Alabanza**: B1 con la lista de B2. Cambia lo elegido en la 68 para esas pantallas; lo demás de la 68 y la 69 sigue. **Regla**: cada pantalla «En vivo» se resuelve para el teléfono de menor resolución, de pie y acostado (360 × 560 y 640 × 280), y **las listas mandan**: mandos y botones lo más pequeños posible sin bajar de 35 px de zona de toque; en un teléfono mejor se ve mejor. Se replantean las fases 42 a 48 |
+| 69 | Detalles de las pantallas «En vivo» (2026-10-30) | Presentador pasa a Orador y **se quita Control del orden**; el versículo del orador va **encima, en una capa propia y momentánea**; la pantalla del celular se mantiene encendida con **un video mudo en bucle**; la vista previa del celular muestra **el video en movimiento**, sin sonido. Se proponen las fases 42 a 47 |
+| 68 | Pantallas de control del celular (2026-10-29) | **Fase 40**: tres funciones para el celular, Control total, Alabanza (Himnario, Medios, Biblia) y Orador (Biblia, Medios, Textos), cada una con su pantalla «En vivo». Elegidas **A1 · Consola**, **B1 · Reproductor** y **C1 · Dos carriles**, con lo que recomendó la revisión (`docs/pantallas-de-control.md`, secciones 9 y 12) |
 | 65 | Repaso de lo pendiente (2026-10-29) | **La tanda del 2026-10-29** (ver en la sección 4): licencia AGPL-3.0; DeckCraft por el camino B desde ya; en el celular sin zoom automático y el PIN al instante; el himnario siempre «cantado» por defecto; S55, S41, S48 (sin la palabra «capas»), cuatro capas con la isla en un solo botón, el texto fijo (solo en capas), S50 con Mayús+B y Mayús+C, S42, quitar los televisores, S35 y las copias en Drive. **S53 no**: los nombres para entrar pueden verse. **Fase 3, televisores: cancelada** (se quita el código). **Fase 40**: sigue en pausa. **S46** pasa a la hoja de ruta, para más adelante. **`nv.manna-iglesia.es`** no recibe nada hasta que el dueño pruebe la tanda en `pruebas`; el equipo de la iglesia sigue con su versión, en local. La prueba de la fase 37 en el PC de Leidy, el mismo día, cuando la tanda esté en `pruebas` |
 | 49 | PDF hechos de imágenes (2026-10-18) | Pedido del dueño con un PDF real que Manna rechazaba («no tiene texto»): era de imágenes (hecho con jsPDF). **Se leen con el reconocimiento de texto del sistema** en el equipo principal (Vision en Mac, `Windows.Media.Ocr` en Windows), sin programas de terceros ni modelos de lenguaje propios; cambia lo decidido en la fase 27 (descartar los documentos sin texto) |
 | 48 | YouTube en lote, carpeta de contenido e instalador (2026-10-18) | **Sí a las fases 28, 29 y 30**, en ese orden, con las recomendaciones del asistente y las observaciones del dueño: en la 28, reconocer lo que ya está aunque tenga otro nombre y que el título de YouTube llegue con sus tildes, sin listas de reproducción; en la 29, cambiar la carpeta sin reiniciar y avisar al abrir Manna si no se ha elegido; en la 30, un único archivo con el icono de Manna (`.pkg` en Mac, `.exe` en Windows) que lo hace todo, consola con barra de avance si hace falta, Node.js incluido, sin elegir la carpeta ni firmar |
@@ -1378,7 +1494,7 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 37 Sincronización y equipo oficial | **Aprobada** · 2026-10-25 (decisión 55). **Plan detallado aprobado** el mismo día (decisión 63; ver «Fase 37 · Sincronización y equipo oficial»). **En curso**: hechas las partes 1 y 2 (emparejar y el equipo oficial, 1.46.0) y la 3 (usuarios, 1.47.0); la 4 (órdenes, textos y favoritos, 1.48.0); tras la prueba del dueño, las cuatro partes de la decisión 64 (la 1, en la 1.49.0; la 2, instalar el equipo principal desde la nube y el himnario en el equipo, en la 1.50.0; la 3, el superadministrador, en la 1.51.0; la 4, la subida desde casa en la 1.52.0 y la biblioteca de la iglesia en la nube en la 1.53.0); la 6, la portada que sabe si el equipo está encendido, en la 1.54.0; y la 7, la misma versión, en la 1.55.0. **Todas sus partes hechas** · 2026-10-26. Para cerrarla falta la prueba de verdad del dueño en el PC de Leidy: ponerlo al día una vez con «Actualizar Manna» (tiene la 1.50.0) y ver que desde entonces se pone al día solo al encenderse | 1.46.0 a 1.55.0 | |
 | 38 El himnario en línea en la iglesia y los archivos | **Aprobada** · 2026-10-25 (decisión 55). El himnario en la iglesia y los archivos desde casa se adelantan en las partes 2 y 4 de la decisión 64. Las copias en Drive, hechas el 2026-10-29 (1.57.0) y funcionando ese mismo día: Google conectado con delosrios.media@gmail.com y la primera copia de `pruebas` en Drive | | |
 | 39 Superadministrador | **Aprobada** · 2026-10-25 (decisión 55). Qué hace, decidido el mismo día (decisión 64, parte 3): con contraseña, en `admin.manna-iglesia.es`; módulos, archivos y espacio, máximo de órdenes y activar o suspender cada iglesia; el espacio del plan; ordenar la interfaz. **Hecha en la 1.51.0** (2026-10-26; el sitio, creado el mismo día); falta probarla con las claves del dueño. Quedan para después las métricas de uso más finas y el botón de versiones (decisión 58, que hoy hace el asistente con la autorización del dueño) | | |
-| 40 Investigación desde cero: funciones para el celular | **En pausa** · se retoma cuando lo diga el dueño (decisiones 56 y 60) | | |
+| 40 Investigación desde cero: pantallas de control del celular | **Hecha** · 2026-10-30. Sin versión (documentos y bocetos): `docs/pantallas-de-control.md`, `docs/auditoria-bocetos-moviles.md` y `DESIGN.md`, 12 ter. Siguen las fases 42 a 48 (aprobadas) y la 49 (propuesta) | | |
 | 41 Organizar la interfaz desde el superadministrador | **Entra en la fase 39** · 2026-10-25 (decisión 64): el orden de los módulos de cada función y cuál se abre primero. **Hecho en la 1.51.0** | | |
 | 15 Himnario corregido y Letras sin música | **Hecha** · 2026-10-16 | 1.17.0 | Categorías en dos niveles (sección y categoría, como el índice del himnario) y la pestaña «Letras sin música»: las diapositivas de cada himno, tipo `lyrics`, que se pasan a mano y tras la última vuelven a la portada del mismo himno. Con el himnario real corregido, en un servidor de prueba: 613 himnos, todos con letra y diapositivas, 46 categorías en 7 secciones, sin avisos. Cierra S7, S29, S30 y S31. Pruebas al cerrar: 160 automáticas, 444 en Chrome (8 nuevas del himnario), auditoría de 9 tamaños sin problemas (con la pestaña nueva). **Sin probar**: el himnario real en Chrome y en Windows, y las letras sin música en el proyector |
 | 14 Ajustes tras la prueba | **Hecha** · 2026-10-16 | 1.16.0 | Parte 1: YouTube con el Node de Manna como intérprete de JavaScript y el motivo de cada fallo en el registro; «Actualizar» ya no rompe el programa que funcionaba; «Escuchar aquí» con un solo reproductor y sincronización tolerante; «Escuchar» del Himnario siempre cantado; el Presentador ya no arrastra la diapositiva con el ratón y pierde el zoom viejo. Parte 2: mandos siempre a la vista en la barra de abajo, «Solo fondo» y «Negro» arriba, «Señalar» y «Mover» también en Control y Orden (`projection/gestures.js`), hoja de mandos del celular con márgenes, Presentador con la anterior y la siguiente debajo. Parte 3: categorías del Himnario más limpias, «Buscar en todo» con más aire, botón de la cola fijo y con forma según su estado, proyección de fondo que se desvanece en los bordes. Parte 4: sin desenfoque con un video al aire, y sin reproducir el video de fondo en los celulares salvo al escuchar. Parte 5: espacio en disco y «Limpiar multimedia temporales» (S24), tamaño de los subtítulos (S23), punto rojo encima del pase de PowerPoint (S39, revisado por Gemini). Pruebas al cerrar: 159 automáticas, 434 en Chrome, auditoría de 9 tamaños sin problemas. **Sin probar en Windows**: YouTube, el punto rojo en PowerPoint y el consumo en un equipo modesto; **ni en un celular real**: «Escuchar aquí» |
@@ -1748,6 +1864,11 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-29 | S60: las letras de Office (Aptos, Jumble) se le piden a Office: Manna abre la presentación con PowerPoint para que las baje | No están en ningún repositorio libre; Office las baja al abrir un documento que las usa |
 | 2026-10-29 | S60: las letras de una presentación las busca Manna en el equipo y se las pasa a DeckCraft con animaciones al abrirla, en vez de que DeckCraft web las busque | La versión web corre en el navegador y no puede leer las carpetas del sistema; Manna sí |
 | 2026-10-29 | Los manuales y la página propia de `manna-iglesia.es` (decisiones 66 y 67), hechos antes de que Nueva Vida pase a `nv`: la bienvenida con el manual de instalación aparte y los de uso (usuarios, administrador y, pequeño y aparte, superadministrador), con capturas que se vuelven a tomar en cada publicación (`node scripts/sitio.mjs`); la dirección principal deja de llevar al equipo de Nueva Vida | Pedido del dueño: que cada iglesia reciba un manual de instalación para empezar sola |
+| 2026-10-29 | La fase 40 sale de la pausa y pasa a la hoja de ruta: tres funciones (Control total, Alabanza y Orador), cada una con su pantalla de control, y cuatro alternativas por pantalla | Pedido del dueño |
+| 2026-10-30 | Se proponen las fases 42 a 47 (las pantallas «En vivo»), que salen de la fase 40, con lo elegido por el dueño y una opción por defecto para lo que falta decidir | Decisiones 68 y 69 |
+| 2026-10-30 | Se replantean como fases 42 a 48: dos funciones de Orador (una fase cada una), Alabanza con la lista de B2 y cada pantalla resuelta primero para el teléfono más pequeño, de pie y acostado; la tableta deja de ser una disposición aparte | Decisión 70 |
+| 2026-10-30 | Un móvil nunca ve la versión de computador: la tableta entra en la fase de cada pantalla (44 a 47), la 48 queda para el computador y se retira «Historias» | Decisión 71 |
+| 2026-10-30 | Auditoría de los bocetos: las reglas de móviles entran en las fases 42 a 47, y se propone la 49 para los módulos y demás pantallas | Decisión 72 |
 
 ## 11. Lo pendiente y los cambios sugeridos (decisión 60)
 
@@ -1759,6 +1880,7 @@ Desde el 2026-10-25 **todo lo pendiente de Manna está aquí**, en cuatro grupos
 
 | Qué | Estado |
 | --- | --- |
+| **Fase 40: pantallas de control del celular** (Control total, Alabanza y Orador; decisiones 56 y 68) | Propuesta entregada el 2026-10-29 (`docs/pantallas-de-control.md` y el lienzo «Pantallas de control»). El dueño eligió A1 · Consola, B1 con la lista de B2, C2 y C4, con los detalles que cambian cómo se construye y la regla del teléfono más pequeño (decisiones 68 a 72). Fases 42 a 48 aprobadas; 49, propuesta |
 | **Fases 35 a 39: Manna Iglesia en la nube** (decisiones 55, 57 a 59 y 64) | En curso: hechas la 35 (usuarios y el Orden rehecho, 1.41.0), la 36 (la nube de la iglesia, 1.43.0 a 1.47.0) y la 39 (el superadministrador, 1.51.0); la 37 tiene todas sus partes hechas (1.46.0 a 1.55.0) y espera la prueba del dueño en el PC de Leidy; la 38 (copias en Google Drive) funciona desde el 2026-10-29, con Google conectado y la primera copia de `pruebas`. Llevan dentro lo que dejó anotado la auditoría (fase 9): las sesiones sin límite, ya resuelto en la 35 (como mucho 500 guardadas); los enlaces que se siguen dentro de las carpetas, las direcciones del propio equipo en Páginas web y un video aceptado por su extensión sin ffmpeg, en la 36, antes de abrir Manna a internet |
 | **Fase 33, parte 3**: el pase en vivo de las presentaciones dentro de Manna, con DeckCraft | Por el camino B desde el 2026-10-29 (decisión 65): copia propia, sin esperar a DeckCraft (no contestó las propuestas del 2026-10-24). Al cerrarse, PowerPoint sale de Manna y con él la S25 (probar PowerPoint en vivo en Windows); hasta entonces, eso se prueba en el PC de Leidy |
 | **La tanda del 2026-10-29** (decisión 65; ver en la sección 4) | En curso. Hechos en la 1.56.0 los puntos 1 a 8: la licencia AGPL, DeckCraft por el camino B, el celular sin zoom y el PIN al instante, «cantado» por defecto, S55, S41, S48 y las cuatro capas con su isla. Hechos en la 1.57.0 (publicada el mismo día, para que el dueño pruebe toda la tanda en una ronda): el texto fijo, S50, S42, quitar los televisores, la primera versión de S35 (compartir una pestaña) y las copias en Drive (fase 38). La 1.57.1 arregla «Siguiente» con DeckCraft (visto en el PC de Leidy). Google Drive conectado y la clave de R2 de solo lectura de `pruebas` cambiada (S54), el mismo día |
@@ -1781,7 +1903,6 @@ Hoy ninguna: los manuales y la bienvenida de `manna-iglesia.es` se hicieron el 2
 
 | Qué | Detalle |
 | --- | --- |
-| **Fase 40: funciones para el celular**, desde cero | En pausa |
 | S57 · **Una sola dirección también para controlar el equipo** | Que al controlar el equipo la barra siga diciendo la dirección de la nube (hoy salta a la del túnel): la nube tendría que reenviar todo el tráfico del culto al equipo. Grande; el dueño lo pidió el 2026-10-29: estudiar costo y riesgos antes de decidir. Cruda |
 | S58 · **Que suenen los videos de una presentación con DeckCraft** | La versión web de DeckCraft pasa mudos los videos y audios de una presentación: no tiene salida de sonido (visto en el PC de Leidy, 2026-10-29). Dos caminos: darle salida de sonido en nuestra copia (`delosriosmedia/deckcraft`, con Web Audio; trabajo en Rust, mediano) o que Manna pase con PowerPoint en vivo las presentaciones con video o sonido cuando el equipo tenga PowerPoint. Importa para presentaciones como las del Sábado Joven. Propuesta del asistente: el primero, que vale en cualquier equipo. Cruda |
 | S59 · **La hora de una capa cambia de tono como el texto fijo** | En blanco con sombra se pierde sobre una diapositiva clara (visto en el proyector del PC de Leidy, 2026-10-29). El texto fijo ya mira cada segundo lo que tiene detrás (`data-tone`); el reloj puede hacer lo mismo. Pequeña. Cruda |

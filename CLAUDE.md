@@ -51,7 +51,7 @@ Repositorio: https://github.com/delosriosmedia/manna
 - Todo rol que no sea "proyección" exige PIN desde dispositivos remotos.
 - El proyecto va a crecer con muchos módulos: todo lo nuevo entra como módulo, sin acoplarse a los existentes.
 - Todo lo que un módulo produce se puede añadir al **Orden del culto** (antes "guion"), que es donde confluyen todos.
-- Los celulares se usan en vertical; las tabletas, también en horizontal. Toda pantalla debe funcionar así.
+- Los celulares se usan en vertical; las tabletas, también en horizontal. Toda pantalla debe funcionar así. Un celular o una tableta nunca ve la versión de computador (decisión 71, se construye en las fases 42 a 48 de `docs/PLAN.md`). Toda pantalla en móviles sigue las reglas de `DESIGN.md`, sección 12 ter (decisión 72).
 
 ## Forma de trabajar
 

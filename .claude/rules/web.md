@@ -6,7 +6,7 @@ paths:
 
 # Web
 
-**Antes de crear o cambiar una pantalla, lee `DESIGN.md`.** Ahí están los colores, la tipografía, la estructura y cómo se adapta a celular y tableta. Esto son las reglas de código.
+**Antes de crear o cambiar una pantalla, lee `DESIGN.md`.** Ahí están los colores, la tipografía, la estructura y cómo se adapta a celular y tableta. **En un celular o una tableta mandan sus reglas de móviles (sección 12 ter)**: lo que las rompe no está terminado. Esto son las reglas de código.
 
 - JavaScript puro con módulos ES, cargado directo por el navegador. **Sin framework, sin compilación, sin CDN** (la red de la iglesia puede no tener internet). Lo de terceros se copia a `web/vendor/` con su licencia, con un guion que lo descarga de su sitio oficial y comprueba su huella (`scripts/actualizar-pdfjs.mjs`); lo que pesa (pdf.js) se carga solo cuando hace falta, con `import()`, siempre a través de `openPdfDocument` de `web/core/pdf.js` (opciones seguras y errores dichos para quien lo usa). El texto de un documento elegido (Word, PDF o texto) se saca con `documentText` de `web/core/documentos.js`. Elegir la carpeta de contenido (la ventana del sistema y la pregunta si no lo parece) es `chooseContent()` de `web/core/contenido.js`, que usan Ajustes y el aviso del shell. `action(tipo, datos, { timeout })` acepta otro tiempo de espera (0, sin límite: una ventana abierta en el equipo principal).
 - Rutas siempre absolutas desde la raíz (`/core/api.js`, `/modules/...`).

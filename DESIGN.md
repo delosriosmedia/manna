@@ -177,7 +177,7 @@ Toda pantalla contempla, además del caso normal:
 - **Vacío:** qué es este espacio y cómo llenarlo, con el botón para hacerlo.
 - **Cargando:** siluetas con la forma de lo que va a aparecer. Sin ruedas giratorias.
 - **Error:** aviso flotante con lo que pasó y qué hacer, en una frase. Sin "¡Ups!" ni signos de exclamación.
-- **Sin conexión:** barra roja arriba; la reconexión es automática.
+- **Sin conexión:** barra roja arriba; la reconexión es automática. En móviles, sin barra ni rojo: sección 12 ter, regla 5.
 - **Pulsado:** los botones se encogen un 2 % al pulsar. **Foco:** contorno cian de 2 px, siempre visible con teclado. Al abrir un módulo, el foco entra en su cajón (en su título, si el módulo no lo pone en otro sitio) y al cerrarlo vuelve a su botón del dock; igual con los mandos. Las filas del orden se alcanzan con Tab y se abren con Intro. Una ventana pone el foco en su primer campo (o en ella misma) y lo devuelve al cerrar; un menú, en su primera opción, se recorre con ↑ ↓ y Esc vuelve al botón que lo abrió. Con «reducir movimiento», nada se anima, y una barra sin avance conocido se ve entera y tenue.
 
 ## 10. Movimiento
@@ -196,6 +196,8 @@ Toda pantalla contempla, además del caso normal:
 
 ## 12. Comportamiento adaptable
 
+**En móviles, esta sección está de salida**: mandan las reglas de la sección 12 ter, que se construyen en las fases 42 a 49 de `docs/PLAN.md`.
+
 Lo que no puede perderse en ningún tamaño: **ver qué está al aire, avanzar y retroceder, y llegar a la acción principal sin desplazarse.** En el celular, con un cajón abierto, lo que está al aire sigue a la vista (el recuadro encima y, siempre, el estado en la cabecera del cajón) y un toque fuera del cajón devuelve a los mandos.
 
 | Ancho | Dispositivo | Disposición |
@@ -211,6 +213,91 @@ Se comprueba con `node scripts/auditar-responsive.mjs`, que abre la app en diez 
 ## 12 bis. El sitio manna-iglesia.es
 
 La bienvenida y los manuales (`sitio/`, decisión 67) son una página de lectura, no la herramienta: usan las mismas fichas de color, Sora y el cian de la M (`sitio/sitio.css`), con el texto a lo ancho de una lectura cómoda (46 em), el índice al lado en el escritorio y arriba en el celular, y claro al imprimir. Las capturas son de la propia app con datos inventados, nunca dibujos.
+
+## 12 ter. Móviles: principios y reglas
+
+**Valen para todo Manna en un celular o una tableta, no solo para «En vivo»** (decisión 72, tras la auditoría de `docs/auditoria-bocetos-moviles.md`). Quien lo usa está de pie, con poca luz, a menudo con una mano, y un error se ve en el proyector delante de todos. Donde otra sección diga algo distinto, en móviles manda esta. Lo que hay hoy se pone al día en las fases 42 a 49 de `docs/PLAN.md`; lo nuevo nace cumpliéndolas.
+
+**1. Lo que sale al proyector se ve tal cual.** Nada va encima de la vista de lo que está al aire: ni marcas de pasos, ni avisos, ni botones. Las marcas de pasos van debajo, en una banda de 3 px que siempre existe, para que nada salte. Esa vista no responde al toque, salvo con «Señalar». (La «vista previa» de Medios es otra cosa: enseña lo elegido antes de proyectarlo, y ahí arrastrar sí coloca la imagen.)
+
+**2. Un toque accidental no hace nada.**
+- En una lista o una biblioteca, un toque solo marca o elige, y nada cambia de tamaño: la marcada lleva ▶ (en Medios, la barra de acciones). Al aire de un solo toque van únicamente Siguiente, Anterior, Solo fondo, Negro, Pausa y, en la pestaña de versículos, «Encima».
+- Una fila que no se ve entera no responde.
+- Si el dedo se movió más de 8 px, o la lista se movió hace menos de 300 ms, no se activa nada.
+- Un segundo dedo cancela. Un toque de más de 800 ms no activa.
+- Ni la lista ni los mandos se mueven con un dedo encima ni durante 1,5 s después, aunque otro operador pase. Tras cambiar lo que está al aire, los mandos ignoran toques 300 ms.
+- Tocar la barra de un deslizador no hace nada: solo se arrastra su bola (44 × 35 de toque, sin salir de la barra), se aplica al soltar y se cancela alejándose 40 px. Con botones de − y +, el nivel solo se muestra, sin bola.
+- Tras girar el dispositivo, 400 ms sin toques.
+
+**3. Todo lo que cambia el aire se puede deshacer.**
+- Un salto fuera de la secuencia, o un Siguiente que corta algo que suena, ofrece «Volver a …» durante 10 s, al mismo punto, en un sitio fijo: tapa la primera fila de la lista, sin mover nada.
+- Negro y Solo fondo, encendidos, se llenan de blanco y dicen «Quitar»: devuelven exactamente lo que había.
+- Reiniciar, recargar y volver al principio nunca están a la vista: van en «Más».
+- Cambiar de función durante un culto pregunta antes.
+- La acción al aire de una hoja dice lo que va a poner y está a 12 px de lo demás.
+
+**4. Lo peligroso, lejos de lo frecuente.**
+- Negro y Solo fondo: 12 px libres a todo y 20 a Anterior y Siguiente. Con ancho fijo: nunca más del doble que Anterior, y sin estirarse en la tableta.
+- Entre un mando que cambia el aire y otro que no, 12 px. Entre mandos iguales, 3.
+- La franja, a 12 px del dock.
+- Siguiente, Anterior y Pausa, abajo y al alcance del pulgar: a menos de 350 px de una esquina inferior en un teléfono de 360 × 640. Siguiente, a la derecha. Anterior, siempre a su izquierda.
+- Acostado: Solo fondo y Negro bajo el pulgar izquierdo; Anterior y Siguiente, bajo el derecho.
+
+**5. Siempre se sabe si llegó.** Pulsado en el primer cuadro (`pointerdown`), con cambio de fondo. A los 300 ms sin respuesta, una rayita de espera dentro del botón. A los 2 s, «Manna no ha contestado». A los 12 s sin noticias del servidor, la pastilla pasa a gris, «SIN CONEXIÓN · hace 12 s», la vista previa se atenúa como «última imagen» y Siguiente se apaga con «Reconectando…»: sin barra nueva, para que nada se mueva. En el Orador sencillo, además, una vibración corta al confirmarse, donde el navegador lo permita.
+
+**6. Cada color dice una sola cosa.**
+- **Rojo**: sale luz al proyector. En Negro, Solo fondo, Nada y Sin conexión no hay ni un píxel rojo.
+- **Cian lleno**: la acción principal, una sola por pantalla. **Cian suave**: algo encendido de verdad ahora. Lo demás, neutro.
+- El color de tipo va solo en su icono. El ámbar avisa: un volumen en 0, un dato que falta.
+
+**7. La pantalla no deslumbra.** Sin contar la vista previa, lo claro (luminancia sobre 0,4) no pasa del 10 % de la pantalla. Un botón muy grande lleva fondo oscuro (`#0E3A44`) con borde cian, y se llena al pulsar.
+
+**8. Se lee en un salón oscuro.** Cinco tamaños de letra: 10 (dock, rótulos, estado), 11 (segunda línea), 12 (mandos), 13 (título de fila) y 15 o más (cifras y botones grandes). En la tableta, uno más. Nada baja de 10 px, y un estado nunca es lo más pequeño de la pantalla. Contraste de 4,5:1 también en lo atenuado y lo apagado. Las cifras, tabulares.
+
+**9. El contenido difícil no rompe nada.**
+- Se corta primero lo que menos dice: el contador cede antes que el nombre, y el nombre antes que la acción. Las etiquetas no se comen el título.
+- Un nombre se corta por el medio si lo que lo distingue está al final: `Anuncios_sem…(2) copia.png`. Una cita se compacta antes de cortarse: `1 Cr 29:10-13 y Cnt 8:6-7`.
+- El número (de orden, de himno, de diapositiva) siempre se ve y su caja crece.
+- Lo que está al aire, el volumen y Siguiente jamás salen de la pantalla. Lo variable se compacta: con 3 o 4 capas, cada isla es su número y su icono; si no cabe el deslizador, el volumen es un botón con su cifra.
+- Ningún texto se sale de su botón.
+- Una barra de pasos nunca dibuja segmentos de menos de 4 px: desde 25 pasos, una sola barra continua.
+- Cuando algo falta, se dice en su fila y su acción se apaga: «No está en RVG2010 · Ver en RV1909».
+
+**10. Ningún estado sin dibujar.** Antes de construir una pantalla se dibujan sus estados: normal, vacío, una sola fila, lista enorme, orden en camino, sin conexión, Negro, Solo fondo, primero, último, terminado, error, peor dato y cambio de otro operador. Toda lista vacía dice qué hacer, con un botón.
+
+**11. Las listas mandan, y se resuelve para el más pequeño.** Se diseña para 360 × 560 de pie y 640 × 280 acostado (un teléfono de 360 × 640 sin las barras del navegador), y se comprueba también en 360 × 512 y 592 × 280 (con los botones de Android en pantalla). En uno mejor crecen la vista y la lista; nada cambia de sitio.
+
+| Pieza | Teléfono | Tableta |
+| --- | --- | --- |
+| Mandos | Se ven de 32 px, cada 35; 35 de toque | 38, con 8 px entre ellos |
+| Barra de arriba | 32 | 36 |
+| Siguiente, Anterior, Solo fondo, Negro | 38 | 46 |
+| Fila de una lista | 36 (una línea, 35) | 44 (una línea, 40) |
+| Dock | 36 | 44 |
+| Márgenes de los lados | 6 | 6 |
+
+Lo que repite otra parte de la pantalla se quita antes que achicar lo demás.
+
+**12. Dos disposiciones, y un móvil nunca ve la de computador** (decisión 71). Móvil es `pointer: coarse`, un iPad aunque tenga teclado o ratón, o un Android; el equipo principal siempre es computador.
+
+| Dispositivo | Ventana | Disposición |
+| --- | --- | --- |
+| Computador | Desde 860 px de ancho | Escenario |
+| Móvil, o computador con la ventana más angosta | De pie, menos de 600 px de ancho | Teléfono de pie |
+| Móvil, o computador con la ventana más angosta | Acostado, menos de 480 px de alto | Teléfono acostado |
+| Móvil, o computador con la ventana más angosta | De pie, 600 px de ancho o más | Tableta de pie |
+| Móvil, o computador con la ventana más angosta | Acostado, 480 px de alto o más | Tableta acostada |
+
+Un módulo abierto sube entre la vista y la franja, de pie, y ocupa la columna derecha, acostado: lo que está al aire y Siguiente siguen vivos.
+
+**13. Se porta como una app, aunque sea web.**
+- `100dvh`, `env(safe-area-inset-*)` y `overscroll-behavior: none`, para que tirar hacia abajo no recargue en pleno culto.
+- Los mandos son `<button>`, con `-webkit-touch-callout: none` y sin selección ni menú al mantener pulsado.
+- Girar conserva el desplazamiento, la hoja abierta y lo escrito. El teclado del sistema no cambia de disposición (`interactive-widget=resizes-visual`).
+- Una cita, en «En vivo», se escribe con el teclado de números propio. Una hoja de teclado no lleva tiras que se deslizan y, como toda ventana con campos, no se cierra al tocar fuera: solo con su × o con Esc, sin perder lo escrito.
+- Movimiento: solo `transform` y `opacity`, 200 ms o menos, sin rebote. Sin animar: el contenido de Siguiente y lo que está al aire. Con «reducir movimiento», solo opacidad.
+
+**Cómo se comprueba.** `scripts/auditar-responsive.mjs` mide, en los cuatro tamaños mínimos, lo que se puede medir (fase 42): zonas de toque que se pisan, distancias a lo peligroso, letra, contraste, lo que se sale, brillo y rojo fuera del aire. La prueba en Chrome, los gestos y los estados. Lo que depende de la mano (alcance, deslumbramiento, navegadores reales) se prueba en un celular y una tableta de verdad, y lo que falte se anota en `docs/ESTADO.md`.
 
 ## 13. Lo que no se hace
 
