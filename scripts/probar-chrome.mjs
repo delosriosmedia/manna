@@ -153,8 +153,6 @@ for (const port of [PORT, ...(inGroup('red') ? [8125] : [])]) {
 // Lo que el servidor ofrece y esta prueba no puede usar pulsando, con el motivo. Todo lo demás
 // tiene que usarse (ver "Vigilancia de toda la prueba", al final).
 const UNTOUCHED = {
-  'projection.over': 'la pulsa «Encima» del Orador (fase 46); probada en test/en-vivo.test.js',
-  'projection.overClear': 'la pulsa «Quitar» de la capa del Orador (fase 46); probada en test/en-vivo.test.js',
   'POST /api/nube/emparejar': 'la pide el equipo de la iglesia a su nube (cloud.pair), no la interfaz',
   'GET /api/nube/estado': 'la pide el equipo de la iglesia a su nube cada minuto, no la interfaz',
   'GET /api/nube/usuarios': 'la pide el equipo de la iglesia a su nube para traer los usuarios, no la interfaz',
@@ -2711,6 +2709,7 @@ try {
     const orderId = (kind) => run(`return (await (await fetch('/api/state')).json()).order.items.find(i => i.kind === ${JSON.stringify(kind)}).id`);
     const verse = await orderId('verses');
     await run(`await ${post('order.show', { id: 'ID' })}`.replace('"ID"', JSON.stringify(verse)));
+    await run(`return await ${post('texts.save', { text: 'Texto para el orador', style: 'normal' })}`);
     await chrome.send('Page.navigate', { url: `${local}/orador` });
     await sleep(2500);
     check('/orador trae solo su módulo, titulado «Orador», y no muestra el escenario', await run(`return document.title === 'Manna · Orador' && document.body.classList.contains('full') && [...document.querySelectorAll('.ws')].map(e => e.dataset.module).join() === 'presentador' && document.querySelectorAll('.dockbar, .scene-bg, .scene-status, .queue, .transport-bar, .prep').length === 0`),
@@ -2780,27 +2779,99 @@ try {
     const whole = (await snap()).view;
     check('«Restablecer» deja la imagen entera y se apaga', whole.zoom === 1 && Math.abs(whole.x - 0.5) < 0.001 && await run(`return ${resetBtn}.disabled`), JSON.stringify(whole));
 
-    // En el celular: la grande y la fila Anterior / Siguiente / Negro, sin desplazarse.
+    // En el celular, «En vivo» del Orador completo (fase 46): sus pestañas y la hoja «Versículo».
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
     await sleep(1500); // pasar del computador al celular, o al revés, vuelve a abrir la página
     await chrome.send('Page.navigate', { url: `${local}/orador?m=${Date.now()}` });
     await sleep(2500);
-    const inView = (selector) => run(`const e = ${pr}.querySelector(${JSON.stringify(selector)}); const r = e.getBoundingClientRect(); return r.width > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth`);
-    check('en 375 px se ven sin desplazar la grande y Anterior / Siguiente / Negro, y la página no se ensancha', await inView('.pr-live') && await inView('.btn[aria-label=Anterior]') && await inView('.btn.primary.grow') && await inView(`.transport .btn:last-child`)
-      && await run(`return ${pr}.dataset.view === 'present' && document.documentElement.scrollWidth <= innerWidth`), await run(`const r = ${pr}.querySelector('.transport').getBoundingClientRect(); return Math.round(r.bottom) + ' de ' + innerHeight`));
-    // En el celular se pasa tocando la grande, como en «Historias»; con «Señalar» encendido, el toque señala.
-    await click(`${pr}.querySelector('.slide-pick[data-n="2"]')`);
+    const q = (selector) => `document.querySelector(${JSON.stringify(selector)})`;
+    const shown = (selector) => sees(q(selector));
+    const say = (selector) => run(`return ${q(selector)}?.textContent ?? ''`);
+    const overNow = async () => run(`return (await (await fetch('/api/state')).json()).projection.over?.title ?? null`);
+    const tab = async (id) => { await tapEl(q(`.ev-seg-btn[data-tab=${id}]`)); await sleep(200); };
+    check('en el celular, /orador es «En vivo» con su dock: En vivo, Biblia, Medios y Textos', await run(`return ${q('.ev')}?.dataset.variant === 'orador' && !${pr} && [...document.querySelectorAll('.dock-item')].map((b) => b.getAttribute('aria-label')).join() === 'En vivo,Biblia,Medios,Textos' && document.documentElement.scrollWidth <= innerWidth`));
+    await tab('diapositivas');
+    check('la pestaña Diapositivas las enseña todas, y dice cuál sale y cuál sigue', await run(`return document.querySelectorAll('.ev-thumb').length === 4 && ${q('.ev-thumb.on small')}.textContent.endsWith('al aire')`) && (await say('.ev-title')).startsWith(`${await num()} de 4 · `) && await shown('.ev-pane-tools'));
+    await tapEl(q('.ev-thumb[data-k="2"]'));
+    await sleep(500);
+    check('tocar una la pone al aire', (await num()) === 3);
+    check('Siguiente dice cuál pondrá', (await say('.ev-next small')) === 'Diapositiva 4');
+    await tapEl(q('.ev-next'));
+    await sleep(500);
+    check('Siguiente pasa', (await num()) === 4);
+    await tapEl(q('.ev-prev'));
+    await sleep(500);
+    check('y Anterior vuelve', (await num()) === 3);
+    await tapEl(q('.ev-tabs [data-tool=point]'));
+    check('«Señalar» enciende el dedo sobre la vista', await run(`return ${q('.ev-vista')}.dataset.tool === 'point'`));
+    await tapEl(q('.ev-tabs [data-tool=point]'));
+    await tab('versiculos');
+    check('la pestaña Versículos trae los del orden, cada uno con su «Encima»', await until(`document.querySelector('.ev-vrow .ev-vmain small')?.textContent.length > 0`, 12) && await run(`return document.querySelector('.ev-vhead .ev-btn').textContent === 'Encima'`));
+    await tapEl(q('.ev-vmain'));
+    await sleep(200);
+    check('al tocar uno se ve su texto entero y «Proyectar»', await shown('.ev-vfull') && (await say('.ev-vput')).startsWith('Proyectar'));
+    await tapEl(q('.ev-vmain'));
+    await tapEl(q('.ev-vhead .ev-btn'));
+    await sleep(500);
+    check('«Encima» lo pone sin cambiar lo que está al aire, y la barra lo dice', Boolean(await overNow()) && (await num()) === 3 && (await say('.ev-title')).startsWith('Encima · '));
+    check('«Volver a la diapositiva» está en su sitio', (await say('.ev-back span')) === 'Volver a la diapositiva 3' && await shown('.ev-back'));
+    await tapEl(q('.ev-back'));
+    await sleep(500);
+    check('y lo quita; lo leído queda plegado', (await overNow()) === null && await shown('.ev-read') && !(await say('.ev-back span')).includes('diapositiva 3 ') );
+    await tapEl(q('.ev-cite'));
+    await sleep(300);
+    check('«Otra cita» abre la hoja: sin la lista ni la franja, y con la vista', await shown('.ev-sheet') && !await shown('.ev-orador') && !await shown('.ev-next') && await shown('.ev-screen') && await run(`return ${q('.ev-key')}.disabled`));
+    await tapEl(q('.ev-sheet-book'));
+    for (const key of ['3', ':', '1']) await tapEl(`[...document.querySelectorAll('.ev-key')].find((k) => k.textContent === ${JSON.stringify(key)})`);
+    check('con el libro y la cita, enseña el versículo y «Poner» se enciende', await until(`!document.querySelector('.ev-sheet-put').disabled`, 12) && (await say('.ev-sheet-text small')).startsWith('3:1'));
+    await tapEl(q('.ev-sheet-close'));
+    await sleep(200);
+    await tapEl(q('.ev-cite'));
+    await sleep(200);
+    check('la × no pierde lo escrito', (await say('.ev-sheet-typed')).endsWith('3:1'));
+    await tapEl(q('.ev-sheet-put'));
+    await sleep(500);
+    check('«Poner» lo pone encima y la hoja se cierra', Boolean(await overNow()) && !await shown('.ev-sheet'));
+    await run(`return await ${post('projection.overClear')}`);
+    await sleep(300);
+    await tab('textos');
+    const textRow = `[...document.querySelectorAll('.ev-pane[data-pane=textos] .ev-row')].find((r) => r.textContent.includes('Texto para el orador'))`;
+    check('la pestaña Textos trae los que hay, sin ▶ hasta marcarlo', await until(textRow, 12) && !await sees(`${textRow}.querySelector('.ev-play')`));
+    await tapEl(`${textRow}.querySelector('.ev-row-main')`);
+    await sleep(200);
+    await tapEl(`${textRow}.querySelector('.ev-play')`);
+    await sleep(500);
+    check('un toque lo marca y su ▶ lo pone al aire', (await snap()).item?.kind === 'text');
+    await tapEl(q('.ev-back'));
     await sleep(600);
-    const tapAt = async (id, fx) => { await finger('pointerdown', id, fx, 0.5); await finger('pointerup', id, fx, 0.5); await sleep(600); return num(); };
-    const passed = [await num(), await tapAt(21, 0.8), await tapAt(22, 0.2)];
-    check('en el celular, tocar la grande a la derecha avanza y a la izquierda vuelve', passed.join() === '2,3,2', passed.join(' → '));
-    await click(`${pr}.querySelector('[data-tool=point]')`);
-    await finger('pointerdown', 23, 0.8, 0.5);
+    check('«Volver» regresa a la diapositiva', (await num()) === 3);
+
+    // Orador sencillo (fase 47): su control de bolsillo.
+    await chrome.send('Page.navigate', { url: `${local}/orador-sencillo?m=${Date.now()}` });
+    await sleep(2500);
+    check('/orador-sencillo es su control de bolsillo: por cuál va, y Siguiente y Anterior enormes', await run(`return ${q('.ev')}?.dataset.variant === 'sencillo' && ${q('.ev-next')}.getBoundingClientRect().height > 100 && ${q('.ev-prev')}.getBoundingClientRect().height > 100 && document.documentElement.scrollWidth <= innerWidth`) && (await say('.ev-onums')) === '3 de 4' && (await say('.ev-ofollows small')) === 'Sigue la 4');
+    await tapEl(q('.ev-next'));
     await sleep(500);
-    const pointed = (await snap()).pointer;
-    await finger('pointerup', 23, 0.8, 0.5);
+    check('en la última, «Fin»: Siguiente se apaga y no se sale de la presentación', (await num()) === 4 && (await say('.ev-next .ev-two')).startsWith('Fin') && await run(`return ${q('.ev-next')}.disabled`) && (await say('.ev-ofollows small')) === 'Sigue el orden');
+    await tapEl(q('.ev-prev'));
     await sleep(500);
-    check('con «Señalar» encendido, el toque señala en la proyección y no pasa', pointed.x != null && (await num()) === 2, JSON.stringify(pointed));
+    check('y Anterior sigue vivo', (await num()) === 3 && await run(`return !${q('.ev-next')}.disabled`));
+    await tapEl(`[...document.querySelectorAll('.ev-tool')].find((b) => b.textContent.includes('Todas'))`);
+    await sleep(300);
+    check('«Todas» abre la rejilla', await run(`return document.querySelectorAll('.ev-pages .ev-page').length === 4`));
+    await tapEl(`[...document.querySelectorAll('.ev-pages .ev-page')][2]`);
+    await sleep(400);
+    await tapEl(`[...document.querySelectorAll('.ev-tool')].find((b) => b.textContent.includes('Versículo'))`);
+    await sleep(300);
+    check('«Versículo» abre la misma hoja', await shown('.ev-sheet') && !await shown('.ev-next'));
+    await tapEl(q('.ev-sheet-close'));
+    await sleep(200);
+    await tapEl(q('.ev-lock'));
+    await sleep(200);
+    check('«Bloquear» deja solo la vista: nada se pasa por accidente', await run(`return ${q('.ev')}.dataset.locked === 'true'`) && await shown('.ev-locked') && !await shown('.ev-next') && await shown('.ev-screen'));
+    await run(`${q('.ev-unlock')}.click()`);
+    await sleep(200);
+    check('y se desbloquea', await shown('.ev-next') && !await shown('.ev-locked'));
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
     await sleep(1500); // pasar del computador al celular, o al revés, vuelve a abrir la página
     await chrome.send('Page.navigate', { url: `${local}/control?p=${Date.now()}#medios` });
@@ -3073,9 +3144,9 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
         await sleep(1500); // pasar del computador al celular, o al revés, vuelve a abrir la página
         await chrome.send('Page.navigate', { url: `${local}/orador?p=${Date.now()}` });
         await sleep(2500);
-        check('en 375 px, con una página, la grande y sus botones se ven sin desbordar', await run(`const w = 375; /* el ancho pedido, no innerWidth */ const fits = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= w && r.top >= 0 && r.bottom <= innerHeight; }; const t = [...${pr}.querySelectorAll('.pr-main .transport .btn')];
-          return ${pr}.dataset.view === 'present' && ${pr}.querySelector('.pr-title').textContent === 'eco de teclas' && t.length === 3 && t.every(fits) && fits(${pr}.querySelector('.pr-live')) && fits(${pr}.querySelector('.pr-tools')) && document.documentElement.scrollWidth <= w`),
-        await run(`return document.documentElement.scrollWidth + ' de ' + innerWidth`));
+        await click(`document.querySelector('.ev-seg-btn[data-tab=diapositivas]')`);
+        await sleep(200);
+        check('en 375 px, con una página, dice cuál es y sus mandos se ven en la misma ranura, sin desbordar', await run(`const r = document.querySelector('.ev-slot').getBoundingClientRect(); return document.querySelector('.ev-title').textContent === 'eco de teclas' && r.height > 0 && r.right <= innerWidth && r.bottom <= innerHeight && document.querySelector('.ev-slot').children.length > 0 && document.documentElement.scrollWidth <= innerWidth`), await run(`return document.documentElement.scrollWidth + ' de ' + innerWidth`));
         await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
         // Lo que sigue elimina «eco de teclas»: que no esté al aire.
         await run(`await ${post('projection.show', { kind: 'web', data: { id: ids['Concurso bíblico'] } })}`);

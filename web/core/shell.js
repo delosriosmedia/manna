@@ -34,7 +34,16 @@ import { chooseContent, contentMissing } from './contenido.js';
 // createLiveScene: la pantalla de un celular o una tableta («En vivo», modules/envivo/escena.js), si la función la tiene. Su compose() la arma
 // con la marca, el dock y el cajón, que son de aquí; el módulo abierto sube dentro de ella, sin fondo oscuro.
 // liveDock: los módulos que van en su dock; los demás se abren desde la pantalla (Alabanza: «Ver todo el orden»).
-export function createShell({ role, isLocal, user = null, modules, topTools = [], createScene, createLiveScene = null, liveDock = null, layout = 'escena', church = null }) {
+// liveModules: los módulos de esa pantalla, si no son los del computador (los oradores).
+export function createShell({ role, isLocal, user = null, modules, topTools = [], createScene, createLiveScene = null, liveDock = null, liveModules = null, layout = 'escena', church = null }) {
+  // Qué disposición le toca a este dispositivo (decisión 71): la dicen data-disposicion y `ctx.layout()`.
+  const mobile = isMobile({ main: isLocal, forced: /[?&]tactil/.test(location.search), coarse: matchMedia('(pointer: coarse)').matches, ipad: navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1, android: /Android/.test(navigator.userAgent) });
+  const layoutNow = () => layoutFor({ mobile, width: innerWidth, height: innerHeight });
+  // Los oradores: en el computador, su pantalla entera; en un móvil, «En vivo» con estos módulos.
+  if (liveModules && layoutNow() !== 'computador') {
+    modules = liveModules;
+    layout = 'escena';
+  }
   // Lo que el superadministrador dejó a esta iglesia (fase 39): sin los módulos apagados y, si los ordenó, en su orden
   // (el primero es el que se abre cuando este dispositivo no recuerda otro).
   const arranged = church?.layout?.[role] || [];
@@ -48,9 +57,6 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   const bare = full || tabs; // sin escenario
   const narrow = matchMedia('(max-width: 859px)');
   const landscape = matchMedia('(max-width: 859px) and (max-height: 480px)');
-  // Qué disposición le toca a este dispositivo (decisión 71): la dicen data-disposicion y `ctx.layout()`.
-  const mobile = isMobile({ main: isLocal, forced: /[?&]tactil/.test(location.search), coarse: matchMedia('(pointer: coarse)').matches, ipad: navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1, android: /Android/.test(navigator.userAgent) });
-  const layoutNow = () => layoutFor({ mobile, width: innerWidth, height: innerHeight });
   // Entre el computador y el resto cambian las piezas enteras: se vuelve a abrir la página (lo compartido está en el servidor).
   const onComputer = layoutNow() === 'computador';
   const paintLayout = () => {

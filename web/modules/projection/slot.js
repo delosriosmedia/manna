@@ -90,6 +90,37 @@ export function allPagesButton({ pages, now }) {
   return { el: mando({ label: 'Todas', glyph: 'squares-four', onclick: open }), update(next) { item = next; } };
 }
 
+// La tira de imágenes: la de antes, la que sale y las que siguen, y «Todas».
+export function pagesStrip({ count, pages, now }) {
+  let item = null;
+  const cells = Array.from({ length: count }, (_, i) => {
+    const picture = h('img', { alt: '' });
+    const label = h('small', {});
+    const el = h('button', { class: 'ev-tira-pic', onclick: () => item && goToStep(item, Number(el.dataset.k)) }, h('span', {}, picture), label);
+    return { el, picture, label, i };
+  });
+  const all = allPagesButton({ now, pages });
+  return {
+    el: h('div', { class: 'ev-tira' }, ...cells.map((c) => c.el), all.el),
+    update(next) {
+      item = next;
+      all.update(next);
+      const at = now(next);
+      const list = pages(next);
+      const from = Math.max(0, Math.min(at - 1, list.length - count));
+      for (const c of cells) {
+        const k = from + c.i;
+        c.el.classList.toggle('ev-off', k >= list.length);
+        if (k >= list.length) continue;
+        c.el.dataset.k = k;
+        if (c.picture.getAttribute('src') !== list[k].thumb) c.picture.src = list[k].thumb;
+        c.label.textContent = `${list[k].label}${k === at ? ' · al aire' : k === at + 1 ? ' · sigue' : ''}`;
+        c.el.classList.toggle('on', k === at);
+      }
+    },
+  };
+}
+
 // La fila de lo que suena: pausa, −10, +10, el avance (solo se mueve su bola) y lo que queda. Mientras salen órdenes o se
 // arrastra, lo que llega del servidor es más viejo que lo que se ve.
 //   seekHost, transportHost: en Alabanza, el avance y el transporte van cada uno en su sitio (y entonces `el` es null).

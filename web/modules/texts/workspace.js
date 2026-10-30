@@ -198,8 +198,9 @@ function mount(el, ctx) {
     const parts = partsOf(area.value);
     info.textContent = fixed ? 'Se queda en pantalla, encima de todo lo que se proyecte. Ponlo con «Poner en una capa»; si ya está en una, al guardar se cambia ahí también.' : parts.length > 1 ? `${parts.length} partes: se pasan con «Siguiente»` : 'Una línea en blanco pasa a otra pantalla';
     hint.textContent = fixed ? 'Va en una capa, como el reloj' : 'Una línea en blanco pasa a otra pantalla';
-    add.hidden = show.hidden = fixed;
-    layer.hidden = !fixed;
+    show.hidden = fixed;
+    add.hidden = fixed || !ctx.can('order.edit');
+    layer.hidden = !fixed || !ctx.can('layers.edit');
     save.disabled = !dirty();
     save.hidden = !ctx.can('texts.edit');
     const text = area.value.trim();

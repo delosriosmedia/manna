@@ -42,7 +42,7 @@ const ICONS = [
   // capas (fase 31)
   'stack', 'eye',
   // tiempo (fase 32)
-  'timer', 'clock', 'hourglass-medium',
+  'timer', 'clock', 'hourglass-medium', 'lock-simple',
   // usuarios (fase 35)
   'key', 'user-plus',
 ];

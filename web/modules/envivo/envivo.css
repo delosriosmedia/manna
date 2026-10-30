@@ -211,9 +211,14 @@ html[data-disposicion^='telefono'] .ev .ws-notice p { flex: 1 1 0; display: -web
 html[data-disposicion^='telefono'] .ev .ws-notice .btn { flex: none; }
 html[data-disposicion^='telefono'] .ev .ws-notice .btn:has(.ic) { width: 38px; padding: 0; font-size: 0; }
 html[data-disposicion^='telefono'] .ev .ws-notice .btn:not(:has(.ic)) { display: none; }
+html[data-disposicion^='telefono'] .ev .ws-notice > .icon-btn { position: relative; top: auto; right: auto; flex: none; width: 35px; height: 35px; }
 html[data-disposicion='telefono-acostado'] .ev .ws[data-module] > .ws-head { --head-y: 2px; padding-top: 2px; padding-bottom: 2px; }
 /* Acostado no hay sitio para el camino por libros: se busca por la cita; ampliado, sigue ahí. */
 html[data-disposicion='telefono-acostado'] .ev .compact .ws[data-module='biblia'] .crumbs { display: none; }
+@media (max-width: 639px) { html[data-disposicion='telefono-acostado'] .ev .compact .ws[data-module='biblia'] > .ws-head > .select { display: none; } } /* la cita antes que la versión */
+
+/* Lo único que brilla es Siguiente (tablero E9): la acción de un módulo abierto va con su borde. */
+.ev .drawer .abar .btn.primary { background: var(--s2); border: 1px solid var(--line-2); color: var(--ink); }
 
 /* La hoja «Más» y las ventanas, como hojas que suben. */
 body.envivo .controls-layer { position: fixed; inset: 0; z-index: 30; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, 0.5); }

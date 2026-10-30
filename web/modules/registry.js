@@ -41,5 +41,6 @@ export const ALABANZA_MODULES = [
 // después el equipo de la iglesia, y YouTube va por su enlace (decisión 64).
 export const PREPARACION_MODULES = [order, bible, himnario, medios, textos];
 
-// Los dos oradores: solo su pantalla, que ya muestra lo que está al aire.
+// Los dos oradores: en el computador, solo su pantalla, que ya muestra lo que está al aire; en un móvil, «En vivo» y estos.
 export const PRESENTADOR_MODULES = [presentador];
+export const ORADOR_MODULES = [bible, medios, textos];

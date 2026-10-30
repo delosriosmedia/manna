@@ -12,6 +12,7 @@ import { mando, plainSlot } from '../projection/slot.js';
 import { createStage, lightLayer, withOver } from '../projection/stage.js';
 import { ballSlider } from '../projection/deslizador.js';
 import { describeLive, toggleMode } from '../projection/controls.js';
+import { createOrador } from './orador.js';
 import { guardTouches } from './toques.js';
 
 // «En vivo» (fases 44 a 47, tableros T y U, DESIGN.md 12 ter): la pantalla de un celular o una tableta. Arriba, lo que está al
@@ -27,8 +28,11 @@ const toolLabels = { point: ['Señalar', 'hand-pointing'], move: ['Mover', 'arro
 
 //   variant  'control' (Control total) o 'alabanza': el reproductor, con el avance y el transporte aparte; el volumen a pasos;
 //            la lista, la sección del canto al aire, con la pista de cada canto; y las capas, una pastilla que abre una hoja
+//            'orador' y 'sencillo': lo de en medio es suyo (orador.js)
 export function createEnVivo(ctx, { variant = 'control' } = {}) {
   const player = variant === 'alabanza';
+  const orator = variant === 'orador' || variant === 'sencillo';
+  const buzz = () => { if (variant === 'sencillo') navigator.vibrate?.(15); }; // sin mirar: se siente que pasó
   // ---- La vista: se ve tal cual y no responde al toque, salvo con «Señalar» o «Mover» ----
   const screen = h('div', { class: 'ev-screen', 'data-vista': '' });
   const stage = createStage(screen, { thumbnail: !ctx.isLocal, moving: !ctx.isLocal });
@@ -106,17 +110,19 @@ export function createEnVivo(ctx, { variant = 'control' } = {}) {
   const clear = modeButton('clear', 'Solo fondo', 'text-t-slash');
   const black = modeButton('black', 'Negro', 'pantalla-negra');
   const modos = h('div', { class: 'ev-modos', role: 'group', 'aria-label': 'Qué se ve en la proyección' }, clear, black);
-  const prev = h('button', { class: 'ev-prev', 'data-paso': '', 'aria-label': 'Anterior', title: 'Anterior (←)', onclick: guard(() => stepAir(-1)) }, icon('caret-left', 17));
+  const prev = h('button', { class: 'ev-prev', 'data-paso': '', 'aria-label': 'Anterior', title: 'Anterior (←)', onclick: guard(async () => { await stepAir(-1); buzz(); }) }, icon('caret-left', 17), variant === 'sencillo' && h('span', {}, 'Anterior'));
   const nextTop = h('span', {});
   const nextSub = h('small', {});
   const nextCaret = icon('caret-right', 16);
   let nextAct = null;
-  const next = h('button', { class: 'ev-next', 'data-paso': '', onclick: guard(() => nextAct?.()) }, h('span', { class: 'ev-two' }, nextTop, nextSub), nextCaret);
+  const next = h('button', { class: 'ev-next', 'data-paso': '', onclick: guard(async () => { await nextAct?.(); buzz(); }) }, h('span', { class: 'ev-two' }, nextTop, nextSub), nextCaret, variant === 'sencillo' && h('span', { class: 'ev-fin' }, icon('check', 26)));
   const pasos = h('div', { class: 'ev-pasos', role: 'group', 'aria-label': 'Pasar' }, prev, next);
   const strip = h('div', { class: 'ev-strip' }, modos, pasos);
 
   const root = h('div', { class: 'ev', dataset: { variant } });
-  const touches = guardTouches(root, { list, controls: slot, cover: back });
+  const oratorBody = orator ? createOrador(ctx, { variant, root, slot, slotApi, back }) : null;
+  const steadyTools = [...toolButtons]; // los del orador no dependen de lo que esté al aire
+  const touches = guardTouches(root, { list: oratorBody?.scroller ?? list, controls: slot, cover: back });
 
   // ---- Lo que se dice de lo que está al aire ----
   const items = () => state.order?.items || [];
@@ -129,7 +135,10 @@ export function createEnVivo(ctx, { variant = 'control' } = {}) {
     const n = p.next;
     if (!n || n.end) return '';
     if (n.animation) return 'Animación';
-    if (n.over) return n.step == null ? 'Quitar el versículo' : `v. ${p.over.data.ref.verseStart + n.step}`;
+    if (n.over) {
+      if (n.step == null) return 'Quitar el versículo';
+      return `v. ${p.over.data.ref.verseStart + n.step}${orator && p.item?.kind === 'slides' ? ` · luego la ${p.item.number}` : ''}`;
+    }
     if (n.inside && p.item) return stepName(p.item, n.step ?? 0);
     return n.orderId ? numbered(n.orderId, n.title) : n.title;
   }
@@ -138,6 +147,14 @@ export function createEnVivo(ctx, { variant = 'control' } = {}) {
   const offline = () => silenceMs() > OFFLINE_MS;
   const ago = () => `hace ${Math.round(silenceMs() / 1000)} s`;
 
+  // La cuenta, solo en el completo: en el teléfono, delante, porque el nombre se corta por detrás.
+  function oratorTitle(p) {
+    if (p.over) return `Encima · ${p.over.title}`;
+    if (!(p.item?.pages > 1)) return shortTitle(p.item);
+    if (variant === 'sencillo') return p.item.title;
+    const page = `${p.item.index ?? p.item.number} de ${p.item.pages}`;
+    return ctx.layout().startsWith('tableta') ? `${p.item.title} · diapositiva ${page}` : `${page} · ${p.item.title}`;
+  }
   function paintStatus(p) {
     const live = describeLive(p);
     const away = offline();
@@ -158,8 +175,8 @@ export function createEnVivo(ctx, { variant = 'control' } = {}) {
     }
     const clock = state.live?.uid === p.item?.uid ? state.live?.state?.clock : null;
     const ended = player && p.mode === 'clear' && clock?.duration != null && positionAt(clock) >= clock.duration - 0.5;
-    statusTitle.textContent = `${ended ? 'Terminó · ' : ''}${shortTitle(p.item)}`;
-    statusWhere.textContent = at && !player ? `${at} de ${total}` : '';
+    statusTitle.textContent = orator ? oratorTitle(p) : `${ended ? 'Terminó · ' : ''}${shortTitle(p.item)}`;
+    statusWhere.textContent = at && variant === 'control' ? `${at} de ${total}` : '';
     if (at && state.order?.name) statusWhere.dataset.name = state.order.name; else delete statusWhere.dataset.name;
   }
 
@@ -183,6 +200,7 @@ export function createEnVivo(ctx, { variant = 'control' } = {}) {
     };
     if (offline()) say('Reconectando…', '', null, 'off');
     else if (!item) say('Empezar', first ? `1 · ${first.title}` : 'Nada en el orden', first ? () => action('order.show', { id: first.id }) : null, first ? '' : 'off');
+    else if (oratorBody?.finished(p)) say('Fin', 'Ya no hay más diapositivas', null, 'end');
     else if (p.next?.end) {
       if (first) say('Ir al primero', '', () => action('order.show', { id: first.id }), 'first');
       else say('Fin', '', null, 'off');
@@ -220,6 +238,7 @@ export function createEnVivo(ctx, { variant = 'control' } = {}) {
     mounted?.view.destroy?.();
     slot.replaceChildren();
     toolButtons.clear();
+    for (const b of steadyTools) toolButtons.add(b);
     if (!item) {
       const has = rows().length;
       slot.append(h('div', { class: 'ev-nada' }, h('b', {}, 'Nada al aire'), h('small', {}, has ? 'Toca una fila del orden, o «Empezar» para el primero.' : 'Cuando haya algo en el orden, se pone desde aquí.')));
@@ -397,6 +416,13 @@ export function createEnVivo(ctx, { variant = 'control' } = {}) {
     const offer = p?.back;
     const source = p?.item?.source;
     if (source?.orderId) lastOrder = { id: source.orderId, step: source.step };
+    if (orator && p?.over) {
+      back.hidden = false;
+      backText.textContent = p.item?.kind === 'slides' ? `Volver a la diapositiva ${p.item.number}` : `Volver a ${shortTitle(p.item)}`;
+      backTime.textContent = '';
+      back.onclick = guard(() => action('projection.overClear'));
+      return;
+    }
     if (offer && offer.uid === p.item?.uid) {
       if (backUid !== offer.uid) {
         backUid = offer.uid;
@@ -471,7 +497,7 @@ export function createEnVivo(ctx, { variant = 'control' } = {}) {
     paintBand(p);
     paintSlot();
     paintBack();
-    paintList();
+    if (oratorBody) oratorBody.paint(p); else paintList();
   }
   subscribe('projection', (p) => {
     if (p.item?.uid !== lastUid) {
@@ -495,6 +521,7 @@ export function createEnVivo(ctx, { variant = 'control' } = {}) {
     stage.setLive(l);
     paintSlot();
     amountOf(l.volume ?? 1);
+    oratorBody?.live?.();
   });
   subscribe('pointer', (p) => stage.setPointer(p));
   subscribe('conexiones', ({ sonido }) => {
@@ -511,7 +538,10 @@ export function createEnVivo(ctx, { variant = 'control' } = {}) {
   setInterval(() => {
     for (const isle of isles.values()) paintIsleName(isle);
     if (!state.projection) return;
-    if (!back.hidden) paintBack();
+    if (!back.hidden) {
+      paintBack();
+      if (back.hidden) oratorBody?.paint(state.projection);
+    }
     const away = offline();
     if (away || away !== wasAway) {
       wasAway = away;
@@ -524,9 +554,10 @@ export function createEnVivo(ctx, { variant = 'control' } = {}) {
     status, controls, search, preview, toggleMode, projectPrepared,
     // La rejilla (envivo.css), con lo que es del shell: la marca, el dock y el cajón.
     compose({ brand, dockbar, drawer }) {
-      const top = h('header', { class: 'ev-top' }, brand, status, search?.button);
+      const top = h('header', { class: 'ev-top' }, brand, status, search?.button, ...(oratorBody?.topExtras ?? []));
       const head = h('div', { class: 'ev-head' }, vista, info, nowName);
-      root.append(...[top, head, slot, seekBox, mid, !player && prep, listBox, drawer, strip, dockbar].filter(Boolean));
+      const middle = oratorBody?.nodes ?? [slot, seekBox, mid, !player && prep, listBox];
+      root.append(...[top, head, ...middle, drawer, strip, dockbar].filter(Boolean));
       paintPrep(null);
       return root;
     },

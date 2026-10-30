@@ -1,0 +1,286 @@
+/* «En vivo» de los dos oradores (fases 46 y 47; tableros T5 a T10, U3, U4, U7, U8, E8, E11, E17 a E20). */
+
+.ev-clock { flex: none; height: var(--ev-h); display: flex; align-items: center; gap: 4px; padding: 0 9px; box-sizing: border-box; border-radius: 999px; color: var(--ink-2); font: 500 12px var(--mono); }
+.ev-lock { position: relative; flex: none; width: 35px; height: var(--ev-h); display: grid; place-items: center; border-radius: 999px; color: var(--ink-2); box-sizing: border-box; }
+.ev-lock::after { content: ''; position: absolute; inset: -2.5px -1px; }
+.ev-lock[aria-pressed='true'] { color: var(--accent); }
+.ev-oinfo { display: none; }
+.ev-pick-tools { display: none; }
+
+/* ---- El completo ---- */
+.ev-orador { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 4px; }
+.ev-tabs { flex: none; display: flex; gap: 5px; height: var(--ev-h); min-width: 0; }
+.ev-tabs .ev-seg { flex: 1 1 0; }
+.ev .ev-tabs > .ev-btn { flex: none; width: 35px; }
+.ev .ev-tabs > .ev-btn > span { display: none; }
+.ev-tabs-move { display: none; }
+.ev-orador > .ev-slot { flex: none; }
+.ev-orador > .ev-slot[hidden] { display: none; }
+.ev-panes { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+.ev-pane { display: none; flex: 1 1 0; min-height: 0; flex-direction: column; gap: 4px; }
+.ev[data-tab='diapositivas'] .ev-pane[data-pane='diapositivas'], .ev[data-tab='versiculos'] .ev-pane[data-pane='versiculos'], .ev[data-tab='textos'] .ev-pane[data-pane='textos'] { display: flex; }
+.ev-pane-tools { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ev-gap); }
+.ev-pane-tools[hidden] { display: none; }
+.ev-thumbs, .ev-vrows { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 8px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 8px), transparent); padding-bottom: 8px; }
+.ev-thumbs { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; align-content: start; scrollbar-width: none; }
+.ev-thumbs[hidden] { display: none; }
+.ev-thumb { min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.ev-thumb > span { display: block; aspect-ratio: 16 / 9; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--media-bg); }
+.ev-thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.ev-thumb.on > span { border: 2px solid var(--ink-3); }
+.ev[data-state='live'] .ev-thumb.on > span { border-color: var(--live); }
+.ev-thumb small { color: var(--ink-2); font: 500 10px var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev-cite-row { flex: none; display: flex; gap: 5px; height: var(--ev-h); }
+.ev-cite { position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--s1); color: var(--ink-3); font-size: 12px; text-align: left; }
+.ev-cite::after { content: ''; position: absolute; inset: -2.5px -1px; }
+.ev .ev-version { flex: none; width: auto; padding: 0 10px; }
+.ev-vrows { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.ev-vrow { border-bottom: 1px solid var(--line); }
+.ev-vhead { display: flex; align-items: center; gap: 7px; min-height: 40px; padding: 2px 2px 2px 4px; }
+.ev-vmain { flex: 1 1 0; min-width: 0; align-self: stretch; display: flex; flex-direction: column; justify-content: center; text-align: left; }
+.ev-vmain b { font-size: 13px; font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev-vmain small { color: var(--ink-2); font-size: 11px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev .ev-vhead .ev-btn { flex: none; width: auto; padding: 0 10px; }
+.ev-vrow.miss .ev-vmain b, .ev-vrow.miss .ev-vmain small { color: var(--ink-3); }
+.ev-vfull { padding: 2px 4px 6px; }
+.ev-vfull p { margin: 0 0 6px; color: var(--ink-2); font-size: 12px; line-height: 1.35; }
+.ev-vput { width: 100%; height: 34px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid rgba(92, 232, 255, 0.5); border-radius: 12px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 500; }
+.ev-read { width: 100%; height: 35px; display: flex; align-items: center; gap: 6px; padding: 0 4px; color: var(--ink-3); font-size: 11px; text-align: left; }
+.ev-read span { flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev-orador > .ev-back { top: calc(var(--ev-h) + 4px); height: var(--ev-h); }
+.ev-orador > .ev-back::after { content: ''; position: absolute; inset: -2.5px -1px; }
+.ev-pane[data-pane='textos'] .ev-row-main { padding-left: 4px; }
+
+/* Con un módulo abierto, lo suyo cede. */
+body.envivo.drawer-open .ev[data-variant='orador'] :is(.ev-orador, .ev-oinfo, .ev-pick-tools) { display: none; }
+html[data-disposicion='telefono-acostado'] body.envivo .ev[data-variant='orador'] .drawer, html[data-disposicion='tableta-acostada'] body.envivo .ev[data-variant='orador'] .drawer { grid-row: 2 / 4; }
+
+.ev-osec, .ev-otira, .ev-omsg, .ev-tool-other { display: none; }
+.ev-omsg[hidden], .ev-otira[hidden] { display: none; }
+
+/* ---- La hoja «Versículo» ---- */
+.ev-sheet { box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; min-height: 0; padding: 4px 6px 5px; border: 1px solid var(--line); border-radius: 14px; background: var(--s1); }
+.ev-sheet-under { display: none; }
+.ev-sheet-msgs:empty { display: none; }
+.ev-sheet[hidden], .ev-sheet-msgs[hidden], .ev-sheet-all[hidden], .ev-keys[hidden] { display: none; }
+.ev-sheet-head { flex: none; display: flex; align-items: center; gap: 6px; min-height: 30px; }
+.ev-sheet-text { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+.ev-sheet-text b { font-size: 13px; font-weight: 600; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev-sheet-text small { min-height: 13px; color: var(--ink-3); font-size: 11px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev-sheet-close, .ev-sheet-erase { position: relative; flex: none; width: 35px; height: 32px; display: grid; place-items: center; border: 1px solid var(--line-2); border-radius: 10px; background: var(--s2); color: var(--ink-2); }
+.ev-sheet-close { border-radius: 999px; }
+.ev-sheet-close::after, .ev-sheet-erase::after { content: ''; position: absolute; inset: -2.5px -1px; }
+.ev-sheet-display { flex: none; display: flex; gap: 4px; height: 32px; }
+.ev-sheet-field { flex: 1 1 0; min-width: 0; display: flex; align-items: center; padding: 0 10px; border: 1px solid rgba(92, 232, 255, 0.5); border-radius: 10px; background: var(--s2); }
+.ev-sheet-typed { min-width: 0; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev-sheet-field i { flex: none; width: 2px; height: 18px; margin-left: 2px; background: var(--accent); }
+.ev-sheet-version { flex: none; margin-left: auto; padding-left: 8px; color: var(--ink-3); font-size: 11px; }
+.ev-sheet-books { flex: none; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; }
+.ev-sheet-book { position: relative; min-width: 0; height: 30px; padding: 0 2px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--s2); color: var(--ink); font-size: 11px; white-space: nowrap; }
+.ev-sheet-book::after { content: ''; position: absolute; inset: -3px 0; } /* el inset parte de dentro del borde */
+.ev-sheet-book.on { border-color: rgba(92, 232, 255, 0.5); background: var(--accent-soft); color: var(--accent); }
+.ev-sheet-all { flex: 1 1 0; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; align-content: start; }
+.ev-sheet-all .ev-sheet-book { height: 35px; }
+.ev-keys { flex: 0 1 auto; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: minmax(32px, 58px); gap: 3px; }
+.ev-key::after { content: ''; position: absolute; inset: -2px 0; }
+.ev-key { position: relative; min-height: 32px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--s2); color: var(--ink); font-size: 15px; }
+.ev-key:disabled { background: var(--s1); border-color: var(--line); color: #7d8696; }
+.ev-sheet-put { flex: none; height: 35px; margin-top: auto; display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid rgba(92, 232, 255, 0.5); border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 500; }
+.ev-sheet-put:disabled { border-color: var(--line); background: var(--s1); color: #7d8696; }
+.ev-sheet-msgs { flex: none; display: flex; gap: 4px; }
+.ev-sheet-msg { position: relative; flex: 1 1 0; min-width: 0; height: 32px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--s2); color: var(--ink); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
+.ev-sheet-msg::after { content: ''; position: absolute; inset: -2.5px 0; }
+/* De pie: la hoja abajo, al alcance del pulgar, sin franja ni dock; en un teléfono bajo, la vista un poco más pequeña. */
+.ev[data-sheet='true'][data-variant] { display: flex; flex-direction: column; }
+.ev[data-sheet='true'][data-variant] .ev-strip { display: none; }
+body.envivo .ev[data-sheet='true'] .dockbar, body.envivo .ev[data-sheet='true'] .drawer { display: none; }
+.ev[data-sheet='true'] .ev-head { justify-content: center; }
+@media (max-height: 640px) { .ev[data-sheet='true'] .ev-vista { flex: 0 0 86%; } }
+@media (max-height: 540px) { .ev[data-sheet='true'] .ev-vista { flex: 0 0 66%; } }
+.ev[data-sheet='true'] .ev-sheet { flex: 0 1 auto; margin-top: auto; }
+
+/* ---- El sencillo: de pie ---- */
+.ev-tools { min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+.ev-tool { position: relative; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--s2); color: var(--ink); font-size: 10px; font-weight: 500; line-height: 1; }
+.ev-tool:disabled { border-color: var(--line); background: var(--s1); color: #7d8696; }
+.ev[data-variant='sencillo'] { display: grid; gap: 4px 20px; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: var(--ev-h) auto 36px 38px minmax(0, 1fr) 44px;
+  grid-template-areas: 'top top' 'head head' 'info info' 'modos tools' 'pasos pasos' 'dock dock'; }
+.ev[data-variant='sencillo'] .ev-top { grid-area: top; }
+.ev[data-variant='sencillo'] .ev-head { grid-area: head; }
+.ev[data-variant='sencillo'] .ev-strip { display: contents; }
+.ev[data-variant='sencillo'] .ev-modos { grid-area: modos; margin: 0; }
+.ev[data-variant='sencillo'] .ev-tools { grid-area: tools; }
+.ev[data-variant='sencillo'] .ev-oinfo { grid-area: info; display: flex; align-items: center; gap: 8px; padding: 0 4px; min-width: 0; }
+.ev-opic { flex: none; display: block; width: 53px; aspect-ratio: 16 / 9; border-radius: 4px; overflow: hidden; background: var(--media-bg); }
+.ev-opic img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.ev-opic.ev-off { visibility: hidden; }
+.ev-opic-prev { display: none; }
+.ev-ocount { min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+.ev-onums { white-space: nowrap; color: var(--ink-3); font: 600 12px var(--mono); }
+.ev-onums b { color: var(--ink); font-size: 17px; }
+.ev-ocount small { color: var(--ink-3); font-size: 11px; white-space: nowrap; }
+.ev-osigue, .ev-otitle { display: none; }
+.ev-otext { display: contents; }
+.ev-ofollows small { font-size: 11px; }
+.ev-ofollows { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 8px; color: var(--ink-3); font-size: 11px; white-space: nowrap; }
+.ev[data-variant='sencillo'] .ev-pasos { grid-area: pasos; margin-top: 16px; gap: 10px; min-height: 0; }
+.ev[data-variant='sencillo'] .ev-prev { width: 86px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border-radius: 18px; color: var(--ink-2); font-size: 12px; }
+.ev[data-variant='sencillo'] .ev-next { height: 100%; flex-direction: column-reverse; justify-content: center; gap: 6px; border: 2px solid var(--accent); border-radius: 22px; background: #0e3a44; color: var(--ink); }
+.ev[data-variant='sencillo'] .ev-next .ic { width: 26px; height: 26px; color: var(--accent); }
+.ev[data-variant='sencillo'] .ev-next.pressed { background: var(--accent); color: var(--on-accent); filter: none; }
+.ev[data-variant='sencillo'] .ev-two { align-items: center; gap: 4px; }
+.ev[data-variant='sencillo'] .ev-two > span { font-size: 20px; font-weight: 700; }
+.ev[data-variant='sencillo'] .ev-two small { color: var(--accent); font-size: 13px; }
+.ev[data-variant='sencillo'] .ev-next:disabled { border: 1px solid var(--line); background: var(--s1); color: var(--ink-3); }
+.ev[data-variant='sencillo'] .ev-next:disabled small, .ev[data-variant='sencillo'] .ev-next:disabled .ic { color: var(--ink-3); }
+.ev-fin { display: none; }
+.ev[data-variant='sencillo'] .ev-next[data-kind='end'] > .ev-fin { display: block; }
+.ev[data-variant='sencillo'] .ev-next[data-kind='end'] > .ic { display: none; }
+body.envivo .ev[data-variant='sencillo'] .dockbar { grid-area: dock; margin-top: 8px; }
+body.envivo .ev[data-variant='sencillo'] .drawer { grid-row: 3 / 5; grid-column: 1 / -1; }
+body.envivo .ev[data-variant='sencillo'].x { display: none; }
+body.envivo.drawer-open .ev[data-variant='sencillo'] :is(.ev-oinfo, .ev-tools) { display: none; }
+body.envivo.drawer-open .ev[data-variant='sencillo'] .ev-modos { display: none; }
+body.envivo.drawer-open .ev[data-variant='sencillo'] .ev-pasos { margin-top: 4px; }
+body.envivo.drawer-open .ev[data-variant='sencillo'] { grid-template-rows: var(--ev-h) auto minmax(0, 1fr) 0 46px 44px; }
+body.envivo.drawer-open .ev[data-variant='sencillo'] .ev-prev { flex-direction: row; }
+body.envivo.drawer-open .ev[data-variant='sencillo'] .ev-next { flex-direction: row; }
+body.envivo.drawer-open .ev[data-variant='sencillo'] .ev-two > span { font-size: 13px; }
+body.envivo.drawer-open .ev[data-variant='sencillo'] .ev-two small { font-size: 10px; }
+
+/* Bloqueado: solo se ve la vista. */
+.ev-locked { display: flex; grid-row: 3 / 6; grid-column: 1 / -1; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 0 28px; text-align: center; color: var(--ink-3); }
+.ev-locked[hidden] { display: none; }
+.ev-locked b { color: var(--ink); font-size: 13px; font-weight: 600; }
+.ev-locked small { font-size: 12px; line-height: 1.35; }
+.ev-unlock { margin-top: 6px; height: 44px; padding: 0 22px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--s2); color: var(--ink); font-size: 13px; }
+.ev[data-locked='true'] :is(.ev-oinfo, .ev-tools, .ev-strip, .brand-switch, .drawer), body.envivo .ev[data-locked='true'] .dockbar { display: none; }
+
+/* ---- Teléfono acostado ---- */
+html[data-disposicion='telefono-acostado'] .ev[data-variant='orador'] { grid-template-rows: 32px minmax(0, 1fr) 32px 47px;
+  grid-template-areas: 'dock head head top' 'dock head head orador' 'dock pick pick orador' 'dock modos info pasos'; }
+html[data-disposicion='telefono-acostado'] .ev-orador { grid-area: orador; }
+html[data-disposicion='telefono-acostado'] .ev-pick-tools { grid-area: pick; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+html[data-disposicion='telefono-acostado'] .ev .ev-tabs > .ev-btn { display: none; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='orador'] .ev-oinfo { grid-area: info; display: flex; align-self: end; align-items: center; justify-content: flex-end; gap: 8px; height: 38px; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='orador'] .ev-ocount { align-items: flex-end; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='orador'] .ev-ofollows { flex: none; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='orador'] .ev-ofollows > small { display: none; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='orador'] .ev-oleft { display: none; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='orador'] .ev-osigue { display: inline; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='orador'] .ev-title, html[data-disposicion='tableta-acostada'] .ev[data-variant] .ev-title { display: none; }
+html[data-disposicion='telefono-acostado'] .ev-ocount small { font-size: 11px; }
+html[data-disposicion='telefono-acostado'] .ev-pane[data-pane='diapositivas'] .ev-pane-tools { display: none; }
+html[data-disposicion='telefono-acostado'] .ev-vhead { min-height: 40px; }
+/* La hoja, en la columna de la derecha; los pasajes del mensaje, bajo la vista. */
+html[data-disposicion='telefono-acostado'] .ev[data-sheet='true'][data-variant] { display: grid; grid-template-rows: minmax(0, 1fr) 32px 47px;
+  grid-template-areas: 'dock head head sheet' 'dock msgs msgs sheet' 'dock modos note sheet'; }
+html[data-disposicion='telefono-acostado'] body.envivo .ev[data-sheet='true'] .dockbar { display: flex; }
+html[data-disposicion='telefono-acostado'] .ev[data-sheet='true'] .ev-top { display: none; }
+html[data-disposicion='telefono-acostado'] .ev[data-sheet='true'][data-variant] .ev-strip { display: contents; }
+html[data-disposicion='telefono-acostado'] .ev[data-sheet='true'] .ev-pasos { display: none; }
+html[data-disposicion='telefono-acostado'] .ev[data-sheet='true'] .ev-sheet { grid-area: sheet; margin: 0; }
+.ev-sheet-note { display: none; }
+html[data-disposicion='telefono-acostado'] .ev-sheet-note:not([hidden]), html[data-disposicion='tableta-acostada'] .ev-sheet-note:not([hidden]) { grid-area: note; display: block; align-self: center; justify-self: end; min-width: 0; color: var(--ink-3); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html[data-disposicion='telefono-acostado'] .ev-sheet > .ev-sheet-msgs, html[data-disposicion='tableta-acostada'] .ev-sheet > .ev-sheet-msgs { display: none; }
+html[data-disposicion='telefono-acostado'] .ev-sheet-under:not([hidden]), html[data-disposicion='tableta-acostada'] .ev-sheet-under:not([hidden]) { display: flex; grid-area: msgs; }
+html[data-disposicion='telefono-acostado'] .ev-keys { grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: minmax(35px, 44px); }
+/* El sencillo: Anterior y Siguiente ocupan la derecha. */
+html[data-disposicion='telefono-acostado'] .ev[data-variant='sencillo'] { grid-template-rows: 32px minmax(0, 1fr) 30px 47px;
+  grid-template-areas: 'dock head head top' 'dock head head pasos' 'dock info info pasos' 'dock modos tools pasos'; gap: 3px 6px; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='sencillo'] .ev-pasos { margin: 0; align-self: stretch; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='sencillo'] .ev-title { display: none; }
+/* «Quedan 7 · sigue la 6» */
+html[data-disposicion='telefono-acostado'] .ev[data-variant='sencillo'] .ev-osigue, html[data-disposicion='tableta-acostada'] .ev[data-variant] .ev-osigue { display: inline; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='sencillo'] .ev-osigue::before, html[data-disposicion='tableta-acostada'] .ev[data-variant] .ev-osigue::before { content: ' · '; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='sencillo'] .ev-ofollows > small, html[data-disposicion='tableta-acostada'] .ev[data-variant] .ev-ofollows > small { display: none; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='sencillo'] .ev-tools { align-self: end; height: 38px; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='sencillo'] .ev-modos { align-self: end; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='sencillo'] .ev-oinfo { grid-area: info; align-self: center; height: 30px; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='sencillo'] .ev-oinfo .ev-ocount { flex-direction: row; align-items: baseline; gap: 8px; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='sencillo'] .ev-opic { width: 48px; }
+html[data-disposicion='telefono-acostado'] body.envivo .ev[data-variant='sencillo'] .dockbar { grid-area: dock; margin: 0; }
+html[data-disposicion='telefono-acostado'] body.envivo .ev[data-variant='sencillo'] .drawer { grid-column: 4; grid-row: 2 / 4; }
+html[data-disposicion='telefono-acostado'] body.envivo.drawer-open .ev[data-variant='sencillo'] { grid-template-rows: 32px minmax(0, 1fr) 30px 47px; }
+html[data-disposicion='telefono-acostado'] body.envivo.drawer-open .ev[data-variant='sencillo'] .ev-modos { display: flex; }
+html[data-disposicion='telefono-acostado'] body.envivo.drawer-open .ev[data-variant='sencillo'] .ev-pasos { grid-area: 4 / 4 / 5 / 5; align-self: end; height: 38px; margin: 0; }
+
+/* ---- Tableta ---- */
+html[data-disposicion^='tableta'] .ev .ev-tabs > .ev-btn { width: auto; padding: 0 12px; }
+html[data-disposicion^='tableta'] .ev .ev-tabs > .ev-btn > span { display: inline; }
+html[data-disposicion^='tableta'] .ev-tabs-move { display: block; flex: none; }
+html[data-disposicion^='tableta'] .ev-tabs-move .ev-btn { width: auto; padding: 0 12px; }
+html[data-disposicion^='tableta'] .ev-pane[data-pane='diapositivas'] .ev-pane-tools button[data-tool] { display: none; }
+html[data-disposicion^='tableta'] .ev-pane-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+html[data-disposicion^='tableta'] .ev-thumbs { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+html[data-disposicion^='tableta'] .ev-vhead { min-height: 48px; }
+html[data-disposicion^='tableta'] .ev-vmain b { font-size: 14px; }
+html[data-disposicion^='tableta'] .ev-vmain small { font-size: 12px; }
+html[data-disposicion^='tableta'] .ev-cite { font-size: 13px; }
+html[data-disposicion='tableta-pie'] .ev-otira:not([hidden]) { flex: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) 58px; }
+html[data-disposicion='tableta-pie'] .ev-otira .ev-tira-pic > span { flex: none; aspect-ratio: 16 / 9; }
+html[data-disposicion='tableta-pie'] .ev-onums b { font-size: 24px; }
+/* Acostada, sin pestañas: los versículos y los textos en una sola lista. */
+html[data-disposicion='tableta-acostada'] .ev[data-variant='orador'] { grid-template-rows: 36px calc(var(--v) * 9 / 16 - 37px) minmax(0, 1fr) 46px;
+  grid-template-areas: 'dock head head top' 'dock head head orador' 'dock info info orador' 'dock modos pick pasos'; }
+html[data-disposicion='tableta-acostada'] .ev-orador { grid-area: orador; }
+html[data-disposicion='tableta-acostada'] .ev-tabs { display: none; }
+html[data-disposicion='tableta-acostada'] .ev-orador > .ev-back { top: 0; }
+html[data-disposicion='tableta-acostada'] .ev-panes { overflow-y: auto; }
+html[data-disposicion='tableta-acostada'] .ev-pane[data-pane='versiculos'], html[data-disposicion='tableta-acostada'] .ev-pane[data-pane='textos'] { display: flex; flex: none; }
+/* De las diapositivas solo queda la ranura: los mandos de lo que no es una presentación. */
+html[data-disposicion='tableta-acostada'] .ev-pane[data-pane='diapositivas'] { display: flex; flex: none; }
+html[data-disposicion='tableta-acostada'] .ev-pane[data-pane='diapositivas'] > :not(.ev-slot) { display: none; }
+html[data-disposicion='tableta-acostada'] .ev-orador .ev-slot { grid-template-columns: repeat(4, minmax(0, 1fr)); height: calc(var(--ev-h) * 2 + var(--ev-gap)); }
+html[data-disposicion='tableta-acostada'] .ev-osec { display: flex; }
+html[data-disposicion='tableta-acostada'] .ev-vrows { flex: none; overflow: visible; -webkit-mask-image: none; mask-image: none; }
+html[data-disposicion='tableta-acostada'] .ev-pick-tools { grid-area: pick; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; align-self: center; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='orador'] .ev-oinfo { grid-area: info; display: flex; align-items: center; gap: 12px; min-height: 0; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='orador'] .ev-opic { width: 118px; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='orador'] .ev-opic-prev { display: block; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='orador'] .ev-ocount { flex: 1 1 0; align-items: center; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='orador'] .ev-ofollows { flex: none; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='orador'] .ev-ofollows > small { display: none; }
+html[data-disposicion='tableta-acostada'] .ev-onums b { font-size: 24px; }
+html[data-disposicion='tableta-acostada'] .ev[data-sheet='true'][data-variant] { display: grid; grid-template-rows: minmax(0, 1fr) 40px 58px; grid-template-areas: 'dock head head sheet' 'dock msgs msgs sheet' 'dock modos note sheet'; }
+html[data-disposicion='tableta-acostada'] .ev[data-sheet='true'][data-variant] .ev-modos { align-self: end; }
+html[data-disposicion='tableta-acostada'] body.envivo .ev[data-sheet='true'] .dockbar { display: flex; }
+html[data-disposicion='tableta-acostada'] .ev[data-sheet='true'] .ev-top { display: none; }
+html[data-disposicion='tableta-acostada'] .ev[data-sheet='true'][data-variant] .ev-strip { display: contents; }
+html[data-disposicion='tableta-acostada'] .ev[data-sheet='true'] .ev-pasos { display: none; }
+html[data-disposicion='tableta-acostada'] .ev[data-sheet='true'] .ev-sheet { grid-area: sheet; margin: 0; }
+html[data-disposicion^='tableta'] .ev-sheet-book { height: 34px; font-size: 12px; }
+html[data-disposicion^='tableta'] .ev-key { font-size: 18px; }
+html[data-disposicion^='tableta'] .ev-sheet-put, html[data-disposicion^='tableta'] .ev-sheet-msg { height: 40px; font-size: 14px; }
+/* El sencillo, en la tableta. */
+html[data-disposicion='tableta-pie'] .ev[data-variant='sencillo'] { gap: 6px 20px; grid-template-rows: 36px auto 72px 46px minmax(0, 1fr) 50px; }
+html[data-disposicion='tableta-pie'] body.envivo.drawer-open .ev[data-variant='sencillo'] { grid-template-rows: 36px auto minmax(0, 1fr) 0 46px 50px; }
+html[data-disposicion='tableta-pie'] .ev[data-variant='sencillo'] .ev-opic { width: 118px; }
+html[data-disposicion='tableta-acostada'] .ev-tool-one { display: none; }
+html[data-disposicion='tableta-acostada'] .ev-tool-other { display: inline; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='sencillo'] .ev-otext { display: flex; flex-direction: column; min-width: 0; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='sencillo'] .ev-otitle { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='sencillo'] .ev-ocount { flex-direction: row; align-items: center; gap: 10px; flex: 1 1 0; }
+html[data-disposicion='tableta-acostada'] .ev-omsg:not([hidden]) { grid-area: msg; display: flex; align-items: center; gap: 6px; min-width: 0; }
+@media (max-height: 600px) { html[data-disposicion='tableta-acostada'] .ev-omsg:not([hidden]) { display: none; } } /* sin sitio a 12 px de Solo fondo y Negro */
+html[data-disposicion='tableta-acostada'] .ev-omsg-label { flex: none; width: 76px; color: var(--ink-3); font-size: 10px; font-weight: 600; letter-spacing: 0.09em; line-height: 1.2; text-transform: uppercase; }
+html[data-disposicion='tableta-acostada'] .ev-omsg .ev-btn { flex: 1 1 0; min-width: 0; }
+html[data-disposicion='tableta-pie'] .ev[data-variant='sencillo'] .ev-onums b, html[data-disposicion='tableta-acostada'] .ev[data-variant='sencillo'] .ev-onums b { font-size: 24px; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='sencillo'] { grid-template-columns: 56px 214px minmax(0, calc(var(--v) - 220px)) minmax(0, 1fr); grid-template-rows: 36px calc(var(--v) * 9 / 16 - 37px) 60px minmax(0, 1fr) 46px; gap: 6px;
+  grid-template-areas: 'dock head head top' 'dock head head pasos' 'dock info info pasos' 'dock msg msg pasos' 'dock modos tools pasos'; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='sencillo'] .ev-pasos { margin: 0; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='sencillo'] .ev-oinfo { grid-area: info; }
+html[data-disposicion='tableta-acostada'] .ev[data-variant='sencillo'] .ev-opic { width: 96px; }
+html[data-disposicion^='tableta'] .ev[data-variant='sencillo'] .ev-prev { width: 120px; font-size: 14px; }
+html[data-disposicion^='tableta'] .ev[data-variant='sencillo'] .ev-two > span { font-size: 26px; }
+html[data-disposicion^='tableta'] .ev[data-variant='sencillo'] .ev-two small { font-size: 15px; }
+html[data-disposicion^='tableta'] .ev-tool { font-size: 12px; }
+html[data-disposicion='tableta-acostada'] body.envivo .ev[data-variant='sencillo'] .dockbar { grid-area: dock; margin: 0; }
+html[data-disposicion='tableta-acostada'] body.envivo .ev[data-variant='sencillo'] .drawer { grid-column: 4; grid-row: 2 / 5; }
+html[data-disposicion='tableta-acostada'] body.envivo.drawer-open .ev[data-variant='sencillo'] { grid-template-rows: 36px calc(var(--v) * 9 / 16 - 37px) 60px minmax(0, 1fr) 46px; }
+html[data-disposicion='tableta-acostada'] body.envivo.drawer-open .ev[data-variant='sencillo'] .ev-modos { display: flex; }
+html[data-disposicion='tableta-acostada'] body.envivo.drawer-open .ev[data-variant='sencillo'] .ev-pasos { grid-area: 5 / 4 / 6 / 5; margin: 0; }
+html[data-disposicion='telefono-acostado'] .ev[data-variant='sencillo'] .ev-opic-prev, html[data-disposicion='tableta-acostada'] .ev[data-variant='sencillo'] .ev-opic-prev { display: none; }
+
+/* La hoja manda: lo demás de en medio se aparta, en cualquier disposición. */
+html[data-disposicion] .ev[data-sheet='true'][data-variant] :is(.ev-orador, .ev-oinfo, .ev-otira, .ev-tools, .ev-omsg, .ev-pick-tools, .ev-locked) { display: none; }

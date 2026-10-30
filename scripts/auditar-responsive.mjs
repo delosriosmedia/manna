@@ -61,6 +61,9 @@ const PORTS = [8124, 8126, 8128];
 const SHOTS = process.argv.includes('capturas');
 // «grande»: cada página se abre con la interfaz al tamaño máximo (?escala=1.08, como el deslizador de Ajustes al tope).
 const BIG = process.argv.includes('grande');
+// «rapido»: para ir corrigiendo. Un solo Chrome, y cada pantalla móvil se abre una vez y solo cambia de tamaño, sin
+// recargar (como al girar el dispositivo). Unos segundos por pantalla; la ronda completa se deja para el final.
+const FAST = process.argv.includes('rapido');
 // Por dónde va cada Chrome, para decirlo si se pasa del tiempo máximo.
 const progress = [];
 deadline(12, 'La auditoría', () => progress.filter(Boolean).join(' · '));
@@ -125,6 +128,17 @@ const SCREENS = [
   { name: 'En vivo de Alabanza: versículos', url: '/alabanza', plain: '.ev-slot', movil: true, tactil: true, show: 'live', settle: 500 },
   { name: 'En vivo de Alabanza: nada al aire', url: '/alabanza', plain: '.ev-slot', movil: true, tactil: true, settle: 500, restore: true, prepare: `fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'projection.clear', payload: {} }) })` },
   { name: 'En vivo de Alabanza: módulo abierto', url: '/alabanza#himnario', movil: true, tactil: true, settle: 700 },
+  // Los dos oradores (fases 46 y 47).
+  { name: 'En vivo del Orador: diapositivas', url: '/orador', plain: '.ev-orador', movil: true, tactil: true, show: 'slides', settle: 500, prefs: { 'orador.pestana': 'diapositivas' } },
+  { name: 'En vivo del Orador: versículos', url: '/orador', plain: '.ev-orador', movil: true, tactil: true, show: 'slides', settle: 500, prefs: { 'orador.pestana': 'versiculos' } },
+  { name: 'En vivo del Orador: textos', url: '/orador', plain: '.ev-orador', movil: true, tactil: true, show: 'slides', settle: 500, prefs: { 'orador.pestana': 'textos' } },
+  { name: 'En vivo del Orador: un video', url: '/orador', plain: '.ev-orador', movil: true, tactil: true, show: 'video', settle: 500, prefs: { 'orador.pestana': 'diapositivas' } },
+  { name: 'En vivo del Orador: hoja Versículo', url: '/orador', plain: '.ev-sheet', movil: true, tactil: true, show: 'slides', settle: 500, prefs: { 'orador.pestana': 'versiculos' }, prepare: `document.querySelector('.ev-cite').click()` },
+  { name: 'En vivo del Orador: módulo abierto', url: '/orador#biblia', movil: true, tactil: true, settle: 700 },
+  { name: 'En vivo del sencillo: diapositivas', url: '/orador-sencillo', plain: '.ev-tools', movil: true, tactil: true, show: 'slides', settle: 500 },
+  { name: 'En vivo del sencillo: hoja Versículo', url: '/orador-sencillo', plain: '.ev-sheet', movil: true, tactil: true, show: 'slides', settle: 500, prepare: `document.querySelector('.ev-tools .ev-tool').click()` },
+  { name: 'En vivo del sencillo: bloqueado', url: '/orador-sencillo', plain: '.ev-locked', movil: true, tactil: true, show: 'slides', settle: 500, prepare: `document.querySelector('.ev-lock').click()` },
+  { name: 'En vivo del sencillo: módulo abierto', url: '/orador-sencillo#medios', movil: true, tactil: true, settle: 700 },
   // prefs: preferencias de este dispositivo con las que se abre la pantalla (se quitan al terminar).
   { name: 'Biblia: comparar', url: '/control#biblia', prefs: { 'biblia.comparar': true }, primary: '.abar .btn.primary', content: '.col-verses', inside: '.cmp-bar' },
   // wideOnly: solo donde hay escenario (860 px o más); ahí, el módulo en el cajón estrecho de 440 px.
@@ -222,11 +236,11 @@ const SCREENS = [
     prepare: `document.querySelector('.decks[data-panel=diapositivas] .deck-pick').click(); document.querySelector('.deck-bar .deck-see').click()` },
   { name: 'Al aire con una diapositiva', url: '/control#medios', show: 'slides', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Orden con una diapositiva al aire', url: '/control#orden', show: 'slides', controls: '.odetail .live-controls' },
-  // El Presentador no lleva escenario: noDock cambia ese control por la diapositiva grande y su fila de botones.
-  { name: 'Orador: elegir presentación', url: '/orador', noDock: true, content: '.pr-choose', inside: '.pr-list .deck', settle: 600 },
-  { name: 'Orador: presentando', url: '/orador', show: 'slides', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', settle: 800 }, // sin mandos de encuadre: se acerca y se mueve sobre la diapositiva (fase 14)
+  // En el computador, el Presentador no lleva escenario: noDock cambia ese control por la diapositiva grande y su fila de botones.
+  { name: 'Orador: elegir presentación', url: '/orador', wideOnly: true, noDock: true, content: '.pr-choose', inside: '.pr-list .deck', settle: 600 },
+  { name: 'Orador: presentando', url: '/orador', wideOnly: true, show: 'slides', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', settle: 800 }, // sin mandos de encuadre: se acerca y se mueve sobre la diapositiva (fase 14)
   // Con una página web al aire (un archivo propio): sin rejilla ni siguiente; la grande y Anterior / Siguiente / Negro a la vista (sus flechas van en la fila de botones, no en los mandos).
-  { name: 'Orador: una página web', url: '/orador', page: 'archivo1', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', settle: 800 },
+  { name: 'Orador: una página web', url: '/orador', wideOnly: true, page: 'archivo1', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', settle: 800 },
   { name: 'Páginas web', url: '/control#paginas', content: '.web-list', inside: '.web-item', settle: 400 },
   { name: 'Páginas web: una elegida', url: '/control#paginas', content: '.web-list', primary: '.ws[data-module=paginas] .abar .btn.primary', inside: '.ws[data-module=paginas] .abar', settle: 600,
     prepare: `document.querySelector('.ws[data-module=paginas] .web-pick').click()` },
@@ -435,7 +449,7 @@ const MIN_CONTENT = 150;
 
 // Qué revisar: las palabras que se le pasan eligen tamaños (por su nombre o «360x640») y pantallas.
 const fold = (text) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
-const words = process.argv.slice(2).filter((a) => a !== 'capturas' && a !== 'grande').map(fold);
+const words = process.argv.slice(2).filter((a) => a !== 'capturas' && a !== 'grande' && a !== 'rapido').map(fold);
 const sizeName = (d) => fold(`${d.name} ${d.w}x${d.h}`);
 const sizeWords = words.filter((w) => DEVICES.some((d) => sizeName(d).includes(w)));
 const screenWords = words.filter((w) => SCREENS.some((s) => fold(s.name).includes(w)));
@@ -448,6 +462,7 @@ const screens = screenWords.length ? SCREENS.filter((s) => screenWords.some((w) 
 const devices = (sizeWords.length ? DEVICES.filter((d) => sizeWords.some((w) => sizeName(d).includes(w))) : DEVICES).filter((d) => !d.min || screens.some((s) => s.movil));
 
 let problems = 0;
+const failuresOf = (m) => Object.keys(LABELS).filter((k) => m[k] === false).map((k) => LABELS[k] + (k === 'dedos' ? `: ${m.pequenos.join(', ')}` : k === 'solape' && m.solapan ? `: ${m.solapan.join('; ')}` : k === 'deLado' ? `: ${m.ladeados.join(', ')}` : k === 'contraste' ? `: ${m.flojos.join('; ')}` : k === 'cajonUnaFila' ? `: ${m.cajonDetalle}` : ''));
 
 // Un servidor con sus datos y un Chrome que revisa unos cuantos tamaños. Cada uno tiene lo suyo
 // porque las pantallas cambian lo que está al aire y las preferencias del navegador.
@@ -533,18 +548,47 @@ async function worker(list, n) {
     await chrome.send('Page.navigate', { url: `${base}/control` });
     await sleep(2000);
     await showInOrder(example.live);
+    if (FAST) {
+      const size = (d) => chrome.send('Emulation.setDeviceMetricsOverride', { width: d.w, height: d.h, deviceScaleFactor: 1, mobile: true });
+      await chrome.send('Emulation.setTouchEmulationEnabled', { enabled: true });
+      for (const screen of screens.filter((x) => x.tactil)) {
+        await chrome.evaluate(`localStorage.clear()`);
+        if (screen.prefs) await setPrefs(screen.prefs);
+        if (screen.show) await showInOrder(example[screen.show]);
+        await size(list[0]);
+        const [pathname, hash = ''] = screen.url.split('#');
+        progress[n] = `«${screen.name}»`;
+        await chrome.send('Page.navigate', { url: `${base}${pathname}?t=${Date.now()}&tactil${hash ? `#${hash}` : ''}` });
+        await ready(chrome, screen);
+        if (screen.prepare) { await chrome.evaluate(screen.prepare); await sleep(screen.settle || 500); }
+        const lines = [];
+        for (const device of list) {
+          await size(device);
+          await sleep(150);
+          const m = JSON.parse(await chrome.evaluate(`JSON.stringify(${MEASURE(screen, true, device.w < 860)})`) || '{}');
+          const failures = [...failuresOf(m), ...JSON.parse(await chrome.evaluate(`JSON.stringify(${MOBILE_RULES})`))];
+          problems += failures.length;
+          if (failures.length) lines.push(`  ${device.w} × ${device.h}\n      ${failures.join('\n      ')}`);
+        }
+        console.log(`${lines.length ? '✖' : '✔'} ${screen.name}${lines.length ? `\n${lines.join('\n')}` : ''}`);
+        if (screen.cleanup) await chrome.evaluate(screen.cleanup);
+        if (screen.show || screen.restore) await showInOrder(example.live);
+      }
+      return;
+    }
 
     for (const device of list) {
       const narrow = device.w < 860;
-      // MANNA_CAPTURAS_ESCALA: las capturas de los manuales (scripts/sitio.mjs) se toman al doble, para que se lean nítidas.
-      await chrome.send('Emulation.setDeviceMetricsOverride', { width: device.w, height: device.h, deviceScaleFactor: Number(process.env.MANNA_CAPTURAS_ESCALA) || 1, mobile: device.touch });
-      await chrome.send('Emulation.setTouchEmulationEnabled', { enabled: device.touch });
       // Cada tamaño empieza sin preferencias guardadas, como un dispositivo nuevo: el cajón se abre a su
       // tamaño de partida. Sin esto, cada tamaño heredaba lo que el anterior guardó (el celular pequeño deja el
-      // cajón a pantalla completa) y el resultado dependía del orden.
+      // cajón a pantalla completa) y el resultado dependía del orden. Y antes de cambiar de tamaño: pasar del
+      // computador al celular vuelve a abrir la página, y navegar en ese momento deja a Chrome sin contestar.
       await chrome.send('Page.navigate', { url: `${base}/api/ping` });
       await sleep(300);
       await chrome.evaluate('localStorage.clear()');
+      // MANNA_CAPTURAS_ESCALA: las capturas de los manuales (scripts/sitio.mjs) se toman al doble, para que se lean nítidas.
+      await chrome.send('Emulation.setDeviceMetricsOverride', { width: device.w, height: device.h, deviceScaleFactor: Number(process.env.MANNA_CAPTURAS_ESCALA) || 1, mobile: device.touch });
+      await chrome.send('Emulation.setTouchEmulationEnabled', { enabled: device.touch });
       cloudRole = null;
       // Lo de cada tamaño se escribe de una vez al terminarlo, para que no se mezcle con el de los otros Chrome.
       const lines = [`\n${device.name} (${device.w} × ${device.h})`];
@@ -578,7 +622,7 @@ async function worker(list, n) {
           await sleep(300);
           m.cierraFuera = await chrome.evaluate(`!document.querySelector(${JSON.stringify(screen.closesOutside)})`);
         }
-        const failures = Object.keys(LABELS).filter((k) => m[k] === false).map((k) => LABELS[k] + (k === 'dedos' ? `: ${m.pequenos.join(', ')}` : k === 'solape' && m.solapan ? `: ${m.solapan.join('; ')}` : k === 'deLado' ? `: ${m.ladeados.join(', ')}` : k === 'contraste' ? `: ${m.flojos.join('; ')}` : k === 'cajonUnaFila' ? `: ${m.cajonDetalle}` : ''));
+        const failures = failuresOf(m);
         if (m.espacioContenido !== undefined && m.espacioContenido < MIN_CONTENT) failures.push(`poco espacio para el contenido (${m.espacioContenido} px)`);
         if (screen.movil && device.touch) failures.push(...JSON.parse(await chrome.evaluate(`JSON.stringify(${MOBILE_RULES})`)));
         problems += failures.length;
@@ -604,7 +648,7 @@ async function worker(list, n) {
 }
 
 // Los tamaños se reparten alternos (1.º, 4.º y 7.º al primer Chrome…): todos tardan lo mismo.
-const groups = PORTS.map((_, n) => devices.filter((_, k) => k % PORTS.length === n)).filter((g) => g.length);
+const groups = FAST ? [devices.filter((d) => d.min || d.movil)] : PORTS.map((_, n) => devices.filter((_, k) => k % PORTS.length === n)).filter((g) => g.length);
 const results = await Promise.allSettled(groups.map((list, n) => worker(list, n)));
 await sleep(800);
 if (!SHOTS) fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5 });

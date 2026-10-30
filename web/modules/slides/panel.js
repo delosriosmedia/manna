@@ -62,7 +62,7 @@ export function createSlidesPanel(ctx, lib) {
   const see = h('button', { class: 'btn deck-see', onclick: () => showPages(!open) }, icon('eye', 16), h('span', {}, 'Ver diapositivas'));
   const bar = h('div', { class: 'abar media-bar deck-bar', hidden: true, dataset: { panel: 'diapositivas' } },
     h('span', { class: 'sel-ref' }, h('span', { class: 'deck-long' }, 'Diapositiva '), where), name, see,
-    h('button', { class: `btn${ctx.canProject ? '' : ' primary'}`, onclick: () => add() }, icon('plus', 16), 'Añadir al orden'),
+    ctx.can('order.edit') && h('button', { class: `btn${ctx.canProject ? '' : ' primary'}`, onclick: () => add() }, icon('plus', 16), 'Añadir al orden'),
     show);
 
   function choose(id, number = null) {

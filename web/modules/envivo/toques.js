@@ -66,11 +66,11 @@ export function guardTouches(root, { list, controls, cover }) {
   };
   addEventListener('pointerup', lift, true);
   addEventListener('pointercancel', lift, true);
-  list.addEventListener('scroll', () => { scrolledAt = now(); }, { passive: true });
+  list.addEventListener('scroll', () => { scrolledAt = now(); }, { passive: true, capture: true }); // las pestañas del orador llevan varias listas dentro
 
   // Una fila que no se ve entera no responde.
   const cutOff = (el) => {
-    const row = el.closest('.ev-row');
+    const row = el.closest('.ev-row, .ev-vhead, .ev-thumb');
     if (!row) return false;
     const r = row.getBoundingClientRect();
     const b = list.getBoundingClientRect();

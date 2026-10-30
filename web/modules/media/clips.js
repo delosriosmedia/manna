@@ -123,7 +123,7 @@ export function createClipsPanel(ctx, kind, lib) {
   const show = ctx.canProject && h('button', { class: 'btn primary', onclick: () => project() }, icon('play', 16), 'Proyectar', h('kbd', {}, '↵'));
   const bar = h('div', { class: 'abar media-bar', hidden: true, dataset: { panel: words.id } },
     name, ctx.canProject && h('span', { class: 'hint' }, visual ? 'Al proyectarlo empieza a reproducirse' : 'Al proyectarlo empieza a sonar'), visual && preview.see,
-    h('button', { class: `btn${ctx.canProject ? '' : ' primary'}`, title: 'Añadir al orden', onclick: () => add() }, icon('plus', 16), h('span', {}, 'Añadir al orden')),
+    ctx.can('order.edit') && h('button', { class: `btn${ctx.canProject ? '' : ' primary'}`, title: 'Añadir al orden', onclick: () => add() }, icon('plus', 16), h('span', {}, 'Añadir al orden')),
     // Oírlo solo en este dispositivo antes de proyectarlo o añadirlo (no en el equipo principal).
     ctx.listen && h('button', { class: 'btn media-listen', 'aria-label': 'Escuchar en este dispositivo', onclick: () => {
       const clip = current();

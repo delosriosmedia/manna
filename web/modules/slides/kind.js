@@ -120,7 +120,13 @@ function drawDeckCraft(host, picture) {
 // Tipo de contenido "diapositivas": cada diapositiva es una imagen que ocupa la pantalla. Se
 // dibuja y se encuadra como cualquier imagen (projection/picture.js); sus mandos añaden por dónde
 // va la presentación y cuál es la diapositiva que viene.
+const pagesOf = (item) => {
+  const deck = shared.slides?.decks?.find((d) => d.id === item.id);
+  return Array.from({ length: deck ? item.pages : 0 }, (_, k) => ({ thumb: thumbUrl(deck, k + 1), label: String(k + 1) }));
+};
+
 registerKind('slides', {
+  pagesOf,
   icon: 'presentation-chart',
   label: 'Diapositivas',
   unit: ['diapositiva', 'diapositivas'],
@@ -172,10 +178,7 @@ registerKind('slides', {
   slot(host, tools) {
     const now = (item) => item.number - 1;
     const where = h('span', { class: 'ev-where-cell' });
-    const all = allPagesButton({ now, pages: (item) => {
-      const deck = shared.slides?.decks?.find((d) => d.id === item.id);
-      return Array.from({ length: deck ? item.pages : 0 }, (_, k) => ({ thumb: thumbUrl(deck, k + 1), label: String(k + 1) }));
-    } });
+    const all = allPagesButton({ now, pages: pagesOf });
     const framing = framingButtons(tools);
     host.replaceChildren(where, all.el, tools.more(), tools.tool('point'), tools.tool('move'), framing.minus, framing.plus);
     return {

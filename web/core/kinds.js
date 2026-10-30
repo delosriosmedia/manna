@@ -25,6 +25,7 @@
 //                             fijo. api: { send(patch), more() -> botón «Más», tool('point' | 'move') -> «Señalar» o «Mover» }
 //     stepLabel?(item, k),    cómo se llama el paso k de lo que está al aire: lo dice Siguiente («v. 17», «Parte 2»)
 //     count?(item),           la cuenta de un reloj, para su isla de «En vivo»
+//     pagesOf?(item),         sus diapositivas, [{ thumb, label }]: «Todas» y la pestaña del orador
 //     island?(item) -> { el, destroy?() } | null
 //                             en la barra de capas (escenario), la burbuja que se desprende de la ficha de una capa con
 //                             esto: la cuenta y los botones de un temporizador (item es el contenido de la capa)

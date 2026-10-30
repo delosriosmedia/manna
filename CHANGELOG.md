@@ -4,6 +4,13 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.65.0 — 2026-10-30
+
+- **El Orador completo estrena «En vivo» en el celular y la tableta**: lo que sale al proyector tal cual y, debajo, tres pestañas: las diapositivas, los versículos del mensaje y los textos. **«Encima»** pone un versículo sobre lo que está al aire sin cambiarlo, y «Volver a la diapositiva» lo quita. «Otra cita» abre una hoja con su propio teclado de números, porque el del celular tapa casi toda la pantalla.
+- **El Orador sencillo tiene por fin su pantalla**: un control de bolsillo con Siguiente y Anterior enormes, por cuál va y cuál sigue, Versículo, Volver y Todas. En la última diapositiva dice «Fin», para no salirse sin querer, y un candado deja el teléfono en el bolsillo sin que nada se pase.
+- **Lo único que brilla en «En vivo» es Siguiente**: en un módulo abierto, «Proyectar» ya no compite con él.
+- En el teléfono acostado más estrecho, la Biblia le da su sitio al buscador; la versión se elige ampliando el módulo.
+
 ## 1.64.0 — 2026-10-30
 
 - **Alabanza estrena «En vivo» en el celular y la tableta**: el reproductor (Cantado o Pista, la letra, el avance, el volumen a pasos de 5 % y la pausa al alcance del pulgar) y la lista de la sección, donde se elige la pista de cada canto antes de que salga. Las capas se encienden y se apagan desde una pastilla arriba. Al terminar un canto, «Otra vez» o Siguiente.
