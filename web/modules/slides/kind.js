@@ -40,10 +40,15 @@ function drawDeckCraft(host, picture) {
     const msg = e.data || {};
     if (msg.deckcraft === 'ready') {
       const mine = frame;
-      const res = await fetch(`/api/slides/${encodeURIComponent(mine.id)}/original`).catch(() => null);
+      const id = encodeURIComponent(mine.id);
+      // Con las letras que usa y están en el equipo: DeckCraft, en el navegador, no ve las del sistema.
+      const [res, letras] = await Promise.all([fetch(`/api/slides/${id}/original`).catch(() => null),
+        fetch(`/api/slides/${id}/fuentes`).then((r) => (r.ok ? r.json() : null)).catch(() => null)]);
       if (!res?.ok || frame !== mine) return;
       const bytes = await res.arrayBuffer();
-      tell({ deckcraft: 'open', name: `${mine.id}.pptx`, bytes, from: 0 });
+      const fonts = await Promise.all((letras?.fonts || []).map((b64) => fetch(`data:font/ttf;base64,${b64}`).then((r) => r.arrayBuffer())));
+      if (frame !== mine) return;
+      tell({ deckcraft: 'open', name: `${mine.id}.pptx`, bytes, from: 0, fonts });
     }
     if (msg.deckcraft !== 'state') return;
     frame.hidden = Array.isArray(msg.hidden) ? msg.hidden : [];

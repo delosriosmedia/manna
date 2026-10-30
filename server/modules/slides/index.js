@@ -5,6 +5,7 @@ import { HttpError } from '../../core/router.js';
 import { imageInfo, readImageInfo } from '../../core/images.js';
 import { cleanName } from '../../core/names.js';
 import { applyView, initialView } from '../../core/view.js';
+import { fontsFor } from './fuentes.js';
 import { createExporter, isPresentation, liveSupported, openLive, PRESENTATION_EXTENSIONS } from './powerpoint.js';
 
 // Módulo Diapositivas: presentaciones convertidas en imágenes, una por diapositiva. Así se ven
@@ -20,12 +21,14 @@ import { createExporter, isPresentation, liveSupported, openLive, PRESENTATION_E
 // Cada presentación es una carpeta data/media/diapositivas/<id>/ con 1.jpg, 2.jpg… y, si las hay,
 // sus miniaturas m1.jpg, m2.jpg…, más una ficha en data/diapositivas.json:
 //   { id, name, source: 'pdf' | 'powerpoint', pages, ext, thumbs, width, height, added,
-//     status: 'receiving' | 'converting' | 'church' | 'ready' | 'error', error, original, live, atChurch }
+//     status: 'receiving' | 'converting' | 'church' | 'ready' | 'error', error, original, live, atChurch, missingFonts, redone }
 //   receiving: el navegador aún está enviando las páginas (no se publica)
 //   church:    en la nube, un PowerPoint que se convierte en el equipo de la iglesia al llegar (decisión 64)
 //   atChurch:  en la nube, ya llegó a la iglesia: quedan su ficha y sus miniaturas
 //   original:  el PowerPoint tal cual se subió (desde la 1.14), en data/presentaciones/: no se sirve
 //   live:      se pasa con el propio PowerPoint mientras está al aire (ver «PowerPoint en vivo», abajo)
+//   missingFonts: las letras que usa y no están en el equipo ni dentro de la presentación (fuentes.js)
+//   redone:    cuándo se convirtió de nuevo: va en la dirección de cada imagen, para que nadie vea la de antes
 
 const FOLDER = 'diapositivas';
 const MAX_PAGES = 500;
@@ -60,12 +63,14 @@ export default function setup(app) {
     if (deck.status === 'converting') Object.assign(deck, { status: 'error', error: 'La conversión se interrumpió. Elimínala y vuelve a subir la presentación.' });
   }
 
-  const pageUrl = (deck, n) => `/media/${FOLDER}/${deck.id}/${n}.${deck.ext}`;
-  const thumbUrl = (deck, n) => (deck.thumbs ? `/media/${FOLDER}/${deck.id}/m${n}.${deck.thumbExt || 'jpg'}` : pageUrl(deck, n));
+  const again = (deck) => (deck.redone ? `?v=${deck.redone}` : '');
+  const pageUrl = (deck, n) => `/media/${FOLDER}/${deck.id}/${n}.${deck.ext}${again(deck)}`;
+  const thumbUrl = (deck, n) => (deck.thumbs ? `/media/${FOLDER}/${deck.id}/m${n}.${deck.thumbExt || 'jpg'}${again(deck)}` : pageUrl(deck, n));
   // La interfaz arma la dirección de cada diapositiva con `base`, `ext` y `thumbs`: no se publica la lista.
   const view = (deck) => ({
     id: deck.id, name: deck.name, source: deck.source, pages: deck.pages, width: deck.width || 0, height: deck.height || 0, added: deck.added,
     status: deck.status, error: deck.error || null, base: `/media/${FOLDER}/${deck.id}/`, ext: deck.ext || 'jpg', thumbs: Boolean(deck.thumbs), thumbExt: deck.thumbExt || 'jpg', ...(deck.atChurch && { atChurch: true }), ...(deck.cover && { cover: true }),
+    ...(deck.missingFonts?.length && { missingFonts: deck.missingFonts }), ...(deck.redone && { redone: deck.redone }),
     // Tras un fallo de PowerPoint va como imágenes, y el menú ofrece volver a intentarlo.
     live: Boolean(deck.live) && !failed.has(deck.id), liveable: liveable(deck),
   });
@@ -236,6 +241,17 @@ export default function setup(app) {
     if (!deck?.original || !inDeckCraft(deck)) throw new HttpError(404, 'Esa presentación no se pasa con DeckCraft.');
     ctx.file(originalOf(deck));
   });
+  // Las letras que usa y están en el equipo: DeckCraft con animaciones no ve las del sistema (fuentes.js).
+  app.route('GET', '/api/slides/:id/fuentes', (ctx) => {
+    projector(ctx);
+    const deck = ready(ctx.params.id);
+    if (!deck?.original || !inDeckCraft(deck)) throw new HttpError(404, 'Esa presentación no se pasa con DeckCraft.');
+    const fonts = [];
+    for (const file of checkFonts(deck)) {
+      try { fonts.push(fs.readFileSync(file).toString('base64')); } catch { /* ya no está */ }
+    }
+    return { fonts };
+  });
   app.route('POST', '/api/slides/deckcraft', async (ctx) => {
     projector(ctx);
     const { id, page, step, ended } = await ctx.json();
@@ -405,6 +421,7 @@ export default function setup(app) {
   // Convierte un PowerPoint en imágenes (DeckCraft o PowerPoint), en segundo plano; then: al terminar bien.
   function convert(deck, input, ext, then = () => {}) {
     const { id } = deck;
+    const first = !deck.original;
     const out = path.join(app.tmpDir, `diapositivas-${id}`);
     exporter.run({
       id, name: deck.name, input, dir: out,
@@ -414,12 +431,15 @@ export default function setup(app) {
           if (result.ok && still) {
             adopt(deck, result.pages);
             // Se guarda el original, para pasarla en vivo; en Windows con PowerPoint, así empieza.
-            fs.mkdirSync(originals, { recursive: true });
-            fs.renameSync(input, path.join(originals, `${id}${ext}`));
-            Object.assign(deck, { original: `${id}${ext}` });
-            deck.live = Boolean(deck.original) && withPowerPoint();
+            if (first) {
+              fs.mkdirSync(originals, { recursive: true });
+              fs.renameSync(input, path.join(originals, `${id}${ext}`));
+              Object.assign(deck, { original: `${id}${ext}` });
+              deck.live = Boolean(deck.original) && withPowerPoint();
+            } else deck.redone = Date.now();
+            checkFonts(deck);
             then();
-          } else if (still && !result.cancelled) Object.assign(deck, { status: 'error', error: result.error });
+          } else if (still && !result.cancelled) Object.assign(deck, first ? { status: 'error', error: result.error } : { status: 'ready' });
         } catch (err) {
           Object.assign(deck, { status: 'error', error: err instanceof HttpError ? err.message : 'No se pudieron guardar las diapositivas.' });
         }
@@ -553,6 +573,42 @@ export default function setup(app) {
     commit();
     app.services.projection?.refresh();
     sync();
+  });
+
+  // Las letras que faltan, al día en la ficha; devuelve los archivos de las que están. Sin el original, nada.
+  function checkFonts(deck) {
+    if (app.cloud || !deck.original) return [];
+    try {
+      const { files, missing } = fontsFor(originalOf(deck));
+      if (missing.join('|') !== (deck.missingFonts || []).join('|')) {
+        if (missing.length) deck.missingFonts = missing;
+        else delete deck.missingFonts;
+        commit();
+      }
+      return files;
+    } catch {
+      return [];
+    }
+  }
+  // Al abrir, las de las presentaciones que ya estaban (se pudo instalar o quitar alguna letra desde entonces).
+  const review = setTimeout(() => decks().forEach(checkFonts), 5000);
+  review.unref();
+  app.onClose(() => clearTimeout(review));
+
+  // Otra vez desde el PowerPoint original: tras instalar las letras que faltaban, o con un DeckCraft más nuevo.
+  app.action('slides.reconvert', { permission: 'slides.edit' }, ({ id }) => {
+    const deck = find(id);
+    if (deck.status !== 'ready' || !deck.original || deck.atChurch) throw new HttpError(409, 'Esta presentación no se puede convertir de nuevo: no se guardó su PowerPoint.');
+    if (!app.tools.has('deckcraft') && !app.tools.has('powerpoint')) throw new HttpError(409, 'Este equipo no tiene con qué convertirla: instala DeckCraft desde la revisión del equipo.');
+    // Mientras tanto se sigue viendo la de antes; el avance va en la cola.
+    const ext = path.extname(deck.original);
+    const input = path.join(app.tmpDir, `presentacion-${deck.id}-${Date.now()}${ext}`);
+    fs.mkdirSync(app.tmpDir, { recursive: true });
+    fs.copyFileSync(originalOf(deck), input);
+    convert(deck, input, ext, () => {
+      app.services.order?.refresh('slides', deck.id);
+      app.services.projection?.refresh();
+    });
   });
 
   app.action('slides.remove', { permission: 'slides.edit' }, ({ id }) => {

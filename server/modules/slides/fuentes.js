@@ -1,0 +1,168 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import zlib from 'node:zlib';
+
+// Las letras (fuentes) de una presentación de PowerPoint. DeckCraft con animaciones corre en el navegador y no ve
+// las letras del equipo: Manna busca entre las instaladas las que usa la presentación y se las entrega al abrirla
+// (GET /api/slides/:id/fuentes). Las que no encuentra en el equipo ni vienen dentro de la presentación las dice,
+// para que se instalen.
+
+const MAX_FONT = 32 * 1024 ** 2; // una letra más grande (las de chino o japonés) no se manda
+const MAX_TOTAL = 64 * 1024 ** 2;
+const FONT_FILE = /\.(ttf|otf|ttc|otc)$/i;
+
+// ---- Un .pptx es un .zip: se leen solo las partes que se piden, sin cargar el archivo entero ----
+export function readZip(file, wanted) {
+  const fd = fs.openSync(file, 'r');
+  const read = (at, length) => {
+    const buffer = Buffer.alloc(length);
+    if (fs.readSync(fd, buffer, 0, length, at) !== length) throw new Error('El archivo está cortado.');
+    return buffer;
+  };
+  try {
+    const size = fs.fstatSync(fd).size;
+    const tail = read(Math.max(0, size - 65_557), Math.min(size, 65_557));
+    const end = tail.lastIndexOf(Buffer.from('PK\x05\x06', 'latin1'));
+    if (end < 0) throw new Error('No es un archivo .zip.');
+    const dir = read(tail.readUInt32LE(end + 16), tail.readUInt32LE(end + 12));
+    const parts = new Map();
+    for (let at = 0; at + 46 <= dir.length && dir.readUInt32LE(at) === 0x02014b50;) {
+      const method = dir.readUInt16LE(at + 10);
+      const packed = dir.readUInt32LE(at + 20);
+      const nameLength = dir.readUInt16LE(at + 28);
+      const local = dir.readUInt32LE(at + 42);
+      const name = dir.toString('utf8', at + 46, at + 46 + nameLength);
+      at += 46 + nameLength + dir.readUInt16LE(at + 30) + dir.readUInt16LE(at + 32);
+      if (!wanted(name) || (method !== 0 && method !== 8)) continue;
+      const head = read(local, 30);
+      const data = read(local + 30 + head.readUInt16LE(26) + head.readUInt16LE(28), packed);
+      parts.set(name, method === 8 ? zlib.inflateRawSync(data) : data);
+    }
+    return parts;
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+const unescape = (text) => text.replace(/&(#x[0-9a-f]+|#\d+|\w+);/gi, (all, e) => (e[0] === '#'
+  ? String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : Number(e.slice(1)))
+  : ENTITIES[e] ?? all));
+
+// Las letras que usa: las del tema (las de los títulos y del texto) y las que se eligieron a mano en las
+// diapositivas, sus diseños y sus patrones (también las de las viñetas y los símbolos). Y las que trae dentro.
+export function deckFonts(file) {
+  const parts = readZip(file, (name) => name === 'ppt/presentation.xml' || /^ppt\/(slides|slideLayouts|slideMasters|theme)\/[^/]+\.xml$/.test(name));
+  const used = new Map();
+  const embedded = new Map();
+  const add = (to, name) => { if (name && !name.startsWith('+')) to.set(name.toLowerCase(), name); };
+  for (const [name, data] of parts) {
+    const xml = data.toString('utf8');
+    const tags = name === 'ppt/presentation.xml' ? /<p:font\b[^>]*?\btypeface="([^"]*)"/g : /<a:(?:latin|sym|buFont)\b[^>]*?\btypeface="([^"]*)"/g;
+    for (const [, typeface] of xml.matchAll(tags)) add(name === 'ppt/presentation.xml' ? embedded : used, unescape(typeface).trim());
+  }
+  return { used: [...used.values()].sort(), embedded: [...embedded.values()].sort() };
+}
+
+// ---- Las letras instaladas en el equipo ----
+// Las mismas carpetas que mira DeckCraft para las miniaturas, también las que Office baja cuando hacen falta (Aptos…).
+// Solo para pruebas: MANNA_LETRAS, una carpeta en vez de las del equipo.
+export function fontDirs(platform = process.platform, env = process.env, home = os.homedir()) {
+  if (env.MANNA_LETRAS) return [env.MANNA_LETRAS];
+  if (platform === 'win32') {
+    const local = env.LOCALAPPDATA || path.join(home, 'AppData', 'Local');
+    return [path.join(env.WINDIR || 'C:\\Windows', 'Fonts'), path.join(local, 'Microsoft', 'Windows', 'Fonts'), path.join(local, 'Microsoft', 'FontCache', '4', 'CloudFonts')];
+  }
+  if (platform === 'darwin') {
+    return ['/System/Library/Fonts', '/Library/Fonts', path.join(home, 'Library/Fonts'), path.join(home, 'Library/Group Containers/UBF8T346G9.Office/FontCache/4/CloudFonts'),
+      ...['PowerPoint', 'Word', 'Excel'].map((app) => `/Applications/Microsoft ${app}.app/Contents/Resources/DFonts`)];
+  }
+  return ['/usr/share/fonts', '/usr/local/share/fonts', path.join(home, '.fonts'), path.join(home, '.local/share/fonts')];
+}
+
+// Los nombres de familia de un archivo de letra (de su tabla «name»: el 1 y, si lo tiene, el 16), en minúsculas.
+export function fontNames(file) {
+  let fd;
+  try {
+    fd = fs.openSync(file, 'r');
+    const read = (at, length) => {
+      const buffer = Buffer.alloc(length);
+      return fs.readSync(fd, buffer, 0, length, at) === length ? buffer : null;
+    };
+    const head = read(0, 12);
+    if (!head) return [];
+    let starts = [0];
+    if (head.toString('latin1', 0, 4) === 'ttcf') {
+      const list = read(12, 4 * Math.min(head.readUInt32BE(8), 64));
+      starts = list ? Array.from({ length: list.length / 4 }, (_, i) => list.readUInt32BE(i * 4)) : [];
+    }
+    const names = new Set();
+    for (const start of starts) {
+      const count = read(start + 4, 2)?.readUInt16BE(0) || 0;
+      const tables = read(start + 12, 16 * count);
+      const index = tables && Array.from({ length: count }, (_, i) => i * 16).find((at) => tables.toString('latin1', at, at + 4) === 'name');
+      if (index == null) continue;
+      const table = read(tables.readUInt32BE(index + 8), Math.min(tables.readUInt32BE(index + 12), 256 * 1024));
+      if (!table) continue;
+      const strings = table.readUInt16BE(4);
+      for (let i = 0; i < table.readUInt16BE(2) && 6 + i * 12 + 12 <= table.length; i += 1) {
+        const at = 6 + i * 12;
+        const [platform, , , id, length, offset] = [0, 2, 4, 6, 8, 10].map((o) => table.readUInt16BE(at + o));
+        if ((id !== 1 && id !== 16) || strings + offset + length > table.length) continue;
+        const bytes = Buffer.from(table.subarray(strings + offset, strings + offset + length));
+        // Windows y Unicode, en UTF-16 big-endian; Mac, en una letra por byte.
+        const text = platform === 1 ? bytes.toString('latin1') : bytes.length % 2 ? '' : bytes.swap16().toString('utf16le');
+        if (text.trim()) names.add(text.trim().toLowerCase());
+      }
+    }
+    return [...names];
+  } catch {
+    return [];
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
+}
+
+function fontFiles(dir, depth = 3) {
+  let entries = [];
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return []; }
+  return entries.flatMap((e) => {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) return depth > 0 ? fontFiles(full, depth - 1) : [];
+    return FONT_FILE.test(e.name) ? [full] : [];
+  });
+}
+
+// El índice (familia en minúsculas → archivos) se rehace solo si cambió alguna carpeta: instalar una letra la cambia.
+let cached = { stamp: null, index: new Map() };
+export function installedFonts(dirs = fontDirs()) {
+  const stamp = dirs.map((dir) => { try { return fs.statSync(dir).mtimeMs; } catch { return 0; } }).join('|');
+  if (stamp === cached.stamp) return cached.index;
+  const index = new Map();
+  for (const file of dirs.flatMap((dir) => fontFiles(dir))) {
+    for (const name of fontNames(file)) index.set(name, [...(index.get(name) || []), file]);
+  }
+  cached = { stamp, index };
+  return index;
+}
+
+// Lo que necesita DeckCraft para una presentación: los archivos de las letras que usa y están instaladas
+// (todos los de cada familia: negrita, cursiva…), y las que no se encuentran en ninguna parte. Un archivo repetido
+// (mismo nombre y tamaño) va una vez: en Mac, Word, Excel y PowerPoint traen cada uno su copia de las mismas.
+export function fontsFor(file, index = installedFonts()) {
+  const { used, embedded } = deckFonts(file);
+  const inside = new Set(embedded.map((name) => name.toLowerCase()));
+  const seen = new Set();
+  let total = 0;
+  const sent = [...new Set(used.flatMap((name) => index.get(name.toLowerCase()) || []))].filter((f) => {
+    const size = fs.statSync(f, { throwIfNoEntry: false })?.size || 0;
+    const key = `${path.basename(f).toLowerCase()}:${size}`;
+    if (!size || size > MAX_FONT || total + size > MAX_TOTAL || seen.has(key)) return false;
+    seen.add(key);
+    total += size;
+    return true;
+  });
+  const missing = used.filter((name) => !index.has(name.toLowerCase()) && !inside.has(name.toLowerCase()));
+  return { files: sent, missing };
+}

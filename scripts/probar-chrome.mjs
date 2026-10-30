@@ -47,6 +47,7 @@ import { fakePresentation, writeFakePowerPoint } from './lib/powerpoint-falso.mj
 import { makeImagePdf, makePdf } from './lib/pdf.mjs';
 import { makeDocx } from './lib/docx.mjs';
 import { makePptx } from './lib/pptx.mjs';
+import { makeFont } from './lib/letra.mjs';
 import { writeFakeDeckCraft } from './lib/deckcraft-falso.mjs';
 import { writeFakeDeckCraftWeb } from './lib/deckcraft-web-falso.mjs';
 import { HYMN_FACTS, hymnTitle, seedHymnal } from './lib/himnario-falso.mjs';
@@ -234,10 +235,14 @@ fakeGithub.unref();
 const installerOpened = path.join(tmp, 'instalador-abierto');
 const fakeInstaller = path.join(tmp, 'instalador-falso.mjs');
 fs.writeFileSync(fakeInstaller, `import fs from 'node:fs'; fs.writeFileSync(${JSON.stringify(installerOpened)}, 'abierto');\n`);
+// Las letras «instaladas» del servidor de prueba (MANNA_LETRAS): no se usan las del equipo.
+const fontsDir = path.join(tmp, 'letras');
+fs.mkdirSync(fontsDir, { recursive: true });
+fs.writeFileSync(path.join(fontsDir, 'prueba.ttf'), makeFont('Letra de Prueba'));
 function startServer(host, extra = {}) {
   // MANNA_SIN_VENTANA: la prueba no abre su proyección en el proyector de verdad, si lo hay.
   // MANNA_CONVERSION_LENTA: cada conversión tarda en empezar, para poder ver qué pasa mientras tanto.
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared,deckcraft', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, MANNA_CARPETA_PRUEBA: path.join(tmp, 'otra-iglesia'), PORT: String(PORT), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', MANNA_NUBE_COMPROBAR_MS: '1500', MANNA_CAPAS_REINTENTO_MS: '500', MANNA_VERSIONES_URL: `http://127.0.0.1:${fakeGithub.address().port}/package.json`, MANNA_INSTALADORES_URL: `http://127.0.0.1:${fakeGithub.address().port}`, MANNA_VERSIONES_MS: '500', MANNA_ACTUALIZADOR_PRUEBA: fakeInstaller, ...extra };
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared,deckcraft', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, MANNA_CARPETA_PRUEBA: path.join(tmp, 'otra-iglesia'), PORT: String(PORT), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', MANNA_NUBE_COMPROBAR_MS: '1500', MANNA_CAPAS_REINTENTO_MS: '500', MANNA_VERSIONES_URL: `http://127.0.0.1:${fakeGithub.address().port}/package.json`, MANNA_INSTALADORES_URL: `http://127.0.0.1:${fakeGithub.address().port}`, MANNA_VERSIONES_MS: '500', MANNA_ACTUALIZADOR_PRUEBA: fakeInstaller, MANNA_LETRAS: fontsDir, ...extra };
   if (host) env.MANNA_HOST = host;
   // killOnExit: si la prueba se corta a medias, el servidor no se queda abierto ocupando el puerto.
   return killOnExit(spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env }));
@@ -2340,7 +2345,7 @@ try {
       await openSlides();
       await sleep(300);
       const welcome = path.join(tmp, 'bienvenida.pptx');
-      fs.writeFileSync(welcome, makePptx([{ text: 'Bienvenidos' }, { text: 'Oculta', hidden: true }, { text: 'Anuncios' }]));
+      fs.writeFileSync(welcome, makePptx([{ text: 'Bienvenidos', font: 'Letra de Prueba' }, { text: 'Oculta', hidden: true }, { text: 'Anuncios', font: 'Letra Que Falta' }]));
       await pickFile(welcome);
       check('con DeckCraft en el equipo, un PowerPoint lo convertirá DeckCraft', await run(`return ${modal}.querySelector('.deck-up-status').textContent.includes('La convertirá DeckCraft')`), await run(`return ${modal}?.querySelector('.deck-up-status')?.textContent`));
       await modalButton('Subir');
@@ -2348,6 +2353,14 @@ try {
       const converted = (await decksNow()).find((d) => d.name === 'bienvenida');
       check('DeckCraft la convierte: sin la oculta, en PNG y con miniaturas pequeñas', ready && converted.pages === 2 && converted.thumbs && converted.thumbExt === 'png' && converted.width === 2560
         && await until(`[...${ws}.querySelectorAll('.deck[data-id="${converted.id}"] img')].some(i => i.naturalWidth === 320 && i.getAttribute('src').endsWith('m1.png'))`, 10), JSON.stringify(converted));
+      // Las letras: avisa de la que no está en el equipo; instalada, «Convertir de nuevo» la quita del aviso y cambia las imágenes.
+      const deckNow = `(await (await fetch('/api/state')).json()).slides.decks.find(d => d.id === ${JSON.stringify(converted.id)})`;
+      check('avisa de las letras que usa y no están en el equipo', converted.missingFonts?.includes('Letra Que Falta') && !converted.missingFonts.includes('Letra de Prueba')
+        && await until(`${ws}.querySelector('.deck[data-id="${converted.id}"] .deck-status.error')?.textContent.includes('Letra Que Falta')`, 5), JSON.stringify(converted.missingFonts));
+      fs.writeFileSync(path.join(fontsDir, 'falta.ttf'), makeFont('Letra Que Falta'));
+      await deckMenu(`${ws}.querySelector('.deck[data-id="${converted.id}"]')`, 'Convertir de nuevo');
+      check('instalada la letra, «Convertir de nuevo» la convierte otra vez y ya no avisa', await until(`(${deckNow})?.redone && !(${deckNow}).missingFonts?.includes('Letra Que Falta')`, 40)
+        && await until(`[...${ws}.querySelectorAll('.deck[data-id="${converted.id}"] img')].some(i => i.naturalWidth === 320 && i.getAttribute('src').includes('m1.png?v='))`, 10), await run(`return JSON.stringify(${deckNow})`));
 
       // DeckCraft con animaciones (fase 33, parte 3), con una DeckCraft web de mentira: la pasa la pantalla que suena
       // (aquí, sin ventana de proyección, el control), «Siguiente» le llega como una tecla y Manna sigue por dónde va.
@@ -2362,8 +2375,8 @@ try {
       const dcFrame = `[...document.querySelectorAll('.deckcraft-frame')].find((f) => !f.hidden)`;
       const dcSaid = `(${dcFrame}?.contentWindow.__dc || [])`;
       const onAirNumber = `(await (await fetch('/api/state')).json()).projection.item?.number`;
-      check('en la pantalla que suena la pasa DeckCraft, con el PowerPoint original', await until(`${dcSaid}.some((m) => m.deckcraft === 'open' && m.size > 0)`, 25),
-        await run(`return JSON.stringify({ frames: document.querySelectorAll('.deckcraft-frame').length, item: (await (await fetch('/api/state')).json()).projection.item?.deckcraft })`));
+      check('en la pantalla que suena la pasa DeckCraft, con el PowerPoint original y las letras del equipo que usa', await until(`${dcSaid}.some((m) => m.deckcraft === 'open' && m.size > 0 && m.fonts === 2)`, 25),
+        await run(`return JSON.stringify({ frames: document.querySelectorAll('.deckcraft-frame').length, item: (await (await fetch('/api/state')).json()).projection.item?.deckcraft, said: ${dcSaid}.filter((m) => m.deckcraft === 'open') })`));
       const next = () => run(`return await ${post('projection.step', { delta: 1 })}`);
       await next();
       check('«Siguiente» le llega a DeckCraft, y Manna pone la imagen de la diapositiva en que va', await until(`${onAirNumber} === 2 && ${dcSaid}.some((m) => m.deckcraft === 'key' && m.key === 'ArrowRight')`, 15));

@@ -36,7 +36,7 @@ const paint = () => { document.getElementById('t').textContent = slide == null ?
 addEventListener('message', async (e) => {
   if (e.origin !== location.origin) return;
   const m = e.data || {};
-  window.__dc.push(m.deckcraft === 'open' ? { deckcraft: 'open', size: m.bytes.byteLength, from: m.from } : m);
+  window.__dc.push(m.deckcraft === 'open' ? { deckcraft: 'open', size: m.bytes.byteLength, from: m.from, fonts: (m.fonts || []).filter((f) => f.byteLength > 0).length } : m);
   if (m.deckcraft === 'open') {
     ({ slides, hidden } = await read(new Uint8Array(m.bytes)));
     slide = visible(Math.min(m.from, slides - 1), 1); step = 0; ended = false;

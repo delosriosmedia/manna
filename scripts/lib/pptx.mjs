@@ -2,9 +2,10 @@ import zlib from 'node:zlib';
 
 // Hace una presentación de PowerPoint (.pptx) para las pruebas, sin depender de ninguna guardada en el repositorio: lo
 // mínimo que PowerPoint y DeckCraft aceptan (un patrón, un diseño, un tema y las diapositivas), con un recuadro de color
-// y un texto en cada una. Una diapositiva con `hidden` va oculta (show="0").
+// y un texto en cada una. Una diapositiva con `hidden` va oculta (show="0"); con `font`, su texto lleva esa letra (si
+// no, Arial). `embedded`: las letras que dice traer dentro (solo la lista, sin los archivos).
 //
-//   makePptx([{ text: 'Uno' }, { text: 'Dos', hidden: true }, { text: 'Tres' }])  -> Buffer
+//   makePptx([{ text: 'Uno' }, { text: 'Dos', hidden: true }, { text: 'Tres', font: 'Otra' }], { embedded: ['Otra'] })  -> Buffer
 const NS = 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';
 const HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
 const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
@@ -17,15 +18,15 @@ const MASTER = `${HEAD}<p:sldMaster ${NS}><p:cSld><p:bg><p:bgPr><a:solidFill><a:
 const LAYOUT = `${HEAD}<p:sldLayout ${NS} type="blank" preserve="1"><p:cSld name="En blanco"><p:spTree>${TREE}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`;
 const rels = (list) => `${HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${list.map(([id, type, target]) => `<Relationship Id="${id}" Type="${type.startsWith('http') ? type : `${REL}/${type}`}" Target="${target}"/>`).join('')}</Relationships>`;
 
-function slide({ text = '', hidden = false }, i) {
-  const box = `<p:sp><p:nvSpPr><p:cNvPr id="2" name="Texto"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="1500000" y="2500000"/><a:ext cx="9000000" cy="1800000"/></a:xfrm><a:prstGeom prst="roundRect"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="${COLORS[i % COLORS.length]}"/></a:solidFill><a:ln><a:noFill/></a:ln></p:spPr><p:txBody><a:bodyPr wrap="square" anchor="ctr"/><a:lstStyle/><a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="es-CO" sz="3200"><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:latin typeface="Arial"/></a:rPr><a:t>${escape(text)}</a:t></a:r></a:p></p:txBody></p:sp>`;
+function slide({ text = '', hidden = false, font = 'Arial' }, i) {
+  const box = `<p:sp><p:nvSpPr><p:cNvPr id="2" name="Texto"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="1500000" y="2500000"/><a:ext cx="9000000" cy="1800000"/></a:xfrm><a:prstGeom prst="roundRect"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="${COLORS[i % COLORS.length]}"/></a:solidFill><a:ln><a:noFill/></a:ln></p:spPr><p:txBody><a:bodyPr wrap="square" anchor="ctr"/><a:lstStyle/><a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="es-CO" sz="3200"><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:latin typeface="${escape(font)}"/></a:rPr><a:t>${escape(text)}</a:t></a:r></a:p></p:txBody></p:sp>`;
   return `${HEAD}<p:sld ${NS}${hidden ? ' show="0"' : ''}><p:cSld><p:spTree>${TREE}${box}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
 }
 
-export function makePptx(slides) {
+export function makePptx(slides, { embedded = [] } = {}) {
   const n = slides.length;
   const types = `${HEAD}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${slides.map((_, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join('')}</Types>`;
-  const presentation = `${HEAD}<p:presentation ${NS}><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>${slides.map((_, i) => `<p:sldId id="${256 + i}" r:id="rId${10 + i}"/>`).join('')}</p:sldIdLst><p:sldSz cx="12192000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>`;
+  const presentation = `${HEAD}<p:presentation ${NS}><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>${slides.map((_, i) => `<p:sldId id="${256 + i}" r:id="rId${10 + i}"/>`).join('')}</p:sldIdLst><p:sldSz cx="12192000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/>${embedded.length ? `<p:embeddedFontLst>${embedded.map((f) => `<p:embeddedFont><p:font typeface="${escape(f)}"/></p:embeddedFont>`).join('')}</p:embeddedFontLst>` : ''}</p:presentation>`;
   const files = [
     ['[Content_Types].xml', types],
     ['_rels/.rels', rels([['rId1', 'officeDocument', 'ppt/presentation.xml']])],

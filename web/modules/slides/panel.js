@@ -96,13 +96,18 @@ export function createSlidesPanel(ctx, lib) {
   function statusOf(deck) {
     // En la nube (decisión 64), un PowerPoint se convierte en el equipo de la iglesia al llegar.
     if (deck.status === 'church') return h('div', { class: 'deck-status' }, h('small', {}, 'Se convierte en el equipo de la iglesia al llegar.'));
-    if (deck.status === 'ready') return deck.atChurch ? h('div', { class: 'deck-status' }, h('small', {}, 'Ya está en la iglesia.')) : null;
-    if (deck.status === 'converting') {
-      const job = jobOf(deck.id);
+    if (deck.status === 'ready' && deck.atChurch) return h('div', { class: 'deck-status' }, h('small', {}, 'Ya está en la iglesia.'));
+    const job = jobOf(deck.id);
+    // Convertida de nuevo: mientras tanto se sigue viendo la de antes, con el avance debajo.
+    if (deck.status === 'ready' && job?.state !== 'running') {
+      return deck.missingFonts ? h('div', { class: 'deck-status error' }, h('small', {},
+        `Faltan letras en este equipo: ${deck.missingFonts.join(', ')}. Instálalas y elige «Convertir de nuevo».`)) : null;
+    }
+    if (deck.status === 'ready' || deck.status === 'converting') {
       const progress = Math.round((job?.progress || 0) * 100);
       return h('div', { class: 'deck-status' },
         h('div', { class: `bar${job?.progress == null ? ' busy' : ''}`, role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': progress }, h('span', { style: `width: ${progress}%;` })),
-        h('small', {}, ['PowerPoint la está convirtiendo', job && describeJob(job)].filter(Boolean).join(' · ')));
+        h('small', {}, [deck.status === 'ready' ? 'Convirtiéndola de nuevo' : 'PowerPoint la está convirtiendo', job && describeJob(job)].filter(Boolean).join(' · ')));
     }
     return h('div', { class: 'deck-status error' }, h('small', {}, deck.error || 'No se pudo convertir.'));
   }
@@ -123,6 +128,7 @@ export function createSlidesPanel(ctx, lib) {
         ctx.canEdit && h('button', { class: 'icon-btn sm deck-more', 'aria-label': `Opciones de ${deck.name}`, onclick: (e) => menu(e.currentTarget, [
           { label: 'Cambiar el nombre', icon: 'pencil-simple', onclick: () => askName(deck) },
           ...lib.menu(deck, e.currentTarget),
+          ...(usable && deck.source === 'powerpoint' && !deck.atChurch ? [{ label: 'Convertir de nuevo', note: 'Tras instalar las letras que le faltaban', icon: 'arrow-clockwise', onclick: guard(() => action('slides.reconvert', { id: deck.id })) }] : []),
           // En vivo la pasa DeckCraft en la ventana del proyector o, sin él, el propio PowerPoint (solo Windows).
           ...(deck.liveable ? [deck.live
             ? { label: 'Pasar como imágenes', note: 'Con zoom y puntero, sin animaciones', icon: 'images', onclick: guard(() => action('slides.live', { id: deck.id, on: false })) }
@@ -156,7 +162,7 @@ export function createSlidesPanel(ctx, lib) {
       return;
     }
     // La rejilla solo se rehace si cambia la presentación: así las imágenes no se vuelven a pedir.
-    const key = `${deck.id}|${deck.pages}`;
+    const key = `${deck.id}|${deck.pages}|${deck.redone || ''}`;
     if (pages.dataset.key !== key) {
       pages.dataset.key = key;
       pages.replaceChildren(h('div', { class: 'slide-grid' }, ...Array.from({ length: deck.pages }, (_, i) =>

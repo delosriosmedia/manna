@@ -45,6 +45,7 @@ paths:
 - `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`: la aplicación de Google del sitio del superadministrador, para las copias en Drive (fase 38, `modules/super/drive.js`; cómo se consiguen, en `.claude/rules/nube.md`). Lo que da Google al conectar (el refresh token) se guarda en `data/drive.json` y nunca va al estado ni al registro. Solo para pruebas: `MANNA_GOOGLE_PRUEBA`, un Google de mentira (`scripts/lib/google-falso.mjs`) en vez del de verdad.
 - Solo para pruebas: `MANNA_CAPAS_REINTENTO_MS` cambia cada cuánto se vuelve a mirar una página de una capa que no contesta (15 s).
 - Solo para pruebas: `MANNA_CARPETA_PRUEBA=ruta` es la carpeta que «elige» la persona en la ventana para elegir la carpeta de contenido, sin abrirla.
+- Solo para pruebas: `MANNA_LETRAS=carpeta` son las letras «instaladas» del equipo (`modules/slides/fuentes.js`), en vez de las del sistema.
 - Solo para pruebas: `MANNA_CONVERSION_LENTA=ms` hace que cada conversión tarde en empezar, para ver qué pasa mientras tanto.
 - Solo para pruebas: `MANNA_HUELLA=texto` hace como si Manna hubiera arrancado con otro código y `MANNA_REVISAR_CODIGO_MS` cambia cada cuánto lo comprueba (para probar el aviso de actualización).
 - Solo para pruebas: `MANNA_SIN_HTTPS=1` arranca sin `https`.
