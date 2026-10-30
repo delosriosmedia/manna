@@ -4,6 +4,11 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Las capas se ponen al día solas**: si cambias un texto fijo que está en una capa (y lo guardas), o el nombre, la duración o el aspecto de un reloj que está en una, la capa lo muestra al momento, sin volver a ponerlo. Si estaba oculta, sigue oculta.
+- **Texto fijo, más claro**: abajo dice qué es y que, si ya está en una capa, al guardar se cambia ahí también; y la vista previa lo muestra sobre el fondo de la proyección. La píldora y la franja llevan un borde sutil, para que se vean también sobre fondos oscuros.
+- **Letras que faltan, en más sitios**: «Instalar las que faltan» las busca en Google Fonts y, si no están, en Fontsource y en Font Squirrel. Las de Microsoft Office (Aptos, Jumble) no están en ninguno.
+- **Actualizar yt-dlp** ya no dice que el equipo no lo dejó abrir cuando el Mac está ocupado: Manna pone en su sitio el mismo programa que acaba de comprobar.
+
 ## 1.59.0 — 2026-10-29
 
 - **Presentaciones en Medios, más claras**: tocar una presentación solo la elige; sus diapositivas se ven con **Ver diapositivas**, al lado de la lista en el computador o aparte en el celular, y al cerrarlas la lista sigue igual y la presentación elegida. Y la **vista en lista** ya sirve también con las presentaciones (una por fila); en cuadrícula se ven con la portada grande, como las imágenes.

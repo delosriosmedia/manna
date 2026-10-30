@@ -1828,6 +1828,9 @@ try {
     check('la vista previa lo muestra mientras se elige: su texto, su letra, su tamaño (de seis), su sitio y su recuadro', await run(`return ${sample}?.textContent.includes('Silencien sus celulares') && ${sample}.dataset.size === 'xxl' && ${sample}.dataset.place === 'tc' && ${sample}.dataset.box === 'stripe'
       && getComputedStyle(${sample}.querySelector('.fix-box')).fontFamily.includes('Atkinson') && ${ws}.querySelectorAll('.text-look [data-key=size][data-value]').length === 6`),
       await run(`return ${sample}?.outerHTML.slice(0, 300) || 'nada'`));
+    // Sobre el fondo de la proyección, no sobre negro: la píldora y la franja son translúcidas (2026-10-29).
+    check('la vista previa lleva el fondo de la proyección detrás, y dice qué es un texto fijo', await run(`return ${ws}.querySelector('.text-preview').dataset.fill === 'text'
+      && ${ws}.querySelector('.text-info').textContent.includes('encima de todo')`), await run(`return ${ws}.querySelector('.text-preview').dataset.fill + ' · ' + ${ws}.querySelector('.text-info').textContent`));
     check('«Pasando» ofrece su velocidad', await run(`return !${ws}.querySelector('.text-look-row[data-key=speed]').hidden`));
     await click(`${ws}.querySelector('.text-look [data-key=speed][data-value=fast]')`);
     await click(`[...${tbar}.querySelectorAll('.btn')].find(b => b.textContent.includes('Poner en una capa'))`);
@@ -1842,6 +1845,11 @@ try {
     check('en la proyección va arriba, en una franja, pasando, con su letra y un color que se lee sobre lo de detrás', await until(`${fix}?.dataset.place === 'tc' && ${fix}.dataset.box === 'stripe'
       && getComputedStyle(${fix}.querySelector('.fix-text')).animationName === 'fix-scroll' && getComputedStyle(${fix}.querySelector('.fix-box')).fontFamily.includes('Atkinson') && ['light', 'dark'].includes(${fix}.dataset.tone)`, 25),
       await run(`return ${fix}?.outerHTML.slice(0, 300) || 'nada'`));
+    // Cambiado y guardado, la capa que lo tiene lo muestra sin volver a ponerlo en ella.
+    await type(area, 'Apaguen sus celulares');
+    await click(`[...${ws}.querySelectorAll('.text-foot .btn')].find(b => b.textContent.includes('Guardar'))`);
+    check('al guardar un cambio, la capa que lo tiene lo muestra sin volver a ponerlo', await until(`${fix}?.textContent.includes('Apaguen sus celulares')`, 10),
+      await run(`return ${fix}?.textContent || 'nada'`));
     await run(`return await ${post('layers.clear', { n: 4 })}`);
     await run(`document.querySelector('#pantalla')?.remove()`);
   }
@@ -1934,6 +1942,10 @@ try {
     await sleep(800);
     check('«Capa» lo pone en una capa: lo dibujan la proyección y, en el equipo principal, el fondo del control', await until(`${far}.querySelector('.stage-layer[data-n="2"] .clk')`, 10)
       && await until(`document.querySelector('.scene-bg .stage-layer[data-n="2"] .clk')`, 10) && await run(`return document.querySelector('.scene-status .layers-chip').textContent.trim() === '1'`));
+    // Cambiar su aspecto en Tiempo lo cambia en su capa, sin volver a ponerlo en ella (2026-10-29).
+    await click(`${ws}.querySelector('.time-chips [data-key=style][data-value=anillo]')`);
+    check('cambiar su aspecto en Tiempo lo cambia en la capa que lo tiene', await until(`${far}.querySelector('.stage-layer[data-n="2"] .clk')?.dataset.style === 'anillo'`, 10)
+      && (await run(`return (await (await fetch('/api/state')).json()).layers.slots[1].visible`)) === true, await run(`return ${far}.querySelector('.stage-layer[data-n="2"] .clk')?.dataset.style`));
     await goTo('capas');
     await sleep(500);
     await click(`document.querySelector('.ws[data-module=capas] .layer-row[data-n="2"] .layer-play')`);

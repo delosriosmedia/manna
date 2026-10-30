@@ -196,7 +196,7 @@ function mount(el, ctx) {
       preview.render({ mode: 'live', item: { kind: 'fixed', uid: 0, text: area.value.trim() || 'Así se verá tu texto', look }, styles: state.projection.styles });
     }
     const parts = partsOf(area.value);
-    info.textContent = fixed ? 'Queda encima de lo que se proyecte, en la capa que elijas' : parts.length > 1 ? `${parts.length} partes: se pasan con «Siguiente»` : 'Una línea en blanco pasa a otra pantalla';
+    info.textContent = fixed ? 'Se queda en pantalla, encima de todo lo que se proyecte. Ponlo con «Poner en una capa»; si ya está en una, al guardar se cambia ahí también.' : parts.length > 1 ? `${parts.length} partes: se pasan con «Siguiente»` : 'Una línea en blanco pasa a otra pantalla';
     hint.textContent = fixed ? 'Va en una capa, como el reloj' : 'Una línea en blanco pasa a otra pantalla';
     add.hidden = show.hidden = fixed;
     layer.hidden = !fixed;

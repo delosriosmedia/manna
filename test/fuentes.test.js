@@ -61,20 +61,23 @@ test('las carpetas de letras de cada sistema, también las que baja Office', () 
   assert.deepEqual(fontDirs('darwin', { MANNA_LETRAS: '/tmp/letras' }), ['/tmp/letras']);
 });
 
-test('una que falta se baja de Google Fonts (de mentira), comprobada, a la carpeta de letras de quien usa el equipo', async () => {
-  const google = await serveFonts(['Letra Que Falta']);
-  const before = process.env.MANNA_LETRAS_URL;
-  process.env.MANNA_LETRAS_URL = google.url;
+test('una que falta se baja de Google Fonts, Fontsource o Font Squirrel (de mentira), comprobada, a la carpeta de letras de quien usa el equipo', async () => {
+  const repos = await serveFonts(['Letra Que Falta'], { fontsource: ['Chunk Five'], squirrel: ['Ostrich Sans'] });
+  process.env.MANNA_LETRAS_URL = repos.url;
   try {
     const dir = path.join(tmp, 'del-usuario');
     const saved = await installFont('Letra Que Falta', dir);
-    assert.deepEqual(saved.map((f) => path.basename(f)), ['LetraQueFalta-Regular.ttf'], 'solo las letras, no la licencia');
+    assert.deepEqual(saved.map((f) => path.basename(f)), ['LetraQueFalta-Regular.ttf']);
     assert.deepEqual(fontNames(saved[0]), ['letra que falta']);
-    assert.deepEqual(await installFont('Jumble', dir), [], 'la que no es de Google Fonts no se instala');
+    assert.deepEqual((await installFont('ChunkFive', dir)).map((f) => path.basename(f)), ['ChunkFive-400.ttf'], 'de Fontsource, aunque el nombre vaya junto');
+    assert.deepEqual((await installFont('Ostrich Sans', dir)).map((f) => path.basename(f)), ['Ostrich Sans-Regular.otf'], 'de Font Squirrel, sin la otra familia del paquete ni la licencia');
+    assert.deepEqual(await installFont('Jumble', dir), [], 'la que no está en ninguno no se instala');
+    // Instalada con otro nombre junto («ChunkFive»), deja de faltar igual.
+    const deckChunk = path.join(tmp, 'chunk.pptx');
+    fs.writeFileSync(deckChunk, makePptx([{ text: 'Uno', font: 'Chunk Five' }]));
+    assert.deepEqual(fontsFor(deckChunk, installedFonts([dir])).missing, ['Arial']);
   } finally {
-    if (before === undefined) delete process.env.MANNA_LETRAS_URL;
-    else process.env.MANNA_LETRAS_URL = before;
-    google.close();
+    repos.close();
   }
   process.env.MANNA_LETRAS_URL = 'http://127.0.0.1:9';
   try {

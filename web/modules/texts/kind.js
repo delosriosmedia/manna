@@ -116,7 +116,8 @@ registerKind('fixed', {
   label: 'Texto fijo',
   title: (item) => item.title,
   key: (item) => `${item.id}|${item.text}|${JSON.stringify(item.look)}`,
-  background: false,
+  // Con el fondo de la proyección detrás: en las vistas previas se ve como quedará (la píldora y la franja son
+  // translúcidas). En una capa se dibuja sin fondo.
 
   draw(host, { stage, thumbnail = false }) {
     const text = h('span', { class: 'fix-text' });

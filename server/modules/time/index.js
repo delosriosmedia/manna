@@ -26,8 +26,9 @@ export default function setup(app) {
   const commit = () => {
     saved.save();
     publish();
-    // Lo que se ve de uno que está al aire (su nombre) cambia con él.
+    // Lo que se ve de uno que está al aire o en una capa (su nombre) cambia con él.
     app.services.projection?.refresh();
+    app.services.layers?.refresh();
   };
 
   // Crea uno (sin id) o cambia el que se diga. Cambiar lo que dura un temporizador lo deja otra vez en su principio.

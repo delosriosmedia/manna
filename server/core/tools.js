@@ -372,6 +372,7 @@ export function setupTools(app) {
     } catch (err) {
       installing.delete(id);
       publish();
+      console.error(`${id}: no se pudo instalar: ${err.message}`);
       job.fail(err.message === NOT_RUNNABLE ? `${tool.name} ${NOT_RUNNABLE}` : err.message);
     }
   }

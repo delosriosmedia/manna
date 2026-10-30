@@ -23,8 +23,9 @@ export default function setup(app) {
   const commit = () => {
     saved.save();
     publish();
-    // Si lo que cambió está al aire, las pantallas lo reciben.
+    // Si lo que cambió está al aire o en una capa, las pantallas lo reciben.
     app.services.projection?.refresh();
+    app.services.layers?.refresh();
   };
   const find = (id) => saved.data.texts.find((t) => t.id === id) || null;
 

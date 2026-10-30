@@ -34,6 +34,13 @@ function mount(el, ctx) {
   const setLook = (patch) => {
     prefs.set(`tiempo.aspecto.${chosen}`, { ...lookOf(chosen), ...patch });
     paintLook();
+    // Si ese reloj está en una capa, la capa toma el aspecto nuevo (sin mostrarse si estaba oculta).
+    const it = what();
+    for (const slot of state.layers?.slots || []) {
+      if (it && slot.kind === 'clock' && (slot.data?.id || null) === (it.data.id || null)) {
+        action('layers.set', { n: slot.n, kind: 'clock', data: it.data, visible: slot.visible }).catch(() => {});
+      }
+    }
   };
   // Lo que se proyecta: { kind: 'clock', data, title }.
   const what = () => {

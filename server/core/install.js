@@ -161,10 +161,9 @@ export async function installTool(spec, { dir, onProgress = () => {}, signal, ch
     }
     for (const [file] of installed) fs.chmodSync(file, 0o755);
     if (check && !(await check(installed[0][0]))) throw new Error(NOT_RUNNABLE);
-    for (const [file, target] of installed) {
-      fs.copyFileSync(file, target);
-      fs.chmodSync(target, 0o755);
-    }
+    // Se mueve el mismo archivo que se comprobó (está en la misma carpeta): copiarlo lo haría otro archivo, y en Mac
+    // el sistema vuelve a revisar uno nuevo antes de abrirlo; con el equipo ocupado, «no arrancaba» (2026-10-29).
+    for (const [file, target] of installed) fs.renameSync(file, target);
     return installed.map(([, target]) => target);
   } finally {
     fs.rmSync(work, { recursive: true, force: true, maxRetries: 3 });

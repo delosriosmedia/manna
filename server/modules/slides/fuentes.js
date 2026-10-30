@@ -141,14 +141,15 @@ function fontFiles(dir, depth = 3) {
   });
 }
 
-// El índice (familia en minúsculas → archivos) se rehace solo si cambió alguna carpeta: instalar una letra la cambia.
+// El índice (familia, sin mayúsculas ni espacios → archivos) se rehace solo si cambió alguna carpeta: instalar una
+// letra la cambia.
 let cached = { stamp: null, index: new Map() };
 export function installedFonts(dirs = fontDirs()) {
   const stamp = dirs.map((dir) => { try { return fs.statSync(dir).mtimeMs; } catch { return 0; } }).join('|');
   if (stamp === cached.stamp) return cached.index;
   const index = new Map();
   for (const file of dirs.flatMap((dir) => fontFiles(dir))) {
-    for (const name of fontNames(file)) index.set(name, [...(index.get(name) || []), file]);
+    for (const name of fontNames(file).map(same)) index.set(name, [...(index.get(name) || []), file]);
   }
   cached = { stamp, index };
   return index;
@@ -159,10 +160,10 @@ export function installedFonts(dirs = fontDirs()) {
 // (mismo nombre y tamaño) va una vez: en Mac, Word, Excel y PowerPoint traen cada uno su copia de las mismas.
 export function fontsFor(file, index = installedFonts()) {
   const { used, embedded } = deckFonts(file);
-  const inside = new Set(embedded.map((name) => name.toLowerCase()));
+  const inside = new Set(embedded.map(same));
   const seen = new Set();
   let total = 0;
-  const sent = [...new Set(used.flatMap((name) => index.get(name.toLowerCase()) || []))].filter((f) => {
+  const sent = [...new Set(used.flatMap((name) => index.get(same(name)) || []))].filter((f) => {
     const size = fs.statSync(f, { throwIfNoEntry: false })?.size || 0;
     const key = `${path.basename(f).toLowerCase()}:${size}`;
     if (!size || size > MAX_FONT || total + size > MAX_TOTAL || seen.has(key)) return false;
@@ -170,16 +171,19 @@ export function fontsFor(file, index = installedFonts()) {
     total += size;
     return true;
   });
-  const missing = used.filter((name) => !index.has(name.toLowerCase()) && !inside.has(name.toLowerCase()));
+  const missing = used.filter((name) => !index.has(same(name)) && !inside.has(same(name)));
   return { files: sent, missing };
 }
 
-// ---- Instalar una que falta, de Google Fonts ----
-// Se le pide a Google Fonts lo mismo que le pide una página web (su CSS, la versión 2: la 1 da algunas con otro nombre
-// dentro): la normal, la negrita y las cursivas que tenga, en TTF. Ahí están también las que ya no muestra, como Fredoka One; de una que no es suya contesta 400. Cada
-// archivo, solo de fonts.gstatic.com y si de verdad es una letra con ese nombre, se copia a la carpeta de letras de
-// quien usa el equipo, sin pedir permisos de administrador. Solo para pruebas: MANNA_LETRAS_URL, uno de mentira.
-const OFFLINE = 'No se pudo llegar a Google Fonts. Comprueba que el equipo principal tiene internet y vuelve a intentarlo.';
+// ---- Instalar una que falta, de un repositorio de letras libres ----
+// Se busca, en orden, en Google Fonts (lo mismo que le pide una página web: su CSS, la versión 2, porque la 1 da algunas
+// con otro nombre dentro), en Fontsource (las de Google y otras libres) y en Font Squirrel (libres para uso comercial).
+// Cada archivo, solo de esos sitios y si de verdad es una letra con ese nombre dentro, se copia a la carpeta de letras
+// de quien usa el equipo, sin pedir permisos de administrador. Las de Microsoft Office (Aptos, Jumble…) no están en
+// ninguno. Font Squirrel a veces no contesta a un programa (se protege de los robots): entonces cuenta como que no la
+// tiene. Solo para pruebas: MANNA_LETRAS_URL, un servidor de mentira que hace de los tres (scripts/lib/letra.mjs).
+const OFFLINE = 'No se pudo llegar a los repositorios de letras. Comprueba que el equipo principal tiene internet y vuelve a intentarlo.';
+const ZIP_LIMIT = 64 * 1024 ** 2;
 
 export function userFontDir(platform = process.platform, env = process.env, home = os.homedir()) {
   if (env.MANNA_LETRAS) return env.MANNA_LETRAS;
@@ -189,6 +193,9 @@ export function userFontDir(platform = process.platform, env = process.env, home
 }
 
 const isFont = (data) => ['00010000', '4f54544f', '74727565', '74746366'].includes(data.subarray(0, 4).toString('hex'));
+// Para comparar nombres: «Chunk Five», «ChunkFive» y «chunk-five» son la misma.
+const same = (name) => name.toLowerCase().replace(/[\s_-]+/g, '');
+const compact = (family) => family.replace(/[^A-Za-z0-9]/g, '');
 
 async function ask(url) {
   try {
@@ -197,36 +204,107 @@ async function ask(url) {
     throw new Error(OFFLINE);
   }
 }
+async function bytes(url, limit = MAX_FONT) {
+  const res = await ask(url);
+  const data = res.ok ? Buffer.from(await res.arrayBuffer()) : Buffer.alloc(0);
+  return data.length <= limit ? data : Buffer.alloc(0);
+}
 
-// Los archivos instalados de esa familia; ninguno si no es de Google Fonts.
+// Cada repositorio da los archivos que tiene de esa familia, [[nombre, datos]]; ninguno si no la tiene.
+function sources(test = process.env.MANNA_LETRAS_URL) {
+  const at = (real, part) => (test ? `${test}/${part}` : real);
+  const origin = (real) => (test ? new URL(test).origin : real);
+  // Cómo se llama su carpeta: «chunk-five» o «chunkfive» (también separando «ChunkFive»).
+  const slugs = (family) => [...new Set([family.replace(/([a-z])([A-Z])/g, '$1 $2'), family].flatMap((f) => {
+    const words = f.toLowerCase().match(/[a-z0-9]+/g) || [];
+    return [words.join('-'), words.join('')];
+  }).filter(Boolean))];
+  return [
+    async function google(family) {
+      const res = await ask(`${at('https://fonts.googleapis.com', 'google')}/css2?family=${encodeURIComponent(family)}:ital,wght@0,400;0,700;1,400;1,700`);
+      if (res.status === 400) return [];
+      if (!res.ok) throw new Error(`Google Fonts no contesta ahora (respuesta ${res.status}).`);
+      const files = [];
+      for (const face of (await res.text()).split('@font-face').slice(1)) {
+        const url = /url\((https?:[^)\s]+)\)/.exec(face)?.[1];
+        if (!url?.startsWith(`${origin('https://fonts.gstatic.com')}/`)) continue;
+        const style = `${/font-weight:\s*700/.test(face) ? 'Bold' : ''}${/font-style:\s*italic/.test(face) ? 'Italic' : ''}` || 'Regular';
+        files.push([`${compact(family)}-${style}.ttf`, await bytes(url)]);
+      }
+      return files;
+    },
+    async function fontsource(family) {
+      for (const slug of slugs(family)) {
+        const res = await ask(`${at('https://api.fontsource.org/v1/fonts', 'fontsource')}/${slug}`);
+        if (!res.ok) continue;
+        const files = [];
+        for (const [weight, styles] of Object.entries((await res.json())?.variants || {})) {
+          for (const [style, subsets] of Object.entries(styles || {})) {
+            // El juego «latin» basta para el español; con más, Windows vería dos letras con el mismo nombre.
+            const url = subsets?.latin?.url?.ttf;
+            if (typeof url === 'string' && url.startsWith(`${origin('https://cdn.jsdelivr.net')}/`)) {
+              files.push([`${compact(family)}-${weight}${style === 'italic' ? 'Italic' : ''}.ttf`, await bytes(url)]);
+            }
+          }
+        }
+        if (files.length) return files;
+      }
+      return [];
+    },
+    async function fontSquirrel(family) {
+      const base = at('https://www.fontsquirrel.com', 'fontsquirrel');
+      for (const slug of slugs(family)) {
+        const info = await ask(`${base}/api/familyinfo/${slug}`);
+        const list = info.ok ? await info.json().catch(() => null) : null;
+        if (!Array.isArray(list) || !list.length) continue;
+        const packed = await bytes(`${base}/fonts/download/${slug}`, ZIP_LIMIT);
+        if (!packed.length) continue;
+        const work = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-letras-'));
+        try {
+          fs.writeFileSync(path.join(work, 'letras.zip'), packed);
+          return [...readZip(path.join(work, 'letras.zip'), (name) => FONT_FILE.test(name) && !name.includes('__MACOSX'))].map(([name, data]) => [path.basename(name), data]);
+        } catch {
+          return [];
+        } finally {
+          fs.rmSync(work, { recursive: true, force: true });
+        }
+      }
+      return [];
+    },
+  ];
+}
+
+// Los archivos instalados de esa familia; ninguno si no está en ningún repositorio.
 export async function installFont(family, dir = userFontDir()) {
-  const test = process.env.MANNA_LETRAS_URL;
-  const files = test ? new URL(test).origin : 'https://fonts.gstatic.com';
-  const res = await ask(`${test || 'https://fonts.googleapis.com'}/css2?family=${encodeURIComponent(family)}:ital,wght@0,400;0,700;1,400;1,700`);
-  if (res.status === 400) return [];
-  if (!res.ok) throw new Error(`Google Fonts no contesta ahora (respuesta ${res.status}). Inténtalo en un rato.`);
-  const saved = [];
-  for (const face of (await res.text()).split('@font-face').slice(1)) {
-    const url = /url\((https?:[^)\s]+)\)/.exec(face)?.[1];
-    if (!url?.startsWith(`${files}/`)) continue;
-    const bold = /font-weight:\s*700/.test(face);
-    const italic = /font-style:\s*italic/.test(face);
-    const got = await ask(url);
-    const data = got.ok ? Buffer.from(await got.arrayBuffer()) : Buffer.alloc(0);
-    if (!isFont(data) || data.length > MAX_FONT) throw new Error(`La letra ${family} no llegó entera. Vuelve a intentarlo.`);
-    fs.mkdirSync(dir, { recursive: true });
-    const target = path.join(dir, `${family.replace(/[^A-Za-z0-9]/g, '')}-${`${bold ? 'Bold' : ''}${italic ? 'Italic' : ''}` || 'Regular'}.ttf`);
-    fs.writeFileSync(target, data);
-    // Con otro nombre dentro no la encontraría nadie: se quita.
-    if (!fontNames(target).includes(family.toLowerCase())) {
-      fs.rmSync(target, { force: true });
+  if (!compact(family)) return [];
+  let failed = null;
+  for (const source of sources()) {
+    let files;
+    try {
+      files = await source(family);
+    } catch (err) {
+      failed = err;
       continue;
     }
-    saved.push(target);
-    // En Windows, además, se apunta para quien usa el equipo: así la ven también PowerPoint y los demás programas.
-    if (process.platform === 'win32' && !process.env.MANNA_LETRAS) {
-      execFile('reg', ['add', 'HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Fonts', '/v', `${path.parse(target).name} (TrueType)`, '/t', 'REG_SZ', '/d', target, '/f'], { windowsHide: true }, () => {});
+    const saved = [];
+    for (const [name, data] of files) {
+      if (!isFont(data) || data.length > MAX_FONT) continue;
+      fs.mkdirSync(dir, { recursive: true });
+      const target = path.join(dir, path.basename(name));
+      fs.writeFileSync(target, data);
+      // Con otro nombre dentro (otra familia del mismo paquete) no la encontraría nadie: se quita.
+      if (!fontNames(target).some((n) => same(n) === same(family))) {
+        fs.rmSync(target, { force: true });
+        continue;
+      }
+      saved.push(target);
+      // En Windows, además, se apunta para quien usa el equipo: así la ven también PowerPoint y los demás programas.
+      if (process.platform === 'win32' && !process.env.MANNA_LETRAS) {
+        execFile('reg', ['add', 'HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Fonts', '/v', `${path.parse(target).name} (TrueType)`, '/t', 'REG_SZ', '/d', target, '/f'], { windowsHide: true }, () => {});
+      }
     }
+    if (saved.length) return saved;
   }
-  return saved;
+  if (failed) throw failed;
+  return [];
 }

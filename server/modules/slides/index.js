@@ -611,7 +611,8 @@ export default function setup(app) {
     });
   }
 
-  // Las que le faltan, de Google Fonts (las que estén ahí), y después la convierte de nuevo con ellas. Solo el
+  // Las que le faltan, de los repositorios de letras libres (las que estén ahí; fuentes.js), y después la convierte de
+  // nuevo con ellas. Solo el
   // administrador: se instalan en el equipo principal. Responde enseguida; el avance va en la cola.
   app.action('slides.installFonts', { permission: 'system.admin' }, ({ id }) => {
     const deck = find(id);
@@ -627,7 +628,7 @@ export default function setup(app) {
       }
       checkFonts(deck);
       if (installed) reconvert(deck);
-      const note = absent.length ? `${absent.join(', ')} no ${absent.length === 1 ? 'está' : 'están'} en Google Fonts: hay que instalarla${absent.length === 1 ? '' : 's'} a mano y elegir «Convertir de nuevo».` : '';
+      const note = absent.length ? `${absent.join(', ')} no ${absent.length === 1 ? 'está' : 'están'} en Google Fonts, Fontsource ni Font Squirrel: hay que instalarla${absent.length === 1 ? '' : 's'} a mano y elegir «Convertir de nuevo».` : '';
       if (note) job.fail(installed ? `Las demás se instalaron. ${note}` : note);
       else job.done('Instaladas');
     })().catch((err) => job.fail(err.message || 'No se pudieron instalar.'));

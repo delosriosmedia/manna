@@ -97,13 +97,15 @@ export default function setup(app) {
 
   // Lo que otro módulo necesita saber: si hay algo a la vista encima de lo que está al aire (PowerPoint en vivo,
   // que va en otra ventana, la taparía).
-  app.services.layers = { covering: () => slots.some((s) => s?.visible) };
+  // refresh: lo que tiene una capa cambió (un texto fijo, el nombre de un reloj): se vuelve a leer, sin recargarla.
+  app.services.layers = { covering: () => slots.some((s) => s?.visible), refresh: publish };
 
-  app.action('layers.set', { permission: 'projection.control' }, ({ n, kind, data } = {}) => {
+  // visible: falso para cambiar lo que tiene una capa oculta sin mostrarla (el aspecto de un reloj, desde Tiempo).
+  app.action('layers.set', { permission: 'projection.control' }, ({ n, kind, data, visible = true } = {}) => {
     const i = slotIndex(n);
     if (typeof kind !== 'string' || !kindOf(kind)) throw new HttpError(400, 'Eso no se puede poner en una capa.');
     if (data == null || typeof data !== 'object' || Array.isArray(data)) throw new HttpError(400, 'Falta qué poner en la capa.');
-    const slot = { kind, data, visible: true, uid: ++uid, ready: false };
+    const slot = { kind, data, visible: visible !== false, uid: ++uid, ready: false };
     const content = resolve(slot);
     if (!content) throw new HttpError(404, 'Eso ya no está.');
     if (content.window) throw new HttpError(400, 'Esa página no se deja mostrar dentro de Manna (se abre en su propia ventana): no puede ir en una capa.');

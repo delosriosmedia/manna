@@ -48,7 +48,7 @@ export function makePptx(slides, { embedded = [] } = {}) {
 }
 
 // Un .zip con deflate y la suma de comprobación de cada archivo (PowerPoint y DeckCraft la comprueban).
-function zip(files) {
+export function zip(files) {
   const parts = [];
   const central = [];
   let offset = 0;

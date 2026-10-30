@@ -16,22 +16,29 @@ export function makeFont(family) {
   return Buffer.concat([head, name]);
 }
 
-// Un Google Fonts de mentira: con MANNA_LETRAS_URL apuntando a él, /css2?family=<familia>:… da el CSS que da el de
-// verdad a Manna (una @font-face con su TTF) y /s/<carpeta>.ttf, el archivo; de una familia que no tiene, 400, como
-// el de verdad. Solo tiene las que se le dan.
+// Los repositorios de letras de mentira (MANNA_LETRAS_URL): hacen de Google Fonts (/google/css2?family=…: el CSS que
+// da a Manna, con su TTF; 400 si no la tiene), de Fontsource (/fontsource/<carpeta>: sus variantes) y de Font Squirrel
+// (/fontsquirrel/api/familyinfo/<carpeta> y /fontsquirrel/fonts/download/<carpeta>: un .zip, con otra familia dentro
+// que no se debe instalar). Cada uno solo tiene las familias que se le dan.
 //
-//   const server = await serveFonts(['Letra Que Falta']);  server.url  ->  'http://127.0.0.1:…'
-export async function serveFonts(families) {
+//   const server = await serveFonts(['Letra Que Falta'], { fontsource: ['Otra'], squirrel: ['Otra Más'] });  server.url
+export async function serveFonts(google, { fontsource = [], squirrel = [] } = {}) {
   const { default: http } = await import('node:http');
-  const folder = (family) => family.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const fonts = new Map(families.map((family) => [folder(family), { family, data: makeFont(family) }]));
+  const { zip } = await import('./pptx.mjs');
+  const folder = (family) => family.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const has = (list, slug) => list.find((family) => folder(family) === slug || folder(family).replace(/-/g, '') === slug);
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, server.url);
-    const asked = url.pathname === '/css2' && fonts.get(folder((url.searchParams.get('family') || '').split(':')[0]));
-    const file = /^\/s\/([a-z0-9]+)\.ttf$/.exec(url.pathname)?.[1];
-    if (asked) res.end(`@font-face {\n  font-family: '${asked.family}';\n  font-style: normal;\n  font-weight: 400;\n  src: url(${server.url}/s/${folder(asked.family)}.ttf) format('truetype');\n}\n`);
-    else if (file && fonts.has(file)) res.end(fonts.get(file).data);
-    else res.writeHead(400).end('');
+    const parts = url.pathname.split('/').filter(Boolean);
+    const family = parts[0] === 'google' && parts[1] === 'css2' ? google.find((f) => f === (url.searchParams.get('family') || '').split(':')[0]) : null;
+    if (family) return res.end(`@font-face {\n  font-family: '${family}';\n  font-style: normal;\n  font-weight: 400;\n  src: url(${server.url}/s/${folder(family)}.ttf) format('truetype');\n}\n`);
+    if (parts[0] === 's') return res.end(makeFont([...google, ...fontsource].find((f) => `${folder(f)}.ttf` === parts[1]) || 'nada'));
+    const source = parts[0] === 'fontsource' && has(fontsource, parts[1]);
+    if (source) return res.end(JSON.stringify({ family: source, variants: { 400: { normal: { latin: { url: { ttf: `${server.url}/s/${folder(source)}.ttf` } } } } } }));
+    const squirrelled = parts[0] === 'fontsquirrel' && has(squirrel, parts.at(-1));
+    if (squirrelled && parts[1] === 'api') return res.end(JSON.stringify([{ family_name: squirrelled }]));
+    if (squirrelled && parts[1] === 'fonts') return res.end(zip([[`${squirrelled}-Regular.otf`, makeFont(squirrelled)], ['Otra-Regular.ttf', makeFont(`${squirrelled} Rounded`)], ['LEEME.txt', 'licencia']]));
+    res.writeHead(parts[0] === 'google' ? 400 : 404).end(parts[0] === 'fontsquirrel' ? '{}' : '');
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   server.unref();
