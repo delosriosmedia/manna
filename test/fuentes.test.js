@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { deckFonts, fontDirs, fontNames, fontsFor, installedFonts, readZip } from '../server/modules/slides/fuentes.js';
-import { makeFont } from '../scripts/lib/letra.mjs';
+import { deckFonts, fontDirs, fontNames, fontsFor, installedFonts, installFont, readZip, userFontDir } from '../server/modules/slides/fuentes.js';
+import { makeFont, serveFonts } from '../scripts/lib/letra.mjs';
 import { makePptx } from '../scripts/lib/pptx.mjs';
 
 // Las letras de una presentación, para DeckCraft con animaciones (que no ve las del equipo). Las presentaciones y las
@@ -57,4 +57,33 @@ test('las carpetas de letras de cada sistema, también las que baja Office', () 
   assert.ok(win.some((d) => d.endsWith(path.join('Microsoft', 'FontCache', '4', 'CloudFonts'))) && win.some((d) => d.endsWith(path.join('Microsoft', 'Windows', 'Fonts'))));
   assert.ok(fontDirs('darwin', {}, '/Users/ana').includes('/Users/ana/Library/Fonts'));
   assert.deepEqual(fontDirs('darwin', { MANNA_LETRAS: '/tmp/letras' }), ['/tmp/letras']);
+});
+
+test('una que falta se baja de Google Fonts (de mentira), comprobada, a la carpeta de letras de quien usa el equipo', async () => {
+  const google = await serveFonts(['Letra Que Falta']);
+  const before = process.env.MANNA_LETRAS_URL;
+  process.env.MANNA_LETRAS_URL = google.url;
+  try {
+    const dir = path.join(tmp, 'del-usuario');
+    const saved = await installFont('Letra Que Falta', dir);
+    assert.deepEqual(saved.map((f) => path.basename(f)), ['LetraQueFalta-Regular.ttf'], 'solo las letras, no la licencia');
+    assert.deepEqual(fontNames(saved[0]), ['letra que falta']);
+    assert.deepEqual(await installFont('Jumble', dir), [], 'la que no es de Google Fonts no se instala');
+  } finally {
+    if (before === undefined) delete process.env.MANNA_LETRAS_URL;
+    else process.env.MANNA_LETRAS_URL = before;
+    google.close();
+  }
+  process.env.MANNA_LETRAS_URL = 'http://127.0.0.1:9';
+  try {
+    await assert.rejects(installFont('Letra Que Falta', path.join(tmp, 'sin-red')), /internet/);
+  } finally {
+    delete process.env.MANNA_LETRAS_URL;
+  }
+});
+
+test('la carpeta de letras de quien usa el equipo, sin pedir permisos de administrador', () => {
+  assert.equal(userFontDir('win32', { LOCALAPPDATA: 'C:\\Users\\Ana\\AppData\\Local' }, 'C:\\Users\\Ana'), path.join('C:\\Users\\Ana\\AppData\\Local', 'Microsoft', 'Windows', 'Fonts'));
+  assert.equal(userFontDir('darwin', {}, '/Users/ana'), path.join('/Users/ana', 'Library', 'Fonts'));
+  assert.equal(userFontDir('darwin', { MANNA_LETRAS: '/tmp/letras' }), '/tmp/letras');
 });

@@ -5,7 +5,7 @@ import { HttpError } from '../../core/router.js';
 import { imageInfo, readImageInfo } from '../../core/images.js';
 import { cleanName } from '../../core/names.js';
 import { applyView, initialView } from '../../core/view.js';
-import { fontsFor } from './fuentes.js';
+import { fontsFor, installFont } from './fuentes.js';
 import { createExporter, isPresentation, liveSupported, openLive, PRESENTATION_EXTENSIONS } from './powerpoint.js';
 
 // Módulo Diapositivas: presentaciones convertidas en imágenes, una por diapositiva. Así se ven
@@ -596,8 +596,8 @@ export default function setup(app) {
   app.onClose(() => clearTimeout(review));
 
   // Otra vez desde el PowerPoint original: tras instalar las letras que faltaban, o con un DeckCraft más nuevo.
-  app.action('slides.reconvert', { permission: 'slides.edit' }, ({ id }) => {
-    const deck = find(id);
+  app.action('slides.reconvert', { permission: 'slides.edit' }, ({ id }) => reconvert(find(id)));
+  function reconvert(deck) {
     if (deck.status !== 'ready' || !deck.original || deck.atChurch) throw new HttpError(409, 'Esta presentación no se puede convertir de nuevo: no se guardó su PowerPoint.');
     if (!app.tools.has('deckcraft') && !app.tools.has('powerpoint')) throw new HttpError(409, 'Este equipo no tiene con qué convertirla: instala DeckCraft desde la revisión del equipo.');
     // Mientras tanto se sigue viendo la de antes; el avance va en la cola.
@@ -609,6 +609,28 @@ export default function setup(app) {
       app.services.order?.refresh('slides', deck.id);
       app.services.projection?.refresh();
     });
+  }
+
+  // Las que le faltan, de Google Fonts (las que estén ahí), y después la convierte de nuevo con ellas. Solo el
+  // administrador: se instalan en el equipo principal. Responde enseguida; el avance va en la cola.
+  app.action('slides.installFonts', { permission: 'system.admin' }, ({ id }) => {
+    const deck = find(id);
+    if (app.cloud || !deck.missingFonts?.length) throw new HttpError(409, 'A esta presentación no le falta ninguna letra en este equipo.');
+    const job = app.jobs.start({ title: 'Instalando sus letras', owner: 'slides', ref: deck.id });
+    (async () => {
+      const absent = [];
+      let installed = 0;
+      for (const family of deck.missingFonts) {
+        job.update({ detail: family });
+        if ((await installFont(family)).length) installed += 1;
+        else absent.push(family);
+      }
+      checkFonts(deck);
+      if (installed) reconvert(deck);
+      const note = absent.length ? `${absent.join(', ')} no ${absent.length === 1 ? 'está' : 'están'} en Google Fonts: hay que instalarla${absent.length === 1 ? '' : 's'} a mano y elegir «Convertir de nuevo».` : '';
+      if (note) job.fail(installed ? `Las demás se instalaron. ${note}` : note);
+      else job.done('Instaladas');
+    })().catch((err) => job.fail(err.message || 'No se pudieron instalar.'));
   });
 
   app.action('slides.remove', { permission: 'slides.edit' }, ({ id }) => {

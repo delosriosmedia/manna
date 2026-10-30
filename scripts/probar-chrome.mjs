@@ -47,7 +47,7 @@ import { fakePresentation, writeFakePowerPoint } from './lib/powerpoint-falso.mj
 import { makeImagePdf, makePdf } from './lib/pdf.mjs';
 import { makeDocx } from './lib/docx.mjs';
 import { makePptx } from './lib/pptx.mjs';
-import { makeFont } from './lib/letra.mjs';
+import { makeFont, serveFonts } from './lib/letra.mjs';
 import { writeFakeDeckCraft } from './lib/deckcraft-falso.mjs';
 import { writeFakeDeckCraftWeb } from './lib/deckcraft-web-falso.mjs';
 import { HYMN_FACTS, hymnTitle, seedHymnal } from './lib/himnario-falso.mjs';
@@ -239,10 +239,12 @@ fs.writeFileSync(fakeInstaller, `import fs from 'node:fs'; fs.writeFileSync(${JS
 const fontsDir = path.join(tmp, 'letras');
 fs.mkdirSync(fontsDir, { recursive: true });
 fs.writeFileSync(path.join(fontsDir, 'prueba.ttf'), makeFont('Letra de Prueba'));
+// Y un Google Fonts de mentira (MANNA_LETRAS_URL) que solo tiene «Letra Que Falta».
+const fakeFonts = await serveFonts(['Letra Que Falta']);
 function startServer(host, extra = {}) {
   // MANNA_SIN_VENTANA: la prueba no abre su proyección en el proyector de verdad, si lo hay.
   // MANNA_CONVERSION_LENTA: cada conversión tarda en empezar, para poder ver qué pasa mientras tanto.
-  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared,deckcraft', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, MANNA_CARPETA_PRUEBA: path.join(tmp, 'otra-iglesia'), PORT: String(PORT), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', MANNA_NUBE_COMPROBAR_MS: '1500', MANNA_CAPAS_REINTENTO_MS: '500', MANNA_VERSIONES_URL: `http://127.0.0.1:${fakeGithub.address().port}/package.json`, MANNA_INSTALADORES_URL: `http://127.0.0.1:${fakeGithub.address().port}`, MANNA_VERSIONES_MS: '500', MANNA_ACTUALIZADOR_PRUEBA: fakeInstaller, MANNA_LETRAS: fontsDir, ...extra };
+  const env = { ...process.env, MANNA_NAME: NAME, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_CONVERSION_LENTA: '6000', MANNA_FALTA: 'yt-dlp,cloudflared,deckcraft', MANNA_POWERPOINT_PRUEBA: fakePpt, MANNA_HIMNARIO: hymnal.dir, MANNA_DATA: path.join(tmp, 'data'), MANNA_BIBLIAS: bibles, MANNA_CARPETA_PRUEBA: path.join(tmp, 'otra-iglesia'), PORT: String(PORT), MANNA_TUNEL_PRUEBA: `http://127.0.0.1:${PORT}`, MANNA_TUNEL_COMPROBAR_MS: '300', MANNA_NUBE_COMPROBAR_MS: '1500', MANNA_CAPAS_REINTENTO_MS: '500', MANNA_VERSIONES_URL: `http://127.0.0.1:${fakeGithub.address().port}/package.json`, MANNA_INSTALADORES_URL: `http://127.0.0.1:${fakeGithub.address().port}`, MANNA_VERSIONES_MS: '500', MANNA_ACTUALIZADOR_PRUEBA: fakeInstaller, MANNA_LETRAS: fontsDir, MANNA_LETRAS_URL: fakeFonts.url, ...extra };
   if (host) env.MANNA_HOST = host;
   // killOnExit: si la prueba se corta a medias, el servidor no se queda abierto ocupando el puerto.
   return killOnExit(spawn(process.execPath, ['server/index.js'], { cwd: ROOT, stdio: 'ignore', env }));
@@ -2353,14 +2355,21 @@ try {
       const converted = (await decksNow()).find((d) => d.name === 'bienvenida');
       check('DeckCraft la convierte: sin la oculta, en PNG y con miniaturas pequeñas', ready && converted.pages === 2 && converted.thumbs && converted.thumbExt === 'png' && converted.width === 2560
         && await until(`[...${ws}.querySelectorAll('.deck[data-id="${converted.id}"] img')].some(i => i.naturalWidth === 320 && i.getAttribute('src').endsWith('m1.png'))`, 10), JSON.stringify(converted));
-      // Las letras: avisa de la que no está en el equipo; instalada, «Convertir de nuevo» la quita del aviso y cambia las imágenes.
+      // Las letras: avisa de las que no están en el equipo; «Instalar las que faltan» baja la que está en Google Fonts (el
+      // de mentira) y la convierte de nuevo; de la otra (Arial) dice que no está ahí.
       const deckNow = `(await (await fetch('/api/state')).json()).slides.decks.find(d => d.id === ${JSON.stringify(converted.id)})`;
       check('avisa de las letras que usa y no están en el equipo', converted.missingFonts?.includes('Letra Que Falta') && !converted.missingFonts.includes('Letra de Prueba')
         && await until(`${ws}.querySelector('.deck[data-id="${converted.id}"] .deck-status.error')?.textContent.includes('Letra Que Falta')`, 5), JSON.stringify(converted.missingFonts));
-      fs.writeFileSync(path.join(fontsDir, 'falta.ttf'), makeFont('Letra Que Falta'));
+      expectError('no está en Google Fonts');
+      await click(`${ws}.querySelector('.deck[data-id="${converted.id}"] .deck-fonts')`);
+      check('«Instalar las que faltan» baja la de Google Fonts, la convierte de nuevo y dice cuál no está ahí', await until(`(${deckNow})?.redone && !(${deckNow}).missingFonts?.includes('Letra Que Falta')`, 40)
+        && fs.existsSync(path.join(fontsDir, 'LetraQueFalta-Regular.ttf'))
+        && await until(`${ws}.querySelector('.deck[data-id="${converted.id}"] .deck-status.error')?.textContent.includes('Arial no está en Google Fonts')`, 10)
+        && await until(`[...${ws}.querySelectorAll('.deck[data-id="${converted.id}"] img')].some(i => i.naturalWidth === 320 && i.getAttribute('src').includes('m1.png?v='))`, 10),
+        await run(`return JSON.stringify({ deck: ${deckNow}, card: ${ws}.querySelector('.deck[data-id="${converted.id}"] .deck-status')?.textContent })`));
+      const redone = await run(`return (${deckNow}).redone`);
       await deckMenu(`${ws}.querySelector('.deck[data-id="${converted.id}"]')`, 'Convertir de nuevo');
-      check('instalada la letra, «Convertir de nuevo» la convierte otra vez y ya no avisa', await until(`(${deckNow})?.redone && !(${deckNow}).missingFonts?.includes('Letra Que Falta')`, 40)
-        && await until(`[...${ws}.querySelectorAll('.deck[data-id="${converted.id}"] img')].some(i => i.naturalWidth === 320 && i.getAttribute('src').includes('m1.png?v='))`, 10), await run(`return JSON.stringify(${deckNow})`));
+      check('«Convertir de nuevo» la vuelve a convertir desde el PowerPoint original', await until(`(${deckNow})?.redone > ${redone}`, 40));
 
       // DeckCraft con animaciones (fase 33, parte 3), con una DeckCraft web de mentira: la pasa la pantalla que suena
       // (aquí, sin ventana de proyección, el control), «Siguiente» le llega como una tecla y Manna sigue por dónde va.

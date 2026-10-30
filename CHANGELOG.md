@@ -5,7 +5,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 ## Sin publicar
 
 - **Texto fijo, mejor acomodado**: en el computador, las opciones a la izquierda y la vista previa a la derecha, siempre a la vista y sin que nada pase por detrás; en el celular, la vista previa arriba. El cuadro de escribir es más bajo y la cuadrícula «Dónde va» se ve sobre cualquier fondo.
-- **Las presentaciones con sus letras**: DeckCraft con animaciones ya usa las letras instaladas en el equipo principal (antes ponía otras parecidas, aunque las miniaturas se vieran bien). Si una presentación usa una letra que no está en el equipo ni viene dentro, Medios lo dice bajo su nombre, y **Convertir de nuevo** (en su menú) rehace sus imágenes cuando ya se instaló.
+- **Las presentaciones con sus letras**: DeckCraft con animaciones ya usa las letras instaladas en el equipo principal (antes ponía otras parecidas, aunque las miniaturas se vieran bien). Si una presentación usa una letra que no está en el equipo ni viene dentro, Medios lo dice bajo su nombre y el administrador puede pulsar **Instalar las que faltan**: Manna baja de Google Fonts las que estén ahí, las instala y vuelve a convertir la presentación. **Convertir de nuevo** (en su menú) rehace sus imágenes después de instalar una a mano.
 - **Manuales en manna-iglesia.es**: la bienvenida de Manna Iglesia con el manual de instalación (lo que recibe cada iglesia y los pasos para empezar) y los manuales de los usuarios, del administrador de la iglesia y del superadministrador, con capturas de Manna. Se leen en el celular y se pueden imprimir o guardar en PDF.
 ## 1.58.0 — 2026-10-29
 

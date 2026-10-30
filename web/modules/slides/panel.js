@@ -22,7 +22,8 @@ export function createSlidesPanel(ctx, lib) {
   let awaited = null;
   const decks = () => lib.filter([...(state.slides?.decks || [])].sort((a, b) => a.added - b.added));
   const current = () => decks().find((d) => d.id === deckId) || null;
-  const jobOf = (id) => (state.jobs?.list || []).filter((j) => j.owner === 'slides' && j.ref === id).at(-1) || null;
+  const jobsOf = (id) => (state.jobs?.list || []).filter((j) => j.owner === 'slides' && j.ref === id);
+  const jobOf = (id) => jobsOf(id).at(-1) || null;
   // Qué diapositiva de qué presentación está al aire: { id, number } o null.
   const onAir = () => {
     const item = state.projection?.item;
@@ -99,15 +100,20 @@ export function createSlidesPanel(ctx, lib) {
     if (deck.status === 'ready' && deck.atChurch) return h('div', { class: 'deck-status' }, h('small', {}, 'Ya está en la iglesia.'));
     const job = jobOf(deck.id);
     // Convertida de nuevo: mientras tanto se sigue viendo la de antes, con el avance debajo.
+    // Las letras que faltan: el administrador las instala desde aquí (las de Google Fonts); si no, se dice cómo.
     if (deck.status === 'ready' && job?.state !== 'running') {
-      return deck.missingFonts ? h('div', { class: 'deck-status error' }, h('small', {},
-        `Faltan letras en este equipo: ${deck.missingFonts.join(', ')}. Instálalas y elige «Convertir de nuevo».`)) : null;
+      if (!deck.missingFonts) return null;
+      const failed = jobsOf(deck.id).filter((j) => j.state === 'error').at(-1);
+      return h('div', { class: 'deck-status error' },
+        h('small', {}, `Faltan letras en este equipo: ${deck.missingFonts.join(', ')}.${ctx.user?.admin ? '' : ' Instálalas y elige «Convertir de nuevo».'}`),
+        failed && h('small', {}, failed.error),
+        ctx.user?.admin && h('button', { class: 'btn deck-fonts', onclick: guard(() => action('slides.installFonts', { id: deck.id })) }, icon('download-simple', 16), 'Instalar las que faltan'));
     }
     if (deck.status === 'ready' || deck.status === 'converting') {
       const progress = Math.round((job?.progress || 0) * 100);
       return h('div', { class: 'deck-status' },
         h('div', { class: `bar${job?.progress == null ? ' busy' : ''}`, role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': progress }, h('span', { style: `width: ${progress}%;` })),
-        h('small', {}, [deck.status === 'ready' ? 'Convirtiéndola de nuevo' : 'PowerPoint la está convirtiendo', job && describeJob(job)].filter(Boolean).join(' · ')));
+        h('small', {}, [deck.status === 'ready' ? job.title : 'PowerPoint la está convirtiendo', job && describeJob(job)].filter(Boolean).join(' · ')));
     }
     return h('div', { class: 'deck-status error' }, h('small', {}, deck.error || 'No se pudo convertir.'));
   }

@@ -23,6 +23,7 @@ html.touch .deck-more { width: var(--tap); height: var(--tap); right: 2px; top: 
 .deck-status small { color: var(--ink-3); font-size: 12px; }
 .deck-status.error small { color: var(--live-ink); }
 .deck-status .bar { margin: 0; }
+.deck-status .deck-fonts { justify-self: start; }
 
 /* Sus diapositivas, en rejilla: la elegida en ámbar y la que está al aire en rojo. */
 .slide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 12px; }

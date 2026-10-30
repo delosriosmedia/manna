@@ -1,3 +1,4 @@
+import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -6,7 +7,7 @@ import zlib from 'node:zlib';
 // Las letras (fuentes) de una presentación de PowerPoint. DeckCraft con animaciones corre en el navegador y no ve
 // las letras del equipo: Manna busca entre las instaladas las que usa la presentación y se las entrega al abrirla
 // (GET /api/slides/:id/fuentes). Las que no encuentra en el equipo ni vienen dentro de la presentación las dice,
-// para que se instalen.
+// para que se instalen; las que son de Google Fonts las instala Manna (installFont).
 
 const MAX_FONT = 32 * 1024 ** 2; // una letra más grande (las de chino o japonés) no se manda
 const MAX_TOTAL = 64 * 1024 ** 2;
@@ -165,4 +166,61 @@ export function fontsFor(file, index = installedFonts()) {
   });
   const missing = used.filter((name) => !index.has(name.toLowerCase()) && !inside.has(name.toLowerCase()));
   return { files: sent, missing };
+}
+
+// ---- Instalar una que falta, de Google Fonts ----
+// Se le pide a Google Fonts lo mismo que le pide una página web (su CSS, la versión 2: la 1 da algunas con otro nombre
+// dentro): la normal, la negrita y las cursivas que tenga, en TTF. Ahí están también las que ya no muestra, como Fredoka One; de una que no es suya contesta 400. Cada
+// archivo, solo de fonts.gstatic.com y si de verdad es una letra con ese nombre, se copia a la carpeta de letras de
+// quien usa el equipo, sin pedir permisos de administrador. Solo para pruebas: MANNA_LETRAS_URL, uno de mentira.
+const OFFLINE = 'No se pudo llegar a Google Fonts. Comprueba que el equipo principal tiene internet y vuelve a intentarlo.';
+
+export function userFontDir(platform = process.platform, env = process.env, home = os.homedir()) {
+  if (env.MANNA_LETRAS) return env.MANNA_LETRAS;
+  if (platform === 'win32') return path.join(env.LOCALAPPDATA || path.join(home, 'AppData', 'Local'), 'Microsoft', 'Windows', 'Fonts');
+  if (platform === 'darwin') return path.join(home, 'Library', 'Fonts');
+  return path.join(home, '.local', 'share', 'fonts');
+}
+
+const isFont = (data) => ['00010000', '4f54544f', '74727565', '74746366'].includes(data.subarray(0, 4).toString('hex'));
+
+async function ask(url) {
+  try {
+    return await fetch(url, { headers: { 'User-Agent': 'Manna' }, signal: AbortSignal.timeout(30_000) });
+  } catch {
+    throw new Error(OFFLINE);
+  }
+}
+
+// Los archivos instalados de esa familia; ninguno si no es de Google Fonts.
+export async function installFont(family, dir = userFontDir()) {
+  const test = process.env.MANNA_LETRAS_URL;
+  const files = test ? new URL(test).origin : 'https://fonts.gstatic.com';
+  const res = await ask(`${test || 'https://fonts.googleapis.com'}/css2?family=${encodeURIComponent(family)}:ital,wght@0,400;0,700;1,400;1,700`);
+  if (res.status === 400) return [];
+  if (!res.ok) throw new Error(`Google Fonts no contesta ahora (respuesta ${res.status}). Inténtalo en un rato.`);
+  const saved = [];
+  for (const face of (await res.text()).split('@font-face').slice(1)) {
+    const url = /url\((https?:[^)\s]+)\)/.exec(face)?.[1];
+    if (!url?.startsWith(`${files}/`)) continue;
+    const bold = /font-weight:\s*700/.test(face);
+    const italic = /font-style:\s*italic/.test(face);
+    const got = await ask(url);
+    const data = got.ok ? Buffer.from(await got.arrayBuffer()) : Buffer.alloc(0);
+    if (!isFont(data) || data.length > MAX_FONT) throw new Error(`La letra ${family} no llegó entera. Vuelve a intentarlo.`);
+    fs.mkdirSync(dir, { recursive: true });
+    const target = path.join(dir, `${family.replace(/[^A-Za-z0-9]/g, '')}-${`${bold ? 'Bold' : ''}${italic ? 'Italic' : ''}` || 'Regular'}.ttf`);
+    fs.writeFileSync(target, data);
+    // Con otro nombre dentro no la encontraría nadie: se quita.
+    if (!fontNames(target).includes(family.toLowerCase())) {
+      fs.rmSync(target, { force: true });
+      continue;
+    }
+    saved.push(target);
+    // En Windows, además, se apunta para quien usa el equipo: así la ven también PowerPoint y los demás programas.
+    if (process.platform === 'win32' && !process.env.MANNA_LETRAS) {
+      execFile('reg', ['add', 'HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Fonts', '/v', `${path.parse(target).name} (TrueType)`, '/t', 'REG_SZ', '/d', target, '/f'], { windowsHide: true }, () => {});
+    }
+  }
+  return saved;
 }
