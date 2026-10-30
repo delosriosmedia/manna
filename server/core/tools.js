@@ -120,7 +120,7 @@ const DC = `https://github.com/storytold/deckcraft/releases/download/v${DECKCRAF
 // el puente por el que Manna la maneja dentro de la ventana del proyector. Una versión fija, compilada en GitHub.
 export const DECKCRAFT_WEB = 'manna-web-0.12.0-2';
 const DCW = `https://github.com/delosriosmedia/deckcraft/releases/download/${DECKCRAFT_WEB}`;
-const DECKCRAFT_WEB_ZIP = { url: `${DCW}/deckcraft-web-manna.zip`, sums: `${DCW}/SHA256SUMS.txt`, folder: 'deckcraft-web', size: '15 MB' };
+const DECKCRAFT_WEB_ZIP = { url: `${DCW}/deckcraft-web-manna.zip`, sums: `${DCW}/SHA256SUMS.txt`, folder: 'deckcraft-web', version: DECKCRAFT_WEB, size: '15 MB' };
 const OFFICIAL = {
   ffmpeg: {
     win32: {
@@ -260,10 +260,14 @@ const CATALOG = [
     manual: {
       other: { steps: ['Pulsa «Instalar por mí»: Manna lo descarga de la copia de Manna en GitHub y comprueba que llegó entero.'] },
     },
-    // Es una página con su programa, no un ejecutable: está si su página está.
+    // Es una página con su programa, no un ejecutable: está si su página está. Su versión la apunta Manna al instalarla
+    // (las de antes de la manna-web-0.12.0-3 no la llevan): con otra, se pone al día sola al abrir Manna (freshen).
     find: async (toolsDir) => {
       const file = path.join(toolsDir, 'deckcraft-web', 'index.html');
-      return fs.existsSync(file) ? { file, detail: DECKCRAFT_WEB } : null;
+      if (!fs.existsSync(file)) return null;
+      let version = 'anterior';
+      try { version = fs.readFileSync(path.join(toolsDir, 'deckcraft-web', 'version-manna.txt'), 'utf8').trim() || version; } catch { /* de antes */ }
+      return { file, version };
     },
   },
   {
@@ -297,7 +301,7 @@ export function setupTools(app) {
   async function detect(tool) {
     if (tool.find) {
       const hit = hidden.has(tool.id) ? null : await tool.find(toolsDir);
-      return hit ? { files: { [tool.id]: hit.file }, version: null, detail: hit.detail || null, own: false } : null;
+      return hit ? { files: { [tool.id]: hit.file }, version: hit.version || null, detail: hit.detail || null, own: false } : null;
     }
     const dirs = searchDirs(toolsDir, !hidden.has(tool.id));
     const files = {};
@@ -373,17 +377,18 @@ export function setupTools(app) {
   }
 
   // Pone al día un programa que lo pide a menudo (yt-dlp: YouTube cambia y las versiones viejas dejan de bajar): si
-  // la última publicada es otra que la instalada, lo vuelve a instalar. Solo uno que ya esté; sin internet, o con
+  // la última publicada es otra que la instalada, lo vuelve a instalar. Uno de versión fija con `version` (DeckCraft
+  // con animaciones), si la instalada es otra que la que pide esta versión de Manna. Solo uno que ya esté; sin internet, o con
   // la misma versión, no hace nada. Nunca en las pruebas (MANNA_FALTA lo oculta). Devuelve si lo cambió.
   async function freshen(id) {
     const spec = downloads[id];
     const hit = found.get(id);
     const have = hit?.version;
-    if (!(spec?.latest || spec?.pick) || !have || hidden.has(id) || installing.has(id)) return false;
+    if (!(spec?.latest || spec?.pick || spec?.version) || !have || hidden.has(id) || installing.has(id)) return false;
     // El Node.js del equipo (el que mueve a Manna) no se sustituye: solo se pone al día el propio de Manna.
     if (CATALOG.find((t) => t.id === id)?.min && !hit.own) return false;
-    let tag;
-    try {
+    let tag = spec.version;
+    if (!tag) try {
       if (spec.pick) tag = /\d+\.\d+\.\d+/.exec(await pickName(spec, AbortSignal.timeout(8000)))?.[0] || '';
       else {
         const res = await fetch(spec.latest, { headers: { 'User-Agent': 'Manna', Accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(8000) });

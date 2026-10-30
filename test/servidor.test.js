@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -680,6 +681,39 @@ test('yt-dlp se pone al día solo cuando se publica otra versión, y solo el que
     assert.equal(await box.app.tools.freshen('yt-dlp'), false);
     // Un programa que no está instalado no se instala por su cuenta.
     assert.equal(await box.app.tools.freshen('ffmpeg'), false);
+  } finally {
+    await box.stop();
+    site.close();
+  }
+});
+
+test('DeckCraft con animaciones se pone al día sola cuando esta versión de Manna pide otra', async () => {
+  // La nueva, empaquetada aquí mismo (tar abre el paquete igual que un .zip): la prueba no sale a internet.
+  const pack = path.join(tmp, 'dcw-nueva');
+  fs.mkdirSync(path.join(pack, 'deckcraft-web'), { recursive: true });
+  fs.writeFileSync(path.join(pack, 'deckcraft-web', 'index.html'), '<!doctype html><title>DeckCraft nueva</title>');
+  execFileSync('tar', ['-cf', path.join(tmp, 'dcw-nueva.tar'), '-C', pack, 'deckcraft-web']);
+  const packed = fs.readFileSync(path.join(tmp, 'dcw-nueva.tar'));
+  const site = http.createServer((req, res) => {
+    if (req.url === '/dcw.zip') return res.end(packed);
+    if (req.url === '/sums') return res.end(`${crypto.createHash('sha256').update(packed).digest('hex')}  dcw.zip\n`);
+    res.writeHead(404);
+    res.end();
+  });
+  await new Promise((resolve) => site.listen(0, '127.0.0.1', resolve));
+  const at = `http://127.0.0.1:${site.address().port}`;
+  // La de antes, sin versión apuntada (como las instaladas antes de la manna-web-0.12.0-3).
+  const own = path.join(tmp, 'dcw', 'herramientas', 'deckcraft-web');
+  fs.mkdirSync(own, { recursive: true });
+  fs.writeFileSync(path.join(own, 'index.html'), '<!doctype html><title>DeckCraft vieja</title>');
+  const box = await start('dcw', { MANNA_DESCARGAS: JSON.stringify({ 'deckcraft-web': { url: `${at}/dcw.zip`, sums: `${at}/sums`, folder: 'deckcraft-web', version: 'manna-web-nueva' } }) });
+  const tool = () => box.app.store.get('tools').list.find((t) => t.id === 'deckcraft-web');
+  try {
+    assert.equal(tool().version, 'anterior');
+    assert.equal(await box.app.tools.freshen('deckcraft-web'), true);
+    assert.equal(tool().version, 'manna-web-nueva');
+    assert.match(fs.readFileSync(path.join(own, 'index.html'), 'utf8'), /nueva/);
+    assert.equal(await box.app.tools.freshen('deckcraft-web'), false, 'con la que pide, no se descarga nada');
   } finally {
     await box.stop();
     site.close();

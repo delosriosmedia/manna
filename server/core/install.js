@@ -14,6 +14,7 @@ import { pipeline } from 'node:stream/promises';
 //   file      nombre con el que se guarda (descarga directa de un ejecutable)
 //   extract   ['ffmpeg.exe', …]: la descarga es un .zip y se sacan de él esos archivos
 //   folder    'deckcraft-web': la descarga es un .zip y se saca de él esa carpeta entera (reemplaza la que hubiera)
+//   version   con folder: se apunta en la carpeta (version-manna.txt), para saber cuándo hay que ponerla al día
 //   sums      dirección de una lista "<sha256>  <nombre>" publicada junto a la descarga
 //   release   true: sums es una versión de GitHub (su API) y las huellas van en su texto como "<nombre>: <sha256>"
 //   inner     true: la huella publicada es la del programa de dentro del archivo, no la del archivo
@@ -137,6 +138,7 @@ export async function installTool(spec, { dir, onProgress = () => {}, signal, ch
       const target = path.join(dir, spec.folder);
       fs.rmSync(target, { recursive: true, force: true });
       fs.cpSync(found, target, { recursive: true });
+      if (spec.version) fs.writeFileSync(path.join(target, 'version-manna.txt'), spec.version);
       return [target];
     }
     if (spec.extract) {

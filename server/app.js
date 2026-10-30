@@ -153,9 +153,9 @@ async function run() {
   // Revisión del equipo: si falta algún programa, Manna se abre en la página que dice qué no
   // funcionará y ayuda a instalarlo (web/requisitos.html). No bloquea: desde ahí se continúa.
   const { list } = await app.tools.scan();
-  // Abierto con el icono: yt-dlp y el Node.js propio se ponen al día solos si hay versión nueva (al rato, para no
-  // estorbar el arranque; uno tras otro).
-  if (BACKGROUND) setTimeout(() => ['yt-dlp', 'node'].reduce((done, id) => done.then(() => app.tools.freshen(id)).catch(() => {}), Promise.resolve()), 30_000).unref();
+  // Abierto con el icono: yt-dlp y el Node.js propio se ponen al día solos si hay versión nueva, y DeckCraft con
+  // animaciones si esta versión de Manna pide otra (al rato, para no estorbar el arranque; uno tras otro).
+  if (BACKGROUND) setTimeout(() => ['yt-dlp', 'node', 'deckcraft-web'].reduce((done, id) => done.then(() => app.tools.freshen(id)).catch(() => {}), Promise.resolve()), 30_000).unref();
   const port = await app.listen();
   await app.services.network.refresh();
   const entry = app.tools.entry();
