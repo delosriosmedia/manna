@@ -10,9 +10,10 @@ import { pageUrl, plural, thumbUrl } from './deck.js';
 const SOURCES = { pdf: 'PDF', powerpoint: 'PowerPoint' };
 
 // Las presentaciones de Medios (fase 22 de docs/PLAN.md): las de la iglesia (PDF o PowerPoint), convertidas
-// en imágenes. Primero la lista; al elegir una, sus diapositivas, que ocupan Medios hasta volver con
-// «Presentaciones». Tiene la forma de los grupos de Medios (media/workspace.js), que la importa: es la
-// excepción a que un módulo no importe archivos de otro. lib es lo que le da Medios.
+// en imágenes. Tocar una la elige (para proyectarla o añadirla); sus diapositivas solo se ven con «Ver
+// diapositivas», en `side`, que Medios pone al lado de la lista o, sin sitio, encima: la lista no cambia. Tiene la
+// forma de los grupos de Medios (media/workspace.js), que la importa: es la excepción a que un módulo no importe
+// archivos de otro. lib es lo que le da Medios.
 export function createSlidesPanel(ctx, lib) {
   let deckId = null;  // presentación elegida
   let page = 1;       // diapositiva elegida en ella
@@ -31,10 +32,17 @@ export function createSlidesPanel(ctx, lib) {
   };
 
   const startUpload = (file) => openDeckUpload(file, { cloud: !ctx.canProject, onDone: (id) => { lib.added([id]); choose(id); } });
-  const back = h('button', { class: 'btn deck-back', onclick: () => choose(null) }, icon('caret-left', 16), 'Presentaciones');
   const list = h('div', { class: 'deck-list' });
+  const el = h('div', { class: 'decks', dataset: { panel: 'diapositivas' } }, list);
+  let open = false;   // sus diapositivas se ven (las pidió «Ver diapositivas»)
   const pages = h('div', {});
-  const el = h('div', { class: 'decks', dataset: { view: 'list', panel: 'diapositivas' } }, list, h('div', { class: 'deck-pages' }, back, pages));
+  const title = h('strong', {});
+  const side = h('aside', { class: 'deck-side', hidden: true, 'aria-label': 'Diapositivas' },
+    h('div', { class: 'deck-side-head' },
+      h('button', { class: 'btn deck-back', onclick: () => showPages(false) }, icon('caret-left', 16), 'Presentaciones'),
+      title,
+      h('button', { class: 'icon-btn deck-close', 'aria-label': 'Cerrar las diapositivas', title: 'Cerrar', onclick: () => showPages(false) }, icon('x', 16))),
+    pages);
 
   // "Diapositiva 3 de 12" (en el celular, "3 de 12") y, al lado, el nombre de la presentación.
   const where = h('span', {});
@@ -51,23 +59,35 @@ export function createSlidesPanel(ctx, lib) {
     else if (deck?.status === 'ready') await action('projection.show', { kind: 'slides', data: { id: deck.id }, step: page - 1 });
   });
   const show = ctx.canProject && h('button', { class: 'btn primary', onclick: () => project() }, icon('play', 16), 'Proyectar', h('kbd', {}, '↵'));
+  const see = h('button', { class: 'btn deck-see', onclick: () => showPages(!open) }, icon('eye', 16), h('span', {}, 'Ver diapositivas'));
   const bar = h('div', { class: 'abar media-bar deck-bar', hidden: true, dataset: { panel: 'diapositivas' } },
-    h('span', { class: 'sel-ref' }, h('span', { class: 'deck-long' }, 'Diapositiva '), where), name,
+    h('span', { class: 'sel-ref' }, h('span', { class: 'deck-long' }, 'Diapositiva '), where), name, see,
     h('button', { class: `btn${ctx.canProject ? '' : ' primary'}`, onclick: () => add() }, icon('plus', 16), 'Añadir al orden'),
     show);
 
   function choose(id, number = null) {
     if (id) lib.picked();
+    else open = false; // sin nada elegido, las de la próxima solo se ven si se piden
     awaited = id && !decks().some((d) => d.id === id) ? id : null;
+    const same = id === deckId; // tocar otra vez la elegida no cambia la diapositiva escogida
     deckId = id;
     const air = onAir();
-    page = number ?? (air && air.id === id ? air.number : 1);
+    page = number ?? (same ? page : air && air.id === id ? air.number : 1);
     render();
     if (id) pages.querySelector('.slide-pick.selected')?.scrollIntoView({ block: 'nearest' });
   }
   function pick(number) {
     page = number;
     render();
+  }
+  function showPages(on) {
+    open = on;
+    render();
+    if (!on) return;
+    // Al lado, la lista se estrecha y se reacomoda: la elegida sigue a la vista. Encima, la lista no se toca.
+    const card = list.querySelector('.deck.selected');
+    if (card && getComputedStyle(card).visibility === 'visible') card.scrollIntoView({ block: 'nearest' });
+    pages.querySelector('.slide-pick.selected')?.scrollIntoView({ block: 'nearest' });
   }
 
   const askName = (deck) => {
@@ -195,7 +215,11 @@ export function createSlidesPanel(ctx, lib) {
       page = 1;
       awaited = null;
     }
-    if (deckId && !current()) deckId = null;
+    // Ya no está (borrada, otra categoría). Lo recién subido que aún no llega no cuenta: la columna sigue como estaba.
+    if (deckId && !current() && !awaited) {
+      deckId = null;
+      open = false;
+    }
     const air = onAir();
     // La selección acompaña a lo que está al aire: al avanzar con "Siguiente", se marca esa diapositiva.
     const following = air ? `${air.id}|${air.number}` : '';
@@ -209,8 +233,8 @@ export function createSlidesPanel(ctx, lib) {
     }
     const deck = current();
     if (deck && page > Math.max(1, deck.pages)) page = 1;
-    el.dataset.view = deck ? 'pages' : 'list';
-    back.hidden = !deck;
+    side.hidden = !(deck && open);
+    if (deck) title.textContent = deck.name;
     renderList(all, air);
     renderPages(deck, air);
     if (reveal) pages.querySelector('.slide-pick.selected')?.scrollIntoView({ block: 'nearest' });
@@ -222,7 +246,11 @@ export function createSlidesPanel(ctx, lib) {
       where.parentElement.hidden = !usable;
       name.textContent = deck.name;
       if (show) show.disabled = !usable;
-      bar.querySelectorAll('.btn:not(.primary)').forEach((b) => { b.disabled = !usable; });
+      bar.querySelectorAll('.btn:not(.primary):not(.deck-see)').forEach((b) => { b.disabled = !usable; });
+      // Abiertas, siempre se pueden cerrar desde aquí. En el celular en horizontal va solo el icono: su nombre, en la etiqueta.
+      see.disabled = !usable && !open;
+      see.lastChild.textContent = see.title = open ? 'Ocultar diapositivas' : 'Ver diapositivas';
+      see.setAttribute('aria-label', see.title);
     }
   }
   subscribe('slides', render);
@@ -231,7 +259,7 @@ export function createSlidesPanel(ctx, lib) {
   subscribe('jobs', () => { if (decks().some((d) => d.status === 'converting')) render(); });
 
   return {
-    id: 'diapositivas', label: 'Presentaciones', kind: 'slides', el, bar,
+    id: 'diapositivas', label: 'Presentaciones', kind: 'slides', el, bar, side,
     items: decks,
     clear: () => choose(null),
     render,
@@ -242,8 +270,9 @@ export function createSlidesPanel(ctx, lib) {
       const deck = current();
       if (deck?.status !== 'ready') return false;
       if (e.key === 'Enter') { project(); return true; }
-      // ↑ ↓ mueven la selección sin tocar la proyección (← → gobiernan lo que está al aire).
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      // ↑ ↓ mueven la selección sin tocar la proyección (← → gobiernan lo que está al aire); solo si se ven las
+      // diapositivas: si no, nadie vería cuál queda elegida, y desplazan la lista.
+      if (open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
         pick(Math.max(1, Math.min(deck.pages, page + (e.key === 'ArrowDown' ? 1 : -1))));
         pages.querySelector('.slide-pick.selected')?.scrollIntoView({ block: 'nearest' });
         return true;

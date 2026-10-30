@@ -1,7 +1,6 @@
-/* Las presentaciones en Medios (panel.js): primero la lista; al elegir una, sus diapositivas en su lugar. */
+/* Las presentaciones (panel.js, en Medios, y el Presentador): cada una con su portada y su nombre. En Medios, la
+   cuadrícula o la lista y, aparte, sus diapositivas, las pone media.css. */
 .deck-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; align-content: start; }
-.decks[data-view='pages'] .deck-list, .decks[data-view='list'] .deck-pages { display: none; }
-.deck-back { margin-bottom: 10px; }
 
 /* Una presentación: su portada, su nombre y cuántas diapositivas tiene. */
 .deck { position: relative; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); transition: border-color 0.12s var(--ease); }
@@ -47,14 +46,22 @@ html.touch .deck-more { width: var(--tap); height: var(--tap); right: 2px; top: 
 .deck-up-note { margin-top: 10px; font-size: 12px; }
 
 /* Cajón estrecho (el de 440 px, el del celular). */
+/* Bajo 720 px, «3 de 12» sin «Diapositiva»: así cabe «Ver diapositivas» en la barra. */
+@container cajon (max-width: 719px) {
+  .deck-long { display: none; }
+}
 @container cajon (max-width: 599px) {
   .deck-list { grid-template-columns: minmax(0, 1fr); }
-  .deck-long { display: none; }
+  /* «Ver diapositivas» en su fila; debajo, «Añadir al orden» y «Proyectar», como en las imágenes. */
+  .deck-bar .deck-see { flex: 1 1 100%; }
   .slide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 }
 /* Celular en horizontal: el cajón es ancho pero bajo: más columnas de diapositivas. */
 @media (max-width: 859px) and (max-height: 480px) {
-  .deck-pages .slide-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .deck-side .slide-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  /* La barra va en una fila: «Ver diapositivas», solo con su icono. */
+  .deck-bar .deck-see { flex: 0 0 auto; }
+  .deck-bar .deck-see span { display: none; }
 }
 
 /* ---- Presentador (presenter.js): elegir una presentación o pasarla ---- */
