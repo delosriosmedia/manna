@@ -390,7 +390,7 @@ const MEDIA_FILES = '.ws[data-module=medios] > input[type=file]';
 // Los mandos del tipo al aire: en el escritorio, siempre a la vista en la barra de abajo (fase 14); en el celular, en
 // una capa que se abre con el botón de la tarjeta de lo al aire. LIVE es el que se ve.
 const LIVE = `([...document.querySelectorAll('.tb-extra .live-controls, .controls-pop .live-controls')].find((c) => c.getClientRects().length) || document.querySelector('.tb-extra .live-controls'))`;
-const openControls = async () => { await run(`if (!document.querySelector('.tb-extra .live-controls')?.getClientRects().length && document.querySelector('.controls-layer').hidden) document.querySelector('.story-controls, .ev-mas').click();`); await sleep(250); };
+const openControls = async () => { await run(`if (!document.querySelector('.tb-extra .live-controls')?.getClientRects().length && document.querySelector('.controls-layer').hidden) document.querySelector('.ev-mas').click();`); await sleep(250); };
 const closeControls = async () => { await run(`document.querySelector('.controls-layer').hidden = true`); };
 const modalButton = (label) => click(`[...document.querySelectorAll('.modal .btn')].find(b => b.textContent.trim() === ${JSON.stringify(label)})`);
 // Un botón de la tarjeta del wifi o del QR de la barra de arriba (se abren en su sitio, 1.31).
@@ -660,7 +660,7 @@ try {
   console.log('\n1. Interfaz · Escenario (escritorio)');
   const queueRow = (title) => `[...document.querySelectorAll('.queue-item')].find(r => r.querySelector('strong').textContent.includes(${JSON.stringify(title)}))`;
   const drawerOpen = () => run(`return !document.querySelector('.drawer').hidden && document.body.classList.contains('drawer-open')`);
-  const dockOn = () => run(`return JSON.stringify([...document.querySelectorAll('.dock-item.on')].map(b => b.dataset.id))`).then(JSON.parse);
+  const dockOn = () => run(`return JSON.stringify([...document.querySelectorAll('.dock-item[data-id].on')].map(b => b.dataset.id))`).then(JSON.parse);
   const queueDetail = () => run(`return JSON.stringify({ rows: [...document.querySelectorAll('.queue-item')].map(r => r.className + ':' + r.querySelector('strong').textContent), sections: document.querySelectorAll('.queue-section').length, pos: document.querySelector('.queue-head small').textContent })`);
   check('la cola del culto lista el orden, marca lo que está al aire y dice en qué lugar va', await run(`return document.querySelectorAll('.queue-item').length === 2 && document.querySelector('.queue-item.live').textContent.includes('Juan 3:19') && document.querySelectorAll('.queue-section').length === 2 && document.querySelector('.queue-head small').textContent === '1 de 2'`), await queueDetail());
   // Desde la fase 24, un pasaje al aire trae sus mandos (versión, comparar y versículos).
@@ -682,6 +682,7 @@ try {
   for (const type of ['keyDown', 'keyUp']) await chrome.send('Input.dispatchKeyEvent', { type, key: 'Shift', code: 'ShiftLeft', windowsVirtualKeyCode: 16 });
   await sleep(500);
   check('o al pulsar una tecla', await barShown());
+  check('«En vivo» es lo primero del dock y el nombre del panel derecho', await run(`const first = document.querySelector('.dockbar .dock-item'); return first.getAttribute('aria-label') === 'En vivo' && document.querySelector('.queue-head strong').textContent.startsWith('En vivo')`));
   check('con un módulo abierto, su icono está marcado y el cajón trae su pantalla', await drawerOpen() && (await dockOn()).join() === 'orden' && await run(`return document.querySelector('.dock-item[data-id=orden]').getAttribute('aria-pressed') === 'true' && document.querySelector('.drawer').getAttribute('aria-label') === 'Orden' && Boolean(document.querySelector('.drawer .work .ws[data-module=orden]:not([hidden])'))`));
   // Fase 25: la fila del cajón (nombre, ampliar y cerrar) y la cabecera del módulo son una sola fila; el nombre, una vez.
   check('el cajón tiene una sola fila de cabecera: ampliar y cerrar van al final de la del módulo, y su nombre sale una vez', await run(`const d = document.querySelector('.drawer'); const seen = (e) => e.getClientRects().length > 0; const ws = d.querySelector('.ws[data-module=orden]'); const head = ws.querySelector(':scope > .ws-head'); const acts = head.querySelector(':scope > .drawer-actions'); const names = [...d.querySelectorAll('.drawer-head h2, .ws-head h1')].filter(seen).filter((e) => e.textContent.includes('Orden')); return !seen(d.querySelector(':scope > .drawer-head')) && Boolean(acts) && seen(acts.querySelector('.drawer-wide')) && seen(acts.querySelector('[aria-label="Cerrar el cajón"]')) && names.length === 1 && head.getBoundingClientRect().height <= 60`));
@@ -785,7 +786,7 @@ try {
   await sleep(1800); // pasar del computador al celular vuelve a abrir la página
   const evShown = (selector) => `document.querySelector(${JSON.stringify(selector)})?.getClientRects().length > 0`;
   const evRow = (title) => `[...document.querySelectorAll('.ev-row')].find((r) => r.textContent.includes(${JSON.stringify(title)}))`;
-  check('en el celular se abre «En vivo»: la vista, los mandos, el orden y la franja del pulgar; sin escenario, cola ni barra de abajo', await until(evShown('.ev-screen.stage'), 12) && await run(`return document.documentElement.dataset.disposicion === 'telefono-pie' && ${evShown('.ev-slot')} && ${evShown('.ev-list')} && ${evShown('.ev-next')} && !document.querySelector('.scene-bg, .transport-bar, .queue, .story') && document.querySelector('.ev-pill').textContent === 'AL AIRE'`));
+  check('en el celular se abre «En vivo»: la vista, los mandos, el orden y la franja del pulgar; sin escenario, cola ni barra de abajo', await until(evShown('.ev-screen.stage'), 12) && await run(`return document.documentElement.dataset.disposicion === 'telefono-pie' && ${evShown('.ev-slot')} && ${evShown('.ev-list')} && ${evShown('.ev-next')} && !document.querySelector('.scene-bg, .transport-bar, .queue') && document.querySelector('.ev-pill').textContent === 'AL AIRE'`));
   check('Siguiente dice lo que pondrá', await run(`return document.querySelector('.ev-next small').textContent.includes('Salmos 23')`));
   await tapEl(`document.querySelector('.ev-next')`);
   await sleep(400);
@@ -2779,6 +2780,20 @@ try {
     const whole = (await snap()).view;
     check('«Restablecer» deja la imagen entera y se apaga', whole.zoom === 1 && Math.abs(whole.x - 0.5) < 0.001 && await run(`return ${resetBtn}.disabled`), JSON.stringify(whole));
 
+    // En el computador, su columna de Biblia (fase 48): la misma lista que su pestaña en un móvil.
+    check('a la derecha, los versículos del mensaje con su «Encima»', await until(`document.querySelector('.pr-bible .ev-vrow .ev-vmain small')?.textContent.length > 0`, 12));
+    await click(`document.querySelector('.pr-bible .ev-vhead .ev-btn')`);
+    await sleep(500);
+    check('«Encima» lo pone sobre la diapositiva, sin cambiarla, y se ve en la grande', Boolean((await run(`return (await (await fetch('/api/state')).json()).projection.over?.title ?? ''`))) && await run(`return document.querySelectorAll('.pr-live .stage-layers > *').length > 0`) && await sees(`document.querySelector('.pr-bible .ev-back')`));
+    await click(`document.querySelector('.pr-bible .ev-back')`);
+    await sleep(400);
+    check('y su botón lo quita', !await sees(`document.querySelector('.pr-bible .ev-back')`));
+    await click(`document.querySelector('.pr-bible .ev-cite')`);
+    await sleep(300);
+    await click(`document.querySelector('.modal .ev-sheet-book')`);
+    for (const key of ['3', ':', '1']) await run(`document.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, bubbles: true }))`);
+    check('«Otra cita» abre la hoja en una ventana, y se escribe con el teclado', await until(`!document.querySelector('.modal .ev-sheet-put').disabled`, 12) && (await run(`return document.querySelector('.modal .ev-sheet-typed').textContent`)).endsWith('3:1'));
+    await click(`document.querySelector('.modal .icon-btn')`);
     // En el celular, «En vivo» del Orador completo (fase 46): sus pestañas y la hoja «Versículo».
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
     await sleep(1500); // pasar del computador al celular, o al revés, vuelve a abrir la página
@@ -3660,7 +3675,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await sleep(2200);
   const praise = `document.querySelector('.transport-bar .tb-volume')`;
   const praiseInView = () => run(`const r = ${praise}.getBoundingClientRect(); return r.height > 0 && r.top >= 0 && r.bottom <= innerHeight`);
-  check('"Alabanza" trae Himnario, Medios, Orden y Biblia, sin Ajustes', await run(`return [...document.querySelectorAll('.dock-item')].map(b => b.dataset.id).join() === 'himnario,medios,orden,biblia'`));
+  check('"Alabanza" trae Himnario, Medios, Orden y Biblia, sin Ajustes', await run(`return [...document.querySelectorAll('.dock-item[data-id]')].map(b => b.dataset.id).join() === 'himnario,medios,orden,biblia'`));
   check('fuera del control, la barra de arriba no lleva el botón del proyector, solo su estado', await run(`return !document.querySelector('.scene-power') && Boolean(document.querySelector('.scene-status .live-pill'))`));
   check('lleva el volumen de Manna a la vista aunque no suene nada', (await live()).kind === 'verses' && await praiseInView());
   await run(`const s = ${praise}.querySelector('input[type=range]'); s.value = 35; s.dispatchEvent(new Event('input'));`);

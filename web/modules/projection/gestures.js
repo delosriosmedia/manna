@@ -4,7 +4,7 @@ import { createSender } from '../../core/sender.js';
 import { centerOf, FULL_VIEW, MAX_ZOOM, place } from './view.js';
 
 // «Señalar» y «Mover» con el dedo o el ratón sobre una vista de lo que está al aire: la grande del Presentador,
-// la proyección de fondo del escenario o el recuadro de «Historias».
+// la proyección de fondo del escenario o la vista de «En vivo».
 //   Señalar: cada movimiento manda dónde está, en fracciones de la imagen (stage.pointAt); al soltar, se quita.
 //   Mover: un dedo (o el ratón) desplaza el encuadre, dos acercan y alejan, y la rueda acerca.
 //   Sin herramienta: onTap(lado) al soltar un toque corto (el Presentador pasa: 1 a la derecha, -1 a la izquierda).

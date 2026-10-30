@@ -5,8 +5,7 @@
 //   - el dock de módulos está a la vista (en el celular va abajo, con nombres, y se desliza si no caben)
 //   - lo que está al aire se ve y se gobierna siempre. Escritorio y tableta horizontal (860 px o más): la barra
 //     de estado y los botones de la barra de transporte, a la vista, y las piezas flotantes (cajón, cola, barras,
-//     dock) sin pisarse. Celular: el
-//     recuadro de «Historias» por encima del cajón (o, con el cajón a pantalla completa, el estado «AL AIRE»)
+//     dock) sin pisarse. «En vivo»: el estado arriba y Siguiente abajo
 //   - la acción principal de cada pantalla (Proyectar), dentro del cajón, se alcanza sin desplazarse y nada la tapa
 //   - queda sitio útil para el contenido (lista de versículos, orden del culto)
 //   - en pantallas táctiles, los botones tienen tamaño para el dedo (35 px o más)
@@ -92,7 +91,7 @@ const DEVICES = [
 
 // Abre la capa «Mandos» (en el celular, con el botón de la tarjeta de lo al aire; en el resto, el de la barra de transporte).
 // En el escritorio los mandos van siempre a la vista en la barra de abajo (fase 14); en el celular, en su capa.
-const OPEN_CONTROLS = `if (matchMedia('(max-width: 859px)').matches) document.querySelector('.story-controls, .ev-mas').click()`;
+const OPEN_CONTROLS = `if (matchMedia('(max-width: 859px)').matches) document.querySelector('.ev-mas').click()`;
 const LIVE_CONTROLS = '.tb-extra .live-controls, .controls-pop .live-controls';
 
 // Pantallas a revisar. prepare: lo que hay que hacer tras cargar. primary: la acción principal.
@@ -159,8 +158,8 @@ const SCREENS = [
   { name: 'Orden: nuevo orden', url: '/control#orden', prefs: { 'orden.vista': 'ordenes', 'cajon.completo': true, 'envivo.ancho': true }, inside: '.modal', settle: 700,
     prepare: `document.querySelector('.obrowse-head .btn').click()` },
   // Citas de un texto o documento (fase 27): una lista larga, por páginas, con una dudosa; «Añadir» siempre a la vista.
-  { name: 'Orden: citas de un documento', url: '/control#orden', inside: '.citas-where + .review-actions', settle: 1800,
-    prepare: `(async () => { const w = (ms) => new Promise((r) => setTimeout(r, ms)); document.querySelector('.ws[data-module=orden] .order-add').click(); await w(300); [...document.querySelectorAll('.menu button')].find((b) => b.textContent.includes('Citas de un texto')).click(); await w(300); document.querySelector('.review-text').value = Array.from({ length: 48 }, (_, i) => 'Leemos con atención lo que dice Salmos ' + (i + 1) + ':1 sobre la alabanza' + (i % 12 === 11 ? '\\f' : '')).join('\\n') + '\\nFíjense en el v. 3.'; [...document.querySelectorAll('.review-actions .btn')].find((b) => b.textContent.includes('Buscar')).click(); })()` },
+  { name: 'Orden: citas de un documento', url: '/control#orden', inside: '.citas-where + .review-actions', settle: 300,
+    prepare: `(async () => { const w = (ms) => new Promise((r) => setTimeout(r, ms)); document.querySelector('.ws[data-module=orden] .order-add').click(); await w(300); [...document.querySelectorAll('.menu button')].find((b) => b.textContent.includes('Citas de un texto')).click(); await w(300); document.querySelector('.review-text').value = Array.from({ length: 48 }, (_, i) => 'Leemos con atención lo que dice Salmos ' + (i + 1) + ':1 sobre la alabanza' + (i % 12 === 11 ? '\\f' : '')).join('\\n') + '\\nFíjense en el v. 3.'; [...document.querySelectorAll('.review-actions .btn')].find((b) => b.textContent.includes('Buscar')).click(); for (let i = 0; i < 40 && !document.querySelector('.citas-where'); i += 1) await w(200); })()` }, // la primera búsqueda de un servidor carga todas las biblias: se espera el resultado, no un tiempo fijo
   // El equipo de la auditoría "no tiene" navegador para la proyección: Ajustes lleva su aviso.
   { name: 'Ajustes, con aviso', url: '/control#ajustes', content: '.settings', inside: '.ws-notice' },
   // Ajustes → Usuarios (fase 35): la lista con sus botones y la ventana para añadir a alguien.
@@ -285,7 +284,7 @@ const MEASURE = (screen, touch, narrow) => {
   // Nada se desplaza de lado si no tiene nada al lado (lo vio el dueño en el Orden del celular): ningún panel con
   // desplazamiento horizontal cuyo contenido le sobre. Las tiras que se deslizan a propósito (el dock, las pestañas,
   // lo reciente, «A continuación», las secciones de Ajustes) quedan fuera.
-  const SIDEWAYS_OK = '.dockbar, .media-cats, .hymn-views, .chips, .story-next, .search-scope, .recent, .crumbs, .set-nav';
+  const SIDEWAYS_OK = '.dockbar, .media-cats, .hymn-views, .chips, .search-scope, .recent, .crumbs, .set-nav';
   const sideways = [...document.querySelectorAll('body *')].filter((el) => {
     if (!shown(el) || el.closest(SIDEWAYS_OK) || el.closest('[hidden]')) return false;
     const x = getComputedStyle(el).overflowX;
@@ -306,7 +305,7 @@ const MEASURE = (screen, touch, narrow) => {
     const scrim = (y) => { if (narrowNow) return 0; if (document.body.classList.contains('drawer-open')) return 0.35; const f = y / vh; return f < 0.22 ? 0.55 * (1 - f / 0.22) : f > 0.7 ? 0.65 * ((f - 0.7) / 0.3) : 0; };
     const low = [];
     // En «En vivo» nada flota sobre la proyección: el contraste lo miden las reglas de móviles.
-    for (const el of document.querySelectorAll('.topbar *, body:not(.envivo) .dockbar *, .queue *, .transport-bar *, body:not(.envivo) .drawer *, .story *')) {
+    for (const el of document.querySelectorAll('.topbar *, body:not(.envivo) .dockbar *, .queue *, .transport-bar *, body:not(.envivo) .drawer *')) {
       const own = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim();
       // Solo texto que se lee (con letras o cifras), no marcas decorativas como «·».
       if (!shown(el) || el.closest('[hidden], [disabled], .soon, .stage') || !(own.toLowerCase() !== own.toUpperCase() || /[0-9]/.test(own))) continue;
@@ -382,13 +381,6 @@ const MEASURE = (screen, touch, narrow) => {
       names.forEach((a, i) => names.slice(i + 1).forEach((b) => { const x = box(q(a)), y = box(q(b)); if (x.left < y.right - 1 && y.left < x.right - 1 && x.top < y.bottom - 1 && y.top < x.bottom - 1) hits.push(a + ' con ' + b + ' (' + Math.round(Math.min(x.right, y.right) - Math.max(x.left, y.left)) + ' × ' + Math.round(Math.min(x.bottom, y.bottom) - Math.max(x.top, y.top)) + ' px)'); }));
       out.solape = names.length >= 5 && hits.length === 0;
       if (hits.length) out.solapan = hits;
-    } else {
-      // Celular: el recuadro de «Historias» por encima del cajón; con el cajón a pantalla completa, el estado arriba.
-      const frame = q('.story-frame');
-      // Con el cajón completo, o uno reducido que tapa el recuadro, el estado se ve en la cabecera del cajón.
-      const covered = dr && !(box(frame).bottom <= dr.top + 1 || box(frame).right <= dr.left + 1);
-      out.alAire = dr && (drawer.classList.contains('wide') || covered) ? inView(q('.drawer .scene-mini .live-pill')) : inView(frame);
-      if (shown(frame)) { const m = box(frame); out.monitorProporcion = Math.abs(m.width / m.height - 16 / 9) < 0.08; }
     }
   }
   // Fase 25: la barra de abajo, en una sola fila (y baja), con todo lo que lleva dentro de ella; el cajón, con una sola

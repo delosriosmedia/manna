@@ -143,10 +143,15 @@ export function createVerseSheet({ message, under, keeps, onOpen = () => {}, onC
   }
 
   const onKey = (e) => {
-    if (e.key === 'Escape') {
-      e.stopPropagation();
-      close();
-    }
+    if (el.hidden || !el.isConnected) return;
+    const k = e.key === '-' ? '–' : e.key;
+    if (k === 'Escape') close();
+    else if (KEYS.includes(k) && book) press(k); // con teclado: el computador, o una tableta con el suyo
+    else if (k === 'Backspace') erase();
+    else if (k === 'Enter' && !put.disabled) put.click();
+    else return;
+    e.preventDefault();
+    e.stopPropagation();
   };
   function open() {
     el.hidden = false;

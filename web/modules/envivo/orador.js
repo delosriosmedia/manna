@@ -1,10 +1,11 @@
 import { action, serverNow, state, subscribe } from '../../core/api.js';
-import { guard, h, menu } from '../../core/dom.js';
+import { guard, h } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { kindBadge, kindOf } from '../../core/kinds.js';
 import { prefs } from '../../core/prefs.js';
 import { allPagesButton, framingButtons, goToStep, mando, pagesStrip } from '../projection/slot.js';
-import { chapterOf, createVerseSheet, versionNow } from './versiculo.js';
+import { createVerseSheet, versionNow } from './versiculo.js';
+import { createVerseList, messageItems, messageShortcuts, refOf, sheetWords } from './versiculos.js';
 
 // Lo propio de los dos oradores en «En vivo» (fases 46 y 47). El completo, sus pestañas (tableros T5, T6, U3 y U7): Diapositivas,
 // Versículos y Textos. El sencillo, su control de bolsillo (T7, T8, U4 y U8): Siguiente y Anterior enormes y lo justo. Los dos, la hoja
@@ -14,36 +15,16 @@ const isDeck = (item) => item?.kind === 'slides' || item?.kind === 'lyrics';
 const nowOf = (item) => (item.kind === 'slides' ? item.number : item.index) - 1;
 const pagesOf = (item) => kindOf(item.kind)?.pagesOf?.(item) || [];
 
-// Las partes del orden: los «versículos del mensaje» son los de la sección de lo que se está pasando; sin sección, todos.
-function messageItems(anchor) {
-  const all = state.order?.items || [];
-  const at = all.findIndex((i) => i.id === anchor);
-  let from = 0;
-  let to = all.length;
-  if (at >= 0) {
-    for (let i = at; i >= 0; i -= 1) if (all[i].kind === 'section') { from = i; break; }
-    for (let i = at + 1; i < all.length; i += 1) if (all[i].kind === 'section') { to = i; break; }
-  }
-  return all.slice(from, to).filter((i) => i.kind === 'verses' || i.kind === 'compare');
-}
-const refOf = (item) => item.data.ref;
-const rangeText = (ref) => `${ref.chapter}:${ref.verseStart}${ref.verseEnd > ref.verseStart ? `–${ref.verseEnd}` : ''}`;
-const bookFrom = (title) => title.replace(/\s+\d+:.*$/, '');
-
 export function createOrador(ctx, { variant, root, slot, slotApi, back }) {
   const sencillo = variant === 'sencillo';
   let deck = null;     // la última presentación al aire (sigue en su pestaña aunque salga otra cosa)
   let anchor = null;   // por dónde va en el orden
   let tab = prefs.get('orador.pestana', 'diapositivas');
-  const read = new Set();     // los pasajes ya leídos, en esta sesión
-  const opened = new Set();   // los que se abrieron para ver su texto
-  let showRead = false;
   let marked = null;   // el texto marcado
 
   const sheet = createVerseSheet({
-    message: () => messageItems(anchor).map((i) => ({ title: i.title, book: refOf(i).book, bookName: bookFrom(i.title), typed: rangeText(refOf(i)) })),
-    under: () => (state.projection?.item?.kind === 'slides' ? `de la ${state.projection.item.number}` : ''),
-    keeps: () => (state.projection?.item?.kind === 'slides' ? `Sigue al aire la diapositiva ${state.projection.item.number}` : ''),
+    message: () => messageShortcuts(anchor),
+    ...sheetWords,
     onOpen: () => { root.dataset.sheet = 'true'; },
     onClose: () => { delete root.dataset.sheet; },
   });
@@ -183,60 +164,10 @@ export function createOrador(ctx, { variant, root, slot, slotApi, back }) {
     }
   }
 
-  // Versículos: los del mensaje, cada uno con su «Encima»; al tocarlo, su texto entero y «Proyectar». Lo leído, plegado.
-  const versionLabel = h('span', {});
-  const versionBtn = mando({ cls: 'ev-version', onclick: () => menu(versionBtn, (state.bible?.versions || []).map((v) => ({ label: v.abbr ? `${v.name} (${v.abbr})` : v.name, note: v.id === versionNow()?.id ? 'ahora' : null, onclick: () => { prefs.set('version', v.id); paintVerses(); } }))) });
-  versionBtn.append(versionLabel);
-  const cite = h('button', { class: 'ev-cite', onclick: () => sheet.open() }, icon('magnifying-glass', 13), h('span', {}, 'Otra cita'));
-  const citeRow = h('div', { class: 'ev-cite-row' }, cite, versionBtn);
-  const verseRows = h('div', { class: 'ev-vrows' });
+  // Versículos: los del mensaje (versiculos.js).
+  const verses = createVerseList({ anchor: () => anchor, onCite: () => sheet.open() });
   const sectionName = (text) => h('div', { class: 'ev-sec ev-osec' }, h('span', {}, text)); // sin pestañas (tableta acostada)
-  const paneVerses = h('div', { class: 'ev-pane', dataset: { pane: 'versiculos' } }, citeRow, sectionName('Versículos del mensaje'), verseRows);
-  const texts = new Map(); // `versión|id` -> { text } | { missing: true }
-  function verseRow(item, v) {
-    const key = `${v?.id}|${item.id}`;
-    const known = texts.get(key);
-    const ref = refOf(item);
-    if (!known && v) {
-      chapterOf(v.id, ref.book, ref.chapter).then((data) => {
-        const found = data?.verses?.filter((x) => x.n >= ref.verseStart && x.n <= ref.verseEnd) || [];
-        texts.set(key, found.length ? { text: found.map((x) => x.text).join(' ') } : { missing: true });
-        paintVerses();
-      });
-    }
-    const open = opened.has(item.id);
-    const data = { versionId: v?.id, ref };
-    const encima = mando({ label: 'Encima', glyph: 'stack', title: 'Ponerlo encima de lo que está al aire, sin cambiarlo', onclick: guard(async () => {
-      await action('projection.over', { data });
-      read.add(item.id);
-      paintVerses();
-    }) });
-    encima.disabled = Boolean(known?.missing);
-    const sub = known?.missing ? `No está en ${v.abbr || v.name}${item.subtitle ? ` · Está en ${item.subtitle}` : ''}` : known?.text ?? '';
-    return h('div', { class: `ev-vrow${known?.missing ? ' miss' : ''}${open ? ' open' : ''}` },
-      h('div', { class: 'ev-vhead' },
-        h('button', { class: 'ev-vmain', onclick: () => { if (open) opened.delete(item.id); else opened.add(item.id); paintVerses(); } }, h('b', {}, item.title), h('small', {}, sub)),
-        encima),
-      open && !known?.missing && h('div', { class: 'ev-vfull' }, h('p', {}, known?.text ?? ''), h('button', { class: 'ev-vput', onclick: guard(async () => {
-        await action('order.show', { id: item.id, step: null });
-        read.add(item.id);
-        paintVerses();
-      }) }, icon('play', 13), `Proyectar ${item.title}`)));
-  }
-  function paintVerses() {
-    const v = versionNow();
-    versionLabel.textContent = v?.abbr || v?.name || '';
-    const items = messageItems(anchor);
-    if (!items.length) {
-      verseRows.replaceChildren(h('div', { class: 'ev-vacio' }, h('b', {}, 'Sin versículos en el orden'), h('small', {}, 'Con «Otra cita» se pone cualquiera encima.')));
-      return;
-    }
-    const pending = items.filter((i) => !read.has(i.id));
-    const done = items.filter((i) => read.has(i.id));
-    verseRows.replaceChildren(...pending.map((i) => verseRow(i, v)),
-      ...(done.length ? [h('button', { class: 'ev-read', 'aria-expanded': String(showRead), onclick: () => { showRead = !showRead; paintVerses(); } }, icon('check', 12), h('span', {}, `Ya leídos: ${done.map((i) => i.title).join(', ')}`), icon(showRead ? 'caret-up' : 'caret-down', 12))] : []),
-      ...(showRead ? done.map((i) => verseRow(i, v)) : []));
-  }
+  const paneVerses = h('div', { class: 'ev-pane', dataset: { pane: 'versiculos' } }, verses.citeRow, sectionName('Versículos del mensaje'), verses.rows);
 
   // Textos: los que hay, sin escribirlos. Un toque marca; solo el marcado lleva ▶.
   const textRows = h('div', { class: 'ev-vrows' });
@@ -265,12 +196,12 @@ export function createOrador(ctx, { variant, root, slot, slotApi, back }) {
     const p = state.projection;
     if (!p) return;
     paintSlides(p);
-    paintVerses();
+    verses.paint();
     paintTexts();
   }
   paintTabs();
   subscribe('texts', () => paintTexts());
-  subscribe('bible', () => paintVerses());
+  subscribe('bible', () => verses.paint());
 
   // La tira de la tableta de pie, y lo que va bajo la vista acostado.
   const strip = h('div', { class: 'ev-pick-tools' }, slotApi.tool('point'), slotApi.tool('move'), allPages.el);

@@ -1,21 +1,22 @@
 import { action, state, subscribe } from '../../core/api.js';
-import { h, guard } from '../../core/dom.js';
+import { h, dialog, guard } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
-import { createStage } from '../projection/stage.js';
+import { createStage, withOver } from '../projection/stage.js';
 import { createLiveControls } from '../projection/live.js';
 import { describeLive, toggleMode } from '../projection/controls.js';
 import { FULL_VIEW } from '../projection/view.js';
 import { attachGestures } from '../projection/gestures.js';
+import { createVerseSheet } from '../envivo/versiculo.js';
+import { createVerseList, messageShortcuts, sheetWords } from '../envivo/versiculos.js';
 import { DECK_ACCEPT, openDeckUpload } from './upload.js';
 import { pageUrl, plural, thumbUrl } from './deck.js';
 
-const wide = matchMedia('(min-width: 860px)');
 const TABS = [['orden', 'Del orden'], ['biblioteca', 'Biblioteca'], ['subir', 'Subir']];
 
 // Pantalla del orador (función «Orador completo»): una presentación cada vez, con
-// la diapositiva al aire en grande, la siguiente y todas en rejilla. Sobre la grande, el dedo señala
-// en la proyección (puntero), mueve y acerca el encuadre o, sin herramienta, pasa como en «Historias»
-// (a la derecha avanza, a la izquierda vuelve). «Siguiente» no sale de la presentación.
+// la diapositiva al aire en grande, la siguiente, todas en rejilla y una columna con los versículos del mensaje. Sobre
+// la grande, el ratón señala en la proyección (puntero), mueve y acerca el encuadre o, sin herramienta, pasa (a la
+// derecha avanza, a la izquierda vuelve). «Siguiente» no sale de la presentación. En un móvil, su pantalla es «En vivo».
 // También una página web (módulo Páginas web): la grande y el puntero; «Anterior» y «Siguiente» le
 // llegan como las flechas si es un archivo propio o va en su propia ventana.
 function mount(el, ctx) {
@@ -25,8 +26,7 @@ function mount(el, ctx) {
   let awaited = null;  // recién subida que aún no llegó con el estado
   let touched = false; // la persona ya eligió (o volvió a la lista): no se sigue sola a lo que esté al aire
   let tab = null;      // pestaña elegida; mientras no se elija, «Del orden» si tiene presentaciones
-  // En el escritorio se empieza señalando; en el celular, tocando para pasar («Señalar» se enciende aparte).
-  let tool = wide.matches ? 'point' : null;
+  let tool = 'point'; // se empieza señalando
   const decks = () => state.slides?.decks || [];
   const deck = () => decks().find((d) => d.id === deckId && d.status === 'ready') || null;
   const pages = () => state.web?.pages || [];
@@ -87,12 +87,20 @@ function mount(el, ctx) {
   const gridBox = h('div', { class: 'pr-grid' }, grid);
   // La grande ocupa todo lo que deja la columna de la derecha (la siguiente, los mandos y todas), sin
   // nada encima: así se puede señalar en cualquier punto.
+  // La columna de Biblia (fase 48), con lo mismo que su pestaña en un móvil.
+  let anchor = null;
+  let citeBox = null;
+  const sheet = createVerseSheet({ message: () => messageShortcuts(anchor), ...sheetWords, onClose: () => citeBox?.close() });
+  const verses = createVerseList({ anchor: () => anchor, onCite: () => { citeBox = dialog('Otra cita', sheet.el); sheet.open(); } });
+  const overText = h('span', {});
+  const overBack = h('button', { class: 'ev-back', hidden: true, onclick: guard(() => action('projection.overClear')) }, icon('arrow-left', 14), overText);
+  const bible = h('aside', { class: 'ev pr-bible', 'aria-label': 'Versículos del mensaje' }, h('div', { class: 'dock-label' }, 'Versículos del mensaje'), verses.citeRow, overBack, verses.rows);
   const present = h('div', { class: 'pr-body' },
     h('div', { class: 'pr-main' },
       h('div', { class: 'pr-tools' }, ...toolButtons, resetZoom, hint),
       h('div', { class: 'pr-screen' }, live), onAir, around,
       h('div', { class: 'transport' }, prev, next, black)),
-    h('div', { class: 'pr-side' }, controls, gridBox));
+    h('div', { class: 'pr-side' }, controls, gridBox), bible);
 
   el.replaceChildren(h('div', { class: 'ws-head' }, back, h('h1', {}, 'Orador'), title), chooser, present, picker);
   el.classList.add('presenter');
@@ -205,7 +213,7 @@ function mount(el, ctx) {
       if (on) {
         button.querySelector('.slide-thumb').append(h('span', { class: 'badge live' }, 'Al aire'));
         // En el celular la rejilla va debajo: desplazarla movería la página entera.
-        if (wide.matches) button.scrollIntoView({ block: 'nearest' });
+        button.scrollIntoView({ block: 'nearest' });
       }
     }
   }
@@ -274,13 +282,22 @@ function mount(el, ctx) {
 
   subscribe('projection', (p) => {
     stage.render(p);
+    stage.setLayers(withOver([], p));
+    if (p.item?.source?.orderId) anchor = p.item.source.orderId;
+    overBack.hidden = !p.over;
+    overText.textContent = p.over && p.item?.kind === 'slides' ? `Volver a la diapositiva ${p.item.number}` : 'Quitar el versículo';
+    verses.paint();
     render();
   });
+  subscribe('bible', () => verses.paint());
   subscribe('live', (l) => { stage.setLive(l); paintReset(); });
   subscribe('pointer', (p) => stage.setPointer(p));
   subscribe('slides', render);
   subscribe('web', render);
-  subscribe('order', () => { if (!deck() && !page()) render(); });
+  subscribe('order', () => {
+    verses.paint();
+    if (!deck() && !page()) render();
+  });
   paintTools();
 
   return {

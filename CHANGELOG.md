@@ -4,6 +4,12 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.66.0 — 2026-10-30
+
+- **En el computador, el panel de la derecha se llama «En vivo»**, y «En vivo» es el primer icono del dock: lo cierra todo y deja a la vista lo que está al aire.
+- **El Orador completo, en el computador, tiene su columna de Biblia**: los versículos del mensaje, cada uno con su «Encima», y «Otra cita», que se escribe también con el teclado.
+- **Se retira «Historias»**, la pantalla anterior del celular: ya la sustituyen las de «En vivo» de cada función.
+
 ## 1.65.0 — 2026-10-30
 
 - **El Orador completo estrena «En vivo» en el celular y la tableta**: lo que sale al proyector tal cual y, debajo, tres pestañas: las diapositivas, los versículos del mensaje y los textos. **«Encima»** pone un versículo sobre lo que está al aire sin cambiarlo, y «Volver a la diapositiva» lo quita. «Otra cita» abre una hoja con su propio teclado de números, porque el del celular tapa casi toda la pantalla.

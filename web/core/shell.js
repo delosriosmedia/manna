@@ -13,8 +13,8 @@ import { chooseContent, contentMissing } from './contenido.js';
 // Estructura de las funciones de control: el «Escenario» (fase 13 de docs/PLAN.md).
 // Lo que está al aire ocupa el fondo; encima flotan la barra de arriba, el dock de módulos, el cajón
 // del módulo abierto, la cola del culto y la barra de transporte. Esas piezas
-// las hace createScene (modules/projection/escenario.js), que cada función le pasa. En el celular
-// (< 860 px) es «Historias»: la proyección en un recuadro arriba, y los módulos en cajones que suben.
+// las hace createScene (modules/projection/escenario.js), que cada función le pasa. En un móvil, o con
+// menos de 860 px, la pantalla es «En vivo» (createLiveScene).
 //
 // Un módulo es { id, name, icon, place?, soon?, needs?, mount(el, ctx) }:
 //   place   'bottom' lo coloca al final del dock (Ajustes no sale en el dock: lo abre el logo, arriba)
@@ -116,10 +116,10 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   // «En vivo»: primero ella, aunque la iglesia ordene los módulos; luego cinco módulos y, si hay más, «Módulos».
   const inDock = !inline ? docked : liveDock ? docked.filter((m) => liveDock.includes(m.id)) : docked.length > 6 ? docked.slice(0, 5) : docked;
   const inMenu = liveDock ? [] : docked.filter((m) => !inDock.includes(m));
-  const liveItem = inline && h('button', { class: 'dock-item', 'aria-label': 'En vivo', 'aria-pressed': 'false', onclick: () => closeDrawer() }, icon('screencast', 16), h('span', { class: 'dock-name' }, 'En vivo'));
+  const liveItem = !bare && createLiveScene && h('button', { class: 'dock-item', title: 'En vivo', 'aria-label': 'En vivo', 'aria-pressed': 'false', onclick: () => closeDrawer() }, icon('screencast', 20), h('span', { class: 'dock-name' }, 'En vivo'));
   const moreItem = inMenu.length > 0 && h('button', { class: 'dock-item', 'aria-label': 'Más módulos', 'aria-haspopup': 'menu', onclick: () => menu(moreItem, inMenu.map((m) => ({ label: m.name, icon: m.icon, onclick: () => show(m.id) }))) }, icon('dots-three', 16), h('span', { class: 'dock-name' }, 'Módulos'));
   if (inline) dockbar.append(...[liveItem, ...inDock.map(dockButton), moreItem].filter(Boolean));
-  else dockbar.append(...docked.filter((m) => m.place !== 'bottom').map(dockButton), h('span', { class: 'dock-fill' }), ...docked.filter((m) => m.place === 'bottom').map(dockButton));
+  else dockbar.append(...[liveItem, ...docked.filter((m) => m.place !== 'bottom').map(dockButton)].filter(Boolean), h('span', { class: 'dock-fill' }), ...docked.filter((m) => m.place === 'bottom').map(dockButton));
   if (listed.length < 2 && !full) dockbar.classList.add('single');
   if (tabs) dockbar.setAttribute('aria-label', 'Pestañas');
 
@@ -256,9 +256,10 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
       b.classList.toggle('on', on);
       b.setAttribute('aria-pressed', String(on));
     });
-    if (!inline) return;
-    liveItem.classList.toggle('on', !isOpen());
-    liveItem.setAttribute('aria-pressed', String(!isOpen()));
+    if (liveItem) {
+      liveItem.classList.toggle('on', !isOpen());
+      liveItem.setAttribute('aria-pressed', String(!isOpen()));
+    }
     moreItem && moreItem.classList.toggle('on', isOpen() && inMenu.some((m) => m.id === current?.id));
   }
 
@@ -491,7 +492,6 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   } else {
     const place = () => {
       document.body.classList.toggle('narrow', narrow.matches);
-      scene.place(narrow.matches);
       backdrop.hidden = !narrow.matches || !isOpen();
       paintSize(preferredWide());
       applySize();
@@ -502,7 +502,7 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
     // de abajo siguen funcionando con el cajón abierto (decisión del dueño, 2026-10-15).
     // Con un cajón abierto, el toque solo lo cierra; con él cerrado, esconde (o trae) la barra de abajo.
     scene.bg.addEventListener('click', (e) => { if (isOpen()) closeDrawer(); else scene.tapBackground(e); });
-    document.body.append(...[scene.bg, h('div', { class: 'scene-scrim', 'aria-hidden': 'true' }), top, update, fresh, content, scene.story,
+    document.body.append(...[scene.bg, h('div', { class: 'scene-scrim', 'aria-hidden': 'true' }), top, update, fresh, content,
       dockbar, scene.queue, backdrop, drawer, scene.transport, controlsLayer, scene.search?.layer, scene.preview?.bar].filter(Boolean));
     place();
   }

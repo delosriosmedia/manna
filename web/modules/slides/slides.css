@@ -73,7 +73,11 @@ html.touch .pr-tabs .chip { min-height: var(--tap); padding: 0 14px; }
 .pr-list .deck-pick { padding-right: 8px; }
 /* La diapositiva al aire es la pantalla: ocupa todo lo que deja la columna de la derecha (la siguiente, los
    mandos y todas), con las herramientas encima y los botones debajo, en cristal. */
-.pr-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; padding: 0 12px 12px; }
+.pr-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 260px 300px; gap: 12px; padding: 0 12px 12px; }
+.ev.pr-bible { height: auto; min-height: 0; padding: 12px; gap: 8px; border-radius: var(--r-lg); background: var(--glass-2); border: 1px solid var(--glass-line); }
+.pr-bible .ev-back { position: static; flex: none; }
+.modal .ev-sheet { width: min(420px, 80vw); padding: 0; border: 0; background: none; }
+.modal .ev-sheet-close { display: none; }
 .pr-main { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto auto; gap: 10px; }
 .pr-side { min-height: 0; overflow-y: auto; display: grid; gap: 10px; align-content: start; padding: 12px; border-radius: var(--r-lg); background: var(--glass-2); border: 1px solid var(--glass-line); }
 .pr-grid .slide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
@@ -105,34 +109,9 @@ html.touch .pr-tools .chip { min-height: var(--tap); padding: 0 14px; }
 .presenter .web-keys { display: none; }
 
 @media (max-width: 1179px) {
-  .pr-body { grid-template-columns: minmax(0, 1fr) 250px; }
+  .pr-body { grid-template-columns: minmax(0, 1fr) 170px 240px; }
   .pr-grid .slide-grid { grid-template-columns: minmax(0, 1fr); }
 }
-/* Celular y tableta en vertical: como «Historias», la grande arriba (tocarla pasa; con «Señalar», señala),
-   debajo los botones y después la siguiente y todas, en una columna que se desplaza. */
-@media (max-width: 859px) {
-  .pr-choose { padding: 10px 12px 16px; }
-  .pr-list { grid-template-columns: minmax(0, 1fr); }
-  .presenter[data-view='present'] .ws-head h1 { display: none; }
-  .pr-body { display: flex; flex-direction: column; overflow-y: auto; gap: 12px; padding: 0 12px 16px; }
-  .pr-body > * { flex-shrink: 0; }
-  .pr-main { display: flex; flex-direction: column; }
-  .pr-main > * { flex-shrink: 0; }
-  .pr-tools { order: 3; justify-content: center; align-self: center; }
-  .pr-screen { container-type: normal; display: block; }
-  .pr-live { width: 100%; }
-  .presenter .transport { order: 2; width: 100%; }
-  .pr-onair { order: 1; }
-  .pr-around { order: 4; width: 100%; }
-  .pr-side { overflow: visible; }
-  .pr-grid .slide-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-/* Celular en horizontal: la grande, con sitio debajo para la fila de botones sin desplazarse. */
-@media (max-width: 859px) and (max-height: 480px) {
-  .pr-live { width: min(100%, calc(calc(44dvh / var(--zoom)) * 16 / 9)); margin: 0 auto; }
-  .pr-grid .slide-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-}
-
 /* En el Presentador, los mandos de la diapositiva no se muestran (la grande ya se mueve y se señala): solo el aviso de PowerPoint. */
 .presenter .live-controls:not(:has(.slide-ppt:not([hidden]))) { display: none; }
 /* Una presentación de la iglesia vista desde la nube: solo su portada (decisión 64). */

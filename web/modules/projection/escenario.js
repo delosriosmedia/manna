@@ -21,14 +21,13 @@ const SPRING = CSS.supports('animation-timing-function', 'linear(0, 1)')
 
 // «Escenario» (fase 13 de docs/PLAN.md): lo que está al aire ocupa el fondo y, encima, en cristal,
 // lo que lo gobierna. Lo coloca core/shell.js; aquí solo se hacen las piezas y se mantienen al día.
-//   bg         la proyección de fondo (en el celular, solo su color desenfocado: la imagen va en story)
+//   bg         la proyección de fondo
 //   status     estado al aire: su etiqueta y qué se ve, en su burbuja, al centro de la barra de arriba
-//   modes      «Solo fondo» y «Negro», como iconos (van junto a cambiar de función; en el celular, en «Historias»)
+//   modes      «Solo fondo» y «Negro», como iconos (van junto a cambiar de función)
 //   power      en el control del equipo principal, el botón del proyector (null en las demás)
-//   queue      cola del culto: el orden para operar, con los pasos de lo que está al aire
+//   queue      «En vivo», el panel derecho: el orden para operar, con los pasos de lo que está al aire
 //   transport  barra de abajo: los mandos de lo que está al aire (siempre a la vista) y, debajo, Anterior,
 //              Siguiente, qué sigue y el volumen
-//   story      celular («Historias»): la proyección en su recuadro, con toques para pasar y lo que sigue
 //   controls   los mandos del tipo al aire (live.js) para el celular, que el shell abre en una capa; en el
 //              escritorio van en la barra de abajo
 //   search     «Buscar en todo» (search.js), solo en las funciones que preparan el culto
@@ -44,6 +43,7 @@ export function createEscenario(ctx) {
   const bg = h('div', { class: 'scene-bg', 'aria-hidden': 'true' }, ambient, screen);
   // En un dispositivo remoto, lo que suena va sin apuro: si alguien lo escucha aquí, no se oye a saltos.
   const stage = createStage(screen, { thumbnail: !ctx.isLocal, moving: !ctx.isLocal });
+  bg.prepend(screen);
 
   // ---- Estado al aire ----
   const pills = [];
@@ -59,8 +59,7 @@ export function createEscenario(ctx) {
     chips.push(el);
     return el;
   };
-  // Encenderlas y apagarlas sin ir a «Capas» (pedido del dueño, 2026-10-25): en la barra de abajo (en el celular, en
-  // «Historias»), una «isla» por capa con algo, al estilo de la Dynamic Island (fase 34): la ficha que la enciende o la
+  // Encenderlas y apagarlas sin ir a «Capas» (pedido del dueño, 2026-10-25): en la barra de abajo, una «isla» por capa con algo, al estilo de la Dynamic Island (fase 34): la ficha que la enciende o la
   // apaga (encendida, en cian) y, si su tipo la tiene (island), la burbuja que se desprende de ella con su cuenta y sus
   // botones (un temporizador). Cada isla se conserva mientras la capa tenga lo mismo; solo en Control total.
   const switchSets = []; // { el, isles: Map(n -> { key, wrap, main, name, extra }) }
@@ -126,7 +125,7 @@ export function createEscenario(ctx) {
   const power = ctx.role === 'control' && ctx.isLocal ? createDisplayToggle({ compact: true }) : null;
   power?.classList.add('scene-power', 'glass');
   // «Solo fondo» y «Negro», como iconos aparte de lo que está al aire, que se confundía con ellos (pedido del dueño,
-  // 2026-10-18). En el celular van en «Historias».
+  // 2026-10-18).
   const clear = h('button', { class: 'mode-btn', 'aria-label': 'Solo fondo', title: 'Solo fondo (Mayús+C): oculta el texto y deja el fondo', onclick: () => toggleMode('clear') }, icon('text-t-slash', 18));
   const black = h('button', { class: 'mode-btn', 'aria-label': 'Negro', title: 'Negro (Mayús+B): la pantalla en negro', onclick: () => toggleMode('black') }, icon('pantalla-negra', 18));
   const modeBar = h('div', { class: 'scene-modes glass', role: 'group', 'aria-label': 'Qué se ve en la proyección' }, clear, black);
@@ -140,7 +139,7 @@ export function createEscenario(ctx) {
   // un ▶ para proyectarlo; Intro (shell.js) y el doble toque también lo proyectan.
   let prepared = null;
   const markPrepared = () => {
-    for (const row of [...queueList.querySelectorAll('.queue-item'), ...carousel.querySelectorAll('.story-card')]) row.classList.toggle('prepared', prepared?.orderId === row.dataset.id);
+    for (const row of queueList.querySelectorAll('.queue-item')) row.classList.toggle('prepared', prepared?.orderId === row.dataset.id);
   };
   const projectPrepared = guard(async () => {
     if (!prepared?.project) return false;
@@ -167,14 +166,14 @@ export function createEscenario(ctx) {
   // Debajo del título, el nombre del orden en uso (si tiene).
   const queueName = h('span', { class: 'queue-name' });
   const queueHead = h('button', { class: 'queue-head', 'aria-expanded': String(queueOpen), onclick: () => setQueue(!queueOpen) },
-    h('strong', {}, 'Cola del culto', queueName), queuePos, queueToggle);
-  const queue = h('aside', { class: 'queue glass', 'aria-label': 'Cola del culto' }, queueHead, jobs, queueList);
+    h('strong', {}, 'En vivo', queueName), queuePos, queueToggle);
+  const queue = h('aside', { class: 'queue glass', 'aria-label': 'En vivo' }, queueHead, jobs, queueList);
   function setQueue(open) {
     queueOpen = open;
     prefs.set('cola', open);
     queue.classList.toggle('closed', !open);
     queueHead.setAttribute('aria-expanded', String(open));
-    queueHead.title = open ? 'Plegar la cola del culto' : 'Desplegar la cola del culto';
+    queueHead.title = open ? 'Plegar «En vivo»' : 'Desplegar «En vivo»';
     queueToggle.replaceChildren(...(open ? [icon('caret-up', 18)] : [icon('rows', 18), icon('caret-down', 14)]));
     document.body.classList.toggle('queue-closed', !open);
   }
@@ -224,10 +223,10 @@ export function createEscenario(ctx) {
 
   // ---- Señalar y Mover, sobre la proyección ----
   // Como en el Presentador: el dedo o el ratón señalan en la proyección o mueven y acercan el encuadre, sobre la
-  // proyección de fondo (escritorio) o el recuadro de «Historias» (celular). Solo con lo que sabe situar un punto
+  // proyección de fondo. Solo con lo que sabe situar un punto
   // (una imagen, una diapositiva, una página); «Mover», además, con lo que se puede acercar.
   let tool = null;
-  // En el fondo entero (la proyección no recibe el ratón); en el celular, en el recuadro (más abajo).
+  // En el fondo entero: la proyección no recibe el ratón.
   const gestures = attachGestures(bg, { stage, tool: () => tool, box: screen });
   const toolSets = [];
   const toolSet = () => {
@@ -257,7 +256,6 @@ export function createEscenario(ctx) {
       set.reset.disabled = !gestures.framed();
     }
     if (tool) bg.dataset.tool = tool; else delete bg.dataset.tool;
-    if (tool) frame.dataset.tool = tool; else delete frame.dataset.tool;
   }
 
   // ---- Barra de transporte ----
@@ -306,55 +304,6 @@ export function createEscenario(ctx) {
   createLiveControls(controls);
   createJobsList(jobs, { canDismiss: ctx.canEdit, filter: (job) => !job.quiet });
 
-  // ---- Celular: «Historias» ----
-  const segments = h('div', { class: 'story-steps', 'aria-hidden': 'true' });
-  const frame = h('div', { class: 'story-frame' }, segments,
-    h('button', { class: 'story-zone prev', 'aria-label': 'Anterior', onclick: step(-1) }),
-    h('button', { class: 'story-zone next', 'aria-label': 'Siguiente', onclick: step(1) }));
-  attachGestures(frame, { stage, tool: () => tool, box: screen });
-  const storyTitle = h('strong', {});
-  const storySub = h('small', {});
-  const modes = [['live', 'Al aire'], ['clear', 'Solo fondo'], ['black', 'Negro']].map(([mode, label]) => h('button', {
-    class: 'seg-btn', dataset: { mode }, 'aria-pressed': 'false', onclick: guard(() => action('projection.mode', { mode })),
-  }, label));
-  const storyVolume = createVolume();
-  const carousel = h('div', { class: 'story-next-list' });
-  const story = h('main', { class: 'story', 'aria-label': 'Al aire' },
-    frame,
-    h('div', { class: 'story-caption' }, livePill(), h('span', { class: 'item-text' }, storyTitle, storySub),
-      h('button', { class: 'icon-btn story-controls', 'aria-label': 'Mandos de lo que está al aire', onclick: () => ctx.openControls?.() }, icon('sliders-horizontal', 18))),
-    h('p', { class: 'story-hint' }, 'Toca la imagen: a la derecha avanza, a la izquierda vuelve.'),
-    toolSet(),
-    h('div', { class: 'story-modes', role: 'group', 'aria-label': 'Qué se ve en la proyección' }, ...modes),
-    layerSwitches('story-layers'),
-    h('div', { class: `story-volume${ctx.role === 'alabanza' ? ' big' : ''}` }, storyVolume.el),
-    h('div', { class: 'story-next' }, h('div', { class: 'story-next-head' }, h('strong', {}, 'A continuación'), h('small', {}, 'Toca: marca · ▶ o doble toque: proyecta')), carousel));
-
-  function renderStory(p) {
-    const items = orderItems();
-    const src = p.item?.source;
-    const cur = items.find((i) => i.id === src?.orderId);
-    const total = cur?.steps > 1 ? cur.steps : p.item?.pages > 1 ? p.item.pages : 0;
-    const now = cur ? (src.step ?? 0) : (p.item?.index ?? p.item?.number ?? 1) - 1; // index: la diapositiva de una letra; number, la de una presentación
-    segments.replaceChildren(...Array.from({ length: Math.min(total, 40) }, (_, k) => h('span', { class: k < now ? 'done' : k === now ? 'on' : '' })));
-    const live = describeLive(p);
-    storyTitle.textContent = live.text || live.label;
-    storySub.textContent = total ? `paso ${now + 1} de ${total}` : live.text ? live.label : '';
-    for (const b of modes) {
-      const on = (b.dataset.mode === 'live' && p.mode === 'live' && Boolean(p.item)) || (b.dataset.mode !== 'live' && p.mode === b.dataset.mode);
-      b.classList.toggle('on', on);
-      b.setAttribute('aria-pressed', String(on));
-    }
-    const at = items.findIndex((i) => i.id === src?.orderId);
-    const upcoming = items.slice(at + 1).filter((i) => i.kind !== 'section').slice(0, 8);
-    carousel.replaceChildren(...(upcoming.length
-      ? upcoming.map((item) => h('div', { class: `story-card${prepared?.orderId === item.id ? ' prepared' : ''}`, dataset: { id: item.id } },
-        h('button', { class: 'story-main', title: item.title, onclick: () => prepareOrder(item), ondblclick: guard(() => action('order.show', { id: item.id })) },
-          kindBadge(item.kind), h('strong', {}, item.title), h('small', {}, item.subtitle)),
-        playButton(item, 'story-play')))
-      : [h('p', { class: 'muted' }, items.length ? 'No queda nada más en el orden.' : 'El orden del culto está vacío.')]));
-  }
-
   // ---- Al día ----
   function paintBackground(styles = {}) {
     ambient.style.background = styles.backgroundType === 'image' && styles.bgImage
@@ -365,7 +314,6 @@ export function createEscenario(ctx) {
     stage.render(p);
     const live = describeLive(p);
     bg.dataset.state = live.state;
-    frame.dataset.state = live.state;
     for (const pill of pills) {
       pill.textContent = live.state === 'live' ? '● AL AIRE' : live.state === 'black' ? 'NEGRO' : live.state === 'clear' ? 'SOLO FONDO' : 'NADA';
       pill.dataset.state = live.state;
@@ -385,7 +333,6 @@ export function createEscenario(ctx) {
     const src = p.item?.source;
     if (prepared && p.mode === 'live' && src?.orderId === prepared.orderId && (prepared.step ?? 0) === (src?.step ?? 0)) prepared = null;
     renderQueue();
-    renderStory(p);
   });
   const paintLayers = () => stage.setLayers(withOver((state.layers?.slots || []).map(lightLayer(ctx.isLocal)), state.projection));
   // La capa del orador va y viene con lo que está al aire.
@@ -405,7 +352,6 @@ export function createEscenario(ctx) {
   subscribe('order', (o) => {
     queueName.textContent = o.name || '';
     renderQueue();
-    if (state.projection) renderStory(state.projection);
   });
   // Con un video en movimiento detrás, el cristal deja de desenfocar (shell.css, body.moving): desenfocar lo que
   // cambia en cada fotograma es lo que más gasta la tarjeta gráfica.
@@ -415,7 +361,7 @@ export function createEscenario(ctx) {
     paintTools();
     paintMotion();
   });
-  // El punto rojo del Presentador también se ve en el fondo (y en el recuadro de «Historias»).
+  // El punto rojo del Presentador también se ve en el fondo.
   subscribe('pointer', (p) => stage.setPointer(p));
   subscribe('conexiones', ({ sonido }) => {
     stage.setSound(Boolean(sonido) && sonido === connectionId());
@@ -423,11 +369,7 @@ export function createEscenario(ctx) {
   });
 
   return {
-    bg, status, modes: modeBar, power, mini, queue, transport, story, controls, search, preview,
-    // En el celular la proyección va en el recuadro de «Historias»; en el escritorio, de fondo.
-    place(narrow) {
-      (narrow ? frame : bg).prepend(screen);
-    },
+    bg, status, modes: modeBar, power, mini, queue, transport, controls, search, preview,
     toggleMode,
     projectPrepared,
     // Un toque en el fondo (shell.js) esconde la barra de abajo, o la trae si ya estaba escondida (con el dedo no hay
