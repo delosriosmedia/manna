@@ -52,16 +52,22 @@ const unescape = (text) => text.replace(/&(#x[0-9a-f]+|#\d+|\w+);/gi, (all, e) =
   : ENTITIES[e] ?? all));
 
 // Las letras que usa: las del tema (las de los títulos y del texto) y las que se eligieron a mano en las
-// diapositivas, sus diseños y sus patrones (también las de las viñetas y los símbolos). Y las que trae dentro.
+// diapositivas, sus diseños y sus patrones (también las de las viñetas y los símbolos). Y las que trae dentro y DeckCraft
+// sabe leer en las miniaturas: no las comprimidas (EOT con MicroType Express, la marca 4 en el byte 12), que solo lee
+// la copia de Manna, en la proyección.
 export function deckFonts(file) {
-  const parts = readZip(file, (name) => name === 'ppt/presentation.xml' || /^ppt\/(slides|slideLayouts|slideMasters|theme)\/[^/]+\.xml$/.test(name));
+  const parts = readZip(file, (name) => /^ppt\/(presentation\.xml|_rels\/presentation\.xml\.rels|fonts\/[^/]+|(slides|slideLayouts|slideMasters|theme)\/[^/]+\.xml)$/.test(name));
   const used = new Map();
   const embedded = new Map();
   const add = (to, name) => { if (name && !name.startsWith('+')) to.set(name.toLowerCase(), name); };
   for (const [name, data] of parts) {
-    const xml = data.toString('utf8');
-    const tags = name === 'ppt/presentation.xml' ? /<p:font\b[^>]*?\btypeface="([^"]*)"/g : /<a:(?:latin|sym|buFont)\b[^>]*?\btypeface="([^"]*)"/g;
-    for (const [, typeface] of xml.matchAll(tags)) add(name === 'ppt/presentation.xml' ? embedded : used, unescape(typeface).trim());
+    if (!/^ppt\/(slides|slideLayouts|slideMasters|theme)\//.test(name)) continue;
+    for (const [, typeface] of data.toString('utf8').matchAll(/<a:(?:latin|sym|buFont)\b[^>]*?\btypeface="([^"]*)"/g)) add(used, unescape(typeface).trim());
+  }
+  const rels = new Map([...(parts.get('ppt/_rels/presentation.xml.rels')?.toString('utf8') || '').matchAll(/<Relationship\b[^>]*?\bId="([^"]+)"[^>]*?\bTarget="([^"]+)"/g)].map(([, id, target]) => [id, `ppt/${target}`]));
+  for (const [, block] of (parts.get('ppt/presentation.xml')?.toString('utf8') || '').matchAll(/<p:embeddedFont>([\s\S]*?)<\/p:embeddedFont>/g)) {
+    const files = [...block.matchAll(/\br:id="([^"]+)"/g)].map(([, id]) => parts.get(rels.get(id)));
+    if (files.length && files.every((f) => f?.length > 16 && !(f.readUInt32LE(12) & 4))) add(embedded, unescape(/<p:font\b[^>]*?\btypeface="([^"]*)"/.exec(block)?.[1] || '').trim());
   }
   return { used: [...used.values()].sort(), embedded: [...embedded.values()].sort() };
 }

@@ -13,19 +13,20 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-letras-'));
 test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
 const deck = path.join(tmp, 'letras.pptx');
-fs.writeFileSync(deck, makePptx([{ text: 'Uno', font: 'Letra de Prueba' }, { text: 'Dos', font: 'Letra Que Falta' }, { text: 'Tres', font: 'Letra de Dentro' }], { embedded: ['Letra de Dentro'] }));
+fs.writeFileSync(deck, makePptx([{ text: 'Uno', font: 'Letra de Prueba' }, { text: 'Dos', font: 'Letra Que Falta' }, { text: 'Tres', font: 'Letra de Dentro' }, { text: 'Cuatro', font: 'Letra Comprimida' }],
+  { embedded: [{ name: 'Letra de Dentro' }, { name: 'Letra Comprimida', compressed: true }] }));
 
 test('del .pptx se leen solo las partes pedidas, descomprimidas', () => {
   const parts = readZip(deck, (name) => name.startsWith('ppt/slides/slide'));
-  assert.deepEqual([...parts.keys()].sort(), ['ppt/slides/slide1.xml', 'ppt/slides/slide2.xml', 'ppt/slides/slide3.xml']);
+  assert.deepEqual([...parts.keys()].sort(), ['ppt/slides/slide1.xml', 'ppt/slides/slide2.xml', 'ppt/slides/slide3.xml', 'ppt/slides/slide4.xml']);
   assert.match(parts.get('ppt/slides/slide1.xml').toString('utf8'), /typeface="Letra de Prueba"/);
   const notZip = path.join(tmp, 'nada.pptx');
   fs.writeFileSync(notZip, 'esto no es un zip');
   assert.throws(() => readZip(notZip, () => true), /zip/);
 });
 
-test('las letras que usa: las del tema y las de cada diapositiva; aparte, las que trae dentro', () => {
-  assert.deepEqual(deckFonts(deck), { used: ['Arial', 'Letra Que Falta', 'Letra de Dentro', 'Letra de Prueba'], embedded: ['Letra de Dentro'] });
+test('las letras que usa: las del tema y las de cada diapositiva; aparte, las que trae dentro sin comprimir', () => {
+  assert.deepEqual(deckFonts(deck), { used: ['Arial', 'Letra Comprimida', 'Letra Que Falta', 'Letra de Dentro', 'Letra de Prueba'], embedded: ['Letra de Dentro'] });
 });
 
 test('el nombre de familia de un archivo de letra, de su tabla «name»', () => {
@@ -45,9 +46,10 @@ test('se mandan las instaladas que usa, y faltan las que no están ni vienen den
   const index = installedFonts([dir]);
   const { files, missing } = fontsFor(deck, index);
   assert.deepEqual(files.map((f) => path.basename(f)).sort(), ['arial.ttf', 'prueba.ttf']);
-  assert.deepEqual(missing, ['Letra Que Falta']);
+  assert.deepEqual(missing, ['Letra Comprimida', 'Letra Que Falta'], 'la comprimida falta: las miniaturas no la leen');
   // Instalar una letra cambia la carpeta, y el índice se rehace.
   fs.writeFileSync(path.join(dir, 'falta.ttf'), makeFont('Letra Que Falta'));
+  fs.writeFileSync(path.join(dir, 'comprimida.ttf'), makeFont('Letra Comprimida'));
   fs.utimesSync(dir, new Date(), new Date(Date.now() + 5000));
   assert.deepEqual(fontsFor(deck, installedFonts([dir])).missing, []);
 });

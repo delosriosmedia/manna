@@ -3,9 +3,10 @@ import zlib from 'node:zlib';
 // Hace una presentación de PowerPoint (.pptx) para las pruebas, sin depender de ninguna guardada en el repositorio: lo
 // mínimo que PowerPoint y DeckCraft aceptan (un patrón, un diseño, un tema y las diapositivas), con un recuadro de color
 // y un texto en cada una. Una diapositiva con `hidden` va oculta (show="0"); con `font`, su texto lleva esa letra (si
-// no, Arial). `embedded`: las letras que dice traer dentro (solo la lista, sin los archivos).
+// no, Arial). `embedded`: las letras que trae dentro, cada una con su parte (solo la cabecera EOT, sin la letra), comprimida
+// como la guarda PowerPoint (MicroType Express) si lleva `compressed`.
 //
-//   makePptx([{ text: 'Uno' }, { text: 'Dos', hidden: true }, { text: 'Tres', font: 'Otra' }], { embedded: ['Otra'] })  -> Buffer
+//   makePptx([{ text: 'Uno' }, { text: 'Dos', hidden: true }, { text: 'Tres', font: 'Otra' }], { embedded: [{ name: 'Otra' }] })  -> Buffer
 const NS = 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';
 const HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
 const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
@@ -25,13 +26,16 @@ function slide({ text = '', hidden = false, font = 'Arial' }, i) {
 
 export function makePptx(slides, { embedded = [] } = {}) {
   const n = slides.length;
-  const types = `${HEAD}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${slides.map((_, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join('')}</Types>`;
-  const presentation = `${HEAD}<p:presentation ${NS}><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>${slides.map((_, i) => `<p:sldId id="${256 + i}" r:id="rId${10 + i}"/>`).join('')}</p:sldIdLst><p:sldSz cx="12192000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/>${embedded.length ? `<p:embeddedFontLst>${embedded.map((f) => `<p:embeddedFont><p:font typeface="${escape(f)}"/></p:embeddedFont>`).join('')}</p:embeddedFontLst>` : ''}</p:presentation>`;
+  const types = `${HEAD}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="fntdata" ContentType="application/x-fontdata"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${slides.map((_, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join('')}</Types>`;
+  const presentation = `${HEAD}<p:presentation ${NS}><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>${slides.map((_, i) => `<p:sldId id="${256 + i}" r:id="rId${10 + i}"/>`).join('')}</p:sldIdLst><p:sldSz cx="12192000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/>${embedded.length ? `<p:embeddedFontLst>${embedded.map((f, i) => `<p:embeddedFont><p:font typeface="${escape(f.name)}"/><p:regular r:id="rIdFont${i + 1}"/></p:embeddedFont>`).join('')}</p:embeddedFontLst>` : ''}</p:presentation>`;
+  // La cabecera EOT de cada una: sus marcas en el byte 12 (4: MicroType Express) y la firma 0x504C en el 34.
+  const eot = (f) => { const b = Buffer.alloc(82); b.writeUInt32LE(0x00020001, 8); b.writeUInt32LE(f.compressed ? 4 : 0, 12); b.writeUInt16LE(0x504c, 34); return b; };
   const files = [
     ['[Content_Types].xml', types],
     ['_rels/.rels', rels([['rId1', 'officeDocument', 'ppt/presentation.xml']])],
     ['ppt/presentation.xml', presentation],
-    ['ppt/_rels/presentation.xml.rels', rels([['rId1', 'slideMaster', 'slideMasters/slideMaster1.xml'], ['rId2', 'theme', 'theme/theme1.xml'], ...slides.map((_, i) => [`rId${10 + i}`, 'slide', `slides/slide${i + 1}.xml`])])],
+    ['ppt/_rels/presentation.xml.rels', rels([['rId1', 'slideMaster', 'slideMasters/slideMaster1.xml'], ['rId2', 'theme', 'theme/theme1.xml'], ...slides.map((_, i) => [`rId${10 + i}`, 'slide', `slides/slide${i + 1}.xml`]), ...embedded.map((_, i) => [`rIdFont${i + 1}`, 'font', `fonts/font${i + 1}.fntdata`])])],
+    ...embedded.map((f, i) => [`ppt/fonts/font${i + 1}.fntdata`, eot(f)]),
     ['ppt/slideMasters/slideMaster1.xml', MASTER],
     ['ppt/slideMasters/_rels/slideMaster1.xml.rels', rels([['rId1', 'slideLayout', '../slideLayouts/slideLayout1.xml'], ['rId2', 'theme', '../theme/theme1.xml']])],
     ['ppt/slideLayouts/slideLayout1.xml', LAYOUT],
