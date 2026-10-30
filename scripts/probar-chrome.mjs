@@ -9,7 +9,7 @@
 //      y audios que van a la par; categorías, con el ratón y el dedo; YouTube, con un yt-dlp de mentira),
 //      diapositivas (un PDF de verdad, convertido por el propio Chrome, y un PowerPoint
 //      con un PowerPoint de mentira), el Presentador (pasar diapositivas, señalar con el dedo, acercar y mover, páginas web; también en 375 px), Páginas web (direcciones que se dejan mostrar y que no, y un archivo HTML encerrado que recibe las flechas desde los mandos al aire), mandos en vivo que van a la par en dos pantallas, ajustes
-//      y la función "Control del orden". También que Manna atiende por https.
+//      y las funciones de los oradores. También que Manna atiende por https.
 //   2. Al entrar por la dirección numérica, la página pasa sola a la dirección con nombre.
 //   3. El navegador pide confirmación al salir de la pestaña de control.
 //   4. Con un dispositivo conectado por el nombre, el equipo principal "cambia de IP" y el
@@ -153,6 +153,10 @@ for (const port of [PORT, ...(inGroup('red') ? [8125] : [])]) {
 // Lo que el servidor ofrece y esta prueba no puede usar pulsando, con el motivo. Todo lo demás
 // tiene que usarse (ver "Vigilancia de toda la prueba", al final).
 const UNTOUCHED = {
+  'projection.back': 'la pulsa «Volver» de las pantallas «En vivo» (fase 44); probada en test/en-vivo.test.js',
+  'projection.over': 'la pulsa «Encima» del Orador (fase 46); probada en test/en-vivo.test.js',
+  'projection.overClear': 'la pulsa «Quitar» de la capa del Orador (fase 46); probada en test/en-vivo.test.js',
+  'order.setTrack': 'la pulsa la lista de Alabanza (fase 45); probada en test/en-vivo.test.js',
   'POST /api/nube/emparejar': 'la pide el equipo de la iglesia a su nube (cloud.pair), no la interfaz',
   'GET /api/nube/estado': 'la pide el equipo de la iglesia a su nube cada minuto, no la interfaz',
   'GET /api/nube/usuarios': 'la pide el equipo de la iglesia a su nube para traer los usuarios, no la interfaz',
@@ -2578,9 +2582,9 @@ try {
     const orderId = (kind) => run(`return (await (await fetch('/api/state')).json()).order.items.find(i => i.kind === ${JSON.stringify(kind)}).id`);
     const verse = await orderId('verses');
     await run(`await ${post('order.show', { id: 'ID' })}`.replace('"ID"', JSON.stringify(verse)));
-    await chrome.send('Page.navigate', { url: `${local}/presentador` });
+    await chrome.send('Page.navigate', { url: `${local}/orador` });
     await sleep(2500);
-    check('/presentador trae solo su módulo, titulado «Presentador», y no muestra el escenario', await run(`return document.title === 'Manna · Presentador' && document.body.classList.contains('full') && [...document.querySelectorAll('.ws')].map(e => e.dataset.module).join() === 'presentador' && document.querySelectorAll('.dockbar, .scene-bg, .scene-status, .queue, .transport-bar, .prep').length === 0`),
+    check('/orador trae solo su módulo, titulado «Orador», y no muestra el escenario', await run(`return document.title === 'Manna · Orador' && document.body.classList.contains('full') && [...document.querySelectorAll('.ws')].map(e => e.dataset.module).join() === 'presentador' && document.querySelectorAll('.dockbar, .scene-bg, .scene-status, .queue, .transport-bar, .prep').length === 0`),
       await run(`return document.title + ' · ' + [...document.querySelectorAll('.ws')].map(e => e.dataset.module).join()`));
     check('con la presentación en el orden del culto, se abre en «Del orden» y la ofrece', await run(`return ${pr}.dataset.view === 'choose' && ${pr}.querySelector('.pr-tabs .chip.on').textContent === 'Del orden' && ${pr}.querySelectorAll('.pr-list .deck').length === 1 && ${pr}.querySelector('.pr-list .deck strong').textContent.includes('Informe')`));
     await click(`${pr}.querySelector('.pr-list .deck-pick')`);
@@ -2649,7 +2653,7 @@ try {
 
     // En el celular: la grande y la fila Anterior / Siguiente / Negro, sin desplazarse.
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
-    await chrome.send('Page.navigate', { url: `${local}/presentador?m=${Date.now()}` });
+    await chrome.send('Page.navigate', { url: `${local}/orador?m=${Date.now()}` });
     await sleep(2500);
     const inView = (selector) => run(`const e = ${pr}.querySelector(${JSON.stringify(selector)}); const r = e.getBoundingClientRect(); return r.width > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth`);
     check('en 375 px se ven sin desplazar la grande y Anterior / Siguiente / Negro, y la página no se ensancha', await inView('.pr-live') && await inView('.btn[aria-label=Anterior]') && await inView('.btn.primary.grow') && await inView(`.transport .btn:last-child`)
@@ -2847,7 +2851,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
         const near = (got, x, y) => Boolean(got) && Math.abs(got.x - x) <= 0.02 && Math.abs(got.y - y) <= 0.02;
 
         // Con una página al aire al entrar, se sigue sola (la de su propia ventana lleva Anterior y Siguiente).
-        await chrome.send('Page.navigate', { url: `${local}/presentador?w=${Date.now()}` });
+        await chrome.send('Page.navigate', { url: `${local}/orador?w=${Date.now()}` });
         await sleep(2500);
         check('con una página web al aire, al entrar el Presentador la sigue sola, con «Siguiente» y «Anterior»', await run(`return ${pr}.dataset.view === 'present' && ${pr}.querySelector('.pr-title').textContent === 'Concurso bíblico' && ${big}.textContent.trim() === 'Siguiente' && !${big}.disabled && !${prev}.disabled`));
         await run(`const f = document.createElement('iframe'); f.id = 'pantalla'; f.src = '/proyeccion'; f.style.cssText = 'position:fixed;left:0;bottom:0;width:640px;height:360px;z-index:99;border:0'; document.body.append(f);`);
@@ -2935,7 +2939,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
 
         // En el celular, con la página al aire (la sigue sola al entrar).
         await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
-        await chrome.send('Page.navigate', { url: `${local}/presentador?p=${Date.now()}` });
+        await chrome.send('Page.navigate', { url: `${local}/orador?p=${Date.now()}` });
         await sleep(2500);
         check('en 375 px, con una página, la grande y sus botones se ven sin desbordar', await run(`const w = 375; /* el ancho pedido, no innerWidth */ const fits = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= w && r.top >= 0 && r.bottom <= innerHeight; }; const t = [...${pr}.querySelectorAll('.pr-main .transport .btn')];
           return ${pr}.dataset.view === 'present' && ${pr}.querySelector('.pr-title').textContent === 'eco de teclas' && t.length === 3 && t.every(fits) && fits(${pr}.querySelector('.pr-live')) && fits(${pr}.querySelector('.pr-tools')) && document.documentElement.scrollWidth <= w`),
@@ -3398,10 +3402,10 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await userCheck('Administrador');
   check('marcado como administrador, tiene todas las funciones', await run(`return [...document.querySelectorAll('.modal .user-functions input')].every(i => i.checked && i.disabled)`));
   await userCheck('Administrador');
-  for (const f of ['Servicio de alabanza', 'Presentador']) await userCheck(f);
+  for (const f of ['Alabanza', 'Orador completo']) await userCheck(f);
   await modalButton('Guardar');
   await sleep(600);
-  check('lo crea con sus funciones', (await users()).includes('Rut: Control completo · Control del orden') && (await text('#toast')) === 'Rut ya puede entrar con su nombre y su PIN.', await users());
+  check('lo crea con sus funciones', (await users()).includes('Rut: Control total · Orador sencillo') && (await text('#toast')) === 'Rut ya puede entrar con su nombre y su PIN.', await users());
   await addUser();
   await sleep(300);
   await userField(0, 'rut');
@@ -3413,10 +3417,10 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await modalButton('Cancelar');
   await userButton('Cambiar a Rut');
   await sleep(300);
-  await userCheck('Presentador');
+  await userCheck('Orador completo');
   await modalButton('Guardar');
   await sleep(600);
-  check('«Cambiar» le da otra función (sin pedir su PIN)', (await users()).includes('Rut: Control completo · Control del orden · Presentador') && (await text('#toast')) === 'Cambios guardados.', await users());
+  check('«Cambiar» le da otra función (sin pedir su PIN)', (await users()).includes('Rut: Control total · Orador completo · Orador sencillo') && (await text('#toast')) === 'Cambios guardados.', await users());
   await userButton('Cambiar el PIN de Rut');
   await sleep(300);
   await userField(0, '13');
@@ -3439,22 +3443,21 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   await sleep(600);
   check('«Quitar» lo saca de la lista, tras preguntarlo', !(await users()).includes('Temporal') && (await text('#toast')) === 'Temporal ya no está en la lista.', await users());
   check('sin errores de JavaScript', !chrome.events.some((e) => e.method === 'Runtime.exceptionThrown'));
-  await chrome.send('Page.navigate', { url: `${local}/orden#orden` });
+  await chrome.send('Page.navigate', { url: `${local}/orador` });
   await sleep(2200);
-  check('"Control del orden" no ofrece editar ni «Buscar en todo»', await run(`return !document.querySelector('.finder-chip') && !document.querySelector('.ws-head .search') && !document.querySelector('.orow .grip') && !document.querySelector('.orow .icon-btn[aria-label=Opciones]')`));
+  check('el Orador no ofrece «Buscar en todo»', await run(`return !document.querySelector('.finder-chip')`));
   check('el servidor rechaza una edición desde esa función', (await run(`return await ${post('order.clear')}`)) === 403);
-  check('esa función gobierna lo que está al aire, pero no instala programas', await run(`return !${LIVE}.hidden`) && (await run(`return await ${post('projection.control', { pattern: 'blanco' })}`)) === 200 && (await live()).pattern === 'blanco' && (await run(`return await ${post('tools.install', { id: 'yt-dlp' })}`)) === 403);
+  check('esa función gobierna lo que está al aire, pero no instala programas', (await run(`return await ${post('projection.control', { pattern: 'blanco' })}`)) === 200 && (await live()).pattern === 'blanco' && (await run(`return await ${post('tools.install', { id: 'yt-dlp' })}`)) === 403);
   check('tampoco puede encender ni cambiar la conexión por internet', (await run(`return await ${post('internet.set', { on: true })}`)) === 403 && (await run(`return await ${post('internet.own', { token: '' })}`)) === 403);
-  await click(`[...document.querySelectorAll('.orow')].find(r => r.textContent.includes('Salmos 23')).querySelector('.icon-btn')`);
-  await sleep(600);
-  check('pero sí puede proyectar', (await live()).ref === 'Salmos 23:1');
+  const psalm = await run(`const s = await (await fetch('/api/state')).json(); return s.order.items.find((i) => i.title.includes('Salmos 23')).id`);
+  check('pero sí puede proyectar', (await run(`return await ${post('order.show', { id: psalm })}`)) === 200 && (await live()).ref === 'Salmos 23:1');
 
-  console.log('\n1. Interfaz · Servicio de alabanza');
+  console.log('\n1. Interfaz · Alabanza');
   await chrome.send('Page.navigate', { url: `${local}/alabanza` });
   await sleep(2200);
   const praise = `document.querySelector('.transport-bar .tb-volume')`;
   const praiseInView = () => run(`const r = ${praise}.getBoundingClientRect(); return r.height > 0 && r.top >= 0 && r.bottom <= innerHeight`);
-  check('"Servicio de alabanza" trae Himnario, Medios, Orden y Biblia, sin Ajustes', await run(`return [...document.querySelectorAll('.dock-item')].map(b => b.dataset.id).join() === 'himnario,medios,orden,biblia'`));
+  check('"Alabanza" trae Himnario, Medios, Orden y Biblia, sin Ajustes', await run(`return [...document.querySelectorAll('.dock-item')].map(b => b.dataset.id).join() === 'himnario,medios,orden,biblia'`));
   check('fuera del control, la barra de arriba no lleva el botón del proyector, solo su estado', await run(`return !document.querySelector('.scene-power') && Boolean(document.querySelector('.scene-status .live-pill'))`));
   check('lleva el volumen de Manna a la vista aunque no suene nada', (await live()).kind === 'verses' && await praiseInView());
   await run(`const s = ${praise}.querySelector('input[type=range]'); s.value = 35; s.dispatchEvent(new Event('input'));`);
@@ -3526,15 +3529,15 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     // de esa persona con su teclado (fase 35).
     console.log('\n2. Inicio, nombre y PIN desde otro dispositivo');
     const roleCard = (name) => `[...document.querySelectorAll('.role')].find(b => b.querySelector('strong').textContent === ${JSON.stringify(name)})`;
-    check('el Inicio enseña cada función en una tarjeta con su icono, y las de control dicen «Pide PIN»', await run(`const cards = [...document.querySelectorAll('.role')]; return cards.length === 5 && cards.every(c => c.querySelector('.role-icon svg')) && ${roleCard('Control del orden')}.querySelector('.tag').textContent === 'Pide PIN' && ${roleCard('Pantalla de proyección')}.querySelector('.tag').textContent === 'Sin PIN'`));
+    check('el Inicio enseña cada función en una tarjeta con su icono, y las de control dicen «Pide PIN»', await run(`const cards = [...document.querySelectorAll('.role')]; return cards.length === 5 && cards.every(c => c.querySelector('.role-icon svg')) && ${roleCard('Orador sencillo')}.querySelector('.tag').textContent === 'Pide PIN' && ${roleCard('Pantalla de proyección')}.querySelector('.tag').textContent === 'Sin PIN'`));
     const pinKey = (label) => click(`[...document.querySelectorAll('.pin-keys button')].find(b => b.getAttribute('aria-label') === ${JSON.stringify(label)})`);
-    await click(roleCard('Control del orden'));
+    await click(roleCard('Orador sencillo'));
     await sleep(300);
     check('al elegir la función salen los nombres de quienes pueden usarla', await run(`return [...document.querySelectorAll('.modal .person .name')].map(n => n.textContent).join() === 'Administrador,Rut' && !document.querySelector('.pin-pad')`));
     await chrome.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', windowsVirtualKeyCode: 27 });
     await sleep(300);
     check('la lista de nombres se cierra con Esc', await run(`return !document.querySelector('.modal')`));
-    await click(roleCard('Control del orden'));
+    await click(roleCard('Orador sencillo'));
     await sleep(300);
     await click(`[...document.querySelectorAll('.modal .person')].find(b => b.textContent.endsWith('Rut'))`);
     await sleep(300);
@@ -3552,15 +3555,15 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     check('en 375 px el teclado cabe entero, con teclas grandes', await run(`const m = document.querySelector('.modal').getBoundingClientRect(); return m.left >= 0 && m.right <= innerWidth && m.top >= 0 && m.bottom <= innerHeight && [...document.querySelectorAll('.pin-keys button')].every(b => b.offsetHeight >= 44 && b.offsetWidth >= 44)`));
     for (const k of realPin) await pinKey(k);
     await sleep(1500);
-    check('con el PIN bueno entra en la función elegida', (await chrome.evaluate('location.pathname')) === '/orden');
+    check('con el PIN bueno entra en la función elegida', (await chrome.evaluate('location.pathname')) === '/orador-sencillo');
     await chrome.send('Page.navigate', { url: `${byName}/` });
     await sleep(1500);
-    check('el Inicio dice quién entró, y sus otras funciones ya no piden PIN', await run(`return document.querySelector('#who').textContent.startsWith('Entraste como Rut') && ${roleCard('Control completo')}.querySelector('.tag').textContent === 'Sin PIN' && ${roleCard('Servicio de alabanza')}.querySelector('.tag').textContent === 'Pide PIN'`));
+    check('el Inicio dice quién entró, y sus otras funciones ya no piden PIN', await run(`return document.querySelector('#who').textContent.startsWith('Entraste como Rut') && ${roleCard('Control total')}.querySelector('.tag').textContent === 'Sin PIN' && ${roleCard('Alabanza')}.querySelector('.tag').textContent === 'Pide PIN'`));
 
-    // Desde otro dispositivo (Control completo, en el celular): escuchar antes de añadir, solo en este dispositivo.
+    // Desde otro dispositivo (Control total, en el celular): escuchar antes de añadir, solo en este dispositivo.
     // En el equipo principal estos botones no salen.
     console.log('\n2. Escuchar en otro dispositivo');
-    await click(roleCard('Control completo'));
+    await click(roleCard('Control total'));
     await sleep(2500);
     check('cambia de función sin volver a escribir el PIN, y sin Ajustes ni wifi (no es administrador)', (await chrome.evaluate('location.pathname')) === '/control'
       && await run(`return !document.querySelector('.ws[data-module=ajustes]') && document.querySelector('.topbar .brand-mark').tagName === 'SPAN' && !document.querySelector('.tool-wifi') && Boolean(document.querySelector('.tool-qr'))`));
@@ -4183,11 +4186,6 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     await sleep(400);
     check('al borrar los que sobran, el aviso se va', await run(`return ${ws}.querySelector('.order-full').hidden`));
 
-    // Sin permiso de editar («Control del orden») solo se ve el nombre del orden en uso, sin pestañas.
-    await run(`return await ${post('order.use', { id: 'ID' })}`.replace('"ID"', JSON.stringify(first)));
-    await chrome.send('Page.navigate', { url: `${local}/orden?x=${Date.now()}#orden` });
-    await sleep(2500);
-    check('en «Control del orden» no hay pestañas y el nombre del orden en uso no se puede cambiar', await run(`const e = document.querySelector('.order-name'); e.click(); return e.readOnly && e.value === 'Culto de la mañana' && !document.querySelector('.order-bar [role=tab]') && !document.querySelector('.modal')`));
     await chrome.send('Page.navigate', { url: `${local}/control?fin2=${Date.now()}#orden` });
     await sleep(2500);
   }

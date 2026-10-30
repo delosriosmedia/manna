@@ -15,8 +15,8 @@ const gb = (bytes) => `${(bytes / GB).toFixed(bytes < 10 * GB ? 1 : 0).replace('
 const NAMES = { orden: 'Orden', biblia: 'Biblia', himnario: 'Himnario', medios: 'Medios', textos: 'Textos', tiempo: 'Tiempo', paginas: 'Páginas web', capas: 'Capas' };
 const SWITCHABLE = ['biblia', 'himnario', 'medios', 'textos', 'tiempo', 'paginas', 'capas'];
 const FUNCTIONS = [
-  ['control', 'Control completo', ['orden', 'biblia', 'himnario', 'medios', 'textos', 'tiempo', 'paginas', 'capas']],
-  ['alabanza', 'Servicio de alabanza', ['himnario', 'medios', 'orden', 'biblia']],
+  ['control', 'Control total', ['orden', 'biblia', 'himnario', 'medios', 'textos', 'tiempo', 'paginas', 'capas']],
+  ['alabanza', 'Alabanza', ['himnario', 'medios', 'orden', 'biblia']],
   ['preparacion', 'Preparar el culto', ['orden', 'biblia', 'himnario', 'medios', 'textos']],
 ];
 let data = { plan: { total: 0, margin: 0.15 }, churches: [] };

@@ -53,6 +53,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { deadline, killOnExit, sleep, startChrome } from './lib/chrome.mjs';
 import { seedExample } from './lib/ejemplo.mjs';
+import { MOBILE_RULES } from './lib/reglas-moviles.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Separados de dos en dos: si un puerto está ocupado, el servidor prueba el siguiente.
@@ -76,6 +77,14 @@ const DEVICES = [
   { name: 'Tableta grande, horizontal', w: 1366, h: 1024, touch: true },
   { name: 'Portátil', w: 1280, h: 720, touch: false },
   { name: 'Escritorio', w: 1920, h: 1080, touch: false },
+  // Los más pequeños de cada disposición (decisiones 70 y 71, DESIGN.md 12 ter) y, de pie y acostado, un Android con sus
+  // tres botones en pantalla: solo para las pantallas hechas con las reglas de móviles (`movil: true`).
+  { name: 'Teléfono mínimo, de pie', w: 360, h: 560, touch: true, min: true },
+  { name: 'Teléfono mínimo, acostado', w: 640, h: 280, touch: true, min: true },
+  { name: 'Tableta mínima, de pie', w: 600, h: 880, touch: true, min: true },
+  { name: 'Tableta mínima, acostada', w: 960, h: 520, touch: true, min: true },
+  { name: 'Android con botones, de pie', w: 360, h: 512, touch: true, min: true },
+  { name: 'Android con botones, acostado', w: 592, h: 280, touch: true, min: true },
 ];
 
 // Abre la capa «Mandos» (en el celular, con el botón de la tarjeta de lo al aire; en el resto, el de la barra de transporte).
@@ -132,9 +141,8 @@ const SCREENS = [
   { name: 'Capa de mandos', url: '/control#orden', show: 'testcard', narrowOnly: true, inside: '.controls-pop', closes: ['.controls-layer', '.controls-pop'], controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   // En el escritorio, «Más mandos» (en la barra de abajo) abre la misma capa, con todos los mandos de lo que está al aire.
   { name: 'Capa de mandos en el escritorio', url: '/control#orden', show: 'slides', wideOnly: true, inside: '.controls-pop', closes: ['.controls-layer', '.controls-pop'], controls: '.controls-pop .live-controls', settle: 600, prepare: `document.querySelector('.tb-more').click()` },
-  { name: 'Control del orden', url: '/orden#orden', content: '.olist', longTitles: true },
   // La función de alabanza lleva el volumen de Manna siempre a la vista: en el celular, bajo la barra de "Al aire".
-  { name: 'Servicio de alabanza', url: '/alabanza#himnario', content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: { wide: '.transport-bar .tb-volume', narrow: '.story-volume.big' }, settle: 700,
+  { name: 'Alabanza', url: '/alabanza#himnario', content: '.hymns-body', primary: '.hymn-bar .btn.primary', inside: { wide: '.transport-bar .tb-volume', narrow: '.story-volume.big' }, settle: 700,
     prepare: `document.querySelector('.ws[data-module=himnario] .hymn')?.click()` },
   { name: 'Orden con mandos en vivo', url: '/control#orden', show: 'testcard', controls: '.odetail .live-controls' },
   // Un pasaje al aire con la capa de versículos abierta (fase 24): su recuadro cabe en la pantalla, con los números a la
@@ -198,10 +206,10 @@ const SCREENS = [
   { name: 'Al aire con una diapositiva', url: '/control#medios', show: 'slides', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Orden con una diapositiva al aire', url: '/control#orden', show: 'slides', controls: '.odetail .live-controls' },
   // El Presentador no lleva escenario: noDock cambia ese control por la diapositiva grande y su fila de botones.
-  { name: 'Presentador: elegir presentación', url: '/presentador', noDock: true, content: '.pr-choose', inside: '.pr-list .deck', settle: 600 },
-  { name: 'Presentador: presentando', url: '/presentador', show: 'slides', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', settle: 800 }, // sin mandos de encuadre: se acerca y se mueve sobre la diapositiva (fase 14)
+  { name: 'Orador: elegir presentación', url: '/orador', noDock: true, content: '.pr-choose', inside: '.pr-list .deck', settle: 600 },
+  { name: 'Orador: presentando', url: '/orador', show: 'slides', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', settle: 800 }, // sin mandos de encuadre: se acerca y se mueve sobre la diapositiva (fase 14)
   // Con una página web al aire (un archivo propio): sin rejilla ni siguiente; la grande y Anterior / Siguiente / Negro a la vista (sus flechas van en la fila de botones, no en los mandos).
-  { name: 'Presentador: una página web', url: '/presentador', page: 'archivo1', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', settle: 800 },
+  { name: 'Orador: una página web', url: '/orador', page: 'archivo1', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', settle: 800 },
   { name: 'Páginas web', url: '/control#paginas', content: '.web-list', inside: '.web-item', settle: 400 },
   { name: 'Páginas web: una elegida', url: '/control#paginas', content: '.web-list', primary: '.ws[data-module=paginas] .abar .btn.primary', inside: '.ws[data-module=paginas] .abar', settle: 600,
     prepare: `document.querySelector('.ws[data-module=paginas] .web-pick').click()` },
@@ -309,7 +317,7 @@ const MEASURE = (screen, touch, narrow) => {
   }
   if (${JSON.stringify(Boolean(screen.plain))}) return out;
   // El dock de módulos: a la vista y con sus iconos al alcance. Si no caben todos, se desliza, pero al menos cuatro se ven.
-  // La función "Control del orden" (un solo módulo) no lo lleva; el Presentador, tampoco (sin escenario).
+  // El Orador tampoco lo lleva (sin escenario).
   const items = [...document.querySelectorAll('.dockbar .dock-item')];
   const bar = q('.dockbar');
   // Con una capa abierta (los mandos, una ventana, la tarjeta del wifi o del QR) lo de debajo queda tapado a propósito:
@@ -414,8 +422,8 @@ if (unknown.length) {
   console.error(`Ningún tamaño ni pantalla se llama así: ${unknown.join(', ')}`);
   process.exit(2);
 }
-const devices = sizeWords.length ? DEVICES.filter((d) => sizeWords.some((w) => sizeName(d).includes(w))) : DEVICES;
 const screens = screenWords.length ? SCREENS.filter((s) => screenWords.some((w) => fold(s.name).includes(w))) : SCREENS;
+const devices = (sizeWords.length ? DEVICES.filter((d) => sizeWords.some((w) => sizeName(d).includes(w))) : DEVICES).filter((d) => !d.min || screens.some((s) => s.movil));
 
 let problems = 0;
 
@@ -519,7 +527,7 @@ async function worker(list, n) {
       // Lo de cada tamaño se escribe de una vez al terminarlo, para que no se mezcle con el de los otros Chrome.
       const lines = [`\n${device.name} (${device.w} × ${device.h})`];
       for (const screen of screens) {
-        if ((screen.narrowOnly && !narrow) || (screen.wideOnly && narrow)) continue;
+        if ((screen.narrowOnly && !narrow) || (screen.wideOnly && narrow) || (device.min && !screen.movil)) continue;
         if (screen.cloud) await cloudLogin(screen.cloud);
         if (screen.prefs) await setPrefs(screen.prefs);
         if (screen.show) await showInOrder(example[screen.show]);
@@ -548,6 +556,7 @@ async function worker(list, n) {
         }
         const failures = Object.keys(LABELS).filter((k) => m[k] === false).map((k) => LABELS[k] + (k === 'dedos' ? `: ${m.pequenos.join(', ')}` : k === 'solape' && m.solapan ? `: ${m.solapan.join('; ')}` : k === 'deLado' ? `: ${m.ladeados.join(', ')}` : k === 'contraste' ? `: ${m.flojos.join('; ')}` : k === 'cajonUnaFila' ? `: ${m.cajonDetalle}` : ''));
         if (m.espacioContenido !== undefined && m.espacioContenido < MIN_CONTENT) failures.push(`poco espacio para el contenido (${m.espacioContenido} px)`);
+        if (screen.movil && device.touch) failures.push(...JSON.parse(await chrome.evaluate(`JSON.stringify(${MOBILE_RULES})`)));
         problems += failures.length;
         const room = m.espacioContenido !== undefined ? ` · contenido ${m.espacioContenido} px` : '';
         lines.push(`  ${failures.length ? '✖' : '✔'} ${screen.name}${room}${failures.length ? `\n      ${failures.join('\n      ')}` : ''}`);

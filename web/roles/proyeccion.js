@@ -1,6 +1,6 @@
-import { connect, connectionId, session, subscribe } from '../core/api.js';
+import { connect, connectionId, session, state, subscribe } from '../core/api.js';
 import { $ } from '../core/dom.js';
-import { createStage } from '../modules/projection/stage.js';
+import { createStage, withOver } from '../modules/projection/stage.js';
 import { preferStableAddress } from '../core/upgrade.js';
 import { ensureRole } from '../core/session.js';
 import { watchBlocked } from '../core/blocked.js';
@@ -13,10 +13,10 @@ if (me?.internet) await ensureRole('proyeccion');
 // Una sola salida de sonido: el servidor elige qué pantalla suena (la primera de proyección
 // abierta en el equipo principal). Las demás reproducen en silencio, sin eco ni desfases.
 const stage = createStage($('#stage'));
-subscribe('projection', (p) => stage.render(p));
+subscribe('projection', (p) => { stage.render(p); stage.setLayers(withOver(state.layers?.slots, p)); });
 subscribe('live', (live) => stage.setLive(live));
 subscribe('pointer', (p) => stage.setPointer(p));
-subscribe('layers', ({ slots }) => stage.setLayers(slots));
+subscribe('layers', ({ slots }) => stage.setLayers(withOver(slots, state.projection)));
 subscribe('conexiones', ({ sonido }) => stage.setSound(Boolean(sonido) && sonido === connectionId()));
 watchBlocked({ buttons: false });
 connect('proyeccion');

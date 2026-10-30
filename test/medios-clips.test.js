@@ -498,9 +498,9 @@ test('«Negro» y «Solo fondo» pausan lo que suena; pedir que se reproduzca lo
     let state = await now();
     assert.deepEqual([state.mode, state.playing], ['black', false]);
     assert.ok(state.position >= 0.2 && state.position < 0.7, `queda en pausa donde iba (${state.position})`);
-    // Quitar el negro no lo reanuda solo: no debe sonar nada por sorpresa.
+    // Al quitar el negro, lo que pausó sigue (decidido en la fase 42; antes se quedaba en pausa).
     await s.send('projection.mode', { mode: 'live' });
-    assert.deepEqual([(await now()).mode, (await now()).playing], ['live', false]);
+    assert.deepEqual([(await now()).mode, (await now()).playing], ['live', true], 'lo que pausó, sigue (fase 42)');
     await s.send('projection.mode', { mode: 'clear' });
     assert.equal((await now()).mode, 'clear');
     // "Reproducir" con la pantalla oculta la vuelve a mostrar.

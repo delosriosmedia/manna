@@ -80,6 +80,7 @@ html.touch .disk-gap { width: var(--tap); }
 .user-row { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 4px 0; border-bottom: 1px solid var(--line); }
 .user-row .initial { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 13px; }
 .user-row .item-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.user-row .user-none { color: var(--live-ink); }
 .user-row .item-text strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .user-row .item-text small { color: var(--ink-3); font-size: 12px; }
 .user-row .icon-btn[aria-label^="Quitar"]:not(:disabled):hover { color: var(--live-ink); }

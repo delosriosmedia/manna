@@ -64,7 +64,7 @@ function mount(el, ctx) {
     if (mine.length < files.length) toast('Sube los archivos de otro tipo por separado.');
   }
 
-  const uploader = ctx.canEdit && h('button', { class: 'btn media-upload', 'aria-label': 'Subir', title: 'Subir imágenes, videos, audios o presentaciones', onclick: () => picker.click() },
+  const uploader = ctx.can('media.edit') && h('button', { class: 'btn media-upload', 'aria-label': 'Subir', title: 'Subir imágenes, videos, audios o presentaciones', onclick: () => picker.click() },
     icon('upload-simple', 16), h('span', {}, 'Subir'));
   const counts = new Map();
   const sections = groups.map((g) => {
@@ -110,14 +110,14 @@ function mount(el, ctx) {
     empty.replaceChildren(shown ? '' : library ? categories.empty()
       : h('div', { class: 'empty' }, h('strong', {}, 'Aún no hay nada en Medios'),
         'Sube imágenes, videos, audios o presentaciones (PDF o PowerPoint) desde este equipo o desde el celular, o pega arriba el enlace de un video de YouTube. También puedes arrastrar los archivos hasta aquí.',
-        ctx.canEdit && h('div', { class: 'row', style: 'justify-content: center; margin-top: 14px;' },
+        ctx.can('media.edit') && h('div', { class: 'row', style: 'justify-content: center; margin-top: 14px;' },
           h('button', { class: 'btn primary', onclick: () => picker.click() }, icon('upload-simple', 16), 'Subir'))));
   }
   // Las categorías están en `media`: las presentaciones, que se dibujan con `slides`, también dependen de él.
   subscribe('media', () => { groups[3].render(); render(); });
   subscribe('slides', () => render());
 
-  if (ctx.canEdit) {
+  if (ctx.can('media.edit')) {
     // Arrastrar archivos desde el escritorio, o un elemento hasta el nombre de una categoría.
     acceptDrops(el, send);
     attachDrag(body, { drop: categories.drop, place: categories.place });

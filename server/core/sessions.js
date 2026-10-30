@@ -40,7 +40,8 @@ export function createSessions({ storage, roles: all, cloud = false, superMode =
   function fromRequest(req) {
     const m = /(?:^|;\s*)manna_sid=([a-f0-9]+)/.exec(req.headers.cookie || '');
     const s = m && store.data.list[m[1]];
-    if (!s) return null;
+    // Una función que ya no existe (Control del orden): hay que entrar de nuevo.
+    if (!s || !roleById.has(s.role)) return null;
     const user = s.user ? users.get(s.user) : null;
     // Un usuario que se quitó ya no tiene sesión.
     if (s.user && !user) {
@@ -50,6 +51,9 @@ export function createSessions({ storage, roles: all, cloud = false, superMode =
     }
     return { id: m[1], role: s.role, created: s.created, user, admin: Boolean(user?.admin) };
   }
+
+  // Lo que puede una sesión, para que la interfaz no ofrezca lo que aquí se rechazaría.
+  const permissions = (session) => roleById.get(session?.role)?.permissions || [];
 
   function can(session, permission) {
     const role = session && roleById.get(session.role);
@@ -152,7 +156,7 @@ export function createSessions({ storage, roles: all, cloud = false, superMode =
     // Por https (el túnel, el hosting de la nube), la cookie solo viaja cifrada.
     const secure = ctx.req?.socket.encrypted || ctx.req?.headers['x-forwarded-proto'] === 'https' ? '; Secure' : '';
     ctx.res.setHeader('Set-Cookie', `${COOKIE}=${id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${secure}`);
-    return { role: roleId, user: user ? { id: user.id, name: user.name, admin: user.admin } : null };
+    return { role: roleId, permissions: role.permissions, user: user ? { id: user.id, name: user.name, admin: user.admin } : null };
   }
 
   // Cambiar el PIN de alguien (o quitarlo) cierra sus sesiones, menos la de quien lo cambia (keep).
@@ -163,5 +167,5 @@ export function createSessions({ storage, roles: all, cloud = false, superMode =
 
   // Cuándo entró alguien por última vez (para el superadministrador).
   const lastUse = () => Math.max(0, ...Object.values(store.data.list).map((s) => s.created || 0));
-  return { roles, users, fromRequest, can, open, closeUser, alta, newAlta, lastUse, altaPending: () => Boolean(envKey() || recovery()), superName: () => account?.data.name || null };
+  return { roles, users, fromRequest, can, permissions, open, closeUser, alta, newAlta, lastUse, altaPending: () => Boolean(envKey() || recovery()), superName: () => account?.data.name || null };
 }

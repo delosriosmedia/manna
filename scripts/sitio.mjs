@@ -29,8 +29,7 @@ const CAPTURES = [
   ['revision', LAPTOP, 'Revisión del equipo'],
   ['control', LAPTOP, 'Al aire con un himno'],
   ['historias-celular', PHONE, 'Al aire con un himno'],
-  ['control-orden-celular', PHONE, 'Control del orden'],
-  ['presentador', LAPTOP, 'Presentador: presentando'],
+  ['presentador', LAPTOP, 'Orador: presentando'],
   ['buscar', LAPTOP, 'Buscar en todo'],
   ['ajustes-usuarios', LAPTOP, 'Ajustes: usuarios'],
 ];

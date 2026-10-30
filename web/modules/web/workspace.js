@@ -100,7 +100,7 @@ function mount(el, ctx) {
   // S35: una pestaña de Chrome del equipo principal, en vivo en el proyector (solo se empieza desde ese equipo).
   const shareBtn = h('button', { class: 'btn', hidden: true, onclick: guard(share) }, icon('screencast', 16), 'Compartir una pestaña');
   el.replaceChildren(h('div', { class: 'ws-head' }, h('h1', {}, 'Páginas web'), h('span', { class: 'spacer' }),
-    ctx.canEdit && h('button', { class: 'btn', onclick: openAdd }, icon('plus', 16), 'Agregar página'), shareBtn), list, bar, picker);
+    ctx.can('web.edit') && h('button', { class: 'btn', onclick: openAdd }, icon('plus', 16), 'Agregar página'), shareBtn), list, bar, picker);
 
   // Mientras se comparte, su ficha va primero: desde cualquier dispositivo se vuelve a proyectar o se deja de compartir.
   function sharedItem() {
@@ -124,14 +124,14 @@ function mount(el, ctx) {
     if (!all.length) {
       list.replaceChildren(sharedItem() || '', h('div', { class: 'empty' }, h('strong', {}, 'Aún no hay páginas'),
         'Agrega la dirección de una presentación de Canva, Google Slides o Genially, o de un juego como Kahoot, o sube un archivo HTML propio. Se proyecta a pantalla completa.',
-        ctx.canEdit && h('div', { class: 'row', style: 'justify-content: center; margin-top: 14px;' },
+        ctx.can('web.edit') && h('div', { class: 'row', style: 'justify-content: center; margin-top: 14px;' },
           h('button', { class: 'btn primary', onclick: openAdd }, icon('plus', 16), 'Agregar página'))));
     } else {
       list.replaceChildren(sharedItem() || '', ...all.map((page) => h('div', { class: `web-item${page.id === pageId ? ' selected' : ''}${air === page.id ? ' live' : ''}`, dataset: { id: page.id } },
         h('button', { class: 'web-pick', 'aria-pressed': page.id === pageId, onclick: () => choose(page.id), ondblclick: () => { choose(page.id); project(); } },
           h('span', { class: 'kind k-web' }, icon('globe', 16)),
           h('span', { class: 'item-text' }, h('strong', {}, page.name), h('small', {}, air === page.id && h('span', { class: 'badge live' }, 'Al aire'), ` ${page.subtitle}`))),
-        ctx.canEdit && h('button', { class: 'icon-btn sm web-more', 'aria-label': `Opciones de ${page.name}`, onclick: (e) => menu(e.currentTarget, [
+        ctx.can('web.edit') && h('button', { class: 'icon-btn sm web-more', 'aria-label': `Opciones de ${page.name}`, onclick: (e) => menu(e.currentTarget, [
           { label: 'Cambiar el nombre', icon: 'pencil-simple', onclick: () => askName(page) },
           '-',
           { label: 'Eliminar', icon: 'trash', onclick: () => confirmRemove(page) },

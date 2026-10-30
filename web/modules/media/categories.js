@@ -71,15 +71,15 @@ export function createCategories(ctx, onChange) {
     if (active && state.media && !current()) active = null;
     const ids = new Set(library().map((x) => x.id));
     const taken = new Set(all().flatMap((c) => c.items));
-    const chip = (id, label, count) => h('button', { class: `chip${active === id ? ' on' : ''}`, 'aria-pressed': String(active === id), dataset: { category: id || '', ...(id && ctx.canEdit && { drag: id, name: label }) }, onclick: () => choose(id) },
+    const chip = (id, label, count) => h('button', { class: `chip${active === id ? ' on' : ''}`, 'aria-pressed': String(active === id), dataset: { category: id || '', ...(id && ctx.can('media.edit') && { drag: id, name: label }) }, onclick: () => choose(id) },
       label, h('small', {}, String(count)));
     el.replaceChildren(
       chip(null, 'Principal', [...ids].filter((id) => !taken.has(id)).length),
       ...all().flatMap((c) => [
         chip(c.id, c.name, c.items.filter((id) => ids.has(id)).length),
-        ctx.canEdit && c.id === active && h('button', { class: 'icon-btn sm', 'aria-label': `Opciones de la categoría ${c.name}`, onclick: (e) => options(c, e.currentTarget) }, icon('dots-three', 16)),
+        ctx.can('media.edit') && c.id === active && h('button', { class: 'icon-btn sm', 'aria-label': `Opciones de la categoría ${c.name}`, onclick: (e) => options(c, e.currentTarget) }, icon('dots-three', 16)),
       ].filter(Boolean)),
-      ctx.canEdit && h('button', { class: 'chip add', onclick: () => create() }, icon('plus', 14), 'Nueva categoría'),
+      ctx.can('media.edit') && h('button', { class: 'chip add', onclick: () => create() }, icon('plus', 14), 'Nueva categoría'),
     );
     if (shown !== active && state.media) {
       shown = active;
@@ -121,7 +121,7 @@ export function createCategories(ctx, onChange) {
     // Lo que se dice si no hay nada que mostrar, pero la biblioteca no está vacía.
     empty: () => (current()
       ? h('div', { class: 'empty' }, h('strong', {}, `«${current().name}» aún no tiene nada`),
-        ctx.canEdit ? 'Desde «Principal», arrastra hasta su nombre lo que quieras guardar aquí, o elige «Mover a una categoría» en su menú (⋯).' : 'Desde el equipo principal se le pueden poner elementos.')
+        ctx.can('media.edit') ? 'Desde «Principal», arrastra hasta su nombre lo que quieras guardar aquí, o elige «Mover a una categoría» en su menú (⋯).' : 'Desde el equipo principal se le pueden poner elementos.')
       : h('div', { class: 'empty' }, h('strong', {}, 'Todo está en sus categorías'), 'Lo que subas o descargues aparecerá aquí.')),
     // Lo recién subido o descargado entra en la categoría elegida.
     adopt(ids) {

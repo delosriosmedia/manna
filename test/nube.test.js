@@ -77,7 +77,7 @@ test('emparejar con un código de «Administrar», el equipo oficial y el bloque
 
   // Sin emparejar, el equipo funciona como siempre, con sus usuarios: una se llama como la administradora de la nube.
   assert.equal((await a.state()).cloud.status, 'off');
-  const carla = (await a.send('users.create', { name: 'Carla', pin: '2222', functions: ['orden'] })).result.id;
+  const carla = (await a.send('users.create', { name: 'Carla', pin: '2222', functions: ['presentador'] })).result.id;
   const anaHere = (await a.send('users.create', { name: 'ana', pin: '3333', functions: ['alabanza'] })).result.id;
   assert.equal((await b.send('cloud.code')).status, 404, 'el código solo lo da la nube');
   const first = await code();
@@ -105,13 +105,13 @@ test('emparejar con un código de «Administrar», el equipo oficial y el bloque
   const anaThere = (await nube.state()).users.list.find((u) => u.name === 'Ana').id;
   assert.notEqual(anaThere, anaHere);
   assert.ok((await a.state()).users.list.some((u) => u.id === anaThere), 'en el equipo, Ana es la de la nube');
-  assert.equal((await a.remote('/api/session', { role: 'orden', user: carla, pin: '2222' })).status, 200, 'y cada uno entra con su PIN, también sin internet');
+  assert.equal((await a.remote('/api/session', { role: 'presentador', user: carla, pin: '2222' })).status, 200, 'y cada uno entra con su PIN, también sin internet');
   // Un alta y una baja en la nube llegan al equipo.
-  const dani = (await nube.send('users.create', { name: 'Dani', pin: '5555', functions: ['orden'] })).result.id;
+  const dani = (await nube.send('users.create', { name: 'Dani', pin: '5555', functions: ['presentador'] })).result.id;
   assert.equal((await nube.send('users.remove', { id: carla })).status, 200);
   await a.app.services.cloud.check();
   assert.deepEqual(await names(a), ['Administrador', 'Ana', 'Dani']);
-  assert.equal((await a.remote('/api/session', { role: 'orden', user: dani, pin: '5555' })).status, 200);
+  assert.equal((await a.remote('/api/session', { role: 'presentador', user: dani, pin: '5555' })).status, 200);
 
   // Un segundo equipo: primero se pregunta; confirmado, pasa a ser el oficial y el primero queda bloqueado al enterarse.
   const second = await code();
@@ -121,7 +121,7 @@ test('emparejar con un código de «Administrar», el equipo oficial y el bloque
   await a.app.services.cloud.check();
   assert.equal(a.app.blocked?.replaced, true);
   assert.equal((await a.state()).system.blocked.replaced, true);
-  const refused = await a.send('users.create', { name: 'Beto', pin: '4321', functions: ['orden'] });
+  const refused = await a.send('users.create', { name: 'Beto', pin: '4321', functions: ['presentador'] });
   assert.equal(refused.status, 409);
   assert.match(refused.error, /ya no es el oficial/);
   assert.deepEqual((await a.send('system.recheck')).result, { blocked: true }, 'volver a comprobar no lo desbloquea');
@@ -129,7 +129,7 @@ test('emparejar con un código de «Administrar», el equipo oficial y el bloque
   // Volver a ser el equipo oficial: con otro código, desde la pantalla de bloqueado (la dirección ya la sabe).
   assert.equal((await a.send('cloud.pair', { code: await code(), confirm: true })).status, 200);
   assert.equal(a.app.blocked, null);
-  const managed = await a.send('users.create', { name: 'Beto', pin: '4321', functions: ['orden'] });
+  const managed = await a.send('users.create', { name: 'Beto', pin: '4321', functions: ['presentador'] });
   assert.equal(managed.status, 409, 'emparejado, los usuarios se cambian en la nube');
   assert.match(managed.error, /se cambian ahí/);
   await b.app.services.cloud.check();

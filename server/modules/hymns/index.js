@@ -436,7 +436,7 @@ export default function setup(app) {
     // El paso lo da el propio tipo: projection.step se lo pregunta antes que al orden del culto.
     step(item, delta) {
       const target = delta > 0 ? item.index % item.pages : item.index - 2;
-      if (target >= 0) app.services.projection.present({ kind: 'lyrics', data: item.source.data, step: target, orderId: item.source.orderId });
+      if (target >= 0) app.services.projection.present({ kind: 'lyrics', data: item.source.data, step: target, orderId: item.source.orderId }, 'live', null, false);
       return true;
     },
   });

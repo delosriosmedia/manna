@@ -144,14 +144,14 @@ export function createSlidesPanel(ctx, lib) {
     list.replaceChildren(...all.map((deck) => {
       const usable = deck.status === 'ready';
       const facts = [usable && plural(deck.pages), deck.live && deck.liveable ? (deckcraft ? 'Con animaciones' : 'PowerPoint en vivo') : SOURCES[deck.source], whenLabel(deck.added)].filter(Boolean).join(' · ');
-      return h('div', { class: `deck${deck.id === deckId ? ' selected' : ''}${air?.id === deck.id ? ' live' : ''}${usable ? '' : ' pending'}`, dataset: { id: deck.id, status: deck.status, ...(ctx.canEdit && { drag: deck.id, name: deck.name }) } },
+      return h('div', { class: `deck${deck.id === deckId ? ' selected' : ''}${air?.id === deck.id ? ' live' : ''}${usable ? '' : ' pending'}`, dataset: { id: deck.id, status: deck.status, ...(ctx.can('slides.edit') && { drag: deck.id, name: deck.name }) } },
         h('button', { class: 'deck-pick', 'aria-pressed': deck.id === deckId, onclick: () => choose(deck.id) },
           h('span', { class: `deck-cover${usable ? '' : ' blank'}` },
             usable ? h('img', { src: thumbUrl(deck, 1), alt: '', loading: 'lazy' }) : icon('presentation-chart', 26), kindBadge('slides'),
             air?.id === deck.id && h('span', { class: 'badge live' }, 'Al aire')),
           h('span', { class: 'item-text' }, h('strong', {}, deck.name), h('small', {}, facts))),
         statusOf(deck),
-        ctx.canEdit && h('button', { class: 'icon-btn sm deck-more', 'aria-label': `Opciones de ${deck.name}`, onclick: (e) => menu(e.currentTarget, [
+        ctx.can('slides.edit') && h('button', { class: 'icon-btn sm deck-more', 'aria-label': `Opciones de ${deck.name}`, onclick: (e) => menu(e.currentTarget, [
           { label: 'Cambiar el nombre', icon: 'pencil-simple', onclick: () => askName(deck) },
           ...lib.menu(deck, e.currentTarget),
           ...(usable && deck.source === 'powerpoint' && !deck.atChurch ? [{ label: 'Convertir de nuevo', note: 'Tras instalar las letras que le faltaban', icon: 'arrow-clockwise', onclick: guard(() => action('slides.reconvert', { id: deck.id })) }] : []),

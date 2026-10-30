@@ -99,7 +99,7 @@ function mount(el, ctx) {
   const hint = h('span', { class: 'hint' });
   const bar = h('div', { class: 'abar text-bar' }, where, hint, add, ctx.canProject && show, layer);
   const fresh = h('button', { class: 'btn', onclick: () => leave(() => { selected = null; open = true; fill(); }) }, icon('plus', 16), 'Nuevo texto');
-  el.replaceChildren(h('div', { class: 'ws-head' }, h('h1', {}, 'Textos'), h('span', { class: 'spacer' }), ctx.canEdit && fresh), body, bar);
+  el.replaceChildren(h('div', { class: 'ws-head' }, h('h1', {}, 'Textos'), h('span', { class: 'spacer' }), ctx.can('texts.edit') && fresh), body, bar);
 
   // Lo que hay en el editor, y si difiere de lo guardado.
   const draft = () => ({ text: area.value.trim(), style, author: style === 'quote' ? author.value.trim() : '', look: style === 'fixed' ? look : LOOK });
@@ -119,7 +119,7 @@ function mount(el, ctx) {
   }
   // Antes de pasar a otro texto o a la lista, se guarda lo escrito (si se puede).
   const leave = guard(async (then) => {
-    if (ctx.canEdit && dirty()) await commit(true);
+    if (ctx.can('texts.edit') && dirty()) await commit(true);
     then();
     render();
   });
@@ -159,7 +159,7 @@ function mount(el, ctx) {
           h('span', { class: 'text-kind' }, icon(STYLE_ICON[t.style] || 'text-aa', 16)),
           h('span', { class: 'item-text' }, h('strong', {}, firstLine(t.text)), h('small', {}, facts)),
           t.id === air && h('span', { class: 'badge live' }, 'Al aire')),
-        ctx.canEdit && h('button', { class: 'icon-btn sm text-more', 'aria-label': `Opciones de ${firstLine(t.text)}`, onclick: (e) => menu(e.currentTarget, [
+        ctx.can('texts.edit') && h('button', { class: 'icon-btn sm text-more', 'aria-label': `Opciones de ${firstLine(t.text)}`, onclick: (e) => menu(e.currentTarget, [
           { label: 'Eliminar', icon: 'trash', onclick: () => confirmRemove(t) },
         ]) }, icon('dots-three', 16)));
     }));
@@ -191,7 +191,7 @@ function mount(el, ctx) {
       b.classList.toggle('on', on);
       b.setAttribute('aria-checked', String(on));
     }
-    for (const input of [area, author, ...styles, ...lookButtons]) input.disabled = !ctx.canEdit;
+    for (const input of [area, author, ...styles, ...lookButtons]) input.disabled = !ctx.can('texts.edit');
     if (fixed && state.projection?.styles) {
       preview.render({ mode: 'live', item: { kind: 'fixed', uid: 0, text: area.value.trim() || 'Así se verá tu texto', look }, styles: state.projection.styles });
     }
@@ -201,11 +201,11 @@ function mount(el, ctx) {
     add.hidden = show.hidden = fixed;
     layer.hidden = !fixed;
     save.disabled = !dirty();
-    save.hidden = !ctx.canEdit;
+    save.hidden = !ctx.can('texts.edit');
     const text = area.value.trim();
     where.textContent = text ? firstLine(text) : 'Texto nuevo';
     bar.hidden = !text || (narrow && !open);
-    show.disabled = add.disabled = layer.disabled = !text || (!ctx.canEdit && dirty());
+    show.disabled = add.disabled = layer.disabled = !text || (!ctx.can('texts.edit') && dirty());
   }
   area.addEventListener('input', paint);
   author.addEventListener('input', paint);

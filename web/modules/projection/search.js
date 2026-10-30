@@ -75,8 +75,7 @@ const SOURCES = [['Biblia', bible], ['Himnario', hymns], ['Videos', videos], ['M
 // Los grupos principales: con sitio (860 px o más), en columnas, uno al lado de otro; los demás, debajo, en filas.
 const MAIN = ['Biblia', 'Himnario', 'Videos'];
 
-// canEdit: ofrece Añadir al orden.
-export function createSearch({ canEdit }) {
+export function createSearch() {
   let rows = [];     // [{ result, el }] en el orden en que se ven
   let active = -1;   // el señalado con las flechas: Intro lo proyecta
   let shown = null;  // la búsqueda cuyos resultados se ven
@@ -153,7 +152,7 @@ export function createSearch({ canEdit }) {
     }, kindBadge(result.kind), h('span', { class: 'item-text' }, h('strong', {}, result.head || result.title),
       result.text ? h('small', {}, ...marked(result.text, result.marks)) : result.subtitle && h('small', {}, result.subtitle)),
     h('span', { class: 'finder-acts' },
-      canEdit && h('button', { class: 'icon-btn sm', 'aria-label': `Añadir «${result.title}» al orden`, title: 'Añadir al orden del culto', tabindex: '-1', onclick: guard(async (e) => {
+      h('button', { class: 'icon-btn sm', 'aria-label': `Añadir «${result.title}» al orden`, title: 'Añadir al orden del culto', tabindex: '-1', onclick: guard(async (e) => {
         e.stopPropagation();
         await action('order.add', { kind: result.kind, data: result.data });
         toast(`«${result.title}» añadido al orden del culto.`);

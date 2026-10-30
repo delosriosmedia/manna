@@ -60,7 +60,7 @@ function mount(el, ctx) {
     if (hymn) ctx.listen({ url: hymn.url, title: `${hymn.number} · ${hymn.title}` });
   } }, icon('speaker-high', 16), h('span', { class: 'hymn-long' }, 'Escuchar'));
   // Favorito: lo comparten todos los dispositivos. Solo lo marca quien puede editar (Control y Alabanza).
-  const favButton = ctx.canEdit && h('button', { class: 'chip hymn-fav-btn', onclick: guard(async () => {
+  const favButton = ctx.can('hymns.favorite') && h('button', { class: 'chip hymn-fav-btn', onclick: guard(async () => {
     const hymn = current();
     if (hymn) await action('hymns.favorite', { number: hymn.number, on: !favorites().includes(hymn.number) });
   }) }, icon('star', 16), h('span', { class: 'hymn-long' }, 'Favorito'));
@@ -278,7 +278,7 @@ function mount(el, ctx) {
       body.replaceChildren(...(found ? drawResults() : drawLibrary()));
       body.scrollTop = 0;
     }
-    const issues = ctx.canEdit ? book.report?.notes?.length || 0 : 0;
+    const issues = ctx.can('order.edit') ? book.report?.notes?.length || 0 : 0;
     notesButton.hidden = !issues;
     notesNum.textContent = issues;
     notesWord.textContent = issues === 1 ? ' aviso' : ' avisos';

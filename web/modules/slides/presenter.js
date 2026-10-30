@@ -12,7 +12,7 @@ import { pageUrl, plural, thumbUrl } from './deck.js';
 const wide = matchMedia('(min-width: 860px)');
 const TABS = [['orden', 'Del orden'], ['biblioteca', 'Biblioteca'], ['subir', 'Subir']];
 
-// Pantalla del presentador (función «Presentador de diapositivas»): una presentación cada vez, con
+// Pantalla del orador (función «Orador completo»): una presentación cada vez, con
 // la diapositiva al aire en grande, la siguiente y todas en rejilla. Sobre la grande, el dedo señala
 // en la proyección (puntero), mueve y acerca el encuadre o, sin herramienta, pasa como en «Historias»
 // (a la derecha avanza, a la izquierda vuelve). «Siguiente» no sale de la presentación.
@@ -94,7 +94,7 @@ function mount(el, ctx) {
       h('div', { class: 'transport' }, prev, next, black)),
     h('div', { class: 'pr-side' }, controls, gridBox));
 
-  el.replaceChildren(h('div', { class: 'ws-head' }, back, h('h1', {}, 'Presentador'), title), chooser, present, picker);
+  el.replaceChildren(h('div', { class: 'ws-head' }, back, h('h1', {}, 'Orador'), title), chooser, present, picker);
   el.classList.add('presenter');
   createLiveControls(controls);
 
@@ -296,4 +296,4 @@ function mount(el, ctx) {
   };
 }
 
-export default { id: 'presentador', name: 'Presentador', icon: 'presentation-chart', mount };
+export default { id: 'presentador', name: 'Orador', icon: 'presentation-chart', mount };

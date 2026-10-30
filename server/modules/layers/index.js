@@ -101,7 +101,7 @@ export default function setup(app) {
   app.services.layers = { covering: () => slots.some((s) => s?.visible), refresh: publish };
 
   // visible: falso para cambiar lo que tiene una capa oculta sin mostrarla (el aspecto de un reloj, desde Tiempo).
-  app.action('layers.set', { permission: 'projection.control' }, ({ n, kind, data, visible = true } = {}) => {
+  app.action('layers.set', { permission: 'layers.edit' }, ({ n, kind, data, visible = true } = {}) => {
     const i = slotIndex(n);
     if (typeof kind !== 'string' || !kindOf(kind)) throw new HttpError(400, 'Eso no se puede poner en una capa.');
     if (data == null || typeof data !== 'object' || Array.isArray(data)) throw new HttpError(400, 'Falta qué poner en la capa.');
@@ -121,14 +121,14 @@ export default function setup(app) {
     commit();
   });
 
-  app.action('layers.reload', { permission: 'projection.control' }, ({ n } = {}) => {
+  app.action('layers.reload', { permission: 'layers.edit' }, ({ n } = {}) => {
     const i = filled(n);
     slots[i] = { ...slots[i], uid: ++uid, ready: false };
     publish();
     check(i).catch(() => {});
   });
 
-  app.action('layers.clear', { permission: 'projection.control' }, ({ n } = {}) => {
+  app.action('layers.clear', { permission: 'layers.edit' }, ({ n } = {}) => {
     const i = filled(n);
     clearTimeout(timers[i]);
     slots[i] = null;

@@ -4,7 +4,7 @@ import { icon } from '../../core/icons.js';
 import { whenLabel } from '../../core/time.js';
 import { devicesBody } from './devices.js';
 
-// Los dos botones de la barra de arriba del Control completo: la conexión por internet (un wifi con ondas) y
+// Los dos botones de la barra de arriba del Control total: la conexión por internet (un wifi con ondas) y
 // el código QR para conectar dispositivos. El wifi es un dibujo propio, no del sprite: cada onda es un elemento
 // aparte para poder encenderlas una tras otra mientras conecta.
 const WIFI = `<svg class="wifi" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path class="w1" d="M8.75 15.25a4.6 4.6 0 0 1 6.5 0"/><path class="w2" d="M5.5 12a9.2 9.2 0 0 1 13 0"/><path class="w3" d="M2.24 8.74a13.8 13.8 0 0 1 19.52 0"/></g><circle cx="12" cy="18.5" r="1.25" fill="currentColor"/><path class="slash" d="M4.5 4.5l15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
@@ -54,7 +54,7 @@ const createDevicesButton = (onclick) => h('button', {
   class: 'tool-btn tool-qr', 'aria-label': 'Conectar dispositivos', title: 'Conectar dispositivos', 'aria-expanded': 'false', 'aria-controls': 'tools-card', onclick,
 }, icon('qr-mini', 20));
 
-// La barra de arriba del Control completo: ambos en una píldora. A quien entra por internet no se le ofrece el wifi:
+// La barra de arriba del Control total: ambos en una píldora. A quien entra por internet no se le ofrece el wifi:
 // apagarlo le cortaría a él mismo; tampoco a quien no es administrador (fase 35), que no puede encenderlo. Pulsar uno (pedido del dueño, 2026-10-18) agranda la píldora en su sitio hasta
 // ser una tarjeta con lo suyo, y lo que hay a su izquierda se corre; se encoge al pulsarlo otra vez, con Esc, al
 // tocar fuera o cuando el ratón lleva 2 s fuera. Con la tarjeta abierta, el otro botón cambia lo que dice.

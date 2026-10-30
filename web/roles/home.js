@@ -10,7 +10,7 @@ const info = await session.get();
 preferStableAddress(info);
 $('#version').textContent = `Church projection app${info.version ? ` · ${info.version}` : ''}`;
 const back = new URLSearchParams(location.search).get('volver');
-const ICONS = { control: 'sliders-horizontal', alabanza: 'music-notes', presentador: 'hand-pointing', orden: 'list-numbers', proyeccion: 'monitor', preparacion: 'list-plus', administrar: 'key', superadmin: 'key' };
+const ICONS = { control: 'sliders-horizontal', alabanza: 'music-notes', presentador: 'hand-pointing', 'orador-sencillo': 'presentation-chart', proyeccion: 'monitor', preparacion: 'list-plus', administrar: 'key', superadmin: 'key' };
 // Las que usa cualquiera de la lista (la de proyección y, en la nube, preparar el culto).
 const FOR_ALL = ['proyeccion', 'preparacion'];
 

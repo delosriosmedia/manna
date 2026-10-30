@@ -277,7 +277,7 @@ export default function setup(app) {
     neighbor(id, step, delta) {
       const target = neighbor(items(), id, step, delta);
       const item = target && items().find((i) => i.id === target.id);
-      return item ? { kind: item.kind, data: item.data, step: target.step, orderId: item.id } : null;
+      return item ? { kind: item.kind, data: item.data, step: target.step, orderId: item.id, title: item.title, steps: item.steps } : null;
     },
   };
 
@@ -325,6 +325,20 @@ export default function setup(app) {
     const o = target(ctx);
     itemOf(o, id);
     update(o, o.items.map((i) => (i.id === id ? renameItem(i, title, app.kinds.get(i.kind)?.describe(i.data)?.title) : i)));
+    return itemOf(o, id);
+  });
+
+  // Cantado o Pista de un canto del orden, antes de que salga: en el culto se decide sobre el orden en uso, sea de quien sea.
+  app.action('order.setTrack', { permission: 'order.edit' }, ({ id, track }, ctx) => {
+    const o = inUse()?.items.some((i) => i.id === id) ? inUse() : target(ctx);
+    const item = itemOf(o, id);
+    if (item.kind !== 'song') throw new HttpError(400, 'Eso no es un canto.');
+    const def = app.kinds.get('song');
+    const info = def.describe({ ...item.data, track });
+    const content = info && def.resolve(info.data);
+    if (!content) throw new HttpError(404, 'Ese himno ya no está.');
+    if (content.unavailable) throw new HttpError(409, content.unavailable);
+    update(o, o.items.map((i) => (i.id === id ? { ...i, subtitle: info.subtitle, data: info.data } : i)));
     return itemOf(o, id);
   });
 

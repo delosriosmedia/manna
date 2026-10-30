@@ -107,7 +107,7 @@ function mount(el, ctx) {
         digits),
       toggle,
       t && h('button', { class: 'icon-btn sm', title: 'Volver al principio', 'aria-label': `Volver al principio: ${t.title}`, onclick: guard(() => action('time.reset', { id })) }, icon('arrow-counter-clockwise', 16)),
-      t && ctx.canEdit && h('button', { class: 'icon-btn sm', 'aria-label': `Opciones de ${t.title}`, onclick: (e) => menu(e.currentTarget, [
+      t && ctx.can('time.edit') && h('button', { class: 'icon-btn sm', 'aria-label': `Opciones de ${t.title}`, onclick: (e) => menu(e.currentTarget, [
         { label: 'Cambiar', icon: 'pencil-simple', onclick: () => openEditor(t.type, t) },
         '-',
         { label: 'Eliminar', icon: 'trash', onclick: () => confirmRemove(t) },
@@ -120,7 +120,7 @@ function mount(el, ctx) {
     const ids = [HORA, ...timers().map((t) => t.id)];
     for (const id of ids) rows.set(id, row(id));
     list.replaceChildren(...[...rows.values()].map((r) => r.el),
-      ...(timers().length ? [] : [h('p', { class: 'muted time-empty' }, ctx.canEdit ? 'Con «Nuevo» creas un temporizador (cuenta atrás, con su título) o un cronómetro.' : 'Aún no hay cronómetros ni temporizadores.')]));
+      ...(timers().length ? [] : [h('p', { class: 'muted time-empty' }, ctx.can('time.edit') ? 'Con «Nuevo» creas un temporizador (cuenta atrás, con su título) o un cronómetro.' : 'Aún no hay cronómetros ni temporizadores.')]));
     tickList();
   }
   // La cuenta de cada fila, y el estado de sus botones.
@@ -195,7 +195,7 @@ function mount(el, ctx) {
     { label: 'Temporizador', icon: 'hourglass-medium', note: 'cuenta atrás', onclick: () => openEditor('timer') },
     { label: 'Cronómetro', icon: 'timer', note: 'cuenta hacia arriba', onclick: () => openEditor('stopwatch') },
   ]) }, icon('plus', 16), 'Nuevo');
-  el.replaceChildren(h('div', { class: 'ws-head' }, h('h1', {}, 'Tiempo'), h('span', { class: 'spacer' }), ctx.canEdit && fresh),
+  el.replaceChildren(h('div', { class: 'ws-head' }, h('h1', {}, 'Tiempo'), h('span', { class: 'spacer' }), ctx.can('time.edit') && fresh),
     h('div', { class: 'time-body' }, list, lookPanel), bar);
 
   function render() {

@@ -65,6 +65,8 @@ Las imágenes que necesita una prueba se fabrican en el momento con `scripts/lib
 
 Una prueba nueva de interfaz se añade a `scripts/probar-chrome.mjs`; un tamaño o una pantalla nuevos, a `scripts/auditar-responsive.mjs`.
 
+**Las reglas de móviles** (`DESIGN.md`, 12 ter) se miden en las pantallas con `movil: true` de la auditoría: esas se abren además en los tamaños mínimos (360 × 560, 640 × 280, 600 × 880 y 960 × 520) y en un Android con sus botones (360 × 512 y 592 × 280), y `MOBILE_RULES` de `scripts/lib/reglas-moviles.mjs` mira en la página zonas de toque de menos de 35 px o pisadas, las distancias a lo peligroso (`data-peligro` y `data-paso`), letra, contraste, lo que se sale, brillo y rojo sin nada al aire; la vista de lo que está al aire (`data-vista`) no se mide. Lo que depende de la mano (alcance, deslumbramiento, navegadores reales) se prueba en un celular de verdad y se anota en `docs/ESTADO.md`.
+
 Lo que un guion lanza (el Chrome sin ventana, los servidores de prueba) se registra con `killOnExit()` de `scripts/lib/chrome.mjs`, para que se cierre con el guion aunque lo corten a medias. El 2026-10-05 se encontraron tres Chrome sin ventana de pruebas interrumpidas, y como el puerto de control era fijo, las pruebas siguientes se enganchaban al más antiguo; ahora cada Chrome usa un puerto libre.
 
 ## Lo que vigila la prueba en Chrome

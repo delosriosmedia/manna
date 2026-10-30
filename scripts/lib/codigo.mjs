@@ -236,8 +236,10 @@ export function checkContract(webFiles, serverFiles, { root }) {
   const actions = new Set();
   const routes = [];
   const endpoints = []; // { method, path }: lo mismo que routes, con su método
+  const permissions = new Set();
   for (const file of serverFiles) {
     const kept = strip(fs.readFileSync(file, 'utf8'), { keepStrings: true });
+    for (const m of kept.matchAll(/permission:\s*'([\w.]+)'|\.require\(\s*'([\w.]+)'/g)) permissions.add(m[1] || m[2]);
     for (const m of kept.matchAll(/\.action\(\s*'([\w.]+)'/g)) actions.add(m[1]);
     for (const m of kept.matchAll(/\.route\(\s*'(GET|POST|PUT|DELETE)'\s*,\s*'([^']+)'/g)) {
       routes.push(m[2]);
@@ -254,7 +256,11 @@ export function checkContract(webFiles, serverFiles, { root }) {
     const lineOf = (index) => kept.slice(0, index).split('\n').length;
     // Una orden es un texto "modulo.verbo" que se pasa a una función: a action(), o a una propia
     // que la envuelve (run('order.clear')). Se reconocen por el módulo, que es uno de los del servidor.
-    for (const m of kept.matchAll(/\(\s*'([a-z]+)\.([\w]+)'/g)) {
+    // can('modulo.capacidad') no envía nada: pregunta por un permiso, que tiene que existir.
+    for (const m of kept.matchAll(/\bcan\(\s*'([\w.]+)'/g)) {
+      if (!permissions.has(m[1])) problems.push(`${where}:${lineOf(m.index)} pregunta por el permiso "${m[1]}", que el servidor no pide en ninguna parte.`);
+    }
+    for (const m of kept.matchAll(/(?<!\bcan)\(\s*'([a-z]+)\.([\w]+)'/g)) {
       if (modules.has(m[1]) && !actions.has(`${m[1]}.${m[2]}`)) problems.push(`${where}:${lineOf(m.index)} envía la orden "${m[1]}.${m[2]}", que el servidor no tiene.`);
     }
     for (const m of kept.matchAll(/['"`](\/api\/[^'"`\s?]*)/g)) {

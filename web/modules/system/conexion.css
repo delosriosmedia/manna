@@ -1,4 +1,4 @@
-/* Wifi y QR de la barra de arriba del Control completo (web/modules/system/conexion.js) */
+/* Wifi y QR de la barra de arriba del Control total (web/modules/system/conexion.js) */
 /* La píldora ocupa su sitio en la fila y solo crece de ancho; la tarjeta cuelga de ella, anclada a la derecha. */
 .topbar-tools { position: relative; flex-shrink: 0; display: flex; justify-content: flex-end; min-height: 36px; }
 .tools-card { display: flex; flex-direction: column; overflow: hidden; border-radius: 18px; background: var(--glass-1); }

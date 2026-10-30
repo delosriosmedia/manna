@@ -58,7 +58,7 @@ export function createClipsPanel(ctx, kind, lib) {
     select(id);
     toast(already ? 'Ese video ya está en la biblioteca.' : 'Descargando el video. Puedes seguir usando Manna mientras tanto.');
   });
-  const entry = visual && ctx.canEdit ? h('form', { class: 'yt-add', onsubmit: (e) => { e.preventDefault(); addLink(); } },
+  const entry = visual && ctx.can('media.edit') ? h('form', { class: 'yt-add', onsubmit: (e) => { e.preventDefault(); addLink(); } },
     h('label', { class: 'search' }, icon('link-simple', 16), link),
     h('button', { class: 'btn', type: 'submit', 'aria-label': 'Añadir el video de YouTube', title: 'Añadir el video de YouTube' }, icon('download-simple', 16), h('span', {}, 'Añadir')),
     ctx.canProject && h('button', { class: 'btn yt-many', type: 'button', 'aria-label': 'Añadir varios videos de YouTube', title: 'Añadir varios videos de YouTube', onclick: () => openYoutubeMany({ onDone: addedMany }) }, icon('list-plus', 16), h('span', {}, 'Varios'))) : null;
@@ -167,7 +167,7 @@ export function createClipsPanel(ctx, kind, lib) {
     return h('div', { class: `media-status ${clip.usable ? 'usable' : 'error'}` },
       clip.usable && h('strong', {}, 'Se puede proyectar desde el equipo principal.'),
       h('small', {}, clip.usable ? `No hay copia para celulares y pantallas remotas: ${(clip.error || 'no se pudo convertir').replace(/\.$/, '')}.` : clip.error || 'No se puede reproducir.'),
-      ctx.canEdit && h('div', { class: 'row' },
+      ctx.can('media.edit') && h('div', { class: 'row' },
         h('button', { class: 'btn', onclick: guard(() => action('media.retry', { id: clip.id })) }, 'Reintentar'),
         clip.status === 'needs-ffmpeg' && h('button', { class: 'btn', onclick: () => go('/requisitos') }, 'Instalar ffmpeg')));
   }
@@ -191,7 +191,7 @@ export function createClipsPanel(ctx, kind, lib) {
     const onAir = state.projection?.mode === 'live' && ['video', 'audio', 'youtube'].includes(live?.kind) ? live.source?.data?.id : null;
     grid.replaceChildren(...list.map((clip) => {
       const facts = [whenLabel(clip.added), clip.duration && formatTime(clip.duration), clip.bytes > 0 && megabytes(clip.bytes), clip.source === 'folder' && 'carpeta', clip.kind === 'youtube' && 'YouTube'].filter(Boolean).join(' · ');
-      return h('div', { class: `media-card${clip.id === selected ? ' selected' : ''}${clip.id === onAir ? ' live' : ''}${clip.usable ? '' : ' pending'}`, dataset: { id: clip.id, status: clip.status, usable: String(clip.usable), ...(ctx.canEdit && { drag: clip.id, name: clip.name }) } },
+      return h('div', { class: `media-card${clip.id === selected ? ' selected' : ''}${clip.id === onAir ? ' live' : ''}${clip.usable ? '' : ' pending'}`, dataset: { id: clip.id, status: clip.status, usable: String(clip.usable), ...(ctx.can('media.edit') && { drag: clip.id, name: clip.name }) } },
         h('button', { class: 'media-pick', 'aria-pressed': clip.id === selected, onclick: () => select(clip.id), ondblclick: () => { select(clip.id); if (clip.usable) project(); } },
           h('span', { class: `media-thumb${!visual || !clip.poster ? ' blank' : ''}` },
             visual && clip.poster ? h('img', { src: clip.poster, alt: '', loading: 'lazy' }) : icon(clip.kind === 'youtube' ? 'youtube-logo' : words.icon, 30),
@@ -201,7 +201,7 @@ export function createClipsPanel(ctx, kind, lib) {
             clip.id === onAir && h('span', { class: 'badge live' }, 'Al aire')),
           h('span', { class: 'item-text' }, h('strong', {}, clip.name), h('small', {}, facts))),
         statusOf(clip),
-        ctx.canEdit && h('button', { class: 'icon-btn sm media-more', 'aria-label': `Opciones de ${clip.name}`, onclick: (e) => more(clip, e.currentTarget) }, icon('dots-three', 16)));
+        ctx.can('media.edit') && h('button', { class: 'icon-btn sm media-more', 'aria-label': `Opciones de ${clip.name}`, onclick: (e) => more(clip, e.currentTarget) }, icon('dots-three', 16)));
     }));
 
     const clip = current();

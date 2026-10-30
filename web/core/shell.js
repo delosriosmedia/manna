@@ -1,4 +1,6 @@
-import { action, connect, onServerUpdate, state, subscribe } from './api.js';
+import { action, connect, onServerUpdate, state, stepAir, subscribe } from './api.js';
+import { isMobile, layoutFor } from './disposicion.js';
+import { can } from './session.js';
 import { watchBlocked } from './blocked.js';
 import { mountConnectionBar } from './connection.js';
 import { h, allowLeaving, confirmBeforeClose, dialog, go, guard, pageZoom, toast } from './dom.js';
@@ -19,7 +21,7 @@ import { chooseContent, contentMissing } from './contenido.js';
 //   hidden  en pausa: existe y se abre por su dirección (#id), pero no sale en el dock
 //   needs   programas del equipo principal que necesita (ver core/needs.js)
 //   mount   dibuja el módulo en el y puede devolver { onShow(), keys(evento) -> true si lo atendió, part(id) }
-// ctx (lo que recibe cada módulo): { role, isLocal, user, canEdit, canProject, has(id), go(id, parte?), setPart(id) }. user es quien
+// ctx (lo que recibe cada módulo): { role, isLocal, user, can(permiso), layout(), canProject, has(id), go(id, parte?), setPart(id) }. user es quien
 // entró ({ id, name, admin }, fase 35): Ajustes solo lo tiene el administrador. Sin canProject (preparar el culto), los
 // módulos no ofrecen «Proyectar»: añaden al orden.
 //   setPart  un módulo con pestañas dice en cuál está, para avisar solo de lo que le falta a esa
@@ -27,9 +29,8 @@ import { chooseContent, contentMissing } from './contenido.js';
 // layout 'full' (Presentador): el único módulo ocupa la pantalla entera, sin escenario.
 // layout 'pestanas' (Preparar el culto, en la nube; fase 36): sin escenario ni proyección. El dock son las pestañas (a la
 // izquierda; abajo en el celular) y el módulo elegido ocupa el resto. createScene solo da { preview } (escuchar).
-// topTools: [(ctx) => nodo]: lo que va al final de la barra de arriba (el wifi y el QR del Control completo).
+// topTools: [(ctx) => nodo]: lo que va al final de la barra de arriba (el wifi y el QR del Control total).
 export function createShell({ role, isLocal, user = null, modules, topTools = [], createScene, layout = 'escena', church = null }) {
-  const canEdit = ['control', 'alabanza', 'preparacion'].includes(role);
   // Lo que el superadministrador dejó a esta iglesia (fase 39): sin los módulos apagados y, si los ordenó, en su orden
   // (el primero es el que se abre cuando este dispositivo no recuerda otro).
   const arranged = church?.layout?.[role] || [];
@@ -43,11 +44,17 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   const bare = full || tabs; // sin escenario
   const narrow = matchMedia('(max-width: 859px)');
   const landscape = matchMedia('(max-width: 859px) and (max-height: 480px)');
+  // Qué disposición le toca a este dispositivo (decisión 71): la dicen data-disposicion y `ctx.layout()`.
+  const mobile = isMobile({ main: isLocal, forced: /[?&]tactil/.test(location.search), coarse: matchMedia('(pointer: coarse)').matches, ipad: navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1, android: /Android/.test(navigator.userAgent) });
+  const layoutNow = () => layoutFor({ mobile, width: innerWidth, height: innerHeight });
+  const paintLayout = () => { document.documentElement.dataset.disposicion = layoutNow(); };
+  paintLayout();
+  addEventListener('resize', paintLayout);
 
   const notice = h('div', { class: 'ws-notice', role: 'status', hidden: true });
   const work = h('div', { class: 'work' });
   // go(id, parte): abre un módulo y, si lo admite (part en lo que devuelve su mount), una de sus pestañas.
-  const ctx = { role, isLocal, user, canEdit, canProject: !tabs, has: (id) => usable.some((m) => m.id === id), go: (id, part) => { show(id); if (part) current?.api.part?.(part); } };
+  const ctx = { role, isLocal, user, can, layout: layoutNow, canProject: !tabs, has: (id) => usable.some((m) => m.id === id), go: (id, part) => { show(id); if (part) current?.api.part?.(part); } };
   const scene = full ? null : createScene({ ...ctx, openControls: () => openControls() });
   // Escuchar algo solo en este dispositivo antes de añadirlo ({ url, title }); null en el equipo principal.
   ctx.listen = scene?.preview ? (what) => scene.preview.play(what) : null;
@@ -55,7 +62,7 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   // ---- Barra de arriba: la marca, el estado y «Buscar en todo» ----
   // La marca (pedido del dueño, 2026-10-18): el logo abre Ajustes (que ya no está en el dock), la versión al lado y
   // un botón aparte para cambiar la función de este dispositivo. Sin Ajustes (las demás funciones), el logo no es botón.
-  const ROLE_NAMES = { control: 'Control completo', alabanza: 'Servicio de alabanza', orden: 'Control del orden', presentador: 'Presentador', preparacion: 'Preparar el culto', administrar: 'Administrar la iglesia', superadmin: 'Superadministrador' };
+  const ROLE_NAMES = { control: 'Control total', alabanza: 'Alabanza', presentador: 'Orador completo', 'orador-sencillo': 'Orador sencillo', preparacion: 'Preparar el culto', administrar: 'Administrar la iglesia', superadmin: 'Superadministrador' };
   const settings = usable.find((m) => m.id === 'ajustes');
   const version = h('small', { class: 'brand-version' });
   subscribe('system', (s) => { version.textContent = s.version || ''; });
@@ -380,7 +387,7 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   // Escribe y busca (S50, 2026-10-29): en el computador, una letra o una cifra va al buscador del módulo abierto o, si
   // no tiene (o no hay ninguno abierto), a «Buscar en todo»; por eso Negro y Solo fondo llevan Mayús. En el buscador
   // vacío, ← → siguen pasando lo que está al aire. El resto lo decide el módulo abierto.
-  const step = guard((delta) => action('projection.step', { delta }));
+  const step = guard((delta) => stepAir(delta));
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && scene?.search && !document.querySelector('.modal-backdrop')) {
       e.preventDefault();

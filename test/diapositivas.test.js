@@ -182,11 +182,12 @@ test('un PDF llega ya convertido en imágenes, página a página, y se proyecta 
     assert.equal((await s.send('order.show', { id: item.id })).result.number, 1);
     assert.equal((await s.send('projection.step', { delta: 1 })).result.number, 2);
 
-    // Otra función sin permiso de edición no sube ni borra, pero sí proyecta.
-    await s.as('orden');
+    // Una función sin permiso de edición no sube ni borra.
+    await s.as('proyeccion');
     assert.equal((await s.put('/api/slides?name=x&pages=2')).http, 403);
     assert.equal((await s.send('slides.remove', { id })).http, 403);
-    assert.equal((await s.send('projection.show', { kind: 'slides', data: { id }, step: 0 })).http, 200);
+    await s.as('presentador');
+    assert.equal((await s.send('projection.show', { kind: 'slides', data: { id }, step: 0 })).http, 200, 'el orador proyecta');
     await s.as('control');
 
     await s.send('slides.rename', { id, name: '  Informe   del trimestre ' });

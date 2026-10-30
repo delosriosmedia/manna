@@ -29,10 +29,7 @@ export const MODULES = [
   settings,
 ];
 
-// Función "Control del orden": solo opera el orden del culto, sin editarlo.
-export const ORDER_ONLY = [order];
-
-// Función "Servicio de alabanza": centrado en himnario, medios, orden y biblia.
+// Función "Alabanza": centrado en himnario, medios, orden y biblia.
 export const ALABANZA_MODULES = [
   himnario,
   medios,
@@ -44,5 +41,5 @@ export const ALABANZA_MODULES = [
 // después el equipo de la iglesia, y YouTube va por su enlace (decisión 64).
 export const PREPARACION_MODULES = [order, bible, himnario, medios, textos];
 
-// Función "Presentador de diapositivas": solo su pantalla, que ya muestra lo que está al aire.
+// Los dos oradores: solo su pantalla, que ya muestra lo que está al aire.
 export const PRESENTADOR_MODULES = [presentador];

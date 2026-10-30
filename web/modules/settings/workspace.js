@@ -167,7 +167,7 @@ function mount(el, ctx) {
 
   subscribe('conexiones', ({ porRol = {} }) => {
     const n = (role) => porRol[role] || 0;
-    const controls = n('control') + n('orden');
+    const controls = n('control') + n('alabanza') + n('presentador') + n('orador-sencillo');
     screens.textContent = `Conectados ahora: ${n('proyeccion')} ${n('proyeccion') === 1 ? 'pantalla' : 'pantallas'} de proyección y ${controls} ${controls === 1 ? 'control' : 'controles'}.`;
   });
 

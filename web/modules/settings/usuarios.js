@@ -4,7 +4,7 @@ import { icon } from '../../core/icons.js';
 
 // Ajustes → Usuarios (fase 35): cada persona entra con su nombre y su PIN, y solo en las funciones que tenga. Solo lo
 // ve el administrador. Los PIN nunca vuelven del servidor: aquí solo se escriben.
-const FUNCTIONS = [['control', 'Control completo'], ['alabanza', 'Servicio de alabanza'], ['orden', 'Control del orden'], ['presentador', 'Presentador']];
+const FUNCTIONS = [['control', 'Control total'], ['alabanza', 'Alabanza'], ['presentador', 'Orador completo'], ['orador-sencillo', 'Orador sencillo']];
 const NAMES = Object.fromEntries(FUNCTIONS);
 
 function pinInput(label) {
@@ -27,7 +27,8 @@ export function usersBody(me) {
   const render = () => list.replaceChildren(...users.map((u) => h('div', { class: 'user-row', dataset: { id: u.id } },
       h('span', { class: 'initial', 'aria-hidden': 'true' }, u.name.slice(0, 1).toUpperCase()),
       h('span', { class: 'item-text' }, h('strong', {}, u.name, u.id === me?.id ? ' (tú)' : ''),
-        h('small', {}, u.admin ? 'Administrador · todas las funciones' : u.functions.map((f) => NAMES[f]).join(' · '))),
+        // Quien solo tenía Control del orden, que se quitó, no puede entrar hasta que se le dé otra.
+        h('small', { class: u.admin || u.functions.length ? '' : 'user-none' }, u.admin ? 'Administrador · todas las funciones' : u.functions.map((f) => NAMES[f]).join(' · ') || 'Sin función: dale una para que pueda entrar')),
       ...(cloud ? [] : [
         h('button', { class: 'icon-btn sm', title: 'Cambiar', 'aria-label': `Cambiar a ${u.name}`, onclick: () => edit(u) }, icon('pencil-simple', 15)),
         h('button', { class: 'icon-btn sm', title: 'Cambiar el PIN', 'aria-label': `Cambiar el PIN de ${u.name}`, onclick: () => changePin(u) }, icon('key', 15)),
@@ -47,7 +48,7 @@ export function usersBody(me) {
   function edit(user) {
     const name = h('input', { class: 'input', maxLength: 40, value: user?.name || '', placeholder: 'Por ejemplo, Ana', 'aria-label': 'Nombre' });
     const pin = !user && pinInput('PIN');
-    const checks = FUNCTIONS.map(([id, label]) => ({ id, label, input: h('input', { type: 'checkbox', checked: user ? user.functions.includes(id) : id === 'orden' }) }));
+    const checks = FUNCTIONS.map(([id, label]) => ({ id, label, input: h('input', { type: 'checkbox', checked: user ? user.functions.includes(id) : id === 'orador-sencillo' }) }));
     const admin = h('input', { type: 'checkbox', checked: Boolean(user?.admin), onchange: () => paint() });
     const paint = () => { for (const c of checks) { c.input.disabled = admin.checked; if (admin.checked) c.input.checked = true; } };
     const save = guard(async () => {

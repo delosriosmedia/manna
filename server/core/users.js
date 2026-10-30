@@ -6,7 +6,7 @@ import { cleanName } from './names.js';
 // funciones que puede usar y si es administrador de la iglesia (ve y edita todos los órdenes, entra en Ajustes y
 // gestiona los usuarios). En data/usuarios.json. La primera vez, el PIN único de antes pasa a ser el del
 // administrador, para que nadie se quede fuera.
-export const FUNCTIONS = ['control', 'alabanza', 'orden', 'presentador'];
+export const FUNCTIONS = ['control', 'alabanza', 'presentador', 'orador-sencillo'];
 export const validPin = (pin) => /^\d{4}$/.test(pin || '');
 const hash = (pin, salt) => crypto.scryptSync(pin, salt, 32).toString('hex');
 // Un PIN o una contraseña, guardado como huella con su sal; y si un texto es el guardado.
@@ -23,12 +23,14 @@ function validRecord(r) {
   if (!r || !hex(r.id, 12) || !name || !hex(r.pin?.salt, 32) || !hex(r.pin?.hash, 64)) return null;
   const admin = r.admin === true;
   const functions = admin ? [...FUNCTIONS] : FUNCTIONS.filter((f) => Array.isArray(r.functions) && r.functions.includes(f));
-  return { id: r.id, name, admin, functions: functions.length ? functions : ['orden'], pin: { salt: r.pin.salt, hash: r.pin.hash }, added: Number(r.added) || Date.now() };
+  return { id: r.id, name, admin, functions, pin: { salt: r.pin.salt, hash: r.pin.hash }, added: Number(r.added) || Date.now() };
 }
 
 export function createUsers({ storage, legacyPin = null }) {
   const store = storage('usuarios', { list: [] });
   const list = store.data.list;
+  // Control del orden se quitó (decisión 69): quien solo la tenía queda sin función hasta que el administrador le dé otra.
+  for (const u of list) u.functions = (u.functions || []).filter((f) => FUNCTIONS.includes(f));
   let created = null;
   if (!list.length) {
     const pin = validPin(legacyPin) ? legacyPin : String(crypto.randomInt(0, 10000)).padStart(4, '0');

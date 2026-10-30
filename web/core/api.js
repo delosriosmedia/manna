@@ -65,6 +65,8 @@ export const session = {
 
 // Estado compartido: una copia local de lo que tiene el servidor, por módulo.
 export const state = {};
+// Anterior o Siguiente, con lo que se ve al pulsar: dos toques casi juntos, o dos operadores a la vez, no pasan dos pasos.
+export const stepAir = (delta) => action('projection.step', { delta, uid: state.projection?.over?.uid ?? state.projection?.item?.uid });
 const listeners = new Map(); // ns -> Set<fn>
 const statusListeners = new Set();
 let online = false;

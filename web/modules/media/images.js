@@ -111,13 +111,13 @@ export function createImagesPanel(ctx, lib) {
     else if (selected !== awaited) selected = null;
     const onAir = state.projection?.mode === 'live' && state.projection.item?.kind === 'image' ? state.projection.item.url : null;
 
-    grid.replaceChildren(...list.map((image) => h('div', { class: `media-card${image.id === selected ? ' selected' : ''}${image.url === onAir ? ' live' : ''}`, dataset: { id: image.id, ...(ctx.canEdit && { drag: image.id, name: image.name }) } },
+    grid.replaceChildren(...list.map((image) => h('div', { class: `media-card${image.id === selected ? ' selected' : ''}${image.url === onAir ? ' live' : ''}`, dataset: { id: image.id, ...(ctx.can('media.edit') && { drag: image.id, name: image.name }) } },
       h('button', { class: 'media-pick', 'aria-pressed': image.id === selected, onclick: () => select(image.id), ondblclick: () => { select(image.id); project(); } },
         h('span', { class: 'media-thumb' }, h('img', { src: image.thumb || image.url, alt: '', loading: 'lazy' }), kindBadge('image'),
           image.url === onAir && h('span', { class: 'badge live' }, 'Al aire')),
         h('span', { class: 'item-text' }, h('strong', {}, image.name),
           h('small', { title: `${image.width} × ${image.height} · agregada el ${new Date(image.added).toLocaleString('es')}` }, image.atChurch ? 'Ya está en la iglesia' : `${whenLabel(image.added)} · ${image.width} × ${image.height}`))),
-      ctx.canEdit && h('button', { class: 'icon-btn sm media-more', 'aria-label': `Opciones de ${image.name}`, onclick: (e) => menu(e.currentTarget, [
+      ctx.can('media.edit') && h('button', { class: 'icon-btn sm media-more', 'aria-label': `Opciones de ${image.name}`, onclick: (e) => menu(e.currentTarget, [
         { label: 'Cambiar el nombre', icon: 'pencil-simple', onclick: () => askName(image) },
         ...lib.menu(image, e.currentTarget),
         '-',

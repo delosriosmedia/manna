@@ -22,7 +22,7 @@ function describe(item) {
 // Módulo Orden del culto: la lista de todo lo que se va a proyectar, en orden, venga del
 // módulo que venga. A la izquierda, la lista; a la derecha (o debajo del elegido, si el cajón es
 // estrecho), los pasos del elemento elegido.
-// Cada orden tiene nombre, dueño y fecha (fase 35). Con canEdit hay tres pestañas: «Este orden» (el que esta persona
+// Cada orden tiene nombre, dueño y fecha (fase 35). Con permiso de editar hay tres pestañas: «Este orden» (el que esta persona
 // tiene abierto: ahí va lo que añade, y se proyecta desde él si está en uso), «Órdenes» (los suyos, o todos si es el
 // administrador, por semanas de domingo a sábado) y «Favoritos» (los que se repiten). Sin canEdit (función «Control
 // del orden»), solo el que está en uso, para proyectar.
@@ -63,7 +63,7 @@ function mount(el, ctx) {
   let opened = false;     // ya se mostró el orden por primera vez
   let wide = false;       // el cajón deja sitio a la columna de los pasos
   const TABS = [['este', 'Este orden'], ['ordenes', 'Órdenes'], ['favoritos', 'Favoritos']];
-  let view = ctx.canEdit && TABS.some(([id]) => id === prefs.get('orden.vista')) ? prefs.get('orden.vista') : 'este';
+  let view = ctx.can('order.edit') && TABS.some(([id]) => id === prefs.get('orden.vista')) ? prefs.get('orden.vista') : 'este';
   let editable = false;   // el orden que se ve es de esta persona (o es el administrador)
   let viewing = null;     // { id, name, ownerName, date } del orden que se ve
   let inUseHere = false;  // el que se ve es el que está en uso: se proyecta desde él
@@ -76,7 +76,7 @@ function mount(el, ctx) {
   // Un orden cambiado en la iglesia y en la nube a la vez, sin conexión (fase 37, decisión 63): quedó el último cambio.
   const conflicts = h('div', { class: 'order-conflicts' });
   const summary = h('small', {});
-  const viewTabs = ctx.canEdit ? TABS.map(([id, label]) =>
+  const viewTabs = ctx.can('order.edit') ? TABS.map(([id, label]) =>
     h('button', { class: 'btn', role: 'tab', dataset: { view: id }, onclick: () => setView(id) }, label)) : [];
   const detail = h('div', { class: 'odetail' });
   const side = h('div', { class: 'oside' });
@@ -124,10 +124,10 @@ function mount(el, ctx) {
 
   el.replaceChildren(
     h('div', { class: 'ws-head' }, h('h1', {}, 'Orden del culto'), orderName,
-      ctx.canEdit && h('label', { class: 'search' }, icon('plus', 16), quick, h('kbd', {}, '↵')),
-      !ctx.canEdit && h('span', { class: 'spacer' }),
-      ctx.canEdit && h('button', { class: 'btn order-add', 'aria-label': 'Añadir', onclick: (e) => openAddMenu(e.currentTarget) }, icon('plus', 15), h('span', {}, 'Añadir')),
-      ctx.canEdit && h('button', { class: 'icon-btn', 'aria-label': 'Más opciones', onclick: (e) => menu(e.currentTarget, [
+      ctx.can('order.edit') && h('label', { class: 'search' }, icon('plus', 16), quick, h('kbd', {}, '↵')),
+      !ctx.can('order.edit') && h('span', { class: 'spacer' }),
+      ctx.can('order.edit') && h('button', { class: 'btn order-add', 'aria-label': 'Añadir', onclick: (e) => openAddMenu(e.currentTarget) }, icon('plus', 15), h('span', {}, 'Añadir')),
+      ctx.can('order.edit') && h('button', { class: 'icon-btn', 'aria-label': 'Más opciones', onclick: (e) => menu(e.currentTarget, [
         { label: 'Nuevo orden', icon: 'plus', onclick: () => newOrder() },
         { label: 'Vaciar el orden', icon: 'trash', disabled: !editable || !items.length, onclick: confirmClear },
       ]) }, icon('dots-three', 18))),
@@ -309,8 +309,8 @@ function mount(el, ctx) {
     if (!items.length) {
       list.replaceChildren(h('div', { class: 'empty' },
         h('strong', {}, viewing?.id ? 'Este orden está vacío' : 'Ningún orden en uso'),
-        ctx.canEdit ? 'Añade pasajes desde la Biblia, o escribe una cita arriba y pulsa Enter.' : 'Se prepara desde un dispositivo con control completo.',
-        ctx.canEdit && h('p', { style: 'margin-top: 14px;' }, h('button', { class: 'btn', onclick: () => ctx.go('biblia') }, icon('book-open-text', 16), 'Ir a la Biblia'))));
+        ctx.can('order.edit') ? 'Añade pasajes desde la Biblia, o escribe una cita arriba y pulsa Enter.' : 'Se prepara desde un dispositivo con control completo.',
+        ctx.can('order.edit') && h('p', { style: 'margin-top: 14px;' }, h('button', { class: 'btn', onclick: () => ctx.go('biblia') }, icon('book-open-text', 16), 'Ir a la Biblia'))));
       side.hidden = true;
       return;
     }
@@ -361,7 +361,7 @@ function mount(el, ctx) {
 
   function setView(id) {
     view = id;
-    if (ctx.canEdit) prefs.set('orden.vista', id);
+    if (ctx.can('order.edit')) prefs.set('orden.vista', id);
     viewTabs.forEach((b) => {
       b.classList.toggle('on', b.dataset.view === id);
       b.setAttribute('aria-selected', String(b.dataset.view === id));
@@ -508,7 +508,7 @@ function mount(el, ctx) {
   }
 
   // ---- Reordenar arrastrando ----
-  if (ctx.canEdit) {
+  if (ctx.can('order.edit')) {
     let dragId = null;
     const clearMarks = () => list.querySelectorAll('.drop-before, .drop-after').forEach((r) => r.classList.remove('drop-before', 'drop-after'));
     const target = (e) => {
@@ -552,7 +552,7 @@ function mount(el, ctx) {
   // Bajo las pestañas: si lo que se ve no está en uso, o es de otra persona, se dice (y cómo resolverlo).
   function renderNote() {
     const inUse = state.order || {};
-    const parts = view !== 'este' || !ctx.canEdit ? null
+    const parts = view !== 'este' || !ctx.can('order.edit') ? null
       : !viewing?.id ? ['No tienes ningún orden abierto. Lo que añadas va a uno nuevo, con el nombre del día.', h('button', { class: 'btn', onclick: () => setView('ordenes') }, 'Ver los órdenes')]
         : !editable ? [`Este orden es de ${viewing.ownerName}: solo lo cambian ${viewing.ownerName} o el administrador.`, h('button', { class: 'btn', onclick: () => newOrder() }, icon('plus', 15), 'Nuevo orden')]
           : !inUseHere && ctx.canProject ? [inUse.active ? `No está en uso: la cola del culto muestra «${inUse.name}».` : 'No está en uso: la cola del culto está vacía.', h('button', { class: 'btn', onclick: () => use(viewing) }, 'Usar este orden')]
@@ -561,8 +561,8 @@ function mount(el, ctx) {
     note.replaceChildren(...(parts ? [h('span', {}, parts[0]), parts[1]] : []));
     const { total = 0, limit = Infinity } = state.orders || {};
     const left = limit - total;
-    full.hidden = !ctx.canEdit || left > WARN_LEFT;
-    conflicts.replaceChildren(...(ctx.canEdit ? state.orders?.conflicts || [] : []).map((c) => h('div', { class: 'order-note', role: 'status' },
+    full.hidden = !ctx.can('order.edit') || left > WARN_LEFT;
+    conflicts.replaceChildren(...(ctx.can('order.edit') ? state.orders?.conflicts || [] : []).map((c) => h('div', { class: 'order-note', role: 'status' },
       h('span', {}, `«${c.name}» se cambió en la iglesia y en la nube a la vez, sin conexión entre ellas: quedó el cambio más reciente, el de ${c.where}.`),
       h('button', { class: 'btn', onclick: guard(() => action('order.dismissConflict', { id: c.id })) }, 'Entendido'))));
     full.replaceChildren(...[h('span', {}, `${left > 0 ? `Quedan ${plural(left, 'orden libre', 'órdenes libres')} de ${limit}.` : `Ya hay ${limit} órdenes, el máximo: no se pueden crear más.`} Limpia los órdenes antiguos que ya no necesites${me?.admin ? '' : ' (los de otras personas los borra el administrador)'}.`),
@@ -574,7 +574,7 @@ function mount(el, ctx) {
   // ninguno, o sin permiso, el que está en uso.
   function refresh() {
     const inUse = state.order || {};
-    const mine = (ctx.canEdit && state.orders) || {};
+    const mine = (ctx.can('order.edit') && state.orders) || {};
     const open = mine.editing && mine.list?.find((o) => o.id === mine.editing);
     editable = Boolean(open);
     viewing = open || (inUse.active ? { id: inUse.active, name: inUse.name, ownerName: inUse.owner } : null);

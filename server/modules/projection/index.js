@@ -68,6 +68,9 @@ export default function setup(app) {
     styles: { ...DEFAULT_STYLES, ...saved.data.styles },
     backgrounds: backgroundList(), // imágenes de fondo guardadas: [{ id, url }]
     display: { supported: true, hasSecond: false, on: saved.data.displayOn, open: false },
+    next: null,    // qué pondrá «Siguiente»: ver peekNext
+    back: null,    // { uid, title, kind }: a qué se puede volver (`projection.back`) mientras siga al aire ese uid
+    over: null,    // la capa del orador: ver `projection.over`
   });
   // Lo que cambia mientras algo está al aire va en un espacio aparte, para que mover un mando
   // (el zoom de una imagen, el avance de un video) no reenvíe todo el contenido proyectado.
@@ -105,22 +108,33 @@ export default function setup(app) {
   //   step      null = el elemento entero; 0..n-1 = uno de sus pasos
   //   orderId   si viene del orden del culto, para que "siguiente" recorra el orden
   //   previous  { state, at }: mandos en vivo que tenía antes de un reinicio del servidor
-  function present({ kind, data, step = null, orderId = null }, mode = 'live', previous = null) {
+  //   jump      es un salto (no el paso que tocaba): se puede deshacer con `projection.back`
+  let back = null; // lo que había antes de un salto: { uid, source, mode, state, at }
+  let over = null; // la capa del orador
+  function present({ kind, data, step = null, orderId = null }, mode = 'live', previous = null, jump = true) {
     const def = app.kinds.get(kind);
     if (def?.onlyLayer) throw new HttpError(400, 'Eso va en una capa, no se proyecta solo.');
     const content = def?.resolve(data, step);
     if (!content) throw new HttpError(404, 'Ese contenido ya no está disponible.');
     // Existe, pero aún no se puede mostrar (un video que se está convirtiendo): el tipo dice por qué.
     if (content.unavailable) throw new HttpError(409, content.unavailable);
+    const before = get();
+    const beforeLive = store.get('live');
     uid += 1;
     const item = { kind, ...content, uid, source: { kind, data, step, orderId } };
+    back = jump && before.item ? { uid, source: before.item.source, mode: before.mode, state: beforeLive.uid === before.item.uid ? beforeLive.state : null, at: Date.now() } : null;
+    over = null;
     // Primero los mandos y después el contenido: cuando una pantalla recibe lo nuevo,
     // su estado en vivo ya está ahí.
     store.set('live', { uid, state: def.live?.(content, previous) ?? null });
-    setLive({ item, mode });
+    setLive({ item, mode, over: null, back: back && { uid, title: titleOf(before.item), kind: before.item.kind } });
     scheduleEnd();
     return item;
   }
+  // El nombre de algo proyectado: el que le da su tipo (en un pasaje, la cita entera) o, si no, el suyo.
+  const titleOf = (item) => {
+    try { return app.kinds.get(item.kind)?.describe?.(item.source.data)?.title ?? item.title ?? ''; } catch { return item.title ?? ''; }
+  };
   // Vuelve a resolver lo que está al aire sin tocar su reproducción ni sus mandos: para cuando el
   // contenido cambia por detrás (a un video le llega su copia para las demás pantallas).
   function refresh() {
@@ -130,14 +144,12 @@ export default function setup(app) {
     const next = { kind: item.kind, ...content, uid: item.uid, source: item.source };
     if (JSON.stringify(next) !== JSON.stringify(item)) store.set('projection', { item: next });
   }
-  services.projection = { present, refresh };
-
   // Se restaura cuando todos los módulos han registrado sus tipos de contenido.
   store.on('listening', () => {
     if (app.blocked) return;
     const restore = liveToRestore(saved.data.live);
     if (!restore) return;
-    try { present(restore.source, restore.mode, restore.previous); } catch { /* ese contenido ya no existe */ }
+    try { present(restore.source, restore.mode, restore.previous, false); } catch { /* ese contenido ya no existe */ }
   });
 
   app.action('projection.show', { permission: 'projection.control' }, ({ kind, data, step }) =>
@@ -182,32 +194,97 @@ export default function setup(app) {
     store.set('pointer', item && mode === 'live' && inside(x) && inside(y) ? { uid: item.uid, x, y } : { uid: 0, x: null, y: null });
   });
 
-  app.action('projection.step', { permission: 'projection.control' }, async ({ delta }) => {
-    const { item } = get();
+  // uid: lo que veía quien pulsó. Dos toques casi juntos, o dos operadores a la vez: el segundo se pulsó viendo lo de antes
+  // y no pasa otra vez. Siguiente con la pantalla en «Negro» o «Solo fondo» vuelve al aire con lo que sigue.
+  app.action('projection.step', { permission: 'projection.control' }, async ({ delta, uid: seen } = {}) => {
+    const { item, mode } = get();
     if (!item) return null;
+    if (seen != null && seen !== (over?.uid ?? item.uid)) return item;
     const d = delta < 0 ? -1 : 1;
+    // Con el versículo del orador encima, pasan sus versículos, para todos; tras el último, queda lo de debajo.
+    if (over) {
+      const at = over.step + d;
+      setOver(at >= 0 && at < over.steps ? at : null);
+      if (mode !== 'live') setMode('live');
+      return get().item;
+    }
+    const def = app.kinds.get(item.kind);
     // El tipo puede dar el paso por su cuenta (PowerPoint en vivo pasa también las animaciones).
-    if (await app.kinds.get(item.kind)?.step?.(item, d)) return get().item;
+    if (await def?.step?.(item, d)) {
+      if (get().mode !== 'live') setMode('live');
+      return get().item;
+    }
+    // Cortar algo que suena no es el paso que tocaba: se puede deshacer.
+    const live = store.get('live');
+    const sounding = live.uid === item.uid && Boolean(live.state) && Number.isFinite(def?.endsAt?.(live.state));
     const { kind, data, step, orderId } = item.source;
     if (orderId && services.order?.has(orderId)) {
       const next = services.order.neighbor(orderId, step, d);
       // Dentro del mismo elemento, los pasos siguen en lo que está al aire (`projection.swap` pudo
       // cambiar su versión); al pasar a otro elemento vale el contenido de ese elemento.
-      return next ? present(next.orderId === orderId && app.kinds.get(kind)?.stepIds ? { ...next, kind, data } : next) : null;
+      return next ? present(next.orderId === orderId && def?.stepIds ? { ...next, kind, data } : next, 'live', null, sounding) : null;
     }
-    const next = app.kinds.get(kind)?.neighbor?.(data, step, d);
-    return next ? present({ kind, ...next }) : null;
+    const next = def?.neighbor?.(data, step, d);
+    return next ? present({ kind, ...next }, 'live', null, sounding) : null;
+  });
+
+  // Deshacer un salto: vuelve a lo de antes, al mismo punto, si nadie cambió lo que está al aire desde entonces.
+  app.action('projection.back', { permission: 'projection.control' }, () => {
+    const { item } = get();
+    if (!back || item?.uid !== back.uid) throw new HttpError(409, 'Ya cambió lo que está al aire.');
+    const { source, mode, state, at } = back;
+    const shown = present(source, mode, state ? { state, at } : null, false);
+    // Lo que sonaba vuelve a sonar: su `live` lo deja en pausa donde iba.
+    const def = app.kinds.get(source.kind);
+    const live = store.get('live');
+    if (state?.clock?.playing && mode === 'live' && def?.control && live.state) {
+      store.set('live', { state: def.control(live.state, { playing: true }, { content: shown, now: Date.now() }) });
+      scheduleEnd();
+    }
+    return shown;
+  });
+
+  // La capa del orador (decisión 69): un pasaje encima de lo que está al aire, sin cambiarlo, aparte de las capas de
+  // Control total (no depende de ese módulo). No se guarda; se quita sola si cambia lo que está al aire, obedece a «Negro» y
+  // «Solo fondo» y «Siguiente» pasa sus versículos. Sin nada al aire no hay qué tapar: se proyecta.
+  const BIBLE = 'verses';
+  function setOver(step) {
+    over = step == null ? null : { ...over, step, uid: ++uid, content: app.kinds.get(over.kind).resolve(over.data, step) };
+    store.set('projection', { over });
+  }
+  services.projection = { present, refresh, covering: () => Boolean(over) };
+  app.action('projection.over', { permission: 'projection.control' }, ({ data, step = 0 } = {}) => {
+    const def = app.kinds.get(BIBLE);
+    if (!def || !data || typeof data !== 'object' || Array.isArray(data)) throw new HttpError(400, 'Falta qué poner encima.');
+    const info = def.describe(data);
+    if (!info) throw new HttpError(404, 'Ese pasaje no está en esa versión.');
+    if (!get().item) return present({ kind: BIBLE, data, step: 0 });
+    over = { kind: BIBLE, data: info.data, steps: info.steps, title: info.title };
+    setOver(Number.isInteger(step) && step >= 0 && step < info.steps ? step : 0);
+    return get().item;
+  });
+  app.action('projection.overClear', { permission: 'projection.control' }, () => {
+    if (over) setOver(null);
   });
 
   // Cambia el modo. Al dejar de verse el contenido ("Negro", "Solo fondo"), el tipo puede reaccionar
   // con su hide(): lo que suena se pausa, para que no siga sonando a oscuras.
-  function setMode(mode) {
+  // Al volver al aire, lo que pausó sigue. ended: terminó solo, y ahí no hay nada que seguir.
+  let resume = null; // uid de lo que se pausó al ocultarlo
+  function setMode(mode, { ended = false } = {}) {
     const { item } = get();
     const next = mode === 'live' && !item ? 'clear' : mode;
     const def = item && app.kinds.get(item.kind);
     const live = store.get('live');
-    if (next !== 'live' && def?.hide && live.uid === item.uid && live.state) {
-      store.set('live', { state: def.hide(live.state, { content: item, now: Date.now() }) });
+    const mine = def && live.uid === item.uid && live.state;
+    if (next !== 'live' && def?.hide && mine) {
+      const hidden = def.hide(live.state, { content: item, now: Date.now() });
+      if (!ended && live.state.clock?.playing && !hidden.clock?.playing) resume = item.uid;
+      store.set('live', { state: hidden });
+    }
+    if (next === 'live') {
+      if (resume === item?.uid && def?.control && mine) store.set('live', { state: def.control(live.state, { playing: true }, { content: item, now: Date.now() }) });
+      resume = null;
     }
     setLive({ mode: next });
     scheduleEnd();
@@ -231,7 +308,7 @@ export default function setup(app) {
       if (get().item?.uid !== current || get().mode !== 'live') return;
       const until = def.endsAt(store.get('live').state);
       // Pudo pausarse o saltar atrás mientras tanto: entonces aún no ha terminado.
-      if (Number.isFinite(until) && until <= Date.now() + 50) setMode('clear');
+      if (Number.isFinite(until) && until <= Date.now() + 50) setMode('clear', { ended: true });
       else scheduleEnd();
     }, Math.max(0, at - Date.now()) + 60);
     endTimer.unref();
@@ -244,8 +321,10 @@ export default function setup(app) {
   });
 
   app.action('projection.clear', { permission: 'projection.control' }, () => {
+    back = null;
+    over = null;
     store.set('live', { uid: 0, state: null });
-    setLive({ item: null, mode: 'clear' });
+    setLive({ item: null, mode: 'clear', back: null, over: null });
     scheduleEnd();
   });
 
@@ -258,6 +337,7 @@ export default function setup(app) {
     const live = store.get('live');
     if (!def?.control || live.uid !== item.uid || !live.state) throw new HttpError(409, 'Lo que está en pantalla no tiene mandos.');
     const clean = patch && typeof patch === 'object' && !Array.isArray(patch) ? patch : {};
+    if ('playing' in clean) resume = null; // alguien decidió: ya no es lo que pausó «Negro»
     store.set('live', { state: def.control(live.state, clean, { content: item, now: Date.now() }) });
     // Pedir que se reproduzca algo que estaba oculto ("Negro", "Solo fondo") lo vuelve a mostrar.
     if (clean.playing === true && get().mode !== 'live') setLive({ mode: 'live' });
@@ -436,7 +516,33 @@ export default function setup(app) {
   store.on('change', (ns) => {
     if (ns === 'projection') syncPage();
     else if (ns === 'live') pressPage();
+    if (ns === 'projection' || ns === 'order') publishNext();
   });
+
+  // Qué pondrá «Siguiente», para que lo diga su botón: { over, step, steps } (el versículo del orador), { animation } (lo
+  // decide el programa que la pasa), { title, kind, step, steps, inside } o { end } (no hay más: «Fin del orden»).
+  function peekNext() {
+    const { item } = get();
+    if (!item) return null;
+    if (over) return { over: true, step: over.step + 1 < over.steps ? over.step + 1 : null, steps: over.steps };
+    const def = app.kinds.get(item.kind);
+    const own = def?.peek?.(item);
+    if (own) return own;
+    const { kind, data, step, orderId } = item.source;
+    if (orderId && services.order?.has(orderId)) {
+      const next = services.order.neighbor(orderId, step, 1);
+      return next ? { title: next.title, kind: next.kind, step: next.step, steps: next.steps, inside: next.orderId === orderId } : { end: true };
+    }
+    const next = def?.neighbor?.(data, step, 1);
+    if (!next) return { end: true };
+    const info = def.describe?.(next.data);
+    return { title: info?.title ?? item.title ?? '', kind, step: next.step ?? null, steps: info?.steps ?? 1, inside: JSON.stringify(next.data) === JSON.stringify(data) };
+  }
+  function publishNext() {
+    let next = null;
+    try { next = peekNext(); } catch { /* lo que sigue ya no existe: no se dice */ }
+    if (JSON.stringify(next) !== JSON.stringify(get().next)) store.set('projection', { next });
+  }
 
   let timer = null;
   store.on('listening', () => {

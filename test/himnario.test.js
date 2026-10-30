@@ -265,11 +265,11 @@ test('el himnario se arma con lo que hay en la carpeta y dice lo que conviene re
     assert.equal((await s.get('/api/hymns')).http, 401);
     assert.equal((await s.get('/api/hymns/2')).http, 401);
     assert.equal((await s.get('/api/hymns/search?q=canto')).http, 401);
-    await s.as('orden');
-    assert.equal((await s.get('/api/hymns/2')).http, 200, 'quien opera el orden sí puede leerla');
+    await s.as('presentador');
+    assert.equal((await s.get('/api/hymns/2')).http, 200, 'el orador sí puede leerla');
     assert.equal((await s.send('hymns.favorite', { number: 2, on: true })).http, 403, 'pero no marca favoritos');
     await s.as('alabanza');
-    assert.equal((await s.send('hymns.favorite', { number: 9, on: true })).http, 200, 'el Servicio de alabanza sí');
+    assert.equal((await s.send('hymns.favorite', { number: 9, on: true })).http, 200, 'el Alabanza sí');
     await s.as('control');
 
     // Favoritos: los mismos para todos los dispositivos, en orden y sin repetirse; solo himnos que hay.
@@ -292,6 +292,10 @@ test('el himnario se arma con lo que hay en la carpeta y dice lo que conviene re
     assert.match(refused.error, /hace falta ffmpeg/);
     assert.equal((await s.send('projection.control', { track: 'instrumental' })).http, 409);
     assert.equal((await s.request('/api/hymns/2/pista.mp4')).status, 409);
+    // La pista de un canto del orden, antes de que salga (fase 42): sin ffmpeg, se dice por qué no.
+    assert.match((await s.send('order.setTrack', { id: item.id, track: 'instrumental' })).error, /hace falta ffmpeg/);
+    assert.deepEqual((await s.send('order.setTrack', { id: item.id, track: 'vocal' })).result.data, { number: 2, track: 'vocal' });
+    assert.equal((await s.send('order.setTrack', { id: 'no-existe', track: 'vocal' })).http, 404);
     assert.equal((await s.send('projection.show', { kind: 'song', data: { number: 7 } })).http, 404);
     // En un equipo sin ffmpeg, la primera pantalla que lo reproduce dice cuánto dura.
     await s.send('projection.control', { duration: 181.4 });

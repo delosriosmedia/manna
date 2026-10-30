@@ -3,7 +3,7 @@
 export const ROLES = [
   {
     id: 'control',
-    name: 'Control completo',
+    name: 'Control total',
     description: 'Biblia, himnario, medios, textos, páginas, el orden del culto y los ajustes.',
     path: '/control',
     requiresPin: true,
@@ -11,27 +11,29 @@ export const ROLES = [
   },
   {
     id: 'alabanza',
-    name: 'Servicio de alabanza',
+    name: 'Alabanza',
     description: 'Himnario, medios, orden y Biblia, con el volumen siempre a la vista.',
     path: '/alabanza',
     requiresPin: true,
     permissions: ['projection.control', 'order.edit', 'media.edit', 'slides.edit', 'jobs.manage', 'hymns.favorite', 'hymns.read'],
   },
   {
+    // Se llamó Presentador hasta la 1.61 (decisión 69): conserva su identificador, así los usuarios y la nube no cambian.
     id: 'presentador',
-    name: 'Presentador de diapositivas',
-    description: 'Pasa una presentación, señala con el dedo y acerca lo que haga falta.',
-    path: '/presentador',
+    name: 'Orador completo',
+    description: 'Pasa su presentación, sus versículos y sus textos, señala con el dedo y acerca lo que haga falta.',
+    path: '/orador',
     requiresPin: true,
     permissions: ['projection.control', 'slides.edit', 'hymns.read'],
   },
+  // Los mismos permisos: solo cambia su pantalla (decisión 70).
   {
-    id: 'orden',
-    name: 'Control del orden',
-    description: 'Solo pasa el orden del culto, sin editarlo. Pensado para el celular.',
-    path: '/orden',
+    id: 'orador-sencillo',
+    name: 'Orador sencillo',
+    description: 'Siguiente y Anterior bien grandes, por cuál va y un versículo cuando haga falta.',
+    path: '/orador-sencillo',
     requiresPin: true,
-    permissions: ['projection.control', 'hymns.read'],
+    permissions: ['projection.control', 'slides.edit', 'hymns.read'],
   },
   // Solo en la nube (fase 36, `nube: true`): preparar el culto desde casa, y administrar los usuarios (el administrador, con su PIN).
   // En la nube no hay otras; en el equipo de la iglesia, estas no están.

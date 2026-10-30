@@ -86,7 +86,7 @@ test('textos y citas: se guardan, se proyectan por partes, van al orden del cult
 });
 
 test('textos: una función sin el permiso no los toca', async () => {
-  const s = await start('textos-orden', 'orden');
+  const s = await start('textos-orador', 'presentador');
   try {
     assert.equal((await s.send('texts.save', { style: 'normal', text: 'Hola' })).http, 403);
   } finally {

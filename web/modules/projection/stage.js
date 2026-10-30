@@ -10,12 +10,15 @@ import '../kinds.js';
 // El contenido lo dibuja el tipo de cada elemento (ver web/core/kinds.js).
 //
 // Encima de lo que está al aire van las cuatro capas (módulo Capas, fase 31), que solo dibuja quien llama a
-// setLayers (la pantalla de proyección): siguen ahí con «Negro» y «Solo fondo».
+// setLayers (la pantalla de proyección): siguen ahí con «Negro» y «Solo fondo». withOver les suma la capa del orador.
 //
 // sound: esta pantalla es la que suena. Lo decide el servidor y puede cambiar (setSound).
 // thumbnail: es una miniatura de una lista (los pasos del orden del culto): el tipo carga lo más ligero que tenga.
 // Una miniatura (thumbnail) no reproduce lo que suena: un video muestra su imagen, sin gastar batería, red ni
 // procesador en un celular (still).
+// La capa del orador va encima de las demás y, a diferencia de ellas, obedece a «Negro» y «Solo fondo».
+export const withOver = (slots = [], { over, mode } = {}) => (over ? [...slots, { ...over, n: slots.length + 1, ready: true, visible: mode === 'live' }] : slots);
+
 export function createStage(container, { sound: initialSound = false, thumbnail = false } = {}) {
   let sound = initialSound;
   const bg = h('div', { class: 'stage-bg' });
@@ -77,6 +80,12 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
       layer.el.style.visibility = on ? '' : 'hidden';
       layer.view?.visible?.(on && document.visibilityState === 'visible');
     });
+    // La del orador ya no está: su sitio queda vacío.
+    for (const layer of layers.slice(slots.length)) {
+      layer.view?.destroy?.();
+      layer.el.replaceChildren();
+      Object.assign(layer, { view: null, key: '', item: null, cover: null });
+    }
     liveLayers();
   }
   // Lo que suena en una capa (el tictac de un temporizador) suena, como todo, solo en la pantalla que suena.

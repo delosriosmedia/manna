@@ -4,7 +4,7 @@ import { MODULES } from '../modules/registry.js';
 import { createEscenario } from '../modules/projection/escenario.js';
 import { connectionTools } from '../modules/system/conexion.js';
 
-// Control completo: todos los módulos. Arriba, el wifi (conexión por internet) y el QR (dispositivos).
+// Control total: todos los módulos. Arriba, el wifi (conexión por internet) y el QR (dispositivos).
 const me = await ensureRole('control');
 
 createShell({

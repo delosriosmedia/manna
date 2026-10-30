@@ -57,8 +57,8 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
     h('button', { class: 'icon-btn sm', title: 'Añadir el versículo siguiente a la selección', 'aria-label': 'Añadir un versículo', onclick: () => extend(1) }, icon('plus', 16)),
     selHint,
     // Sin proyección (preparar el culto), añadir al orden es lo principal.
-    ctx.canEdit && h('button', { class: ctx.canProject ? 'btn' : 'btn primary', 'aria-label': 'Añadir al orden', onclick: () => addToOrder() }, icon('plus', 15), h('span', {}, 'Añadir al orden')),
-    ctx.role === 'control' && Object.assign(layerButton(() => {
+    ctx.can('order.edit') && h('button', { class: ctx.canProject ? 'btn' : 'btn primary', 'aria-label': 'Añadir al orden', onclick: () => addToOrder() }, icon('plus', 15), h('span', {}, 'Añadir al orden')),
+    ctx.can('layers.edit') && Object.assign(layerButton(() => {
       const s = selection();
       return s?.kind === 'verses' ? { kind: s.kind, data: s.data, title: s.passage.reference } : null;
     }), { className: 'btn bible-layer' }),

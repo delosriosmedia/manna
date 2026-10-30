@@ -353,7 +353,7 @@ test('en la nube: la clave de alta, el administrador con su PIN y preparar el cu
     assert.equal((await client().call('/api/session/alta', { clave: 'clave-de-alta-de-prueba', name: 'Otro', pin: '9999' })).status, 409, 'y no vuelve a servir');
 
     // El administrador gestiona los usuarios desde /administrar.
-    const created = await ana.send('users.create', { name: 'Beto', pin: '4321', functions: ['orden'] });
+    const created = await ana.send('users.create', { name: 'Beto', pin: '4321', functions: ['presentador'] });
     assert.equal(created.status, 200);
     const beto = created.result.id;
     assert.equal((await ana.send('projection.show', { kind: 'testcard', data: {} })).status, 403, 'administrar no proyecta');
@@ -363,7 +363,7 @@ test('en la nube: la clave de alta, el administrador con su PIN y preparar el cu
     assert.equal((await client().call('/api/session', { role: 'administrar', user: anaId, pin: '0000' })).status, 401);
     assert.equal((await client().call('/api/session', { role: 'administrar', user: anaId, pin: '1234' })).status, 200);
     assert.equal((await client().call('/api/session', { role: 'administrar', user: beto, pin: '4321' })).status, 403);
-    assert.equal((await client().call('/api/session', { role: 'control', user: beto, pin: '4321' })).status, 400, 'en la nube no hay Control completo');
+    assert.equal((await client().call('/api/session', { role: 'control', user: beto, pin: '4321' })).status, 400, 'en la nube no hay Control total');
 
     // Preparar el culto: cualquier usuario, con su PIN. Añade al orden (también un video de YouTube por su enlace), no proyecta.
     const b = client();
@@ -374,7 +374,7 @@ test('en la nube: la clave de alta, el administrador con su PIN y preparar el cu
     assert.deepEqual([added.result.title, added.result.data], ['Canto de entrada', { videoId: 'dQw4w9WgXcQ', title: 'Canto de entrada' }]);
     assert.equal((await b.send('order.add', { kind: 'ytlink', data: { link: 'https://ejemplo.com/video' } })).status, 404, 'solo enlaces de YouTube');
     assert.equal((await b.send('projection.show', { kind: 'ytlink', data: added.result.data })).status, 403);
-    assert.equal((await b.send('users.create', { name: 'Carla', pin: '1111', functions: ['orden'] })).status, 403, 'no gestiona usuarios');
+    assert.equal((await b.send('users.create', { name: 'Carla', pin: '1111', functions: ['presentador'] })).status, 403, 'no gestiona usuarios');
 
     // Quien pasa a ser administrador entra a administrar con su mismo PIN; desde Preparar, sin volver a escribirlo.
     assert.equal((await ana.send('users.update', { id: beto, admin: true })).status, 200);
@@ -395,7 +395,7 @@ test('desde internet nada se ve sin PIN, ni la pantalla de proyección', async (
   for (const url of ['/', '/proyeccion', '/core/api.js', '/api/ping']) assert.equal((await outside(url)).status, 200, url);
   for (const url of ['/api/state', '/api/events?rol=proyeccion', '/media/x.jpg', '/paginas/x']) assert.equal((await outside(url)).status, 401, url);
   // Para entrar, la lista de nombres (sin PIN, solo lo que puede usar cada uno).
-  assert.equal((await main.send('users.create', { name: 'Proyector', pin: '2580', functions: ['orden'] })).status, 200);
+  assert.equal((await main.send('users.create', { name: 'Proyector', pin: '2580', functions: ['presentador'] })).status, 200);
   const listed = (await (await outside('/api/session')).json()).users.find((u) => u.name === 'Proyector');
   assert.deepEqual(Object.keys(listed).sort(), ['admin', 'functions', 'id', 'name']);
   // La proyección pide el PIN de alguien de la lista; con él, entra y ve el estado.
@@ -413,14 +413,14 @@ test('usuarios (fase 35): cada uno entra con su nombre y su PIN en lo que puede 
   const outside = (url, options = {}) => fetch(new URL(url, main.base), { ...options, headers: { ...options.headers, ...away } });
   const enter = (role, user, pin, cookie = '') => outside('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ role, user, pin }) });
   const act = (cookie, type, payload = {}) => outside('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ type, payload }) }).then((res) => res.status);
-  for (const pin of ['123', '12345', '12a4']) assert.equal((await main.send('users.create', { name: 'Mal', pin, functions: ['orden'] })).status, 400, `«${pin}» no vale: 4 números`);
+  for (const pin of ['123', '12345', '12a4']) assert.equal((await main.send('users.create', { name: 'Mal', pin, functions: ['presentador'] })).status, 400, `«${pin}» no vale: 4 números`);
   assert.equal((await main.send('users.create', { name: 'Ana', pin: '2468', functions: [] })).status, 400, 'sin ninguna función no');
   const ana = (await main.send('users.create', { name: 'Ana', pin: '2468', functions: ['alabanza'] })).result.id;
-  assert.equal((await main.send('users.create', { name: 'ana', pin: '1111', functions: ['orden'] })).status, 409, 'dos con el mismo nombre no');
+  assert.equal((await main.send('users.create', { name: 'ana', pin: '1111', functions: ['presentador'] })).status, 409, 'dos con el mismo nombre no');
   const beto = (await main.send('users.create', { name: 'Beto', pin: '1357', functions: ['control', 'alabanza'] })).result.id;
   assert.ok(!JSON.stringify(await main.state()).includes('2468'), 'el PIN no viaja en el estado');
 
-  assert.equal((await enter('control', ana, '2468')).status, 403, 'Ana no puede usar Control completo');
+  assert.equal((await enter('control', ana, '2468')).status, 403, 'Ana no puede usar Control total');
   assert.equal((await enter('alabanza', ana, '0000')).status, 401, 'con otro PIN no entra');
   const anaIn = await enter('alabanza', ana, '2468');
   assert.equal(anaIn.status, 200);
@@ -428,11 +428,11 @@ test('usuarios (fase 35): cada uno entra con su nombre y su PIN en lo que puede 
   const anaCookie = anaIn.headers.get('set-cookie').split(';')[0];
   assert.equal(await act(anaCookie, 'projection.mode', { mode: 'clear' }), 200);
 
-  // Beto usa Control completo, pero lo de Ajustes es solo del administrador.
+  // Beto usa Control total, pero lo de Ajustes es solo del administrador.
   const betoIn = await enter('control', beto, '1357');
   const betoCookie = betoIn.headers.get('set-cookie').split(';')[0];
   assert.equal(await act(betoCookie, 'projection.mode', { mode: 'clear' }), 200);
-  assert.equal(await act(betoCookie, 'users.create', { name: 'Ciro', pin: '9999', functions: ['orden'] }), 403);
+  assert.equal(await act(betoCookie, 'users.create', { name: 'Ciro', pin: '9999', functions: ['presentador'] }), 403);
   assert.equal(await act(betoCookie, 'projection.styles', { fontSize: 50 }), 403);
   // Ya dentro, cambia de función sin volver a escribir su PIN.
   assert.equal((await enter('alabanza', beto, undefined, betoCookie)).status, 200);
@@ -491,7 +491,7 @@ test('aunque falten programas, ni siquiera el navegador, ninguna página se bloq
     assert.deepEqual(tools.list.filter((t) => !t.found && t.level === 'feature').map((t) => t.id), ['navegador', 'ffmpeg', 'yt-dlp']);
     // Manna se abre en la revisión, que avisa; pero el control y lo demás siguen ahí.
     assert.equal(bare.app.tools.entry(), '/requisitos');
-    for (const page of ['/', '/control', '/orden', '/proyeccion', '/requisitos']) {
+    for (const page of ['/', '/control', '/orador', '/orador-sencillo', '/proyeccion', '/requisitos']) {
       const res = await bare.request(page);
       assert.equal(res.status, 200, page);
       await res.arrayBuffer();

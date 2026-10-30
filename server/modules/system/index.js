@@ -169,6 +169,7 @@ export default function setup(app) {
 
   app.route('GET', '/api/session', (ctx) => ({
     role: ctx.session?.role || null,
+    permissions: sessions.permissions(ctx.session),
     // Quién entró y, para entrar, la lista de nombres con lo que puede usar cada uno (fase 35: siempre de una lista).
     user: ctx.session?.user ? { id: ctx.session.user.id, name: ctx.session.user.name, admin: ctx.session.user.admin } : null,
     users: sessions.users.list().map(({ id, name, functions, admin }) => ({ id, name, functions, admin })),
@@ -189,11 +190,14 @@ export default function setup(app) {
     return sessions.open(ctx, await ctx.json());
   });
 
-  // "Guion" pasó a llamarse "Orden del culto": los marcadores antiguos siguen llegando.
-  app.route('GET', '/guion', (ctx) => {
-    ctx.res.writeHead(302, { Location: '/orden' });
-    ctx.res.end();
-  });
+  // Los marcadores de las funciones que cambiaron siguen llegando: el Presentador es ahora Orador completo; Control del
+  // orden y el antiguo «Guion» ya no existen.
+  for (const [from, to] of [['/presentador', '/orador'], ['/orden', '/'], ['/guion', '/']]) {
+    app.route('GET', from, (ctx) => {
+      ctx.res.writeHead(302, { Location: to });
+      ctx.res.end();
+    });
+  }
 
   // Lo consulta una página abierta por la dirección numérica para saber si este dispositivo
   // puede usar la dirección con nombre (ver web/core/upgrade.js). Por eso admite otros orígenes.

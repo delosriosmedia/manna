@@ -186,7 +186,7 @@ export default function setup(app) {
     mine.at = number;
     const { item } = store.get('projection');
     if (item?.kind !== 'slides' || item.source.data?.id !== mine.deck.id || item.number === number || !number) return;
-    try { app.services.projection.present({ kind: 'slides', data: { id: mine.deck.id }, step: number - 1, orderId: item.source.orderId }); } catch { /* la presentación ya no está */ }
+    try { app.services.projection.present({ kind: 'slides', data: { id: mine.deck.id }, step: number - 1, orderId: item.source.orderId }, 'live', null, false); } catch { /* la presentación ya no está */ }
   }
   function fail(mine, why) {
     console.error(`PowerPoint no pudo pasar «${mine.deck.name}»: ${String(why).trim()}`);
@@ -198,10 +198,12 @@ export default function setup(app) {
     publish();
     app.services.projection?.refresh();
   }
+  // Una capa a la vista o el versículo del orador: PowerPoint, en su ventana, los taparía.
+  const hidingPowerPoint = () => Boolean(app.services.layers?.covering() || app.services.projection?.covering());
   let covering = false;
   store.on('change', (ns) => {
     // Al mostrar u ocultar una capa, lo que está al aire vuelve a decir si lo pasa PowerPoint (y sync lo sigue).
-    if (ns === 'layers' && covering !== Boolean(app.services.layers?.covering())) {
+    if ((ns === 'layers' || ns === 'projection') && covering !== hidingPowerPoint()) {
       covering = !covering;
       app.services.projection?.refresh();
     }
@@ -268,7 +270,7 @@ export default function setup(app) {
     // última sigue lo que venga en el orden, como con PowerPoint.
     const at = shown.ended ? deck.pages : shown.page;
     if (at && item.number !== at) {
-      try { app.services.projection.present({ kind: 'slides', data: { id: deck.id }, step: at - 1, orderId: item.source.orderId }); } catch { /* ya no está */ }
+      try { app.services.projection.present({ kind: 'slides', data: { id: deck.id }, step: at - 1, orderId: item.source.orderId }, 'live', null, false); } catch { /* ya no está */ }
     }
     if (shown.ended) await Promise.resolve(app.run('projection.step', { delta: 1 })).catch(() => {});
     return { ok: true };
@@ -286,8 +288,8 @@ export default function setup(app) {
       url: pageUrl(deck, n), thumb: thumbUrl(deck, n), width: deck.width, height: deck.height, fit: 'contain',
       // La pasa PowerPoint (salvo acercada: ver framed); el puntero lo dibuja una capa encima del pase. Con una capa
       // de Manna a la vista (fase 31), PowerPoint la taparía: va como imágenes (covered) hasta que se oculte.
-      powerpoint: inPowerPoint(deck) && !app.services.layers?.covering(),
-      covered: inPowerPoint(deck) && Boolean(app.services.layers?.covering()),
+      powerpoint: inPowerPoint(deck) && !hidingPowerPoint(),
+      covered: inPowerPoint(deck) && hidingPowerPoint(),
       // La pasa DeckCraft en la ventana del proyector (ver arriba).
       deckcraft: inDeckCraft(deck),
       // La que viene, para verla antes de pasar a ella.
@@ -318,6 +320,8 @@ export default function setup(app) {
     control: (state, patch) => applyView(state, { ...patch, fit: 'contain' }),
     // Con PowerPoint en vivo, «siguiente» y «anterior» los da PowerPoint: así pasan también las animaciones. Al
     // terminar la presentación (o antes de la primera), Manna sigue como siempre: lo que venga en el orden.
+    // Qué pondrá «Siguiente» lo sabe quien la pasa: puede ser una animación.
+    peek: (item) => (item.deckcraft || item.powerpoint ? { animation: true } : null),
     async step(item, delta) {
       // Con DeckCraft: la tecla va a la ventana del proyector. «Anterior» en el principio de la primera sigue con lo de
       // antes en el orden.

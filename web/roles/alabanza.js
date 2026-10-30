@@ -3,7 +3,7 @@ import { createShell } from '../core/shell.js';
 import { ALABANZA_MODULES } from '../modules/registry.js';
 import { createEscenario } from '../modules/projection/escenario.js';
 
-// Servicio de alabanza: centrado en himnos, videos y orden del culto, con volumen permanente.
+// Alabanza: centrado en himnos, videos y orden del culto, con volumen permanente.
 const me = await ensureRole('alabanza');
 
 createShell({

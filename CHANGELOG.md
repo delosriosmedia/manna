@@ -4,6 +4,13 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.61.0 — 2026-10-30
+
+- **Funciones nuevas**: Control completo pasa a llamarse **Control total**; Servicio de alabanza, **Alabanza**; Presentador, **Orador completo**. Llega **Orador sencillo**, con los mismos permisos (su pantalla propia, más adelante).
+- **Se quita Control del orden**. Quien solo tenía esa función se queda sin ninguna hasta que el administrador le dé otra: Ajustes → Usuarios lo dice.
+- **Al quitar Negro o Solo fondo, lo que sonaba sigue** desde donde iba, en vez de quedarse en pausa.
+- **Siguiente no pasa dos veces** con dos toques casi juntos, ni si dos personas lo pulsan a la vez. Con la pantalla en Negro, vuelve al aire con lo que sigue.
+- **Alabanza enciende y apaga las capas**, pero ya no las pone ni las quita.
 ## 1.60.0 — 2026-10-30
 
 - **Medios: tocar algo solo lo elige**. En la lista, la fila ya no se agranda ni se deforma. Para verlo en grande, **Previsualizar imagen** o **Previsualizar video**, al lado de la lista o, en el celular, encima de ella.

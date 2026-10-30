@@ -1,10 +1,10 @@
-import { action, connectionId, state, subscribe } from '../../core/api.js';
+import { action, connectionId, state, stepAir, subscribe } from '../../core/api.js';
 import { h, guard, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { createJobsList } from '../../core/jobs.js';
 import { kindBadge, kindOf } from '../../core/kinds.js';
 import { prefs } from '../../core/prefs.js';
-import { createStage } from './stage.js';
+import { createStage, withOver } from './stage.js';
 import { createLiveControls } from './live.js';
 import { createDisplayToggle, describeLive, toggleMode } from './controls.js';
 import { createVolume } from './volume.js';
@@ -31,10 +31,10 @@ const SPRING = CSS.supports('animation-timing-function', 'linear(0, 1)')
 //   story      celular («Historias»): la proyección en su recuadro, con toques para pasar y lo que sigue
 //   controls   los mandos del tipo al aire (live.js) para el celular, que el shell abre en una capa; en el
 //              escritorio van en la barra de abajo
-//   search     «Buscar en todo» (search.js), solo en las funciones que preparan el culto (canEdit)
+//   search     «Buscar en todo» (search.js), solo en las funciones que preparan el culto
 // Fuera del equipo principal, la proyección de fondo se dibuja ligera (thumbnail): un video muestra su
 // imagen y no se reproduce, para no gastar batería ni red.
-const step = (delta) => guard(() => action('projection.step', { delta }));
+const step = (delta) => guard(() => stepAir(delta));
 const NO_SOUND = 'Ahora mismo no suena en ningún sitio. El sonido sale por el equipo principal: abre ahí la proyección o el control y, si ya está abierto, haz un clic en su página.';
 
 export function createEscenario(ctx) {
@@ -62,7 +62,7 @@ export function createEscenario(ctx) {
   // Encenderlas y apagarlas sin ir a «Capas» (pedido del dueño, 2026-10-25): en la barra de abajo (en el celular, en
   // «Historias»), una «isla» por capa con algo, al estilo de la Dynamic Island (fase 34): la ficha que la enciende o la
   // apaga (encendida, en cian) y, si su tipo la tiene (island), la burbuja que se desprende de ella con su cuenta y sus
-  // botones (un temporizador). Cada isla se conserva mientras la capa tenga lo mismo; solo en Control completo.
+  // botones (un temporizador). Cada isla se conserva mientras la capa tenga lo mismo; solo en Control total.
   const switchSets = []; // { el, isles: Map(n -> { key, wrap, main, name, extra }) }
   const layerSwitches = (cls) => {
     if (ctx.role !== 'control') return null;
@@ -150,7 +150,7 @@ export function createEscenario(ctx) {
     await go();
     return true;
   });
-  const search = ctx.canEdit ? createSearch({ canEdit: ctx.canEdit }) : null;
+  const search = ctx.can('order.edit') ? createSearch() : null;
   const prepareOrder = (item, k = 0) => {
     prepared = { orderId: item.id, step: k, project: () => action('order.show', { id: item.id, step: k }) };
     markPrepared();
@@ -386,11 +386,16 @@ export function createEscenario(ctx) {
     renderQueue();
     renderStory(p);
   });
+  const paintLayers = () => {
+    if (ctx.isLocal) stage.setLayers(withOver((state.layers?.slots || []).map((s) => (s.kind === 'web' ? { n: s.n } : s)), state.projection));
+  };
+  // La capa del orador va y viene con lo que está al aire.
+  subscribe('projection', paintLayers);
   // Después de hacer todas las piezas: subscribe avisa enseguida si el estado ya está.
   subscribe('layers', ({ slots }) => {
     // En el equipo principal, la proyección de fondo dibuja las capas ligeras (la hora, un temporizador) para ver
     // dónde caen; una página no se carga aquí (correría dos veces en el mismo equipo).
-    if (ctx.isLocal) stage.setLayers(slots.map((s) => (s.kind === 'web' ? { n: s.n } : s)));
+    paintLayers();
     const shown = slots.filter((s) => s.kind && s.visible);
     for (const chip of chips) {
       chip.hidden = !shown.length;
