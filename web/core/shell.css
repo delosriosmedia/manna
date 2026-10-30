@@ -621,3 +621,6 @@ body.pestanas .work { border-radius: 22px; background: var(--glass-2); border: 1
 }
 /* Tocar el fondo la esconde del todo (también con el dedo): sin recibir toques, para no pulsar un botón que no se ve. */
 body.bar-off .transport-bar { opacity: 0; pointer-events: none; }
+
+/* El video mudo que mantiene encendida la pantalla de un celular (core/despierto.js): en el documento, sin que se vea. */
+.keep-awake { position: fixed; left: 0; bottom: 0; width: 2px; height: 2px; opacity: 0.01; pointer-events: none; }

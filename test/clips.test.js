@@ -61,6 +61,15 @@ test('encodersFor prefiere el chip de video del equipo y siempre deja libx264 al
   assert.deepEqual(encodersFor('win32', ''), ['libx264']);
 });
 
+test('la copia de vista previa de los celulares: sin sonido, unos 360p y con un tope de bitrate', () => {
+  const args = ffmpegArgs({ video: 'preview' }, { input: '/v/a.mp4', output: '/t/a.mp4', kind: 'video', encoder: 'h264_videotoolbox', hwaccel: true });
+  assert.ok(args.includes('-an'));
+  assert.ok(!args.includes('-c:a') && !args.includes('-hwaccel'));
+  assert.deepEqual(args.slice(args.indexOf('-c:v'), args.indexOf('-c:v') + 2), ['-c:v', 'libx264'], 'el del chip no deja fijar bien el tope');
+  assert.equal(args[args.indexOf('-maxrate') + 1], '800k');
+  assert.match(args[args.indexOf('-vf') + 1], /min\(360,ih\)/, 'no agranda lo que ya es pequeño');
+});
+
 test('ffmpegArgs arma la orden como una lista, sin mezclar nombres de archivo con opciones', () => {
   const tricky = '/datos/-i otro.avi; rm -rf'; // un nombre así va como un solo argumento
   const remux = ffmpegArgs({ video: 'copy', audio: 'encode' }, { input: tricky, output: '/t/x.mp4', kind: 'video' });

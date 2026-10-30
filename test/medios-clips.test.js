@@ -150,6 +150,30 @@ test('un video habitual se usa tal cual: se sube, se le saca imagen, se proyecta
   }
 });
 
+test('la copia de vista previa: se hace sola de lo que está en el orden y de lo que se proyecta, y no se repite', needs, async () => {
+  const mp4 = make('para-previa.mp4', ['-f', 'lavfi', '-i', 'testsrc=size=1280x720:rate=15:duration=2', ...TONE, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest']);
+  const s = await start('previa');
+  try {
+    const up = await s.put('/api/media/clips?name=Con%20copia&ext=.mp4', fs.readFileSync(mp4));
+    const folder = path.join(s.dataDir, 'media', 'vista-previa');
+    const made = () => (fs.existsSync(folder) ? fs.readdirSync(folder).filter((f) => f.endsWith('.mp4')) : []);
+    assert.deepEqual(made(), [], 'lo que no está en el orden ni al aire no gasta nada');
+    assert.equal((await s.send('order.add', { kind: 'video', data: { id: up.id } })).http, 200);
+    for (let i = 0; i < 100 && !made().length; i += 1) await sleep(200);
+    assert.equal(made().length, 1, 'la hizo sola');
+    const info = JSON.parse(spawnSync('ffprobe', ['-v', 'error', '-print_format', 'json', '-show_streams', path.join(folder, made()[0])], { encoding: 'utf8' }).stdout);
+    assert.deepEqual(info.streams.map((t) => [t.codec_type, t.height]), [['video', 360]], 'sin sonido y de 360p');
+    const shown = (await s.send('projection.show', { kind: 'video', data: { id: up.id } })).result;
+    assert.equal(shown.preview, `/media/vista-previa/${made()[0]}`);
+    assert.equal(shown.url, up.url, 'lo demás sigue igual');
+    assert.equal((await s.request(shown.preview)).status, 200);
+    await sleep(2500);
+    assert.equal(made().length, 1, 'no la repite');
+  } finally {
+    await s.stop();
+  }
+});
+
 test('lo que el navegador no reproduce se convierte en segundo plano, con su avance, y queda listo', needs, async () => {
   // Un AVI con MPEG-4 y MP3 (conversión completa), un MKV con H.264 (solo cambia el envoltorio) y un audio WMA.
   const avi = make('antiguo.avi', [...PICTURE, ...TONE, '-c:v', 'mpeg4', '-c:a', 'libmp3lame', '-shortest']);

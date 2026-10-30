@@ -134,9 +134,9 @@ export function createConverter(app, { pause = process.platform === 'win32' ? 'r
   return {
     probe,
     poster,
-    // task: { id, name, input, output, kind, plan, duration, width, onDone({ ok, cancelled, error }) }
+    // task: { id, name, input, output, kind, plan, duration, width, quiet, onDone({ ok, cancelled, error }) }
     enqueue(task) {
-      const job = app.jobs.start({ title: `Preparando «${task.name}»`, detail: 'En cola', owner: 'media', ref: task.id });
+      const job = app.jobs.start({ title: `Preparando «${task.name}»`, detail: 'En cola', owner: 'media', ref: task.id, quiet: Boolean(task.quiet) });
       queue.push({ task, job });
       next();
     },

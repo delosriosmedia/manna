@@ -77,10 +77,12 @@ export function drawClip(host, { build, make, onItem = () => {}, sources = (item
       onItem(next, media);
     },
     // live null: esto es una vista previa o una miniatura, no lo que está al aire. No se carga nada.
-    // still: se queda en su imagen, sin reproducir (la proyección de fondo de un dispositivo remoto).
-    live(live, { volume = 1, sound = false, still = false } = {}) {
+    // still: se queda en su imagen, sin reproducir.
+    // lite: la proyección de fondo de un dispositivo remoto: solo la copia de vista previa, que pesa poco (decisión 69); sin
+    // ella, se queda en su imagen.
+    live(live, { volume = 1, sound = false, still = false, lite = false } = {}) {
       state = live;
-      const source = pick(item);
+      const source = lite ? (item?.preview && !failed.has(item.preview) ? item.preview : null) : pick(item);
       box.classList.toggle('on-air', Boolean(live && source && !still));
       if (!live || !source || still) {
         player.stop();

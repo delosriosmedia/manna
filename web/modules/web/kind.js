@@ -129,3 +129,18 @@ registerKind('web', {
     };
   },
 });
+
+// En un celular, una página que está en una capa se ve como esta tarjeta: no se carga allí (decisión 69).
+registerKind('web-card', {
+  icon: 'globe',
+  label: 'Página web',
+  unit: null,
+  title: (item) => item.title,
+  key: (item) => item.title,
+  background: false,
+  draw(host) {
+    const name = h('span', {});
+    host.replaceChildren(h('div', { class: 'layer-card' }, icon('globe', 14), name));
+    return { update(item) { name.textContent = item.title; } };
+  },
+});

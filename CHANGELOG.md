@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.62.0 — 2026-10-30
+
+- **El celular ve lo mismo que el proyector**: las capas de texto (versículos, reloj, texto fijo) y el video en movimiento, sin sonido. Para no cargar el wifi de la iglesia, Manna prepara de fondo una copia muy liviana de lo que está en el orden en uso y de lo que se proyecta; mientras no está, se ve la imagen. Una página web en una capa se ve como una tarjeta que dice cuál es.
+- **La pantalla del celular no se apaga** mientras Manna está abierto.
 ## 1.61.0 — 2026-10-30
 
 - **Funciones nuevas**: Control completo pasa a llamarse **Control total**; Servicio de alabanza, **Alabanza**; Presentador, **Orador completo**. Llega **Orador sencillo**, con los mismos permisos (su pantalla propia, más adelante).

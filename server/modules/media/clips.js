@@ -106,6 +106,12 @@ export function ffmpegArgs(plan, { input, output, kind, encoder = 'libx264', wid
     // "auto": el chip que haya; si no hay ninguno, ffmpeg sigue leyendo por programa.
     ...(hwaccel && kind !== 'audio' && plan.video === 'encode' ? ['-hwaccel', 'auto'] : []), '-i', input];
   if (kind === 'audio') return [...args, '-vn', '-c:a', 'aac', '-b:a', '192k', '-f', 'mp4', output];
+  // La copia de vista previa de los celulares (previews.js): sin sonido, unos 360p y menos de 1 Mbps. Con el codificador por
+  // programa: el del chip no deja fijar bien ese tope.
+  if (plan.video === 'preview') {
+    return [...args, '-map', '0:v:0', '-an', '-sn', '-dn', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '30', '-maxrate', '800k', '-bufsize', '1600k',
+      '-pix_fmt', 'yuv420p', '-vf', "scale=-2:'min(360,ih)'", '-r', '24', '-movflags', '+faststart', '-f', 'mp4', output];
+  }
   args.push('-map', '0:v:0', '-map', '0:a:0?', '-sn', '-dn');
   if (plan.video === 'copy') args.push('-c:v', 'copy');
   else {

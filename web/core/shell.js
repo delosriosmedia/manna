@@ -1,4 +1,5 @@
 import { action, connect, onServerUpdate, state, stepAir, subscribe } from './api.js';
+import { keepAwake } from './despierto.js';
 import { isMobile, layoutFor } from './disposicion.js';
 import { can } from './session.js';
 import { watchBlocked } from './blocked.js';
@@ -50,6 +51,7 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   const paintLayout = () => { document.documentElement.dataset.disposicion = layoutNow(); };
   paintLayout();
   addEventListener('resize', paintLayout);
+  if (mobile && !tabs) keepAwake();
 
   const notice = h('div', { class: 'ws-notice', role: 'status', hidden: true });
   const work = h('div', { class: 'work' });

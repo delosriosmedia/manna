@@ -1393,6 +1393,42 @@ try {
     await run(`${vids}.querySelector('.media-card.selected .media-pick').click(); document.activeElement?.blur()`);
     await click(`${med}.querySelector('.media-view')`);
     await sleep(300);
+    // Lo que ve un celular (fase 43): el video en movimiento con su copia ligera, sin sonido, las capas de texto y la
+    // pantalla que no se apaga. Por la dirección de la red, este Chrome es «otro dispositivo».
+    const call = (type, payload = {}) => run(`const r = await fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Prueba': '1' }, body: JSON.stringify(${JSON.stringify({ type, payload })}) }); return JSON.stringify(await r.json())`).then(JSON.parse);
+    const inOrder = (await call('order.add', { kind: main.kind, data: { id: main.id } })).result;
+    const aPage = (await call('web.add', { url: `${local}/api/ping`, name: 'Una página de la prueba' })).result;
+    const madePreview = () => { try { return fs.readdirSync(path.join(tmp, 'data', 'media', 'vista-previa')).some((f) => f.endsWith('.mp4')); } catch { return false; } };
+    for (let i = 0; i < 150 && !madePreview(); i += 1) await sleep(200);
+    check('lo que está en el orden en uso tiene su copia de vista previa, hecha de fondo', madePreview());
+    const phone = (await call('users.create', { name: 'Celular', pin: '4321', functions: ['control'] })).result;
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+    await chrome.send('Page.navigate', { url: `${byIp}/api/ping` });
+    await sleep(600);
+    await run(`await fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'control', user: ${JSON.stringify(phone.id)}, pin: '4321' }) })`);
+    await chrome.send('Page.navigate', { url: `${byIp}/control?tactil` });
+    await sleep(2500);
+    check('en un celular, un video mudo mantiene la pantalla encendida', await until(`document.querySelector('.keep-awake')?.paused === false`, 8) && await run(`return document.querySelector('.keep-awake').muted`));
+    check('y dice qué disposición le toca', await run(`return document.documentElement.dataset.disposicion === 'telefono-pie'`));
+    await call('projection.show', { kind: main.kind, data: { id: main.id } });
+    const phoneVideo = `document.querySelector('.story-frame .stage video.clip-video')`;
+    check('la vista previa del celular muestra el video en movimiento, con la copia ligera y sin sonido', await until(`${phoneVideo}?.getAttribute('src')?.includes('/vista-previa/') && ${phoneVideo}.currentTime > 0.1 && !${phoneVideo}.paused`, 8) && await run(`return ${phoneVideo}.muted`), await run(`const v = ${phoneVideo}; return v ? JSON.stringify({ src: v.getAttribute('src'), t: v.currentTime, paused: v.paused }) : 'sin video'`));
+    const clockId = (await call('time.save', { type: 'stopwatch', title: 'Reloj de la prueba' })).result.id;
+    await call('layers.set', { n: 1, kind: 'clock', data: { id: clockId } });
+    check('y dibuja las capas de texto, como el proyector', await until(`document.querySelector('.story-frame .stage-layer[data-n="1"] .clk') && getComputedStyle(document.querySelector('.story-frame .stage-layer[data-n="1"]')).visibility === 'visible'`, 6));
+    await call('layers.set', { n: 2, kind: 'web', data: { id: aPage.id } });
+    check('una página en una capa no se carga en el celular: se ve una tarjeta que dice cuál es', await until(`document.querySelector('.story-frame .layer-card')?.textContent === 'Una página de la prueba'`, 6) && await run(`return !document.querySelector('.story-frame .stage-layer iframe')`));
+    await call('layers.clear', { n: 2 });
+    await call('layers.clear', { n: 1 });
+    await call('time.remove', { id: clockId });
+    await call('projection.clear');
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
+    await chrome.send('Page.navigate', { url: `${local}/control?v=${Date.now()}#medios` });
+    await sleep(2500);
+    await call('order.remove', { id: inOrder.id });
+    await call('web.remove', { id: aPage.id });
+    await call('users.remove', { id: phone.id });
+    await sleep(300);
     // Las categorías se ordenan arrastrando su nombre.
     await run(`return await ${post('media.categoryAdd', { name: 'Jóvenes' })}`);
     await until(catChip('Jóvenes'), 10);

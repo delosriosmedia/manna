@@ -7,7 +7,7 @@ import path from 'node:path';
 export const DISK_GROUPS = [
   { id: 'youtube', label: 'Videos de YouTube', media: ['youtube'] },
   { id: 'clips', label: 'Videos y audios subidos', media: ['videos', 'audios'] },
-  { id: 'copies', label: 'Copias para celulares, imágenes de los videos y subtítulos', media: ['convertidos', 'miniaturas', 'subtitulos'] },
+  { id: 'copies', label: 'Copias para celulares, imágenes de los videos y subtítulos', media: ['convertidos', 'miniaturas', 'subtitulos', 'vista-previa'] },
   { id: 'images', label: 'Imágenes', media: ['imagenes'] },
   { id: 'slides', label: 'Presentaciones', media: ['diapositivas'], data: ['presentaciones'] },
   { id: 'pages', label: 'Páginas web (archivos)', data: ['paginas'] },

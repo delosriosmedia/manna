@@ -405,3 +405,6 @@ video::cue { font-size: calc(5.2cqh * var(--cue, 1)); line-height: 1.3; backgrou
 .fix[data-motion='scroll'] .fix-text { display: inline-block; padding-left: 100%; white-space: nowrap; animation: fix-scroll var(--fix-dur, 20s) linear infinite; }
 @keyframes fix-scroll { to { transform: translateX(-100%); } }
 @media (prefers-reduced-motion: reduce) { .fix[data-motion='scroll'] .fix-text { animation: none; padding-left: 0; } }
+
+/* Una página en una capa, en un celular (decisión 69): no se carga allí; se dice cuál es, sin tapar lo de debajo. */
+.layer-card { position: absolute; left: 3cqw; top: 3cqh; max-width: 60cqw; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--r-pill); background: var(--scrim); color: #fff; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

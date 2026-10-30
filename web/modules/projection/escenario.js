@@ -43,7 +43,7 @@ export function createEscenario(ctx) {
   const ambient = h('div', { class: 'scene-ambient', 'aria-hidden': 'true' });
   const bg = h('div', { class: 'scene-bg', 'aria-hidden': 'true' }, ambient, screen);
   // En un dispositivo remoto, lo que suena va sin apuro: si alguien lo escucha aquí, no se oye a saltos.
-  const stage = createStage(screen, { thumbnail: !ctx.isLocal });
+  const stage = createStage(screen, { thumbnail: !ctx.isLocal, moving: !ctx.isLocal });
 
   // ---- Estado al aire ----
   const pills = [];
@@ -386,15 +386,18 @@ export function createEscenario(ctx) {
     renderQueue();
     renderStory(p);
   });
-  const paintLayers = () => {
-    if (ctx.isLocal) stage.setLayers(withOver((state.layers?.slots || []).map((s) => (s.kind === 'web' ? { n: s.n } : s)), state.projection));
+  // Una página no se carga aquí: en el equipo principal correría dos veces, y en un celular gastaría datos y memoria. En un
+  // celular se ve una tarjeta en su lugar (decisión 69: la vista previa, tal cual, dicho lo que no se puede mostrar).
+  const lightLayer = (s) => {
+    if (s.kind !== 'web') return s;
+    return ctx.isLocal ? { n: s.n } : { n: s.n, kind: 'web-card', visible: s.visible, ready: true, uid: s.uid, content: { title: s.title } };
   };
+  const paintLayers = () => stage.setLayers(withOver((state.layers?.slots || []).map(lightLayer), state.projection));
   // La capa del orador va y viene con lo que está al aire.
   subscribe('projection', paintLayers);
   // Después de hacer todas las piezas: subscribe avisa enseguida si el estado ya está.
   subscribe('layers', ({ slots }) => {
-    // En el equipo principal, la proyección de fondo dibuja las capas ligeras (la hora, un temporizador) para ver
-    // dónde caen; una página no se carga aquí (correría dos veces en el mismo equipo).
+    // La proyección de fondo dibuja las capas ligeras (la hora, un temporizador, un versículo) para ver dónde caen.
     paintLayers();
     const shown = slots.filter((s) => s.kind && s.visible);
     for (const chip of chips) {

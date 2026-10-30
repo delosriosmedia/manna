@@ -19,7 +19,8 @@ import '../kinds.js';
 // La capa del orador va encima de las demás y, a diferencia de ellas, obedece a «Negro» y «Solo fondo».
 export const withOver = (slots = [], { over, mode } = {}) => (over ? [...slots, { ...over, n: slots.length + 1, ready: true, visible: mode === 'live' }] : slots);
 
-export function createStage(container, { sound: initialSound = false, thumbnail = false } = {}) {
+// moving: la proyección de fondo de un dispositivo remoto: un video se mueve, con su copia de vista previa (decisión 69).
+export function createStage(container, { sound: initialSound = false, thumbnail = false, moving = false } = {}) {
   let sound = initialSound;
   const bg = h('div', { class: 'stage-bg' });
   const overlay = h('div', { class: 'stage-overlay' });
@@ -107,7 +108,7 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
   function applyLive() {
     if (!drawn?.view.live || !current) return;
     const mine = live && live.uid === current.uid ? live.state : null;
-    drawn.view.live(mine, { volume: live?.volume ?? 1, sound, still: thumbnail });
+    drawn.view.live(mine, { volume: live?.volume ?? 1, sound, still: thumbnail && !moving, lite: moving });
   }
 
   function render({ mode, item, styles: next }) {

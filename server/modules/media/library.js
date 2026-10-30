@@ -7,6 +7,7 @@ import { listFiles, watchFolder } from '../../core/folders.js';
 import { applyClock, createClock, freezeClock } from '../../core/playback.js';
 import { AUDIO_EXTENSIONS, SUBTITLE_EXTENSIONS, VIDEO_EXTENSIONS, clipKind, clock, originalMayPlay, planFor, playsAsIs, toVtt } from './clips.js';
 import { createConverter } from './convert.js';
+import { createPreviews } from './previews.js';
 import { cleanName } from '../../core/names.js';
 import { cleanVtt, createDownloader, findSubtitles, youtubeId, youtubeLinks } from './youtube.js';
 
@@ -54,6 +55,8 @@ export function registerClips(app, { saved, commit }) {
   let folder = app.mediaDir || null; // cambia si cambia la carpeta de contenido con Manna abierto (fase 29)
   // MANNA_CONVERSION_LENTA (solo para pruebas): milisegundos que espera cada conversión antes de empezar.
   const converter = createConverter(app, { delay: Number(process.env.MANNA_CONVERSION_LENTA) || 0 });
+  const previews = createPreviews(app, converter);
+  app.services.previews = previews;
   const downloader = createDownloader(app);
   saved.data.clips ||= [];
   const clips = () => saved.data.clips;
@@ -288,7 +291,7 @@ export function registerClips(app, { saved, commit }) {
       return { ...shared, unavailable: clip.status === 'converting' ? `«${clip.name}» aún se está convirtiendo. Estará listo en un momento.` : clip.status === 'downloading' ? `«${clip.name}» aún se está descargando de YouTube.` : clip.error || 'Este archivo no se puede reproducir.' };
     }
     return {
-      ...shared, url: urlOf(clip), local: localUrl(clip), subtitles: subtitlesOf(clip),
+      ...shared, url: urlOf(clip), local: localUrl(clip), subtitles: subtitlesOf(clip), preview: clip.kind === 'audio' ? null : previews.urlFor(inputOf(clip)),
       waiting: clip.status === 'ready' ? null : clip.status === 'converting' ? 'Este video se verá aquí cuando termine de prepararse para este dispositivo.' : 'Este video solo se ve en la pantalla del equipo principal.',
     };
   };
@@ -302,6 +305,11 @@ export function registerClips(app, { saved, commit }) {
   for (const kind of ['video', 'audio', 'youtube']) {
     app.kind(kind, {
       label: LABELS[kind],
+      // De qué se hace la copia de vista previa de los celulares (previews.js).
+      previewFile(data) {
+        const clip = clips().find((c) => c.id === data?.id);
+        return clip && clip.kind !== 'audio' && usable(clip) ? inputOf(clip) : null;
+      },
       describe(data) {
         const clip = clips().find((c) => c.id === data?.id);
         return clip ? { title: clip.name, subtitle: [LABELS[clip.kind], clock(clip.duration)].filter(Boolean).join(' · '), steps: 1, data: { id: clip.id } } : null;

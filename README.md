@@ -8,6 +8,7 @@ Aplicación web para proyectar en la iglesia. Un equipo principal (el que tiene 
 
 ## Qué hace
 
+- **En el celular se ve lo mismo que en el proyector**: las capas de texto y el video en movimiento, sin sonido (con una copia muy liviana que Manna prepara de fondo; hace falta ffmpeg). La pantalla no se apaga mientras Manna está abierto.
 - **Al quitar «Negro» o «Solo fondo»**, lo que se pausó sigue sonando desde donde iba. **«Siguiente»** con la pantalla en negro vuelve al aire con lo que sigue.
 - **«Escenario»**: lo que está al aire ocupa el fondo de la pantalla y, encima, los módulos (en un cajón que se abre desde el dock de la izquierda), la **cola del culto** (un toque marca, con un ▶ para proyectar; doble toque o Intro proyecta) y la barra de abajo, en una sola fila: anterior, siguiente, los mandos de lo que está al aire, el volumen y «Más mandos». La barra se aparta al tocar el fondo y vuelve al mover el ratón. Arriba, a la izquierda, el **logo con la versión** (en el Control total abre **Ajustes**), el botón de **cambiar de función** y **«Solo fondo»** y **«Negro»** como iconos; al centro, lo que está al aire; a la derecha, en el control del equipo principal, el botón que **enciende y apaga el proyector**, «Buscar en todo» y el wifi y el QR, que se abren ahí mismo.
 - **Buscar en todo** (Ctrl K): versículos, himnos, medios, presentaciones y páginas web en una sola búsqueda. Un toque prepara lo encontrado; doble toque o Intro lo proyecta.

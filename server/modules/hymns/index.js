@@ -354,8 +354,12 @@ export default function setup(app) {
   const whyNoTrack = (hymn) => (!app.tools.has('ffmpeg')
     ? 'Para la pista instrumental hace falta ffmpeg en el equipo principal. Proyecta el himno cantado, o instala ffmpeg desde Ajustes.'
     : hasTrack(hymn) === false ? `El himno ${hymn.number} no trae pista instrumental.` : null);
+  // La copia de vista previa de los celulares (media/previews.js): es el mismo video para las dos pistas. Lo que está en la
+  // nube y aún no baja, no: se ve su ficha.
+  const previewFileOf = (hymn) => (hymn && !hymn.remote ? path.join(videosDir, hymn.file) : null);
   app.kind('song', {
     label: 'Himno',
+    previewFile: (data) => previewFileOf(byNumber.get(Number(data?.number))),
     describe(data) {
       const hymn = byNumber.get(Number(data?.number));
       if (!hymn) return null;
@@ -366,7 +370,7 @@ export default function setup(app) {
       const hymn = byNumber.get(Number(data?.number));
       if (!hymn) return null;
       const track = validTrack(data.track);
-      const shared = { number: hymn.number, title: hymn.title, duration: durationOf(hymn) };
+      const shared = { number: hymn.number, title: hymn.title, duration: durationOf(hymn), preview: app.services.previews?.urlFor(previewFileOf(hymn)) ?? null };
       if (track === 'instrumental' && whyNoTrack(hymn)) return { ...shared, unavailable: whyNoTrack(hymn) };
       // url: el video tal cual (cantado). instrumental: el mismo con la otra pista, o null si no se puede.
       return { ...shared, track, url: urlOf(hymn), instrumental: whyNoTrack(hymn) ? null : trackUrl(hymn) };
