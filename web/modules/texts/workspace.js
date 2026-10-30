@@ -63,10 +63,10 @@ function mount(el, ctx) {
   // Cómo se verá en la proyección, sobre el fondo de Ajustes, mientras se elige (como en Tiempo).
   const screen = h('div', { class: 'text-preview' });
   const preview = createStage(screen);
-  const lookPanel = h('div', { class: 'text-look' }, screen, lookRow('font', 'Letra'), lookRow('size', 'Tamaño'),
+  const lookPanel = h('div', { class: 'text-look' }, screen, h('div', { class: 'text-options' }, lookRow('font', 'Letra'), lookRow('size', 'Tamaño'),
     h('div', { class: 'text-look-row' }, h('span', { class: 'text-look-title' }, 'Dónde va'), places),
     lookRow('box', 'Recuadro'), lookRow('motion', 'Movimiento'), speedRow,
-    h('p', { class: 'muted text-look-note' }, 'El color se ajusta solo a lo que haya detrás, para que siempre se lea.'));
+    h('p', { class: 'muted text-look-note' }, 'El color se ajusta solo a lo que haya detrás, para que siempre se lea.')));
   const save = h('button', { class: 'btn', onclick: () => commit() }, icon('check', 16), 'Guardar');
   const info = h('small', { class: 'text-info' });
   const back = h('button', { class: 'btn text-back', onclick: () => leave(() => { open = false; }) }, icon('caret-left', 16), 'Textos');
@@ -184,6 +184,7 @@ function mount(el, ctx) {
     authorRow.hidden = style !== 'quote';
     const fixed = style === 'fixed';
     lookPanel.hidden = !fixed;
+    editor.dataset.style = style;
     speedRow.hidden = look.motion !== 'scroll';
     for (const b of lookButtons) {
       const on = look[b.dataset.key] === b.dataset.value;

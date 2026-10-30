@@ -358,7 +358,7 @@ Todo lo pendiente, también lo que decide el dueño (la licencia del repositorio
 
 ## Próximos pasos
 
-- **Nueva Vida en `nv.manna-iglesia.es`** (decisión 66, `/nueva-iglesia`): desde el 2026-10-29, su nube tiene la 1.58.0, sus claves (alta, superadministrador, R2 de solo lectura «manna-nv-solo-lectura» y la del túnel), el himnario y las biblias de R2, y su túnel «servidor-nv» creado. Falta lo del dueño: añadirla en `admin.manna-iglesia.es`, crear su administrador con la clave de alta y, en el computador de la iglesia, «Instalar Manna en este equipo» desde la portada de `nv`. **Hasta entonces no se entra a ese equipo desde fuera**: `manna-iglesia.es` es desde el 2026-10-29 la bienvenida con los manuales (decisión 67). Después, borrar el túnel «Manna-PC».
+- **Nueva Vida en `nv.manna-iglesia.es`** (decisión 66, `/nueva-iglesia`): **hecho el 2026-10-29**. Su nube tiene la 1.58.0 con sus claves, el himnario y las biblias de R2; su equipo se instaló desde la portada de `nv` (1.58.0) y se entra a él desde fuera por `servidor-nv.manna-iglesia.es`, que contesta. Falta: borrar el túnel viejo «Manna-PC» (con permiso del dueño) y que el dueño añada `nv` en `admin.manna-iglesia.es` si no lo hizo.
 - **Fases 22 y 23 (decisión 43)**: hechas el 2026-10-17 (Medios en un solo cajón, 1.26.0; órdenes del culto guardados, 1.27.0).
 - **Fase 21** (un solo Manna a la vez): hecha el 2026-10-17 (1.28.0).
 - **Fase 24 (Biblia al aire)**: hecha el 2026-10-17 (1.29.0).

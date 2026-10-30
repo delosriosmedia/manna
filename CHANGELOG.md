@@ -4,6 +4,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Texto fijo, mejor acomodado**: en el computador, las opciones a la izquierda y la vista previa a la derecha, siempre a la vista y sin que nada pase por detrás; en el celular, la vista previa arriba. El cuadro de escribir es más bajo y la cuadrícula «Dónde va» se ve sobre cualquier fondo.
 - **Manuales en manna-iglesia.es**: la bienvenida de Manna Iglesia con el manual de instalación (lo que recibe cada iglesia y los pasos para empezar) y los manuales de los usuarios, del administrador de la iglesia y del superadministrador, con capturas de Manna. Se leen en el celular y se pueden imprimir o guardar en PDF.
 ## 1.58.0 — 2026-10-29
 
