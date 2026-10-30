@@ -23,15 +23,17 @@ export function attachDrag(list, { drop, place: put }) {
     return el?.closest('[data-category]') || (card && card !== press.card && card.parentElement === press.card.parentElement ? card : null);
   };
   const mark = (next, x = 0, y = 0) => {
+    let column = false;
     if (next?.dataset.drag) {
       // En una lista de una columna cuenta la mitad de arriba o de abajo; en una rejilla, la de la izquierda o la derecha.
       const r = next.getBoundingClientRect();
-      const column = r.width >= next.parentElement.getBoundingClientRect().width * 0.9;
+      column = r.width >= next.parentElement.getBoundingClientRect().width * 0.9;
       after = column ? y > r.top + r.height / 2 : x > r.left + r.width / 2;
     }
-    target?.classList.remove('drop-on', 'drop-before', 'drop-after');
+    target?.classList.remove('drop-on', 'drop-before', 'drop-after', 'drop-column');
     target = next;
     target?.classList.add(target.dataset.drag ? (after ? 'drop-after' : 'drop-before') : 'drop-on');
+    target?.classList.toggle('drop-column', column);
   };
   function begin() {
     clearTimeout(press.timer);

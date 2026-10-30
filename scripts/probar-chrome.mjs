@@ -2137,7 +2137,7 @@ try {
   if (inGroup('biblioteca')) {
   console.log('\n1. Interfaz · Presentaciones (grupo de Medios)');
   {
-    const ws = `document.querySelector('.decks[data-panel=diapositivas]')`;
+    const ws = `document.querySelector('.ws[data-module=medios]')`;
     const dbar = `document.querySelector('.deck-bar')`;
     const decksNow = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).slides.decks)`).then(JSON.parse);
     const onAir = () => run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify({ item: s.projection.item, live: s.live.state, order: s.order.items })`).then(JSON.parse);
@@ -2168,17 +2168,24 @@ try {
     await run(`${modal}.querySelector('input').value = 'Informe de tesorería';`);
     await modalButton('Subir');
     check('convierte cada página en una imagen, las sube y cierra la ventana', await until(`!${modal} && ${ws}.querySelectorAll('.slide-pick').length === 4`, 80), await run(`return ${modal}?.querySelector('.deck-up-status')?.textContent || ''`));
-    check('con una presentación abierta, Medios muestra solo su grupo, con el botón para volver', await groupsShown() === 'diapositivas' && await run(`return ${ws}.dataset.view === 'pages' && !${ws}.querySelector('.deck-back').hidden`), await groupsShown());
+    check('queda elegida sin abrir sus diapositivas: la lista no cambia y la barra ofrece «Ver diapositivas»', await groupsShown() === 'imagenes,videos,audios,diapositivas' && await run(`return document.querySelector('.deck-side').hidden && ${dbar}.querySelector('.deck-see').textContent === 'Ver diapositivas'`), await groupsShown());
+    await click(`${dbar}.querySelector('.deck-see')`);
+    await sleep(400);
+    check('«Ver diapositivas» las pone al lado de la lista, que sigue a la vista con la elegida', await groupsShown() === 'imagenes,videos,audios,diapositivas' && await run(`const side = document.querySelector('.deck-side'), body = ${ws}.querySelector('.media-body'), b = body.getBoundingClientRect(), card = ${ws}.querySelector('.deck.selected').getBoundingClientRect(); return !side.hidden && side.getBoundingClientRect().left >= b.right - 1 && getComputedStyle(body).visibility === 'visible' && card.top >= b.top - 1 && card.bottom <= b.bottom + 1 && side.querySelector('.deck-side-head strong').textContent === 'Informe de tesorería' && ${dbar}.querySelector('.deck-see').textContent === 'Ocultar diapositivas'`),
+      await run(`const s = document.querySelector('.deck-side').getBoundingClientRect(), b = ${ws}.querySelector('.media-body').getBoundingClientRect(); return JSON.stringify({ side: [s.left, s.width], body: [b.left, b.right] })`));
     let decks = await decksNow();
     const deck = decks[0] || {};
     check('queda en la biblioteca con sus cuatro diapositivas, grandes y con miniatura', decks.length === 1 && deck.name === 'Informe de tesorería' && deck.pages === 4 && deck.width === 2560 && deck.height === 1440 && deck.thumbs === true && deck.source === 'pdf'
       && await run(`const r = await fetch(${JSON.stringify(`${deck.base}4.jpg`)}); return r.status === 200 && r.headers.get('content-type') === 'image/jpeg'`), JSON.stringify(decks.map((d) => [d.name, d.pages, d.width, d.height, d.thumbs])));
     const deckCard = `${ws}.querySelector('.deck[data-id="${deck.id}"]')`;
-    check('se abre sola, con la portada en su tarjeta y una miniatura por diapositiva', await until(`${deckCard}.classList.contains('selected') && ${deckCard}.querySelector('.deck-cover img').naturalWidth === 320 && [...${ws}.querySelectorAll('.slide-thumb img')].every(i => i.naturalWidth === 320)`, 20)
+    check('elegida, con la portada en su tarjeta y una miniatura por diapositiva', await until(`${deckCard}.classList.contains('selected') && ${deckCard}.querySelector('.deck-cover img').naturalWidth === 320 && [...${ws}.querySelectorAll('.slide-thumb img')].every(i => i.naturalWidth === 320)`, 20)
       && await run(`return ${deckCard}.querySelector('small').textContent.startsWith('4 diapositivas · PDF')`));
     await click(slide(2));
     await sleep(500);
     check('al elegir una diapositiva la barra dice cuál es', await run(`return ${slide(2)}.classList.contains('selected') && ${dbar}.querySelector('.sel-ref').textContent === 'Diapositiva 2 de 4' && ${dbar}.querySelector('.hint').textContent === 'Informe de tesorería'`));
+    await click(`${deckCard}.querySelector('.deck-pick')`);
+    await sleep(300);
+    check('volver a tocar la presentación no cambia la diapositiva escogida', await run(`return ${dbar}.querySelector('.sel-ref').textContent === 'Diapositiva 2 de 4' && ${slide(2)}.classList.contains('selected')`), await run(`return ${dbar}.querySelector('.sel-ref').textContent`));
     await press('Enter');
     await sleep(600);
     let air = await onAir();
@@ -2303,9 +2310,31 @@ try {
 
     // Una presentación también se mueve a una categoría (fase 22): desde su menú y arrastrándola. Hay dos: la otra
     // tiene que quedarse donde estaba.
-    await click(`${ws}.querySelector('.deck-back')`);
+    // Lo último subido (el PowerPoint) quedó elegido; se eligen el informe y, si no se ven ya, sus diapositivas.
+    await click(`${deckCard}.querySelector('.deck-pick')`);
     await sleep(300);
-    check('al volver a la lista, las presentaciones son el último de los grupos de Medios', JSON.stringify(await groupsNow()) === JSON.stringify(['Imágenes 1', 'Videos 1', 'Audios 1', 'Presentaciones 2']) && await groupsShown() === 'imagenes,videos,audios,diapositivas', JSON.stringify(await groupsNow()));
+    await run(`if (document.querySelector('.deck-side').hidden) ${dbar}.querySelector('.deck-see').click()`);
+    await sleep(300);
+    await click(`${madeCard}.querySelector('.deck-pick')`);
+    await sleep(300);
+    check('con las diapositivas a la vista, elegir otra presentación muestra las suyas', await run(`const side = document.querySelector('.deck-side'); return !side.hidden && side.querySelector('.deck-side-head strong').textContent === ${madeCard}.querySelector('strong').textContent && side.querySelectorAll('.slide-pick').length === 3`));
+    await click(`${deckCard}.querySelector('.deck-pick')`);
+    await sleep(300);
+    await click(`${ws}.querySelector('.deck-close')`);
+    await sleep(300);
+    check('la × cierra sus diapositivas, la presentación sigue elegida y las presentaciones son el último de los grupos', JSON.stringify(await groupsNow()) === JSON.stringify(['Imágenes 1', 'Videos 1', 'Audios 1', 'Presentaciones 2']) && await groupsShown() === 'imagenes,videos,audios,diapositivas'
+      && await run(`return document.querySelector('.deck-side').hidden && ${deckCard}.classList.contains('selected') && ${dbar}.querySelector('.deck-see').textContent === 'Ver diapositivas'`), JSON.stringify(await groupsNow()));
+    const slideNow = () => run(`return ${dbar}.querySelector('.sel-ref').textContent`);
+    const shut = await slideNow();
+    await press('ArrowDown');
+    check('con las diapositivas cerradas, ↓ no cambia a escondidas la que se proyectará', (await slideNow()) === shut, `${shut} → ${await slideNow()}`);
+    // Cuadrícula o lista (S42), también con las presentaciones.
+    check('en cuadrícula, cada presentación lleva su portada grande arriba', await run(`const c = ${ws}.querySelector('.deck .deck-cover').getBoundingClientRect(), t = ${ws}.querySelector('.deck .item-text').getBoundingClientRect(); return c.width > 150 && t.top >= c.bottom - 1`));
+    await click(`${ws}.querySelector('.media-view')`);
+    await sleep(300);
+    check('«Ver en lista» pone una presentación por fila, con la portada pequeña', await run(`const d = [...${ws}.querySelectorAll('.deck-list .deck')].map((e) => e.getBoundingClientRect()); return d.length === 2 && d[1].top >= d[0].bottom - 2 && ${ws}.querySelector('.deck .deck-cover').getBoundingClientRect().width < 100`));
+    await click(`${ws}.querySelector('.media-view')`);
+    await sleep(300);
     await deckMenu(deckCard, 'Mover a una categoría');
     await menuItem('Nueva categoría');
     await sleep(300);
@@ -2406,21 +2435,29 @@ try {
     await click(catChip('Principal'));
     await sleep(300);
 
-    // En el celular: primero las presentaciones; al tocar una, sus diapositivas.
+    // En el celular: tocar una presentación la elige; sus diapositivas, solo con «Ver diapositivas», aparte, encima
+    // de la lista, y «Presentaciones» vuelve a la lista donde estaba.
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
     await chrome.send('Page.navigate', { url: `${local}/control?m=${Date.now()}#medios` });
     await sleep(2500);
-    const shownPane = () => run(`const vis = (s) => { const e = ${ws}.querySelector(s); return Boolean(e) && e.getClientRects().length > 0; }; return JSON.stringify({ list: vis('.deck-list'), pages: vis('.deck-pages'), back: vis('.deck-back'), groups: [...document.querySelectorAll('.media-body .media-group')].filter((g) => g.getClientRects().length).map((g) => g.dataset.group).join() })`).then(JSON.parse);
+    // Se ve: tiene caja y no está escondido (debajo de las diapositivas, la lista sigue en su sitio, invisible).
+    const shownPane = () => run(`const vis = (e) => Boolean(e) && e.getClientRects().length > 0 && getComputedStyle(e).visibility === 'visible'; return JSON.stringify({ list: vis(${ws}.querySelector('.deck-list')), pages: vis(document.querySelector('.deck-side')), back: vis(${ws}.querySelector('.deck-back')), groups: [...document.querySelectorAll('.media-body .media-group')].filter(vis).map((g) => g.dataset.group).join(), top: ${ws}.querySelector('.media-body').scrollTop })`).then(JSON.parse);
     let pane = await shownPane();
     check('en el celular se ve el cajón de Medios con todos sus grupos y la lista de presentaciones', pane.list && !pane.pages && !pane.back && pane.groups === 'imagenes,videos,audios,diapositivas', JSON.stringify(pane));
+    await run(`${ws}.querySelector('.deck-pick').scrollIntoView({ block: 'center' })`);
     await click(`${ws}.querySelector('.deck-pick')`);
     await sleep(400);
+    const chosen = await shownPane();
+    check('tocar una la elige sin abrir sus diapositivas', chosen.list && !chosen.pages && chosen.groups === 'imagenes,videos,audios,diapositivas' && await run(`return ${ws}.querySelector('.deck').classList.contains('selected') && ${dbar}.querySelector('.sel-ref').textContent === 'Diapositiva 3 de 4'`), JSON.stringify(chosen));
+    await click(`${dbar}.querySelector('.deck-see')`);
+    await sleep(400);
     pane = await shownPane();
-    check('al tocar una se ven solo sus diapositivas, con el botón para volver', !pane.list && pane.pages && pane.back && pane.groups === 'diapositivas' && await run(`return ${ws}.querySelectorAll('.slide-pick').length === 4 && ${dbar}.querySelector('.sel-ref').textContent === 'Diapositiva 3 de 4'`), JSON.stringify(pane));
+    check('«Ver diapositivas» las abre aparte, encima de la lista, con el botón para volver', !pane.list && pane.pages && pane.back && pane.groups === '' && await run(`return document.querySelectorAll('.deck-side .slide-pick').length === 4`), JSON.stringify(pane));
     await click(`${ws}.querySelector('.deck-back')`);
     await sleep(300);
     pane = await shownPane();
-    check('«Presentaciones» vuelve a la lista, con los demás grupos', pane.list && !pane.pages && pane.groups === 'imagenes,videos,audios,diapositivas', JSON.stringify(pane));
+    check('«Presentaciones» vuelve a la lista donde estaba, con la presentación aún elegida', pane.list && !pane.pages && pane.groups === 'imagenes,videos,audios,diapositivas' && chosen.top > 0 && pane.top === chosen.top
+      && await run(`return ${ws}.querySelector('.deck').classList.contains('selected')`), JSON.stringify({ chosen, pane }));
     await chrome.send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 800, deviceScaleFactor: 1, mobile: false });
     await chrome.send('Page.navigate', { url: `${local}/control?d=${Date.now()}#medios` });
     await sleep(2500);

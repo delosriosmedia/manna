@@ -28,9 +28,23 @@ html:not(.touch) .media-cats { flex-wrap: wrap; row-gap: 6px; overflow: visible;
 .media-group-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .media-group-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
 .media-group-head small { color: var(--ink-3); font: 500 12px var(--mono); }
-/* Con una presentación abierta, sus diapositivas ocupan Medios hasta volver con «Presentaciones». */
-.media-body:has(.decks[data-view='pages']) .media-group:not([data-group='diapositivas']),
-.media-body:has(.decks[data-view='pages']) > .media-group .media-group-head { display: none; }
+/* La lista y, si se piden, las diapositivas de una presentación (slides/panel.js): a su lado o, en un cajón estrecho,
+   encima, como una pestaña. La lista no se mueve: al volver sigue donde estaba. */
+.media-main { flex: 1; min-height: 0; position: relative; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
+.deck-side { min-height: 0; overflow-y: auto; padding: 16px 20px 24px; }
+.deck-side-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.deck-side-head strong { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.deck-side .slide-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+@container cajon (min-width: 720px) {
+  .media-main:has(> .deck-side:not([hidden])) { grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr); }
+  .deck-side { border-left: 1px solid var(--line); }
+  .deck-back { display: none; }
+}
+@container cajon (max-width: 719px) {
+  .deck-side { position: absolute; inset: 0; }
+  .media-main:has(> .deck-side:not([hidden])) > .media-body { visibility: hidden; }
+  .deck-close { display: none; }
+}
 /* La marca del tipo, en la esquina de cada miniatura. */
 .media-thumb > .kind, .deck-cover > .kind { position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; background: var(--scrim); }
 .deck-cover > .kind { top: 3px; right: 3px; width: 20px; height: 20px; }
@@ -91,10 +105,10 @@ html.touch .media-more { width: var(--tap); height: var(--tap); right: 2px; bott
 
 /* Cajón mediano. El campo de YouTube se queda en la fila del título, «Subir» y ampliar y cerrar; las categorías, debajo. */
 @container cajon (max-width: 899px) {
-  .media-body { padding: 12px 16px 20px; }
+  .media-body, .deck-side { padding: 12px 16px 20px; }
 }
 @container cajon (max-width: 599px) {
-  .media-body { padding: 10px 12px 16px; }
+  .media-body, .deck-side { padding: 10px 12px 16px; }
   /* Sin repetir su nombre (lo dice el cajón): el enlace y «Subir», con su icono, en una fila. */
   .ws[data-module='medios'] .ws-head h1, .ws[data-module='medios'] .ws-head > .spacer, .media-upload span, .yt-add .btn span { display: none; }
   .ws[data-module='medios'] .media-entry { order: 0; flex: 1 1 0; }
@@ -127,8 +141,9 @@ html.touch .media-more { width: var(--tap); height: var(--tap); right: 2px; bott
    de las categorías se arrastran igual. */
 .media-card.drop-before, .deck.drop-before { box-shadow: -3px 0 0 var(--accent); }
 .media-card.drop-after, .deck.drop-after { box-shadow: 3px 0 0 var(--accent); }
-.media-body[data-view='lista'] .media-card.drop-before, .deck-list .deck.drop-before { box-shadow: 0 -3px 0 var(--accent); }
-.media-body[data-view='lista'] .media-card.drop-after, .deck-list .deck.drop-after { box-shadow: 0 3px 0 var(--accent); }
+/* En una sola columna (la lista, o la cuadrícula estrecha al lado de las diapositivas), arriba o abajo: lo dice drag.js. */
+.drop-column.drop-before { box-shadow: 0 -3px 0 var(--accent); }
+.drop-column.drop-after { box-shadow: 0 3px 0 var(--accent); }
 .media-cats .chip[data-drag] { touch-action: pan-x; }
 
 /* Vista en lista (S42): una fila por elemento, con la miniatura pequeña; el elegido la muestra en grande. */
@@ -144,4 +159,16 @@ html.touch .media-more { width: var(--tap); height: var(--tap); right: 2px; bott
 .media-body[data-view='lista'] .media-card.selected .media-thumb { width: min(100%, 420px); }
 .media-body[data-view='lista'] .media-card.selected .media-thumb .badge { display: inline-flex; }
 .media-body[data-view='lista'] .media-card.selected .media-more { top: auto; bottom: 9px; transform: none; }
+.media-body[data-view='lista'] .deck-list { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 .media-body[data-view='lista'] .deck-pick { grid-template-columns: 72px minmax(0, 1fr); }
+/* Las presentaciones en cuadrícula, como las demás tarjetas: la portada arriba y debajo su nombre. */
+.media-body[data-view='cuadricula'] .deck-list { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.media-body[data-view='cuadricula'] .deck-pick { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 8px 8px 10px; }
+.media-body[data-view='cuadricula'] .deck-cover { border-radius: var(--r); }
+.media-body[data-view='cuadricula'] .deck-cover > .kind { top: 6px; right: 6px; width: 24px; height: 24px; }
+.media-body[data-view='cuadricula'] .deck-cover .badge { top: 6px; left: 6px; font-size: 11px; padding: 2px 8px; }
+.media-body[data-view='cuadricula'] .deck .item-text, .media-body[data-view='cuadricula'] .deck-status { padding-right: 30px; }
+.media-body[data-view='cuadricula'] .deck-more { top: auto; bottom: 9px; }
+@container cajon (max-width: 599px) {
+  .media-body[data-view='cuadricula'] .deck-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+}

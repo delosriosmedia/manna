@@ -21,8 +21,9 @@ const ACCEPT = [IMAGE_ACCEPT, CLIP_ACCEPT.video, CLIP_ACCEPT.audio, DECK_ACCEPT]
 // venga. Separada por tipo (imágenes, videos con los de YouTube, audios y presentaciones) y, dentro de cada
 // grupo, del más antiguo al más reciente. Arriba, las categorías (categories.js): «Principal» tiene lo que no
 // está en ninguna, y lo que se arrastra hasta una (drag.js) pasa a ella. Cada grupo es una pieza con la forma
-//   { id, label, kind, el, bar, items(), clear(), render(), accepts(archivo), upload(archivos), keys(e) }
-// y solo uno tiene algo elegido a la vez: el suyo es el que se prepara y su barra de acciones la que se ve.
+//   { id, label, kind, el, bar, side?, items(), clear(), render(), accepts(archivo), upload(archivos), keys(e) }
+// y solo uno tiene algo elegido a la vez: el suyo es el que se prepara y su barra de acciones la que se ve. `side` es
+// lo que va al lado de la lista (las diapositivas de una presentación) o, en un cajón estrecho, encima de ella.
 function mount(el, ctx) {
   let active = null; // el grupo con algo elegido
   const categories = createCategories(ctx, () => render(true));
@@ -91,7 +92,7 @@ function mount(el, ctx) {
   el.replaceChildren(
     h('div', { class: 'ws-head' }, h('h1', {}, 'Medios'), h('span', { class: 'spacer' }),
       videos.entry && h('div', { class: 'media-entry' }, videos.entry), uploader, h('div', { class: 'media-catrow' }, categories.el, viewButton)),
-    body, ...groups.map((g) => g.bar), picker);
+    h('div', { class: 'media-main' }, body, groups.map((g) => g.side)), ...groups.map((g) => g.bar), picker);
 
   // Qué grupos se ven y cuántos tiene cada uno. Con `all`, cada grupo se vuelve a dibujar (otra categoría).
   function render(all = false) {
