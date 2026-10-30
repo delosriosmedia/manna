@@ -57,7 +57,7 @@ test('se mandan las instaladas que usa, y faltan las que no están ni vienen den
 test('las carpetas de letras de cada sistema, también las que baja Office', () => {
   const win = fontDirs('win32', { WINDIR: 'C:\\Windows', LOCALAPPDATA: 'C:\\Users\\Ana\\AppData\\Local' }, 'C:\\Users\\Ana');
   assert.ok(win.some((d) => d.endsWith(path.join('Microsoft', 'FontCache', '4', 'CloudFonts'))) && win.some((d) => d.endsWith(path.join('Microsoft', 'Windows', 'Fonts'))));
-  assert.ok(fontDirs('darwin', {}, '/Users/ana').includes('/Users/ana/Library/Fonts'));
+  assert.ok(fontDirs('darwin', {}, '/Users/ana').includes(path.join('/Users/ana', 'Library/Fonts')));
   assert.deepEqual(fontDirs('darwin', { MANNA_LETRAS: '/tmp/letras' }), ['/tmp/letras']);
 });
 
