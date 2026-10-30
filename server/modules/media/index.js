@@ -39,9 +39,11 @@ export default function setup(app) {
   saved.data.images = saved.data.images.filter((image) => image.atChurch || fs.existsSync(path.join(app.uploadsDir, image.file)));
 
   const url = (file) => `/media/${file}`;
+  // El punto de la imagen que queda en el centro de la pantalla al proyectarla, si se eligió en la vista previa.
+  const spot = (from) => (Number.isFinite(from.x) && Number.isFinite(from.y) ? { x: from.x, y: from.y } : {});
   const view = (image) => ({
     id: image.id, name: image.name, url: image.atChurch ? image.thumb && url(image.thumb) : url(image.file), thumb: image.thumb ? url(image.thumb) : null,
-    width: image.width, height: image.height, bytes: image.bytes, fit: validFit(image.fit), added: image.added, ...(image.atChurch && { atChurch: true }),
+    width: image.width, height: image.height, bytes: image.bytes, fit: validFit(image.fit), ...spot(image), added: image.added, ...(image.atChurch && { atChurch: true }),
   });
   let library = null; // videos y audios: se crea más abajo
   // Las más recientes, primero.
@@ -79,7 +81,7 @@ export default function setup(app) {
   const rel = (file) => file && path.join(path.relative(app.dataDir, app.uploadsDir), file);
   const images = {
     pending: () => saved.data.images.filter((i) => !i.atChurch).map((i) => ({
-      type: 'image', id: i.id, entry: { name: i.name, fit: i.fit, bytes: i.bytes }, files: { main: rel(i.file), thumb: rel(i.thumb) },
+      type: 'image', id: i.id, entry: { name: i.name, fit: i.fit, ...spot(i), bytes: i.bytes }, files: { main: rel(i.file), thumb: rel(i.thumb) },
     })),
     delivered(id) {
       const image = saved.data.images.find((i) => i.id === id);
@@ -96,12 +98,12 @@ export default function setup(app) {
       fs.renameSync(files.main, path.join(app.uploadsDir, file));
       const thumb = files.thumb && readImageInfo(files.thumb)?.type === 'jpeg' ? `${FOLDER}/${id}.mini.jpg` : null;
       if (thumb) fs.renameSync(files.thumb, path.join(app.uploadsDir, thumb));
-      saved.data.images.push({ id, file, thumb, bytes: Number(entry.bytes) || 0, width: info.width, height: info.height, name: cleanName(entry.name) || 'Imagen', fit: validFit(entry.fit), added: Date.now() });
+      saved.data.images.push({ id, file, thumb, bytes: Number(entry.bytes) || 0, width: info.width, height: info.height, name: cleanName(entry.name) || 'Imagen', fit: validFit(entry.fit), ...spot(entry), added: Date.now() });
       commit();
     },
     // La biblioteca del equipo, para que la nube la muestre (sin los archivos, con su miniatura).
     summary: () => saved.data.images.map((i) => ({
-      type: 'image', id: i.id, entry: { name: i.name, fit: i.fit, width: i.width, height: i.height, bytes: i.bytes }, thumb: i.thumb && path.join(app.uploadsDir, i.thumb),
+      type: 'image', id: i.id, entry: { name: i.name, fit: i.fit, ...spot(i), width: i.width, height: i.height, bytes: i.bytes }, thumb: i.thumb && path.join(app.uploadsDir, i.thumb),
     })),
     // En la nube: lo del equipo pasa a ser la ficha «en la iglesia»; lo que el equipo ya no tiene, se va.
     mirror(items) {
@@ -111,7 +113,7 @@ export default function setup(app) {
       for (const { id, entry } of items) {
         const found = saved.data.images.find((i) => i.id === id);
         if (found && !found.atChurch) continue;
-        const next = { name: cleanName(entry.name) || 'Imagen', fit: validFit(entry.fit), width: Number(entry.width) || 0, height: Number(entry.height) || 0, bytes: Number(entry.bytes) || 0 };
+        const next = { name: cleanName(entry.name) || 'Imagen', fit: validFit(entry.fit), ...spot(entry), width: Number(entry.width) || 0, height: Number(entry.height) || 0, bytes: Number(entry.bytes) || 0 };
         if (found) Object.assign(found, next);
         else saved.data.images.push({ id, file: null, thumb: null, added: Date.now(), atChurch: true, ...next });
       }
@@ -158,21 +160,21 @@ export default function setup(app) {
   publish();
 
   // ---- Tipo de contenido ----
-  // data = { id, fit }: qué imagen y con qué ajuste. El ajuste se elige antes de proyectar y
-  // queda guardado en el elemento del orden; al aire se puede cambiar, acercar y desplazar.
+  // data = { id, fit, x?, y? }: qué imagen, con qué ajuste y qué punto en el centro. Se eligen antes de proyectar y
+  // quedan guardados en el elemento del orden; al aire se pueden cambiar, acercar y desplazar.
   app.kind('image', {
     label: 'Imagen',
     describe(data) {
       const image = saved.data.images.find((i) => i.id === data?.id);
       if (!image) return null;
-      return { title: image.name, subtitle: `Imagen · ${image.width} × ${image.height}`, steps: 1, data: { id: image.id, fit: validFit(data.fit ?? image.fit) } };
+      return { title: image.name, subtitle: `Imagen · ${image.width} × ${image.height}`, steps: 1, data: { id: image.id, fit: validFit(data.fit ?? image.fit), ...spot({ x: data.x ?? image.x, y: data.y ?? image.y }) } };
     },
     resolve(data) {
       const image = saved.data.images.find((i) => i.id === data?.id);
       if (!image) return null;
-      return { title: image.name, url: url(image.file), width: image.width, height: image.height, fit: validFit(data.fit ?? image.fit) };
+      return { title: image.name, url: url(image.file), width: image.width, height: image.height, fit: validFit(data.fit ?? image.fit), ...spot({ x: data.x ?? image.x, y: data.y ?? image.y }) };
     },
-    live: (content, previous) => initialView(content.fit, previous?.state),
+    live: (content, previous) => initialView(content.fit, previous?.state ?? spot(content)),
     control: (state, patch) => applyView(state, patch),
   });
 
@@ -243,11 +245,12 @@ export default function setup(app) {
     commit();
   });
 
-  // El ajuste con el que se propone proyectar esa imagen la próxima vez.
-  app.action('media.fit', { permission: 'media.edit' }, ({ id, fit }) => {
+  // El ajuste y, si se eligió, el punto del centro con que se propone proyectar esa imagen la próxima vez.
+  app.action('media.fit', { permission: 'media.edit' }, ({ id, fit, x, y }) => {
     const image = find(id);
     if (validFit(fit) !== fit) throw new HttpError(400, 'Ajuste no válido.');
     image.fit = fit;
+    if (x !== undefined) Object.assign(image, spot(applyView(initialView(fit), { x, y })));
     commit();
   });
 

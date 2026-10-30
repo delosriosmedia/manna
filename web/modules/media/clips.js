@@ -1,4 +1,4 @@
-import { action, state, subscribe, upload } from '../../core/api.js';
+import { action, connectionIsLocal, state, subscribe, upload } from '../../core/api.js';
 import { h, go, guard, menu, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { describeJob } from '../../core/jobs.js';
@@ -6,6 +6,7 @@ import { kindBadge } from '../../core/kinds.js';
 import { formatTime } from '../../core/playback.js';
 import { whenLabel } from '../../core/time.js';
 import { askName, confirmRemove } from './dialogs.js';
+import { createPreview } from './preview.js';
 import { CLIP_TYPES, extensionOf, megabytes, openClipUpload } from './upload-clips.js';
 import { openYoutubeMany } from './youtube-many.js';
 
@@ -79,6 +80,31 @@ export function createClipsPanel(ctx, kind, lib) {
 
   const grid = h('div', { class: `media-grid${visual ? '' : ' audios'}` });
   const el = h('div', { class: 'media-list', dataset: { panel: words.id } }, grid, captions);
+  // Mirar un video aquí, y adelantarlo, sin proyectarlo. Empieza sin sonido: en el equipo principal sonaría en la iglesia.
+  const preview = visual && createPreview({ back: 'Videos', what: 'video', list: grid, refresh: () => render() });
+  const player = visual && h('video', { controls: true, muted: true, playsInline: true, preload: 'metadata' });
+  const playerNote = visual && h('small', { class: 'preview-note' });
+  if (visual) {
+    preview.body.append(h('div', { class: 'preview-frame' }, player), playerNote);
+    // Con el cajón cerrado o en otro módulo no se sigue reproduciendo sin que nadie lo vea.
+    new IntersectionObserver(([entry]) => { if (!entry.isIntersecting) player.pause(); }).observe(player);
+  }
+  // Lo que puede reproducir esta pantalla: la copia que reproduce cualquiera o, en el equipo principal, el original.
+  const sourceOf = (clip) => clip.url || (connectionIsLocal() && clip.original?.playable ? clip.original.url : null);
+  function paintPreview(clip) {
+    preview.paint(clip);
+    preview.see.disabled = !preview.open && !(clip && sourceOf(clip));
+    const source = clip && preview.open ? sourceOf(clip) : null;
+    if (player.getAttribute('src') !== source) {
+      player.pause();
+      player.poster = clip?.poster || '';
+      if (source) player.src = source;
+      else player.removeAttribute('src');
+      player.load();
+    }
+    player.parentElement.hidden = !source;
+    playerNote.textContent = source ? 'Se ve solo en este dispositivo y empieza sin sonido.' : 'Este video aún no se puede ver en este dispositivo.';
+  }
   const name = h('span', { class: 'sel-ref' });
   const add = guard(async () => {
     const clip = current();
@@ -89,11 +115,14 @@ export function createClipsPanel(ctx, kind, lib) {
   const project = guard(async () => {
     const clip = current();
     if (clip && !ctx.canProject) await add();
-    else if (clip) await action('projection.show', { kind: clip.kind, data: { id: clip.id } });
+    else if (clip) {
+      if (visual) player.pause();
+      await action('projection.show', { kind: clip.kind, data: { id: clip.id } });
+    }
   });
   const show = ctx.canProject && h('button', { class: 'btn primary', onclick: () => project() }, icon('play', 16), 'Proyectar', h('kbd', {}, '↵'));
   const bar = h('div', { class: 'abar media-bar', hidden: true, dataset: { panel: words.id } },
-    name, ctx.canProject && h('span', { class: 'hint' }, visual ? 'Al proyectarlo empieza a reproducirse' : 'Al proyectarlo empieza a sonar'),
+    name, ctx.canProject && h('span', { class: 'hint' }, visual ? 'Al proyectarlo empieza a reproducirse' : 'Al proyectarlo empieza a sonar'), visual && preview.see,
     h('button', { class: `btn${ctx.canProject ? '' : ' primary'}`, onclick: () => add() }, icon('plus', 16), 'Añadir al orden'),
     // Oírlo solo en este dispositivo antes de proyectarlo o añadirlo (no en el equipo principal).
     ctx.listen && h('button', { class: 'btn media-listen', 'aria-label': 'Escuchar en este dispositivo', onclick: () => {
@@ -107,6 +136,7 @@ export function createClipsPanel(ctx, kind, lib) {
   let awaited = null;
   function select(id) {
     if (id) lib.picked();
+    else if (visual) preview.open = false; // sin nada elegido, la vista previa del próximo solo se ve si se pide
     selected = id;
     awaited = id && !current() ? id : null;
     render();
@@ -176,6 +206,7 @@ export function createClipsPanel(ctx, kind, lib) {
 
     const clip = current();
     bar.hidden = !clip;
+    if (visual) paintPreview(clip);
     if (clip) {
       name.textContent = clip.name;
       if (show) show.disabled = !clip.usable;
@@ -186,7 +217,7 @@ export function createClipsPanel(ctx, kind, lib) {
   subscribe('jobs', () => { if (library().some((c) => c.status === 'converting' || c.status === 'downloading')) render(); });
 
   return {
-    id: words.id, label: words.label, kind, el, bar,
+    id: words.id, label: words.label, kind, el, bar, side: visual ? preview.side : null,
     // Lo que va en la cabecera junto al botón de subir (videos: el enlace de YouTube).
     entry,
     items: clips,

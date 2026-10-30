@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { deckFonts, fontDirs, fontNames, fontsFor, installedFonts, installFont, userFontDir } from '../server/modules/slides/fuentes.js';
+import { deckFonts, fontDirs, fontNames, fontsFor, installedFonts, installFont, officeFolder, userFontDir } from '../server/modules/slides/fuentes.js';
 import { hasMotion, readZip } from '../server/modules/slides/pptx.js';
 import { makeFont, serveFonts } from '../scripts/lib/letra.mjs';
 import { makePptx } from '../scripts/lib/pptx.mjs';
@@ -68,6 +68,17 @@ test('las carpetas de letras de cada sistema, también las que baja Office', () 
   assert.ok(win.some((d) => d.endsWith(path.join('Microsoft', 'FontCache', '4', 'CloudFonts'))) && win.some((d) => d.endsWith(path.join('Microsoft', 'Windows', 'Fonts'))));
   assert.ok(fontDirs('darwin', {}, '/Users/ana').includes(path.join('/Users/ana', 'Library/Fonts')));
   assert.deepEqual(fontDirs('darwin', { MANNA_LETRAS: '/tmp/letras' }), ['/tmp/letras']);
+});
+
+test('la carpeta de una letra de Office en Mac: solo la que está justo ahí, aunque el .pptx diga otra cosa', () => {
+  const cloud = path.join(tmp, 'UBF8T346G9.Office', 'CloudFonts');
+  fs.mkdirSync(path.join(cloud, 'Jumble'), { recursive: true });
+  fs.mkdirSync(path.join(tmp, 'UBF8T346G9.Office', 'Otra'), { recursive: true });
+  fs.writeFileSync(path.join(cloud, 'archivo'), '');
+  const dirs = ['/Library/Fonts', cloud];
+  assert.equal(officeFolder('Jumble', dirs), path.join(cloud, 'Jumble'));
+  for (const name of ['No Esta', 'archivo', '..', '.', '../Otra', 'Jumble/x']) assert.equal(officeFolder(name, dirs), null, name);
+  assert.equal(officeFolder('Jumble', ['/Library/Fonts']), null);
 });
 
 test('una que falta se baja de Google Fonts, Fontsource o Font Squirrel (de mentira), comprobada, a la carpeta de letras de quien usa el equipo', async () => {

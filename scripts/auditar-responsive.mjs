@@ -147,9 +147,14 @@ const SCREENS = [
   // de la categoría elegida se vacía antes y se quita después, para que no pase a la pantalla siguiente.
   { name: 'Medios: imágenes', url: '/control#medios', content: '.media-body', primary: '.media-bar[data-panel=imagenes] .btn.primary', inside: '.media-bar[data-panel=imagenes]', settle: 600,
     prepare: `document.querySelector('.media-list[data-panel=imagenes] .media-card .media-pick').click()` },
-  // S42: Medios en lista, con una imagen elegida (su miniatura en grande).
+  // S42: Medios en lista, con una imagen elegida (su fila no cambia).
   { name: 'Medios en lista', url: '/control#medios', content: '.media-body', primary: '.media-bar[data-panel=imagenes] .btn.primary', inside: '.media-bar[data-panel=imagenes]', settle: 600,
     prepare: `document.querySelector('.media-view').click(); document.querySelector('.media-list[data-panel=imagenes] .media-card .media-pick').click()` },
+  // La vista previa: al lado de la lista o, en un cajón estrecho, encima de ella.
+  { name: 'Medios: vista previa de una imagen', url: '/control#medios', content: '.deck-side[aria-label="Previsualizar imagen"]', primary: '.media-bar[data-panel=imagenes] .btn.primary', inside: '.media-bar[data-panel=imagenes]', settle: 700,
+    prepare: `document.querySelector('.media-list[data-panel=imagenes] .media-card .media-pick').click(); document.querySelector('.media-bar[data-panel=imagenes] .deck-see').click()` },
+  { name: 'Medios: vista previa de un video', url: '/control#medios', content: '.deck-side[aria-label="Previsualizar video"]', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.media-bar[data-panel=videos]', settle: 700,
+    prepare: `[...document.querySelectorAll('.media-cats .chip')].find((c) => c.textContent.includes('Domingo')).click(); document.querySelector('.media-list[data-panel=videos] .media-card[data-usable=true] .media-pick').click(); document.querySelector('.media-bar[data-panel=videos] .deck-see').click()` },
   { name: 'Medios: videos', url: '/control#medios', content: '.media-body', primary: '.media-bar[data-panel=videos] .btn.primary', inside: '.media-bar[data-panel=videos]', settle: 700,
     prepare: `document.querySelector('.media-list[data-panel=videos] .media-card .media-pick').click()` },
   // Con una categoría elegida: su menú (⋯) a la vista junto a ella.
@@ -188,7 +193,7 @@ const SCREENS = [
   // lado o, en un cajón estrecho, encima de la lista.
   { name: 'Medios: presentaciones', url: '/control#medios', content: '.media-body', inside: '.deck', settle: 500,
     prepare: `document.querySelector('.media-group[data-group=diapositivas]').scrollIntoView()` },
-  { name: 'Medios: una presentación', url: '/control#medios', content: '.deck-side', primary: '.deck-bar .btn.primary', inside: '.deck-bar', settle: 600,
+  { name: 'Medios: una presentación', url: '/control#medios', content: '.deck-side[aria-label=Diapositivas]', primary: '.deck-bar .btn.primary', inside: '.deck-bar', settle: 600,
     prepare: `document.querySelector('.decks[data-panel=diapositivas] .deck-pick').click(); document.querySelector('.deck-bar .deck-see').click()` },
   { name: 'Al aire con una diapositiva', url: '/control#medios', show: 'slides', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Orden con una diapositiva al aire', url: '/control#orden', show: 'slides', controls: '.odetail .live-controls' },

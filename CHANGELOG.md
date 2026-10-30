@@ -4,11 +4,20 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.60.0 — 2026-10-30
+
+- **Medios: tocar algo solo lo elige**. En la lista, la fila ya no se agranda ni se deforma. Para verlo en grande, **Previsualizar imagen** o **Previsualizar video**, al lado de la lista o, en el celular, encima de ella.
+- **Completa o Llenar, en la vista previa**: ya no están en la barra de abajo, donde no se veía cómo quedaba; se eligen viendo la imagen como saldrá en la pantalla. Con **Llenar**, arrastrar la imagen elige qué parte se ve al proyectarla.
+- **La vista previa se ve grande**: la lista cede el sitio, sus tarjetas ya no cambian de tamaño y las diapositivas salen una debajo de otra, con la imagen entera, para recorrerlas deslizando.
+- **Ventanas para escribir**: tocar fuera, o soltar fuera al seleccionar lo escrito, ya no las cierra y no se pierde lo escrito. Se cierran con su × o con Esc.
+- **Enter confirma las ventanas**: en la de subir un archivo y en todas las que tienen un campo para escribir.
+- **Un video se puede mirar sin proyectarlo**: en su vista previa se reproduce y se adelanta, solo en ese dispositivo y empezando sin sonido.
+- **Letras que faltan, «Revisar de nuevo»**: después de un intento, el botón ya no dice «Instalar las que faltan». Ve las letras que instalaste a mano y vuelve a convertir la presentación.
 - **Las capas se ponen al día solas**: si cambias un texto fijo que está en una capa (y lo guardas), o el nombre, la duración o el aspecto de un reloj que está en una, la capa lo muestra al momento, sin volver a ponerlo. Si estaba oculta, sigue oculta.
 - **Texto fijo, más claro**: abajo dice qué es y que, si ya está en una capa, al guardar se cambia ahí también; y la vista previa lo muestra sobre el fondo de la proyección. La píldora y la franja llevan un borde sutil, para que se vean también sobre fondos oscuros.
 - **Letras que faltan, en más sitios**: «Instalar las que faltan» las busca en Google Fonts y, si no están, en Fontsource y en Font Squirrel. Las de Microsoft Office (Aptos, Jumble) no están en ninguno.
 - **Presentaciones con animaciones, solas**: una presentación con animaciones, transiciones, video o sonido se pasa «con animaciones» sin elegirlo (con DeckCraft con animaciones o, en Windows, PowerPoint); una sin nada que se mueva, como imágenes. Lo que se elija en su menú se respeta.
-- **Las letras de Office**: si una letra no está en ningún repositorio libre y el equipo tiene PowerPoint, «Instalar las que faltan» se las pide a Office (Aptos, Jumble…): abre la presentación con PowerPoint, Office las baja y Manna la vuelve a convertir. En Mac, Manna necesita permiso para leerlas, y lo dice cuando no lo tiene.
+- **Las letras de Office**: si una letra no está en ningún repositorio libre y el equipo tiene PowerPoint, «Instalar las que faltan» se las pide a Office (Aptos, Jumble…): abre la presentación con PowerPoint, Office las baja y Manna la vuelve a convertir. En Mac, macOS no deja que Manna las recoja: Manna abre sus carpetas en el Finder y se instalan con doble clic.
 - **Actualizar yt-dlp** ya no dice que el equipo no lo dejó abrir cuando el Mac está ocupado: Manna pone en su sitio el mismo programa que acaba de comprobar.
 
 ## 1.59.0 — 2026-10-29

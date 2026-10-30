@@ -40,7 +40,7 @@ export function drawPicture(host, { thumbnail = false, backdrop = false } = {}) 
     const iw = img.naturalWidth || item?.width;
     const ih = img.naturalHeight || item?.height;
     if (!item || !W || !H || !iw || !ih) return;
-    const p = place({ W, H, iw, ih }, { fit: item.fit, ...FULL_VIEW, ...view });
+    const p = place({ W, H, iw, ih }, { fit: item.fit, ...FULL_VIEW, ...(item.x != null && { x: item.x, y: item.y }), ...view });
     img.style.width = `${iw}px`;
     img.style.height = `${ih}px`;
     img.style.transform = `translate(${p.left}px, ${p.top}px) scale(${p.scale})`;

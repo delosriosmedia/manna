@@ -165,6 +165,15 @@ test('Medios: subir, nombrar, ajustar, proyectar, encuadrar al aire, añadir al 
     await orden.login();
     assert.equal((await orden.send('projection.control', { zoom: 1.5 })).status, 200);
     assert.equal((await orden.put('/api/media/images?name=x', png, 'image/png')).status, 403);
+    // Lo que se ve con «Llenar», elegido en la vista previa: lo que se sale se ajusta, y vale al proyectar y en el orden.
+    assert.equal((await control.send('media.fit', { id: up.id, fit: 'cover', x: 0.25, y: 7 })).status, 200);
+    const placed = (await state()).media.images.find((i) => i.id === up.id);
+    assert.deepEqual([placed.x, placed.y], [0.25, 1]);
+    assert.equal((await control.send('projection.show', { kind: 'image', data: { id: up.id } })).status, 200);
+    assert.deepEqual((await state()).live.state, { fit: 'cover', zoom: 1, x: 0.25, y: 1 });
+    const inOrder = await control.send('order.add', { kind: 'image', data: { id: up.id } });
+    assert.deepEqual(inOrder.result.data, { id: up.id, fit: 'cover', x: 0.25, y: 1 });
+
     assert.equal((await orden.send('media.remove', { id: up.id })).status, 403);
     assert.equal((await orden.send('media.rename', { id: up.id, name: 'Otro' })).status, 403);
 

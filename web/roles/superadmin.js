@@ -95,7 +95,6 @@ function addChurch() {
     box.close();
     toast('Iglesia añadida.');
   });
-  host.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
   const box = dialog('Añadir iglesia',
     h('p', {}, 'Su sitio tiene que existir ya, con la clave del superadministrador en sus variables (MANNA_CLAVE_SUPER).'),
     h('label', { class: 'user-field' }, h('span', {}, 'Dirección'), host),

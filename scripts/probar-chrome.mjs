@@ -1102,7 +1102,14 @@ try {
   check('al elegir archivos propone un nombre para cada imagen', await run(`return ${modal}.querySelector('h2').textContent === 'Subir 2 imágenes' && [...${modal}.querySelectorAll('.up-row input')].map(i => i.value).join('|') === 'anuncios de octubre|cartel vertical'`));
   check('prepara cada imagen en el propio dispositivo antes de enviarla', await until(`[...${modal}.querySelectorAll('.up-row small')].every(s => s.textContent.startsWith('Lista')) && !${modal}.querySelector('.btn.primary').disabled`));
   await run(`const i = ${modal}.querySelector('.up-row input'); i.value = 'Anuncios de octubre';`);
-  await click(`${modal}.querySelector('.btn.primary')`);
+  // Con campos para escribir: tocar fuera, o soltar fuera al seleccionar lo escrito, no la cierra; Enter la confirma.
+  await clickAt(10, 10);
+  await sleep(200);
+  const nameBox = JSON.parse(await run(`const r = ${modal}.querySelector('.up-row input').getBoundingClientRect(); return JSON.stringify({ x: r.left + 20, y: r.top + r.height / 2 })`));
+  await dragMouse(nameBox.x, nameBox.y, 10, 10);
+  check('una ventana con campos no se cierra al tocar fuera ni al soltar fuera un arrastre', await run(`return Boolean(${modal}) && ${modal}.querySelector('.up-row input').value === 'Anuncios de octubre'`));
+  await run(`${modal}.querySelector('.up-row input').focus()`);
+  await press('Enter');
   check('sube las imágenes y cierra la ventana; salen en su grupo, con su título y su cuenta', await until(`!${modal} && ${med}.querySelectorAll('.media-card').length === 2`) && JSON.stringify(await groupsNow()) === JSON.stringify(['Imágenes 2']) && await run(`return ${med}.querySelector('.media-body > :first-child').textContent === ''`));
   let lib = JSON.parse(await run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify(s.media.images)`));
   const ad = lib.find((i) => i.name === 'Anuncios de octubre');
@@ -1110,14 +1117,53 @@ try {
   const adCard = `${med}.querySelector('.media-card[data-id="${ad?.id}"]')`;
   await click(`${adCard}.querySelector('.media-pick')`);
   await sleep(500);
-  check('al elegir una imagen queda con su borde cian y aparecen sus acciones (ya no hay vista previa aparte)', await run(`return ${adCard}.classList.contains('selected') && !document.querySelector('.prep') && !${med}.querySelector('.media-bar').hidden && ${med}.querySelector('.fit.on').dataset.fit === 'contain'`));
-  await click(`${med}.querySelector('.fit[data-fit=cover]')`);
+  check('al elegir una imagen queda con su borde cian y aparecen sus acciones, sin el ajuste: se elige en la vista previa', await run(`return ${adCard}.classList.contains('selected') && !document.querySelector('.prep') && !${med}.querySelector('.media-bar').hidden && !${med}.querySelector('.media-bar .fit')`));
+  const imageSee = `${med}.querySelector('.media-bar[data-panel=imagenes] .deck-see')`;
+  const imageSide = `${med}.querySelector('.deck-side[aria-label="Previsualizar imagen"]')`;
+  check('la vista previa no se abre sola: la barra ofrece «Previsualizar imagen»', await run(`return ${imageSide}.hidden && ${imageSee}.textContent === 'Previsualizar imagen'`));
+  const cardWidth = (card) => run(`return ${card}.getBoundingClientRect().width`);
+  const widthBefore = await cardWidth(adCard);
+  await click(imageSee);
+  check('al abrir la vista previa, las tarjetas de la cuadrícula siguen del mismo tamaño', Math.abs(await cardWidth(adCard) - widthBefore) < 1);
+  check('«Previsualizar imagen» la muestra grande, entera y con su ajuste', await until(`${imageSide}.querySelector('.preview-frame img').naturalWidth > 0`, 10) && await run(`return !${imageSide}.hidden && ${imageSide}.querySelector('.preview-frame').dataset.fit === 'contain' && ${imageSide}.querySelector('.fit.on').dataset.fit === 'contain' && ${imageSide}.querySelector('.preview-frame img').getAttribute('src') === ${JSON.stringify(ad?.url)}`));
+  await click(`${imageSide}.querySelector('.fit[data-fit=cover]')`);
   await sleep(500);
-  check('el ajuste se elige sobre dos miniaturas de la imagen', await run(`return ${med}.querySelector('.fit.on').dataset.fit === 'cover' && ${med}.querySelectorAll('.fit-thumb img').length === 2`));
+  check('el ajuste se elige ahí, sobre dos miniaturas de la imagen, y la vista previa lo muestra', await run(`return ${imageSide}.querySelector('.fit.on').dataset.fit === 'cover' && ${imageSide}.querySelector('.preview-frame').dataset.fit === 'cover' && getComputedStyle(${imageSide}.querySelector('.preview-frame img')).objectFit === 'cover' && ${imageSide}.querySelectorAll('.fit-thumb img').length === 2`));
+  // Con «Llenar», arrastrar la imagen elige qué parte se ve al proyectarla.
+  const frameBox = JSON.parse(await run(`const r = ${imageSide}.querySelector('.preview-frame').getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width })`));
+  await dragMouse(frameBox.x, frameBox.y, frameBox.x - frameBox.w * 0.2, frameBox.y);
+  await sleep(500);
+  const placed = JSON.parse(await run(`const s = await (await fetch('/api/state')).json(); return JSON.stringify(s.media.images.find((i) => i.id === ${JSON.stringify(ad?.id)}))`));
+  check('con «Llenar», arrastrar la imagen en la vista previa elige qué parte se ve, y no se la lleva', placed.x > 0.55 && placed.y === 0.5 && await run(`const i = ${imageSide}.querySelector('.preview-frame img'); return !i.draggable && i.style.objectPosition && !i.style.objectPosition.startsWith('50%')`), JSON.stringify(placed));
+  await click(imageSee);
+  await sleep(200);
+  check('«Ocultar la vista previa» la cierra y la imagen sigue elegida', await run(`return ${imageSide}.hidden && ${adCard}.classList.contains('selected') && ${imageSee}.textContent === 'Previsualizar imagen'`));
   await click(`${med}.querySelector('.media-bar .btn.primary')`);
   await sleep(900);
   let air = await shown();
-  check('"Proyectar" pone la imagen al aire con ese ajuste, y la biblioteca lo marca', air.item.kind === 'image' && air.item.title === 'Anuncios de octubre' && air.live.fit === 'cover' && air.live.zoom === 1 && await run(`return Boolean(${adCard}.querySelector('.badge.live')) && document.querySelector('.scene-caption').textContent === 'Anuncios de octubre'`));
+  check('"Proyectar" pone la imagen al aire con ese ajuste y esa parte, y la biblioteca lo marca', air.item.kind === 'image' && air.item.title === 'Anuncios de octubre' && air.live.fit === 'cover' && air.live.zoom === 1 && air.live.x === placed.x && await run(`return Boolean(${adCard}.querySelector('.badge.live')) && document.querySelector('.scene-caption').textContent === 'Anuncios de octubre'`));
+  // En el escritorio el encuadre se mueve sobre la propia proyección de fondo, con «Mover» (como en el Presentador).
+  const moveChip = `document.querySelector('.tb-extra .tool-chip[data-tool=move]')`;
+  // Con «Mover» encendido y el cajón cerrado (se ve la proyección entera), arrastrar sobre ella; devuelve cómo queda.
+  const dragWithMove = async () => {
+    await tapEl(moveChip);
+    await run(`document.activeElement?.blur()`);
+    await press('Escape');
+    await sleep(400);
+    const box = JSON.parse(await run(`const r = document.querySelector('.scene-bg > .stage').getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width })`));
+    await dragMouse(box.x, box.y, box.x - box.w * 0.05, box.y);
+    await sleep(600);
+    const { live } = await shown();
+    await tapEl(moveChip);
+    await goTo('medios');
+    await sleep(500);
+    return live;
+  };
+  // Llena, lo que sobra está recortado: se mueve sin acercarla.
+  const filled = await dragWithMove();
+  check('llena, sin acercarla, «Mover» mueve lo que se ve', filled.fit === 'cover' && filled.zoom === 1 && filled.x > placed.x, JSON.stringify(filled));
+  await click(`[...${LIVE}.querySelectorAll('button')].find(b => b.textContent.includes('Vista completa'))`);
+  await sleep(400);
   // Otra pantalla de proyección, para ver que sigue el encuadre.
   await run(`const f = document.createElement('iframe'); f.id = 'pantalla'; f.src = '/proyeccion'; f.style.cssText = 'position:fixed;left:0;bottom:0;width:320px;height:180px;z-index:99;border:0'; document.body.append(f);`);
   await sleep(2500);
@@ -1130,8 +1176,6 @@ try {
   // La imagen es más alargada que la pantalla: llenándola ya se ve solo una parte de su ancho, y con el zoom, un tercio de eso.
   const part = (16 / 9) / (ad.width / ad.height) / 3;
   check('el deslizador acerca la imagen, y las dos pantallas muestran la misma parte', air.live.zoom === 3 && Math.abs(parts[0] - part) < 0.01 && Math.abs(parts[0] - parts[1]) < 0.01, `se ve ${(parts[0] * 100).toFixed(1)} % y ${(parts[1] * 100).toFixed(1)} % del ancho`);
-  // En el escritorio el encuadre se mueve sobre la propia proyección de fondo, con «Mover» (como en el Presentador).
-  const moveChip = `document.querySelector('.tb-extra .tool-chip[data-tool=move]')`;
   check('con una imagen al aire, la barra trae «Señalar» y «Mover»', await run(`return Boolean(${moveChip}) && !${moveChip}.hidden && !document.querySelector('.tb-extra .tool-chip[data-tool=point]').hidden`));
   await tapEl(moveChip);
   // Con el cajón cerrado se ve la proyección entera (abierto, solo lo que deja).
@@ -1158,19 +1202,30 @@ try {
   await sleep(600);
   air = await shown();
   check('"Vista completa" deshace el zoom y el desplazamiento', air.live.zoom === 1 && air.live.x === 0.5 && air.live.fit === 'cover' && await run(`return [...${LIVE}.querySelectorAll('button')].find(b => b.textContent.includes('Vista completa')).disabled`));
+  // Completa se ve entera: al acercarla, también se mueve.
+  await click(`${LIVE}.querySelector('[data-fit=contain]')`);
+  await run(`const s = ${LIVE}.querySelector('input[type=range]'); s.value = 2; s.dispatchEvent(new Event('input'));`);
+  await sleep(500);
+  const whole = await dragWithMove();
+  check('completa, al acercarla, «Mover» también mueve lo que se ve', whole.fit === 'contain' && whole.zoom === 2 && whole.x > 0.5, JSON.stringify(whole));
+  await click(`${LIVE}.querySelector('[data-fit=cover]')`);
   await closeControls();
   await run(`document.querySelector('#pantalla').remove()`);
   await click(`[...${med}.querySelectorAll('.media-bar .btn')].find(b => b.textContent.includes('Añadir'))`);
   await sleep(600);
   air = await shown();
   const inOrder = air.order.find((i) => i.kind === 'image');
-  check('la imagen se añade al orden del culto como elemento propio, con su ajuste', Boolean(inOrder) && inOrder.title === 'Anuncios de octubre' && inOrder.data.fit === 'cover' && inOrder.steps === 1);
+  check('la imagen se añade al orden del culto como elemento propio, con su ajuste', Boolean(inOrder) && inOrder.title === 'Anuncios de octubre' && inOrder.data.x === placed.x && inOrder.data.fit === 'cover' && inOrder.steps === 1);
   const pickMenu = async (cardJs, label) => { await click(`${cardJs}.querySelector('.media-more')`); await sleep(300); await click(`[...document.querySelectorAll('.menu button')].find(b => b.textContent.includes(${JSON.stringify(label)}))`); await sleep(300); };
   await pickMenu(adCard, 'Cambiar el nombre');
   await run(`${modal}.querySelector('input').value = 'Cartel de la campaña'; [...${modal}.querySelectorAll('.btn')].find(b => b.textContent === 'Guardar').click();`);
   await sleep(600);
   check('el nombre se puede cambiar', await run(`return !${modal} && ${adCard}.querySelector('strong').textContent === 'Cartel de la campaña'`));
   const otherCard = `[...${med}.querySelectorAll('.media-card')].find(c => c.dataset.id !== ${JSON.stringify(ad?.id)})`;
+  await pickMenu(otherCard, 'Eliminar');
+  await clickAt(10, 10);
+  await sleep(200);
+  check('una ventana sin campos sí se cierra al tocar fuera', await run(`return !${modal}`));
   await pickMenu(otherCard, 'Eliminar');
   await click(`${modal}.querySelector('.btn.danger')`);
   await sleep(600);
@@ -1310,13 +1365,28 @@ try {
     const mainOrder = () => run(`return (await (await fetch('/api/state')).json()).media.mainOrder.join()`);
     check('arrastrar una tarjeta sobre otra la deja a su lado, y el orden se guarda', (await vidIds()) === [was[1], was[0]].join() && (await mainOrder()) === [was[1], was[0]].join() && await run(`return !document.querySelector('.drop-before, .drop-after')`),
       `${await vidIds()} · ${await mainOrder()}`);
-    // La vista en lista: una fila por elemento; el elegido, con su miniatura en grande.
+    // La vista en lista: una fila por elemento, y elegir uno no la cambia.
     await click(`${med}.querySelector('.media-view')`);
     await sleep(300);
     check('«Ver en lista» pone una fila por elemento, con la miniatura pequeña', await run(`const c = [...${vids}.querySelectorAll('.media-card')]; return ${med}.querySelector('.media-body').dataset.view === 'lista' && c.length === 2 && c[1].getBoundingClientRect().top >= c[0].getBoundingClientRect().bottom - 2 && c[0].querySelector('.media-thumb').getBoundingClientRect().width < 100`));
+    const rowHeight = `${vids}.querySelector('.media-card').getBoundingClientRect().height`;
+    const rowBefore = await run(`return ${rowHeight}`);
     await click(`${vids}.querySelector('.media-card .media-pick')`);
     await sleep(300);
-    check('y el elegido muestra su miniatura en grande', await run(`return ${vids}.querySelector('.media-card.selected .media-thumb').getBoundingClientRect().width > 150`));
+    check('elegir uno no cambia su fila: la lista no se deforma', await run(`return ${vids}.querySelector('.media-card').classList.contains('selected') && Math.abs(${rowHeight} - ${rowBefore}) < 1`));
+    // «Previsualizar video»: se ve aquí, se adelanta y empieza sin sonido; lo que está al aire no cambia.
+    const clipSee = `${med}.querySelector('.media-bar[data-panel=videos] .deck-see')`;
+    const clipSide = `${med}.querySelector('.deck-side[aria-label="Previsualizar video"]')`;
+    const clipPlayer = `${clipSide}.querySelector('video')`;
+    await click(clipSee);
+    check('«Previsualizar video» lo abre con sus controles y sin sonido', await until(`${clipPlayer}.readyState >= 1 && ${clipPlayer}.duration > 0`, 15) && await run(`return !${clipSide}.hidden && ${clipPlayer}.controls && ${clipPlayer}.muted && ${clipPlayer}.paused`));
+    await run(`${clipPlayer}.currentTime = 1`);
+    check('y se puede adelantar', await until(`Math.abs(${clipPlayer}.currentTime - 1) < 0.2 && !${clipPlayer}.seeking`, 10));
+    await run(`await ${clipPlayer}.play()`);
+    await click(clipSee);
+    await sleep(300);
+    check('al ocultarla, deja de reproducirse', await run(`return ${clipSide}.hidden && ${clipPlayer}.paused && !${clipPlayer}.getAttribute('src')`));
+    await run(`${vids}.querySelector('.media-card.selected .media-pick').click(); document.activeElement?.blur()`);
     await click(`${med}.querySelector('.media-view')`);
     await sleep(300);
     // Las categorías se ordenan arrastrando su nombre.
@@ -2182,17 +2252,19 @@ try {
     await run(`${modal}.querySelector('input').value = 'Informe de tesorería';`);
     await modalButton('Subir');
     check('convierte cada página en una imagen, las sube y cierra la ventana', await until(`!${modal} && ${ws}.querySelectorAll('.slide-pick').length === 4`, 80), await run(`return ${modal}?.querySelector('.deck-up-status')?.textContent || ''`));
-    check('queda elegida sin abrir sus diapositivas: la lista no cambia y la barra ofrece «Ver diapositivas»', await groupsShown() === 'imagenes,videos,audios,diapositivas' && await run(`return document.querySelector('.deck-side').hidden && ${dbar}.querySelector('.deck-see').textContent === 'Ver diapositivas'`), await groupsShown());
+    check('queda elegida sin abrir sus diapositivas: la lista no cambia y la barra ofrece «Ver diapositivas»', await groupsShown() === 'imagenes,videos,audios,diapositivas' && await run(`return document.querySelector('.deck-side[aria-label=Diapositivas]').hidden && ${dbar}.querySelector('.deck-see').textContent === 'Ver diapositivas'`), await groupsShown());
     await click(`${dbar}.querySelector('.deck-see')`);
     await sleep(400);
-    check('«Ver diapositivas» las pone al lado de la lista, que sigue a la vista con la elegida', await groupsShown() === 'imagenes,videos,audios,diapositivas' && await run(`const side = document.querySelector('.deck-side'), body = ${ws}.querySelector('.media-body'), b = body.getBoundingClientRect(), card = ${ws}.querySelector('.deck.selected').getBoundingClientRect(); return !side.hidden && side.getBoundingClientRect().left >= b.right - 1 && getComputedStyle(body).visibility === 'visible' && card.top >= b.top - 1 && card.bottom <= b.bottom + 1 && side.querySelector('.deck-side-head strong').textContent === 'Informe de tesorería' && ${dbar}.querySelector('.deck-see').textContent === 'Ocultar diapositivas'`),
-      await run(`const s = document.querySelector('.deck-side').getBoundingClientRect(), b = ${ws}.querySelector('.media-body').getBoundingClientRect(); return JSON.stringify({ side: [s.left, s.width], body: [b.left, b.right] })`));
+    check('«Ver diapositivas» las pone al lado de la lista, que sigue a la vista con la elegida', await groupsShown() === 'imagenes,videos,audios,diapositivas' && await run(`const side = document.querySelector('.deck-side[aria-label=Diapositivas]'), body = ${ws}.querySelector('.media-body'), b = body.getBoundingClientRect(), card = ${ws}.querySelector('.deck.selected').getBoundingClientRect(); return !side.hidden && side.getBoundingClientRect().left >= b.right - 1 && getComputedStyle(body).visibility === 'visible' && card.top >= b.top - 1 && card.bottom <= b.bottom + 1 && side.querySelector('.deck-side[aria-label=Diapositivas]-head strong').textContent === 'Informe de tesorería' && ${dbar}.querySelector('.deck-see').textContent === 'Ocultar diapositivas'`),
+      await run(`const s = document.querySelector('.deck-side[aria-label=Diapositivas]').getBoundingClientRect(), b = ${ws}.querySelector('.media-body').getBoundingClientRect(); return JSON.stringify({ side: [s.left, s.width], body: [b.left, b.right] })`));
+    check('y se ven grandes, con la imagen entera y no la miniatura; las tarjetas de la cuadrícula no cambian de tamaño', await run(`const p = document.querySelector('.deck-side[aria-label=Diapositivas] .slide-pick'); return p.getBoundingClientRect().width > 300 && !/\\/m\\d+\\./.test(p.querySelector('img').getAttribute('src'))`)
+      && Math.abs(await run(`return ${ws}.querySelector('.deck.selected').getBoundingClientRect().width`) - 190) < 1, await run(`const p = document.querySelector('.deck-side[aria-label=Diapositivas] .slide-pick'); return JSON.stringify({ w: p.getBoundingClientRect().width, src: p.querySelector('img').getAttribute('src'), card: ${ws}.querySelector('.deck.selected').getBoundingClientRect().width })`));
     let decks = await decksNow();
     const deck = decks[0] || {};
     check('queda en la biblioteca con sus cuatro diapositivas, grandes y con miniatura', decks.length === 1 && deck.name === 'Informe de tesorería' && deck.pages === 4 && deck.width === 2560 && deck.height === 1440 && deck.thumbs === true && deck.source === 'pdf'
       && await run(`const r = await fetch(${JSON.stringify(`${deck.base}4.jpg`)}); return r.status === 200 && r.headers.get('content-type') === 'image/jpeg'`), JSON.stringify(decks.map((d) => [d.name, d.pages, d.width, d.height, d.thumbs])));
     const deckCard = `${ws}.querySelector('.deck[data-id="${deck.id}"]')`;
-    check('elegida, con la portada en su tarjeta y una miniatura por diapositiva', await until(`${deckCard}.classList.contains('selected') && ${deckCard}.querySelector('.deck-cover img').naturalWidth === 320 && [...${ws}.querySelectorAll('.slide-thumb img')].every(i => i.naturalWidth === 320)`, 20)
+    check('elegida, con la miniatura de portada en su tarjeta y sus diapositivas con la imagen entera', await until(`${deckCard}.classList.contains('selected') && ${deckCard}.querySelector('.deck-cover img').naturalWidth === 320 && ${ws}.querySelectorAll('.slide-thumb img').length === 4 && ${ws}.querySelector('.slide-thumb img').naturalWidth === 2560`, 20)
       && await run(`return ${deckCard}.querySelector('small').textContent.startsWith('4 diapositivas · PDF')`));
     await click(slide(2));
     await sleep(500);
@@ -2327,17 +2399,17 @@ try {
     // Lo último subido (el PowerPoint) quedó elegido; se eligen el informe y, si no se ven ya, sus diapositivas.
     await click(`${deckCard}.querySelector('.deck-pick')`);
     await sleep(300);
-    await run(`if (document.querySelector('.deck-side').hidden) ${dbar}.querySelector('.deck-see').click()`);
+    await run(`if (document.querySelector('.deck-side[aria-label=Diapositivas]').hidden) ${dbar}.querySelector('.deck-see').click()`);
     await sleep(300);
     await click(`${madeCard}.querySelector('.deck-pick')`);
     await sleep(300);
-    check('con las diapositivas a la vista, elegir otra presentación muestra las suyas', await run(`const side = document.querySelector('.deck-side'); return !side.hidden && side.querySelector('.deck-side-head strong').textContent === ${madeCard}.querySelector('strong').textContent && side.querySelectorAll('.slide-pick').length === 3`));
+    check('con las diapositivas a la vista, elegir otra presentación muestra las suyas', await run(`const side = document.querySelector('.deck-side[aria-label=Diapositivas]'); return !side.hidden && side.querySelector('.deck-side[aria-label=Diapositivas]-head strong').textContent === ${madeCard}.querySelector('strong').textContent && side.querySelectorAll('.slide-pick').length === 3`));
     await click(`${deckCard}.querySelector('.deck-pick')`);
     await sleep(300);
-    await click(`${ws}.querySelector('.deck-close')`);
+    await click(`${ws}.querySelector('.deck-side[aria-label=Diapositivas] .deck-close')`);
     await sleep(300);
     check('la × cierra sus diapositivas, la presentación sigue elegida y las presentaciones son el último de los grupos', JSON.stringify(await groupsNow()) === JSON.stringify(['Imágenes 1', 'Videos 1', 'Audios 1', 'Presentaciones 2']) && await groupsShown() === 'imagenes,videos,audios,diapositivas'
-      && await run(`return document.querySelector('.deck-side').hidden && ${deckCard}.classList.contains('selected') && ${dbar}.querySelector('.deck-see').textContent === 'Ver diapositivas'`), JSON.stringify(await groupsNow()));
+      && await run(`return document.querySelector('.deck-side[aria-label=Diapositivas]').hidden && ${deckCard}.classList.contains('selected') && ${dbar}.querySelector('.deck-see').textContent === 'Ver diapositivas'`), JSON.stringify(await groupsNow()));
     const slideNow = () => run(`return ${dbar}.querySelector('.sel-ref').textContent`);
     const shut = await slideNow();
     await press('ArrowDown');
@@ -2408,6 +2480,15 @@ try {
         && await until(`${ws}.querySelector('.deck[data-id="${converted.id}"] .deck-status.error')?.textContent.includes('Arial no está en Google Fonts')`, 10)
         && await until(`[...${ws}.querySelectorAll('.deck[data-id="${converted.id}"] img')].some(i => i.naturalWidth === 320 && i.getAttribute('src').includes('m1.png?v='))`, 10),
         await run(`return JSON.stringify({ deck: ${deckNow}, card: ${ws}.querySelector('.deck[data-id="${converted.id}"] .deck-status')?.textContent })`));
+      const fontsCard = `${ws}.querySelector('.deck[data-id="${converted.id}"] .deck-fonts')`;
+      check('tras un intento, el botón ya no dice «Instalar»: dice «Revisar de nuevo»', await run(`return ${fontsCard}.textContent === 'Revisar de nuevo'`));
+      // Instalada a mano (lo que pide el aviso): el botón la ve y la convierte, sin más pasos.
+      const byHand = path.join(fontsDir, 'a-mano.ttf');
+      fs.writeFileSync(byHand, makeFont('Arial'));
+      const before = await run(`return (${deckNow}).redone`);
+      await click(fontsCard);
+      check('«Revisar de nuevo» ve la instalada a mano, la convierte y quita el aviso', await until(`(${deckNow})?.redone > ${before} && !(${deckNow}).missingFonts?.length && !${ws}.querySelector('.deck[data-id="${converted.id}"] .deck-status.error')`, 40), await run(`return JSON.stringify(${deckNow})`));
+      fs.rmSync(byHand);
       const redone = await run(`return (${deckNow}).redone`);
       await deckMenu(`${ws}.querySelector('.deck[data-id="${converted.id}"]')`, 'Convertir de nuevo');
       check('«Convertir de nuevo» la vuelve a convertir desde el PowerPoint original', await until(`(${deckNow})?.redone > ${redone}`, 40));
@@ -2462,7 +2543,7 @@ try {
     await chrome.send('Page.navigate', { url: `${local}/control?m=${Date.now()}#medios` });
     await sleep(2500);
     // Se ve: tiene caja y no está escondido (debajo de las diapositivas, la lista sigue en su sitio, invisible).
-    const shownPane = () => run(`const vis = (e) => Boolean(e) && e.getClientRects().length > 0 && getComputedStyle(e).visibility === 'visible'; return JSON.stringify({ list: vis(${ws}.querySelector('.deck-list')), pages: vis(document.querySelector('.deck-side')), back: vis(${ws}.querySelector('.deck-back')), groups: [...document.querySelectorAll('.media-body .media-group')].filter(vis).map((g) => g.dataset.group).join(), top: ${ws}.querySelector('.media-body').scrollTop })`).then(JSON.parse);
+    const shownPane = () => run(`const vis = (e) => Boolean(e) && e.getClientRects().length > 0 && getComputedStyle(e).visibility === 'visible'; return JSON.stringify({ list: vis(${ws}.querySelector('.deck-list')), pages: vis(document.querySelector('.deck-side[aria-label=Diapositivas]')), back: vis(${ws}.querySelector('.deck-side[aria-label=Diapositivas] .deck-back')), groups: [...document.querySelectorAll('.media-body .media-group')].filter(vis).map((g) => g.dataset.group).join(), top: ${ws}.querySelector('.media-body').scrollTop })`).then(JSON.parse);
     let pane = await shownPane();
     check('en el celular se ve el cajón de Medios con todos sus grupos y la lista de presentaciones', pane.list && !pane.pages && !pane.back && pane.groups === 'imagenes,videos,audios,diapositivas', JSON.stringify(pane));
     await run(`${ws}.querySelector('.deck-pick').scrollIntoView({ block: 'center' })`);
@@ -2473,8 +2554,8 @@ try {
     await click(`${dbar}.querySelector('.deck-see')`);
     await sleep(400);
     pane = await shownPane();
-    check('«Ver diapositivas» las abre aparte, encima de la lista, con el botón para volver', !pane.list && pane.pages && pane.back && pane.groups === '' && await run(`return document.querySelectorAll('.deck-side .slide-pick').length === 4`), JSON.stringify(pane));
-    await click(`${ws}.querySelector('.deck-back')`);
+    check('«Ver diapositivas» las abre aparte, encima de la lista, con el botón para volver', !pane.list && pane.pages && pane.back && pane.groups === '' && await run(`return document.querySelectorAll('.deck-side[aria-label=Diapositivas] .slide-pick').length === 4`), JSON.stringify(pane));
+    await click(`${ws}.querySelector('.deck-side[aria-label=Diapositivas] .deck-back')`);
     await sleep(300);
     pane = await shownPane();
     check('«Presentaciones» vuelve a la lista donde estaba, con la presentación aún elegida', pane.list && !pane.pages && pane.groups === 'imagenes,videos,audios,diapositivas' && chosen.top > 0 && pane.top === chosen.top

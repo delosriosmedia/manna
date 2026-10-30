@@ -76,7 +76,6 @@ export function usersBody(me) {
       box.close();
       toast(user.id === me?.id ? 'PIN cambiado.' : `PIN cambiado. ${user.name} tendrá que entrar de nuevo con el nuevo.`);
     });
-    pin.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
     const box = dialog(`PIN de ${user.name}`,
       h('label', { class: 'user-field' }, h('span', {}, 'PIN nuevo'), pin),
       buttons(() => box, 'Cambiar', save));

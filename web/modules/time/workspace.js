@@ -68,7 +68,6 @@ function mount(el, ctx) {
       toast(existing ? 'Cambios guardados.' : `${isTimer ? 'Temporizador' : 'Cronómetro'} creado.`);
       render();
     });
-    for (const input of [name, minutes, seconds]) input.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
     const box = dialog(existing ? 'Cambiar' : isTimer ? 'Nuevo temporizador' : 'Nuevo cronómetro',
       h('div', { class: 'time-form' },
         h('label', { class: 'time-field' }, h('span', {}, 'Nombre'), name),

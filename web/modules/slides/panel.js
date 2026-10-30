@@ -96,7 +96,6 @@ export function createSlidesPanel(ctx, lib) {
       await action('slides.rename', { id: deck.id, name: input.value });
       box.close();
     });
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
     const box = dialog('Cambiar el nombre', input,
       h('div', { class: 'row', style: 'justify-content: flex-end; margin-top: 14px;' },
         h('button', { class: 'btn', onclick: () => box.close() }, 'Cancelar'), h('button', { class: 'btn primary', onclick: save }, 'Guardar')));
@@ -127,7 +126,8 @@ export function createSlidesPanel(ctx, lib) {
       return h('div', { class: 'deck-status error' },
         h('small', {}, `Faltan letras en este equipo: ${deck.missingFonts.join(', ')}.${ctx.user?.admin ? '' : ' Instálalas y elige «Convertir de nuevo».'}`),
         failed && h('small', {}, failed.error),
-        ctx.user?.admin && h('button', { class: 'btn deck-fonts', onclick: guard(() => action('slides.installFonts', { id: deck.id })) }, icon('download-simple', 16), 'Instalar las que faltan'));
+        // Tras un intento, lo que queda por hacer es a mano: el botón revisa lo instalado y, si ya están, la convierte.
+        ctx.user?.admin && h('button', { class: 'btn deck-fonts', onclick: guard(() => action('slides.installFonts', { id: deck.id })) }, icon(failed ? 'arrow-clockwise' : 'download-simple', 16), failed ? 'Revisar de nuevo' : 'Instalar las que faltan'));
     }
     if (deck.status === 'ready' || deck.status === 'converting') {
       const progress = Math.round((job?.progress || 0) * 100);
@@ -193,7 +193,7 @@ export function createSlidesPanel(ctx, lib) {
       pages.dataset.key = key;
       pages.replaceChildren(h('div', { class: 'slide-grid' }, ...Array.from({ length: deck.pages }, (_, i) =>
         h('button', { class: 'slide-pick', dataset: { n: i + 1 }, onclick: () => pick(i + 1), ondblclick: () => { pick(i + 1); project(); } },
-          h('span', { class: 'slide-thumb' }, h('img', { src: thumbUrl(deck, i + 1), alt: '', loading: 'lazy' })),
+          h('span', { class: 'slide-thumb' }, h('img', { src: pageUrl(deck, i + 1), alt: '', loading: 'lazy', decoding: 'async' })),
           h('span', { class: 'slide-n' }, String(i + 1))))));
     }
     for (const button of pages.querySelectorAll('.slide-pick')) {

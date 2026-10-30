@@ -5,7 +5,7 @@ import { HttpError } from '../../core/router.js';
 import { imageInfo, readImageInfo } from '../../core/images.js';
 import { cleanName } from '../../core/names.js';
 import { applyView, initialView } from '../../core/view.js';
-import { fontsFor, installFont, officeBlocked } from './fuentes.js';
+import { fontsFor, installFont, officeBlocked, officeFolder, showInFinder } from './fuentes.js';
 import { hasMotion } from './pptx.js';
 import { createExporter, isPresentation, liveSupported, openLive, PRESENTATION_EXTENSIONS } from './powerpoint.js';
 
@@ -630,9 +630,11 @@ export default function setup(app) {
     if (app.cloud || !deck.missingFonts?.length) throw new HttpError(409, 'A esta presentación no le falta ninguna letra en este equipo.');
     const job = app.jobs.start({ title: 'Instalando sus letras', owner: 'slides', ref: deck.id });
     (async () => {
+      // Las instaladas a mano desde la última vez (con el Finder, en Mac) ya no se buscan.
+      const { missing } = fontsFor(originalOf(deck));
       let absent = [];
-      let installed = 0;
-      for (const family of deck.missingFonts) {
+      let installed = deck.missingFonts.filter((family) => !missing.includes(family)).length;
+      for (const family of missing) {
         job.update({ detail: family });
         if ((await installFont(family)).length) installed += 1;
         else absent.push(family);
@@ -657,9 +659,15 @@ export default function setup(app) {
       }
       checkFonts(deck);
       if (installed) reconvert(deck);
-      const one = absent.length === 1;
-      const note = !absent.length ? '' : `${absent.join(', ')} no ${one ? 'está' : 'están'} en Google Fonts, Fontsource ni Font Squirrel${office ? `, ni Office ${one ? 'la' : 'las'} bajó` : ''}: hay que instalarla${one ? '' : 's'} a mano y elegir «Convertir de nuevo».`
-        + (officeBlocked() ? ' En este Mac, macOS no deja a Manna leer las letras de Office: en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco, activa Manna y vuelve a abrirlo.' : '');
+      const inOffice = officeBlocked() ? absent.filter((family) => officeFolder(family)) : [];
+      const nowhere = absent.filter((family) => !inOffice.includes(family));
+      if (inOffice.length) showInFinder(inOffice.map((family) => officeFolder(family)));
+      const one = nowhere.length === 1;
+      const single = inOffice.length === 1;
+      const note = [
+        nowhere.length ? `${nowhere.join(', ')} no ${one ? 'está' : 'están'} en Google Fonts, Fontsource ni Font Squirrel${office ? `, ni Office ${one ? 'la' : 'las'} bajó` : ''}: hay que instalarla${one ? '' : 's'} a mano y pulsar «Revisar de nuevo».` : '',
+        inOffice.length ? `${inOffice.join(', ')} ya ${single ? 'la' : 'las'} bajó Office, pero macOS no deja que Manna ${single ? 'la' : 'las'} recoja. ${single ? 'Se abrió su carpeta' : 'Se abrieron sus carpetas'} en el Finder del equipo principal: dale doble clic a ${single ? 'la letra' : 'cada letra'} → Instalar, y pulsa «Revisar de nuevo».` : '',
+      ].filter(Boolean).join(' ');
       if (note) job.fail(installed ? `Las demás se instalaron. ${note}` : note);
       else job.done('Instaladas');
     })().catch((err) => job.fail(err.message || 'No se pudieron instalar.'));

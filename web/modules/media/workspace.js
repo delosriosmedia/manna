@@ -23,7 +23,8 @@ const ACCEPT = [IMAGE_ACCEPT, CLIP_ACCEPT.video, CLIP_ACCEPT.audio, DECK_ACCEPT]
 // está en ninguna, y lo que se arrastra hasta una (drag.js) pasa a ella. Cada grupo es una pieza con la forma
 //   { id, label, kind, el, bar, side?, items(), clear(), render(), accepts(archivo), upload(archivos), keys(e) }
 // y solo uno tiene algo elegido a la vez: el suyo es el que se prepara y su barra de acciones la que se ve. `side` es
-// lo que va al lado de la lista (las diapositivas de una presentación) o, en un cajón estrecho, encima de ella.
+// lo que va al lado de la lista (las diapositivas de una presentación, la vista previa de una imagen o de un video) o, en
+// un cajón estrecho, encima de ella.
 function mount(el, ctx) {
   let active = null; // el grupo con algo elegido
   const categories = createCategories(ctx, () => render(true));
@@ -73,7 +74,7 @@ function mount(el, ctx) {
       h('div', { class: 'media-group-head' }, kindBadge(g.kind), h('h2', {}, g.label), count), g.el);
   });
   const empty = h('div', {});
-  // Cuadrícula o lista (S42): la lista ocupa menos; al elegir uno, su miniatura se ve en grande. Se recuerda aquí.
+  // Cuadrícula o lista (S42): la lista ocupa menos. Se recuerda aquí.
   let view = prefs.get('medios.vista') === 'lista' ? 'lista' : 'cuadricula';
   const body = h('div', { class: 'media-body', dataset: { view } }, empty, ...sections);
   const viewButton = h('button', { class: 'icon-btn media-view', onclick: () => {

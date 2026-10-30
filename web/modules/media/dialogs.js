@@ -10,7 +10,6 @@ export function askText(title, value, save, { max = 80, placeholder = '', action
     await save(input.value);
     box.close();
   });
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') done(); });
   const box = dialog(title, input,
     h('div', { class: 'row', style: 'justify-content: flex-end; margin-top: 14px;' },
       h('button', { class: 'btn', onclick: () => box.close() }, 'Cancelar'), h('button', { class: 'btn primary', onclick: done }, label)));

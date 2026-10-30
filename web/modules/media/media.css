@@ -21,22 +21,26 @@ html:not(.touch) .media-cats { flex-wrap: wrap; row-gap: 6px; overflow: visible;
 .ws-head .yt-add .search { flex: 1; min-width: 0; order: 0; }
 .media-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px 24px; }
 .media-bar.off { display: none; }
-.media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+/* Tarjetas de ancho fijo: al abrir algo al lado, caben menos, pero no cambian de tamaño. */
+.media-grid { display: grid; grid-template-columns: repeat(auto-fill, 190px); gap: 12px; }
 .ws[data-module='medios'].dropping .media-body { outline: 2px dashed var(--accent); outline-offset: -8px; background: var(--accent-soft); }
 /* Un grupo por tipo: su título con el color del tipo y cuántos hay. */
 .media-group + .media-group { margin-top: 24px; }
 .media-group-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .media-group-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
 .media-group-head small { color: var(--ink-3); font: 500 12px var(--mono); }
-/* La lista y, si se piden, las diapositivas de una presentación (slides/panel.js): a su lado o, en un cajón estrecho,
-   encima, como una pestaña. La lista no se mueve: al volver sigue donde estaba. */
+/* La lista y, si se piden, las diapositivas de una presentación (slides/panel.js) o la vista previa de una imagen o un
+   video (preview.js): a su lado o, en un cajón estrecho, encima, como una pestaña. La lista no se mueve: al volver sigue
+   donde estaba. */
 .media-main { flex: 1; min-height: 0; position: relative; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
 .deck-side { min-height: 0; overflow-y: auto; padding: 16px 20px 24px; }
 .deck-side-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .deck-side-head strong { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.deck-side .slide-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+/* Se pidieron para verlas grandes: una debajo de otra, y solo con mucho sitio, más de una por fila. */
+.deck-side .slide-grid { grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr)); }
 @container cajon (min-width: 720px) {
-  .media-main:has(> .deck-side:not([hidden])) { grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr); }
+  /* Lo que se pidió ver es lo importante: la lista cede el sitio. */
+  .media-main:has(> .deck-side:not([hidden])) { grid-template-columns: minmax(230px, 0.66fr) minmax(0, 1fr); }
   .deck-side { border-left: 1px solid var(--line); }
   .deck-back { display: none; }
 }
@@ -78,9 +82,25 @@ html.touch .media-more { width: var(--tap); height: var(--tap); right: 2px; bott
 .media-status strong { font-size: 12px; font-weight: 600; color: var(--ok); }
 .media-status .row { flex-wrap: wrap; }
 .media-status .bar { margin: 0; }
-.media-grid.audios { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.media-grid.audios { grid-template-columns: repeat(auto-fill, 170px); }
 .media-grid.audios .media-thumb { aspect-ratio: 3 / 1; }
 .up-row.plain { grid-template-columns: minmax(0, 1fr); }
+
+/* La vista previa: como se vería en la pantalla (16:9) y, en una imagen, su ajuste. */
+/* El recuadro cabe en lo que queda sobre el ajuste: en una pantalla baja, el ajuste no se sale de la vista. */
+.deck-side:has(> .media-preview):not([hidden]) { display: flex; flex-direction: column; }
+.media-preview { flex: 1; min-height: 200px; container-type: size; display: grid; align-content: start; justify-items: center; gap: 12px; }
+.preview-frame { width: min(100cqw, calc((100cqh - 30px) * 16 / 9)); aspect-ratio: 16 / 9; background: var(--media-bg); border-radius: var(--r); overflow: hidden; }
+.media-preview:has(.fits) .preview-frame { width: min(100cqw, calc((100cqh - 110px) * 16 / 9)); }
+.media-preview .fits { width: 100%; }
+.preview-frame[hidden] { display: none; }
+.preview-frame img, .preview-frame video { display: block; width: 100%; height: 100%; object-fit: contain; }
+.preview-frame[data-fit='cover'] img { object-fit: cover; }
+.preview-frame img { pointer-events: none; }
+.preview-frame[data-fit='cover'] { cursor: grab; touch-action: none; user-select: none; }
+.preview-frame[data-fit='cover']:active { cursor: grabbing; }
+.preview-note { color: var(--ink-3); font-size: 12px; }
+.media-preview .fit { flex: 1; grid-auto-flow: column; justify-content: center; align-items: center; gap: 8px; font-size: 12px; }
 
 /* Ajuste a la pantalla: se elige sobre dos miniaturas de la propia imagen. */
 .media-bar .sel-ref { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -112,10 +132,8 @@ html.touch .media-more { width: var(--tap); height: var(--tap); right: 2px; bott
   /* Sin repetir su nombre (lo dice el cajón): el enlace y «Subir», con su icono, en una fila. */
   .ws[data-module='medios'] .ws-head h1, .ws[data-module='medios'] .ws-head > .spacer, .media-upload span, .yt-add .btn span { display: none; }
   .ws[data-module='medios'] .media-entry { order: 0; flex: 1 1 0; }
-  .media-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .media-grid, .media-grid.audios { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .media-group + .media-group { margin-top: 18px; }
-  .media-bar .fits { flex: 1 1 100%; }
-  .media-bar .fit { flex: 1; grid-auto-flow: column; justify-content: center; align-items: center; gap: 8px; font-size: 12px; }
   .media-bar .sel-ref { display: none; }
 }
 /* Celular pequeño: sin sitio para «Varios»; «Añadir» con el campo vacío abre la misma ventana. */
@@ -146,7 +164,8 @@ html.touch .media-more { width: var(--tap); height: var(--tap); right: 2px; bott
 .drop-column.drop-after { box-shadow: 0 3px 0 var(--accent); }
 .media-cats .chip[data-drag] { touch-action: pan-x; }
 
-/* Vista en lista (S42): una fila por elemento, con la miniatura pequeña; el elegido la muestra en grande. */
+/* Vista en lista (S42): una fila por elemento, con la miniatura pequeña. Elegir uno no cambia su fila: lo que se quiera
+   ver en grande se pide con «Previsualizar». */
 .media-body[data-view='lista'] .media-grid { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 .media-body[data-view='lista'] .media-pick { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 10px; align-items: center; padding: 6px 40px 6px 6px; }
 .media-body[data-view='lista'] .media-thumb { margin: 0; border-radius: var(--r-sm); }
@@ -155,14 +174,10 @@ html.touch .media-more { width: var(--tap); height: var(--tap); right: 2px; bott
 .media-body[data-view='lista'] .media-duration { right: 3px; bottom: 3px; padding: 0 4px; font-size: 10px; }
 .media-body[data-view='lista'] .media-card .item-text { padding-right: 0; }
 .media-body[data-view='lista'] .media-more { top: 50%; bottom: auto; transform: translateY(-50%); }
-.media-body[data-view='lista'] .media-card.selected .media-pick { grid-template-columns: minmax(0, 1fr); }
-.media-body[data-view='lista'] .media-card.selected .media-thumb { width: min(100%, 420px); }
-.media-body[data-view='lista'] .media-card.selected .media-thumb .badge { display: inline-flex; }
-.media-body[data-view='lista'] .media-card.selected .media-more { top: auto; bottom: 9px; transform: none; }
 .media-body[data-view='lista'] .deck-list { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 .media-body[data-view='lista'] .deck-pick { grid-template-columns: 72px minmax(0, 1fr); }
 /* Las presentaciones en cuadrícula, como las demás tarjetas: la portada arriba y debajo su nombre. */
-.media-body[data-view='cuadricula'] .deck-list { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.media-body[data-view='cuadricula'] .deck-list { grid-template-columns: repeat(auto-fill, 190px); gap: 12px; }
 .media-body[data-view='cuadricula'] .deck-pick { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 8px 8px 10px; }
 .media-body[data-view='cuadricula'] .deck-cover { border-radius: var(--r); }
 .media-body[data-view='cuadricula'] .deck-cover > .kind { top: 6px; right: 6px; width: 24px; height: 24px; }

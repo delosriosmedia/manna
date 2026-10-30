@@ -46,7 +46,6 @@ function mount(el, ctx) {
       toast(ADDED(page));
       choose(page.id);
     });
-    url.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); });
     const box = dialog('Agregar una página',
       h('div', { class: 'web-add' }, url, name),
       h('p', { class: 'muted web-add-note' }, 'Se proyecta tal cual, así que necesita internet durante el culto. Si la página no se deja mostrar dentro de Manna (Kahoot, por ejemplo), el proyector la abre en su propia ventana.'),
@@ -64,7 +63,6 @@ function mount(el, ctx) {
       await action('web.rename', { id: page.id, name: input.value });
       box.close();
     });
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
     const box = dialog('Cambiar el nombre', input,
       h('div', { class: 'row', style: 'justify-content: flex-end; margin-top: 14px;' },
         h('button', { class: 'btn', onclick: () => box.close() }, 'Cancelar'), h('button', { class: 'btn primary', onclick: save }, 'Guardar')));

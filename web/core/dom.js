@@ -77,7 +77,9 @@ export function guard(fn) {
 }
 
 // Ventana modal sencilla. Devuelve { el, close }. El foco entra en ella (su primer campo o, si no tiene, la
-// propia ventana) y vuelve al cerrar a donde estaba.
+// propia ventana) y vuelve al cerrar a donde estaba. Enter en un campo de una línea la confirma: pulsa su botón
+// principal (en un <form>, ya lo hace el navegador). Tocar fuera la cierra, salvo que tenga campos: un toque o un arrastre
+// que se sale por error (al seleccionar lo escrito) perdería lo escrito. Esa se cierra con su × o con Esc.
 export function dialog(title, ...content) {
   const opener = document.activeElement;
   const close = () => {
@@ -86,7 +88,10 @@ export function dialog(title, ...content) {
     if (opener?.isConnected) opener.focus?.();
   };
   const onKey = (e) => { if (e.key === 'Escape') close(); };
-  const backdrop = h('div', { class: 'modal-backdrop', onclick: (e) => { if (e.target === backdrop) close(); } },
+  let pressedOutside = false; // un arrastre que empieza dentro y se suelta fuera también da un clic en el fondo
+  const backdrop = h('div', { class: 'modal-backdrop',
+    onpointerdown: (e) => { pressedOutside = e.target === backdrop; },
+    onclick: (e) => { if (e.target === backdrop && pressedOutside && !box.querySelector('input:not([type=file], [type=hidden]), textarea, select')) close(); } },
     h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
       h('div', { class: 'modal-header' },
         h('h2', {}, title),
@@ -96,6 +101,10 @@ export function dialog(title, ...content) {
   document.body.append(backdrop);
   const box = backdrop.querySelector('.modal');
   box.tabIndex = -1;
+  box.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.isComposing || e.target.form || !e.target.matches('input:not([type=checkbox], [type=radio], [type=file], [type=range])')) return;
+    box.querySelector('.modal-body .btn.primary')?.click();
+  });
   (box.querySelector('.modal-body :is(input, textarea, select)') || box).focus();
   return { el: backdrop, close };
 }

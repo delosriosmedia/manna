@@ -134,6 +134,20 @@ export function installedFonts(dirs = fontDirs()) {
 // Si el sistema no deja leer las letras que baja Office (en Mac, sin permiso; se sabe tras revisar las carpetas).
 export const officeBlocked = () => [...blocked].some((dir) => /UBF8T346G9\.Office|FontCache/i.test(dir));
 
+// macOS no deja a Manna leer esa carpeta, ni con «Acceso total al disco» (el icono es un guion y macOS no le pasa el
+// permiso a Node.js, 2026-10-30), pero sí saber qué hay y pedirle al Finder que la abra: Office guarda cada letra en una
+// carpeta con su nombre. El nombre viene del .pptx: solo vale el de una carpeta que esté justo ahí.
+export function officeFolder(family, dirs = fontDirs()) {
+  const cloud = dirs.find((dir) => dir.includes('UBF8T346G9.Office'));
+  const folder = cloud && path.join(cloud, family);
+  try {
+    return folder && path.dirname(folder) === cloud && fs.statSync(folder).isDirectory() ? folder : null;
+  } catch {
+    return null;
+  }
+}
+export const showInFinder = (folders) => execFile('open', folders, () => {});
+
 // Lo que necesita DeckCraft para una presentación: los archivos de las letras que usa y están instaladas
 // (todos los de cada familia: negrita, cursiva…), y las que no se encuentran en ninguna parte. Un archivo repetido
 // (mismo nombre y tamaño) va una vez: en Mac, Word, Excel y PowerPoint traen cada uno su copia de las mismas.
