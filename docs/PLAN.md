@@ -170,7 +170,7 @@ De menor a mayor riesgo; cada fase deja algo usable y **se publica al cerrarla**
 | 46 | «En vivo» del Orador completo (C2 · Pestañas del mensaje), en teléfono y tableta, con la hoja «Versículo» | M | hecha (1.65.0) |
 | 47 | «En vivo» del Orador sencillo (C4 · Control de bolsillo), en teléfono y tableta | S | hecha (1.65.0) |
 | 48 | «En vivo» en el computador y el retiro de «Historias» | S | hecha (1.66.0) |
-| 49 | Los módulos y las demás pantallas, con las reglas de móviles (`DESIGN.md`, 12 ter) | M | propuesta |
+| 49 | Los módulos y las demás pantallas, con las reglas de móviles (`DESIGN.md`, 12 ter) | M | hecha (1.68.0) |
 
 **Orden cambiado el 2026-10-04 (decisión 20)**: la fase 6 va antes que la 5, mientras el dueño revisa las letras de los himnos. La reproducción (pausa, avance, volumen, una sola pantalla que suena), que iba a estrenarse con el himnario, se construye con los videos.
 
@@ -1094,7 +1094,7 @@ Idea del dueño del 2026-10-25 (I5, de la antigua bandeja de ideas). Depende de 
 
 **Cuidado**: cada combinación es una pantalla más que la auditoría tiene que revisar en sus 10 tamaños. Conviene un número cerrado de opciones (pocas variantes por elemento, órdenes que se pueden probar) antes que una libertad total que nadie haya visto en un celular.
 
-### Fases 42 a 49 · Las pantallas «En vivo» y las reglas de móviles — aprobadas el 2026-10-30, salvo la 49, propuesta (decisiones 68 a 72)
+### Fases 42 a 49 · Las pantallas «En vivo» y las reglas de móviles — aprobadas el 2026-10-30, la 49 el 2026-10-31 (decisiones 68 a 72)
 
 Salen de la fase 40 (`docs/pantallas-de-control.md`). Cada fase deja algo usable y se publica al cerrarla.
 
@@ -1191,7 +1191,7 @@ Salen de la fase 40 (`docs/pantallas-de-control.md`). Cada fase deja algo usable
 - Sigue el Escenario, con «En vivo» como panel derecho y el Orador con una columna de Biblia.
 - Se retira «Historias»: lo que queda de ella pasa a las pantallas de teléfono y tableta, y `DESIGN.md` §12 se reescribe.
 
-**Fase 49 · Los módulos y las demás pantallas, con las reglas de móviles** (M, propuesta)
+**Fase 49 · Los módulos y las demás pantallas, con las reglas de móviles** (M, hecha en la 1.68.0)
 - Lo que no es «En vivo» también se usa en el celular: Biblia, Himnario, Medios, Textos, Tiempo, Capas, Páginas web, Orden, Ajustes, el inicio con su PIN, Preparar el culto, Administrar la iglesia y el superadministrador.
 - Se pasan por la auditoría de la 42 y se corrige lo que falle, módulo a módulo, sin rediseñarlos. Medios parte con ventaja: tocar ya solo elige y nada cambia de tamaño (2026-10-30).
 
@@ -1495,6 +1495,7 @@ Al terminar, se revisa el proyecto entero contra esta lista y se entrega un info
 | 38 El himnario en línea en la iglesia y los archivos | **Aprobada** · 2026-10-25 (decisión 55). El himnario en la iglesia y los archivos desde casa se adelantan en las partes 2 y 4 de la decisión 64. Las copias en Drive, hechas el 2026-10-29 (1.57.0) y funcionando ese mismo día: Google conectado con delosrios.media@gmail.com y la primera copia de `pruebas` en Drive | | |
 | 39 Superadministrador | **Aprobada** · 2026-10-25 (decisión 55). Qué hace, decidido el mismo día (decisión 64, parte 3): con contraseña, en `admin.manna-iglesia.es`; módulos, archivos y espacio, máximo de órdenes y activar o suspender cada iglesia; el espacio del plan; ordenar la interfaz. **Hecha en la 1.51.0** (2026-10-26; el sitio, creado el mismo día); falta probarla con las claves del dueño. Quedan para después las métricas de uso más finas y el botón de versiones (decisión 58, que hoy hace el asistente con la autorización del dueño) | | |
 | 40 Investigación desde cero: pantallas de control del celular | **Hecha** · 2026-10-30. Sin versión (documentos y bocetos): `docs/pantallas-de-control.md`, `docs/auditoria-bocetos-moviles.md` y `DESIGN.md`, 12 ter. Siguen las fases 42 a 48 (aprobadas) y la 49 (propuesta) | | |
+| 49 Los módulos y las demás pantallas, con las reglas de móviles | **Hecha** · 2026-10-31 (decisión 72) | 1.68.0 | 83 pantallas nuevas en la auditoría (`Móvil: …`, con `rapido movil`): los módulos reducidos y ampliados, la nube, el superadministrador y el inicio con su PIN. Se pasó de 379 líneas a 0: unas 200 eran de la herramienta (letra de tamaño 0, lo tapado por una ventana, filas de una lista que están más abajo) y las reales, unas 12 causas. `armedClick` de `core/dom.js`: dos toques para lo que pone algo al aire desde una lista. **Sin rediseñar**, y **sin probar con el dedo** en un celular de verdad |
 | 48 El computador y el retiro de «Historias» | **Hecha** · 2026-10-30 (decisiones 68 a 72) | 1.66.0 | «En vivo» primero en el dock y como nombre del panel derecho (la cola del culto, sin cambiar lo que lleva), la columna de Biblia del Presentador (`createVerseList`, y la hoja «Versículo» en una ventana, con teclado). «Historias» se quita de `escenario.js`, `shell.css` y `slides.css`; `DESIGN.md` §12, reescrita. Sin probar en el computador de un orador de verdad | | |
 | 47 «En vivo» del Orador sencillo | **Hecha** · 2026-10-30 (decisiones 68 a 72) | 1.65.0 | `createOrador` con `variant: 'sencillo'`: Siguiente y Anterior enormes, «Fin», el candado y, en la tableta acostada, los versículos a un toque. Sin probar con el dedo ni la vibración en un celular de verdad | | |
 | 46 «En vivo» del Orador completo | **Hecha** · 2026-10-30 (decisiones 68 a 72) | 1.65.0 | `web/modules/envivo/orador.js` y `versiculo.js`, `liveModules` en el shell, `pagesOf` en los tipos, `pagesStrip`. **Simplificado**: DeckCraft no dice cuántas animaciones tiene una diapositiva, así que Siguiente dice «Animación», no «animación 1 de 3»; «Encima» de una comparación usa su primera versión. Sin probar con el dedo en un celular de verdad | | |
@@ -1877,6 +1878,7 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-30 | Un móvil nunca ve la versión de computador: la tableta entra en la fase de cada pantalla (44 a 47), la 48 queda para el computador y se retira «Historias» | Decisión 71 |
 | 2026-10-30 | Auditoría de los bocetos: las reglas de móviles entran en las fases 42 a 47, y se propone la 49 para los módulos y demás pantallas | Decisión 72 |
 | 2026-10-30 | Antes de la 49, las presentaciones de Keynote: se traducen a PowerPoint al recibirlas, sin programas nuevos | Decisión 73 |
+| 2026-10-31 | La 49 pasa de propuesta a aprobada y se hace (pedido del dueño) | Decisión 72 |
 
 ## 11. Lo pendiente y los cambios sugeridos (decisión 60)
 
@@ -1903,6 +1905,7 @@ Desde el 2026-10-25 **todo lo pendiente de Manna está aquí**, en cuatro grupos
 | --- | --- |
 | S62 · **Los manuales de `manna-iglesia.es` con las funciones y las pantallas de hoy** | También falta decir que se pueden subir presentaciones de Keynote (1.67.0). Se hicieron el 2026-10-29 (decisión 67) y las fases 42 a 48 los dejaron atrás: dicen «cola del culto» y el control en el celular sale con la pantalla de «Historias». Hay que poner al día `sitio/manuales/usuarios.html` e `instalacion.html`, rehacer las capturas (`node scripts/sitio.mjs`) y volver a publicarlo. Espera el visto bueno del dueño: es una página pública |
 | S63 · **Keynote: las animaciones, y los gráficos nítidos** | Hoy cada diapositiva de un Keynote queda como acaba, y sus gráficos y tablas salen de una miniatura pequeña (decisión 73). Lo siguiente, si las iglesias lo usan: cada paso de una animación como un paso más de la diapositiva, y dibujar de verdad las tablas y los gráficos sencillos |
+| S64 · **Las reglas de móviles que no se miden, en los módulos** | La fase 49 corrigió lo que mide la auditoría y lo que se vio en las capturas, sin rediseñar. Falta revisar a mano: nombres cortados por el medio (regla 9), cada estado dibujado (regla 10) y, fuera de las filas de «En vivo», las protecciones de los gestos de la regla 2 |
 
 ### 3. Tareas del dueño
 

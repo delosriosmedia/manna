@@ -63,6 +63,21 @@ export function confirmBeforeClose() {
 }
 
 // Envuelve una acción para mostrar el error en pantalla en lugar de dejarlo en la consola.
+// En un móvil (DESIGN.md, 12 ter, regla 2), lo que pone algo al aire desde una lista pide dos toques: el primero lo marca
+// (clase `armed`) y el segundo lo hace, para que un toque accidental no salga en el proyector. En el computador, uno.
+export function armedClick(fn, mobile) {
+  return (e) => {
+    const b = e.currentTarget;
+    if (mobile() && !b.classList.contains('armed')) {
+      b.parentElement?.querySelector(':scope > .armed')?.classList.remove('armed');
+      b.classList.add('armed');
+      return;
+    }
+    b.classList.remove('armed');
+    fn(e);
+  };
+}
+
 export function guard(fn) {
   return async (...args) => {
     try {

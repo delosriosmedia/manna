@@ -1,5 +1,5 @@
 import { action, api, state, subscribe } from '../../core/api.js';
-import { h, dialog, guard, menu, toast } from '../../core/dom.js';
+import { armedClick, h, dialog, guard, menu, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { kindBadge, kindOf, titleOf } from '../../core/kinds.js';
 import { prefs } from '../../core/prefs.js';
@@ -432,7 +432,7 @@ function mount(el, ctx) {
   function slide(caption, contentItem, isLive, onclick, step) {
     const monitor = h('div', { class: `monitor${isLive ? ' on-air' : ''}` });
     createStage(monitor, { thumbnail: true }).render({ mode: 'live', item: contentItem, styles: state.projection.styles });
-    return h('button', { class: 'slide', dataset: { step: step == null ? 'todo' : String(step) }, onclick }, monitor,
+    return h('button', { class: 'slide', dataset: { step: step == null ? 'todo' : String(step) }, onclick: armedClick(onclick, () => ctx.layout() !== 'computador') }, monitor,
       h('span', { class: 'slide-cap' }, h('span', {}, caption), isLive ? h('b', {}, 'Al aire') : null));
   }
   // Pasar al paso siguiente del mismo elemento solo mueve la marca «Al aire»: con una presentación larga, rehacer sus

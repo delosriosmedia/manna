@@ -413,7 +413,7 @@ const MEASURE = (screen, touch, narrow) => {
     out.buscarMarcada = Boolean(r) && acts.length >= 1 && acts.every((b) => { const x = box(b), y = box(f); return x.left >= y.left - 1 && x.right <= y.right + 1 && x.top >= y.top - 1 && x.bottom <= y.bottom + 1; }); }` : ''}
   ${screen.primary ? `{ const a = q(${JSON.stringify(screen.primary)}); out.accion = inView(a) && topmost(a) && (${JSON.stringify(Boolean(screen.noDock || screen.tabs))} || Boolean(a.closest('.drawer'))); }` : ''}
   ${screen.content ? `{ const c = [...document.querySelectorAll(${JSON.stringify(screen.content)})].find(shown); out.espacioContenido = c ? Math.round(Math.min(box(c).bottom, vh) - Math.max(box(c).top, 0)) : 0; }` : ''}
-  ${screen.longTitles ? `{ const t = [...document.querySelectorAll('.orow .item-text strong')].find((e) => e.textContent.length > 60); out.tituloLargo = Boolean(t) && t.scrollHeight <= t.clientHeight + 1; }` : ''}
+  ${screen.longTitles ? `{ const t = [...document.querySelectorAll('.orow .item-text strong')].find((e) => e.textContent.length > 60); out.tituloLargo = document.documentElement.dataset.disposicion === 'telefono-acostado' || (Boolean(t) && t.scrollHeight <= t.clientHeight + 1); }` : ''}
   ${inside ? `{ const e = q(${JSON.stringify(inside)}); const r = box(e); out.dentro = shown(e) && r.left >= -1 && r.right <= vw + 1 && r.top >= -1 && r.bottom <= vh + 1 && [...e.querySelectorAll('button')].every((b) => !shown(b) || (box(b).left >= r.left - 1 && box(b).right <= r.right + 1)); }` : ''}
   ${screen.controls ? `{ const c = [...document.querySelectorAll(${JSON.stringify(screen.controls)})].find((e) => shown(e)) || q(${JSON.stringify(screen.controls)}); const r = box(c);
     // El volumen general no va en los mandos de la capa (vive en la barra de transporte): su CSS lo oculta a propósito.
@@ -426,6 +426,28 @@ const MEASURE = (screen, touch, narrow) => {
 };
 
 // Espera a que la pantalla haya terminado de dibujarse (hasta 8 s), en vez de una pausa fija.
+// Fase 49: lo que no es «En vivo» también con las reglas de móviles, como lo ve un celular o una tableta (`rapido movil`). Los
+// módulos de «En vivo», reducidos (lo que se ve con la proyección al lado) y ampliados.
+const IN_LIVE = ['Biblia', 'Biblia: búsqueda', 'Biblia: libros', 'Biblia: comparar', 'Orden del culto', 'Orden: órdenes por semana', 'Orden: nuevo orden', 'Orden: citas de un documento',
+  'Ajustes, con aviso', 'Ajustes: usuarios', 'Ajustes: nuevo usuario', 'Medios: imágenes', 'Medios en lista', 'Medios: vista previa de una imagen', 'Medios: vista previa de un video', 'Medios: videos', 'Medios: una categoría', 'Medios: audios', 'Medios: YouTube', 'Medios: varios videos de YouTube', 'Medios: presentaciones', 'Medios: una presentación',
+  'Himnario', 'Himnario: categorías', 'Himnario: letras sin música', 'Himnario: búsqueda', 'Textos', 'Textos: una cita', 'Textos: texto fijo', 'Páginas web', 'Páginas web: una elegida', 'Capas', 'Tiempo'];
+const ON_THEIR_OWN = ['Buscar en todo', 'Buscar en todo, con una fila marcada', 'Preparar el culto: orden', 'Preparar el culto: Biblia', 'Preparar el culto: himnario', 'Preparar el culto: medios', 'Preparar el culto: textos',
+  'Administrar la iglesia', 'Administrar la iglesia: equipo', 'Superadministrador: iglesias', 'Superadministrador: espacio', 'Superadministrador: copias', 'Inicio', 'Portada de la nube', 'Revisión del equipo'];
+// En una lista de un cajón bajo, una fila puede estar más abajo: «inside» solo se pide a lo que flota (una ventana, un recuadro).
+const named = (name) => {
+  const x = SCREENS.find((y) => y.name === name);
+  return { ...x, inside: /modal|finder|tools-card|review|citas/.test(JSON.stringify(x.inside || '')) ? x.inside : undefined };
+};
+// El inicio con su PIN: quien ya entró elige «Entrar como otra persona», la función y su nombre.
+const WHO = `document.querySelector('#who button').click(); document.querySelector('.role').click();`;
+SCREENS.push(
+  { name: 'Móvil: Inicio, quién eres', url: '/', cloud: 'preparacion', plain: '.church-note', movil: true, tactil: true, settle: 500, prepare: WHO },
+  { name: 'Móvil: Inicio, el PIN', url: '/', cloud: 'preparacion', plain: '.church-note', movil: true, tactil: true, settle: 500, prepare: `${WHO} document.querySelector('.people button').click();` },
+  ...IN_LIVE.map(named).map((x) => ({ ...x, name: `Móvil: ${x.name}`, movil: true, tactil: true })),
+  ...IN_LIVE.map(named).map((x) => ({ ...x, name: `Móvil ampliado: ${x.name}`, movil: true, tactil: true, prefs: { ...x.prefs, 'envivo.ancho': true } })),
+  ...ON_THEIR_OWN.map(named).map((x) => ({ ...x, name: `Móvil: ${x.name}`, movil: true, tactil: true })),
+);
+
 async function ready(chrome, screen) {
   const done = screen.plain ? `document.querySelector(${JSON.stringify(screen.plain)})`
     : `document.querySelector('.ws:not([hidden])') && (!document.querySelector('.ws:not([hidden]) .picker') || document.querySelector('.ws:not([hidden]) .verse')) && (${Boolean(screen.tabs)} || document.querySelector('.scene-caption, .ev-pill')?.textContent)`;
@@ -544,13 +566,17 @@ async function worker(list, n) {
       const size = (d) => chrome.send('Emulation.setDeviceMetricsOverride', { width: d.w, height: d.h, deviceScaleFactor: 1, mobile: true });
       await chrome.send('Emulation.setTouchEmulationEnabled', { enabled: true });
       for (const screen of screens.filter((x) => x.tactil)) {
+        const origin = screen.cloud === 'superadmin' ? superBase : screen.cloud ? cloudBase : base;
+        if (screen.cloud) await cloudLogin(screen.cloud);
+        await chrome.send('Page.navigate', { url: `${origin}/api/ping` });
+        await sleep(200);
         await chrome.evaluate(`localStorage.clear()`);
         if (screen.prefs) await setPrefs(screen.prefs);
         if (screen.show) await showInOrder(example[screen.show]);
         await size(list[0]);
         const [pathname, hash = ''] = screen.url.split('#');
         progress[n] = `«${screen.name}»`;
-        await chrome.send('Page.navigate', { url: `${base}${pathname}?t=${Date.now()}&tactil${hash ? `#${hash}` : ''}` });
+        await chrome.send('Page.navigate', { url: `${origin}${pathname}?t=${Date.now()}&tactil${hash ? `#${hash}` : ''}` });
         await ready(chrome, screen);
         if (screen.prepare) { await chrome.evaluate(screen.prepare); await sleep(screen.settle || 500); }
         const lines = [];
@@ -561,6 +587,7 @@ async function worker(list, n) {
           const failures = [...failuresOf(m), ...JSON.parse(await chrome.evaluate(`JSON.stringify(${MOBILE_RULES})`))];
           problems += failures.length;
           if (failures.length) lines.push(`  ${device.w} × ${device.h}\n      ${failures.join('\n      ')}`);
+          if (SHOTS) fs.writeFileSync(path.join(tmp, `${device.w}x${device.h} ${screen.name.replace(/[:"]/g, '')}.png`), Buffer.from((await chrome.send('Page.captureScreenshot', { format: 'png' })).result.data, 'base64'));
         }
         console.log(`${lines.length ? '✖' : '✔'} ${screen.name}${lines.length ? `\n${lines.join('\n')}` : ''}`);
         if (screen.cleanup) await chrome.evaluate(screen.cleanup);

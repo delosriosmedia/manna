@@ -77,6 +77,24 @@
     .pin-keys { display: grid; grid-template-columns: repeat(3, 72px); gap: 10px; }
     .pin-keys button { height: 64px; border-radius: 22px; border: 1px solid var(--glass-line); background: rgba(255, 255, 255, 0.05); font-size: 22px; font-weight: 600; display: grid; place-items: center; }
     .pin-keys button:active { background: var(--accent-soft); }
+    /* En un teléfono el teclado entero cabe sin desplazarse (DESIGN.md, 12 ter): más bajo y, acostado, al lado de lo demás. */
+    @media (max-height: 640px) {
+      .pin-pad { gap: 10px; }
+      .pin-keys { gap: 8px; }
+      .pin-keys button { height: 52px; border-radius: 18px; }
+      .modal-header { padding-top: 10px; padding-bottom: 8px; }
+      .modal-body { padding-top: 12px; padding-bottom: 12px; }
+    }
+    @media (max-height: 480px) {
+      .modal:has(.pin-pad) { width: min(100%, 520px); }
+      .pin-pad { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 20px; align-items: center; justify-items: center; }
+      .pin-pad > p, .pin-dots, .pin-error { grid-column: 1; }
+      .pin-pad > p { margin: 0; }
+      .pin-keys { grid-column: 2; grid-row: 1 / span 3; grid-template-columns: repeat(3, 60px); gap: 4px; }
+      .pin-keys button { height: 40px; border-radius: 12px; font-size: 18px; }
+      .modal-header { padding-top: 4px; padding-bottom: 2px; }
+      .modal-body { padding-top: 6px; padding-bottom: 8px; }
+    }
   </style>
 </head>
 <body class="glow">

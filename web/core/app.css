@@ -175,6 +175,8 @@ html.touch .link { display: inline-flex; align-items: center; min-height: var(--
 .input:focus, .select:focus { outline: none; border-color: var(--accent); }
 .input::placeholder { color: var(--ink-3); }
 input[type='range'] { width: 100%; accent-color: var(--accent); }
+html.touch input[type='range'] { height: var(--tap); }
+html.touch .modal label.row:has(> input[type='checkbox']) { min-height: var(--tap); padding-left: 8px; }
 input[type='color'] { width: 100%; height: var(--control); padding: 3px; background: var(--s2); border: 1px solid var(--line); border-radius: var(--r); }
 input[type='file'].input { padding: 6px; height: auto; }
 

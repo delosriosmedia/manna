@@ -217,6 +217,18 @@ html[data-disposicion='telefono-acostado'] .ev .ws[data-module] > .ws-head { --h
 html[data-disposicion='telefono-acostado'] .ev .compact .ws[data-module='biblia'] .crumbs { display: none; }
 @media (max-width: 639px) { html[data-disposicion='telefono-acostado'] .ev .compact .ws[data-module='biblia'] > .ws-head > .select { display: none; } } /* la cita antes que la versión */
 
+/* Ampliado, en el teléfono acostado más angosto, la barra de acciones sigue en una fila: lo que no es Proyectar, con su icono. */
+@media (max-width: 639px) {
+  html[data-disposicion='telefono-acostado'] .ev .drawer .abar { flex-wrap: nowrap; gap: 3px; padding: 4px; }
+  html[data-disposicion='telefono-acostado'] .ev .drawer .abar :is(.hint, .sel-ref) { display: none; }
+  html[data-disposicion='telefono-acostado'] .ev .drawer .abar .btn:not(.primary):has(.ic) { flex: 0 0 auto; width: 35px; padding: 0; font-size: 0; }
+  html[data-disposicion='telefono-acostado'] .ev .drawer .abar .btn.primary { flex: 1 1 0; min-width: 96px; padding: 0 6px; }
+}
+
+/* En la columna de la tableta acostada, el aviso de lo que falta no cabe en una fila: el texto arriba y los botones debajo. */
+html[data-disposicion^='tableta'] .ev .ws-notice { flex-wrap: wrap; }
+html[data-disposicion^='tableta'] .ev .ws-notice p { flex: 1 1 calc(100% - 44px); }
+
 /* Lo único que brilla es Siguiente (tablero E9): la acción de un módulo abierto va con su borde. */
 .ev .drawer .abar .btn.primary { background: var(--s2); border: 1px solid var(--line-2); color: var(--ink); }
 
@@ -338,7 +350,7 @@ html[data-disposicion='tableta-acostada'] body.envivo.drawer-open .ev-mid { disp
 html[data-disposicion='tableta-acostada'] .ev:has(> .drawer.wide:not([hidden])) .ev-head { display: contents; }
 html[data-disposicion='tableta-acostada'] .ev:has(> .drawer.wide:not([hidden])) :is(.ev-vista, .ev-slot, .ev-capas, .ev-vol) { display: none; }
 html[data-disposicion='tableta-acostada'] .ev:has(> .drawer.wide:not([hidden])) .ev-top { grid-column: 2 / 5; }
-html[data-disposicion='tableta-acostada'] body.envivo .ev:has(> .drawer.wide:not([hidden])) .drawer { grid-column: 2 / 5; }
+html[data-disposicion='tableta-acostada'] body.envivo .ev:has(> .drawer.wide:not([hidden])) .drawer { grid-column: 2 / 5; margin-bottom: 6px; } /* a 12 px de Solo fondo y Negro */
 
 /* ---- Alabanza (fase 45, tableros T3, T4, U2, U6 y E16): el reproductor. De pie: el sonido y la letra; el avance; el volumen a
    pasos y el transporte, con la pausa del lado del pulgar. Lo que no suena usa la ranura de siempre, en el mismo alto. ---- */

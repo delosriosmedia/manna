@@ -121,8 +121,10 @@
 /* «Letras sin música»: las diapositivas del elegido, al lado de la rejilla; tocar una la proyecta desde ahí. */
 .hymn-slides { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .hymn-slide { display: grid; gap: 4px; padding: 0; text-align: center; color: var(--ink-3); font-size: 11px; }
+.hymn-slide small { font-size: 11px; }
 .hymn-slide img { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: var(--media-bg); border: 1px solid var(--line); border-radius: var(--r-sm); }
-.hymn-slide:hover img { border-color: var(--accent); }
+.hymn-slide:hover img, .hymn-slide.armed img { border-color: var(--accent); }
+.hymn-slide.armed { color: var(--accent); }
 
 /* Tableta baja en horizontal: las vistas se deslizan de lado y los avisos van con ellas, en una sola fila. */
 @media (min-width: 860px) and (max-height: 640px) {

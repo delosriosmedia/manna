@@ -32,6 +32,7 @@
 .grid { display: grid; gap: 4px; margin-bottom: 16px; }
 .g6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .g5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@container cajon (max-width: 249px) { .g6 { grid-template-columns: repeat(5, minmax(0, 1fr)); } .g5 { grid-template-columns: repeat(4, minmax(0, 1fr)); } } /* 35 px para el dedo */
 .tile { height: 32px; border-radius: var(--r-sm); background: var(--s1); border: 1px solid var(--line); color: var(--ink-2); font-weight: 500; font-size: 12.5px; transition: background 0.12s, border-color 0.12s; }
 .tile:hover { background: var(--s3); border-color: var(--line-2); color: var(--ink); }
 .tile.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
@@ -164,6 +165,12 @@ html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
 .compact .ws[data-module='biblia'] .ws-head .select { flex: 0 1 42%; min-width: 0; }
 .compact .ws[data-module='biblia'] .ws-head .search { flex: 1 1 0; min-width: 0; order: 0; }
 .compact .ws[data-module='biblia'] .crumbs { padding-top: 4px; padding-bottom: 4px; }
+/* Acostado y ampliado, los versículos mandan: el camino por libros ya dice en qué capítulo se está. */
+html[data-disposicion='telefono-acostado'] .drawer:not(.compact) .ws[data-module='biblia'] .col-verses .col-label { display: none; }
+html[data-disposicion='telefono-acostado'] .drawer:not(.compact) .ws[data-module='biblia'] .crumbs { padding-top: 0; padding-bottom: 0; }
+html[data-disposicion='telefono-acostado'] .ws[data-module='biblia'].comparing .crumbs { display: none; } /* al comparar, los versículos a toda altura; se busca por la cita */
+@media (max-width: 639px) { html[data-disposicion='telefono-acostado'] .ws[data-module='biblia'] > .ws-head h1 { display: none; } } /* la pestaña ya lo dice, y la cita necesita ese sitio */
+@container cajon (max-width: 249px) { .ws[data-module='biblia'] .col { padding-left: 8px; padding-right: 8px; } }
 .compact .ws[data-module='biblia'] .abar { flex-wrap: nowrap; padding: 8px 12px; }
 .compact .ws[data-module='biblia'] .abar > .icon-btn, .compact .ws[data-module='biblia'] .abar .sel-ref, .compact .ws[data-module='biblia'] .abar .btn span { display: none; }
 .compact .ws[data-module='biblia'] .abar .btn:not(.primary) { width: var(--control); padding: 0; justify-content: center; flex: 0 0 auto; }

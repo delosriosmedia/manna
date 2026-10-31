@@ -90,6 +90,8 @@
 .slide .monitor.on-air, .slide:hover .monitor.on-air { border-color: var(--live); }
 .slide-cap { display: flex; justify-content: space-between; gap: 8px; margin: 6px 2px 0; color: var(--ink-3); font-size: 12px; }
 .slide-cap b { color: var(--live-ink); font-weight: 600; }
+.slide.armed .monitor { border-color: var(--accent); }
+.slide.armed .slide-cap::after { content: '\25B6\FE0E'; color: var(--accent); }
 .slide.skeleton .monitor { background: var(--s2); border-color: var(--line); animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.5; } }
 
@@ -118,6 +120,11 @@
 
 /* Cajón reducido del celular: solo la lista para pasar el culto. La cita rápida, «Añadir», el menú y los órdenes,
    al ampliarlo. */
+/* En un móvil (DESIGN.md, 12 ter, regla 2), un toque solo marca la fila: solo la marcada lleva ▶. Acostado, el título ya no se
+   come la lista (la marcada lo enseña entero). */
+html:is([data-disposicion^='telefono'], [data-disposicion^='tableta']) .orow:not(.selected) > .icon-btn[aria-label^='Proyectar'] { display: none; }
+html[data-disposicion='telefono-acostado'] .orow .item-text strong { -webkit-line-clamp: 2; }
+html[data-disposicion='telefono-acostado'] .orow .item-text small { -webkit-line-clamp: 1; }
 .compact .ws[data-module='orden'] .ws-head, .compact .ws[data-module='orden'] .order-bar, .compact .ws[data-module='orden'] .obrowse { display: none; }
 .compact .ws[data-module='orden'] .olist[hidden] { display: block; }
 .compact .ws[data-module='orden'] .odetail.inline .odetail-tools { display: none; }
@@ -126,7 +133,7 @@
    entera (la casilla va dentro de su etiqueta); la marcada, en cian; la dudosa lleva su motivo en rojo claro. */
 .citas-choice { width: auto; max-width: 100%; justify-self: start; }
 .citas-group { display: grid; gap: 4px; margin-bottom: 10px; }
-.citas-page { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px; padding: 8px 2px; background: var(--glass-3); cursor: pointer; }
+.citas-page { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px; min-height: var(--tap); padding: 4px 8px; background: var(--glass-3); cursor: pointer; }
 .citas-where { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
 .citas-where .field { display: grid; gap: 6px; margin: 0; }
 .citas-where .label { margin: 0; }

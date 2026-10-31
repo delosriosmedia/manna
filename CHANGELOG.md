@@ -4,6 +4,15 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.68.0 — 2026-10-31
+
+- **Los módulos, puestos al día en el celular y la tableta** (fase 49): Biblia, Himnario, Medios, Textos, Tiempo, Capas, Páginas web, Orden, Ajustes, el inicio con su PIN, Preparar el culto, Administrar la iglesia y el superadministrador cumplen las reglas de móviles, medidas en los tamaños más pequeños.
+- **Un toque accidental ya no sale en el proyector**: en un celular o una tableta, en el Orden solo la fila marcada lleva ▶, y un paso del orden o una diapositiva de «Letras sin música» se marca con el primer toque y se proyecta con el segundo.
+- **El teclado del PIN cabe entero** en el celular más pequeño y, acostado, va al lado de los puntos.
+- **Con el teléfono acostado**: los versículos ya no desaparecen al ampliar la Biblia ni al comparar, «Proyectar» no se aplasta en el Himnario, Capas muestra sus capas en vez de su explicación, y Medios va en filas para que se lean los nombres.
+- **En la tableta acostada**, el aviso de un programa que falta se lee normal, en vez de una palabra por línea.
+- Los deslizadores de Ajustes, las casillas de las ventanas y los libros de la Biblia tienen zona de toque suficiente.
+
 ## 1.67.0 — 2026-10-30
 
 - **Manna ahora lee presentaciones de Keynote (`.key`)**: se suben igual que un PowerPoint, sin necesitar Keynote ni un Mac, también en el equipo con Windows de la iglesia y al preparar el culto desde casa. Cada diapositiva queda como una imagen, con sus textos, formas, fotos y fondos en su sitio. Las letras que falten se instalan como las de un PowerPoint. Lo que Manna no sabe traducir (un gráfico, una tabla, un video) se ve con menos nitidez, y la tarjeta dice en qué diapositivas. Las animaciones y las transiciones no se conservan.

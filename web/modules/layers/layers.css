@@ -1,5 +1,5 @@
 /* Módulo Capas: las cuatro capas, la 4 arriba. Cada fila, su número, qué tiene, el ojo y sus opciones. */
-.layers-list { padding: 12px; display: grid; gap: 8px; align-content: start; overflow-y: auto; min-height: 0; }
+.layers-list { padding: 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-content: start; overflow-y: auto; min-height: 0; }
 .layer-row { display: flex; gap: 10px; align-items: center; min-height: 56px; padding: 8px 8px 8px 10px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--s1); }
 .layer-row.empty-layer { border-style: dashed; background: none; }
 .layer-row.shown { border-color: var(--accent); }
@@ -10,4 +10,10 @@
 .layer-row small { color: var(--ink-3); font-size: 12px; }
 .layer-eye[aria-pressed='true'] { color: var(--accent); }
 .layers-note { padding: 0 14px 14px; font-size: 12px; }
+/* En el cajón reducido, y acostado en un teléfono, las capas mandan: la explicación se come la lista. */
+.compact .layers-note, html[data-disposicion='telefono-acostado'] .layers-note { display: none; }
+.compact .ws[data-module='capas'] .ws-head { min-height: 40px; } /* sus botones de ampliar y cerrar no pisan la primera fila */
+.compact .ws[data-module='capas'] .layers-list { padding-top: 0; }
+html[data-disposicion^='telefono'] .layer-row { min-height: 44px; padding: 4px 6px 4px 8px; }
+@container cajon (max-width: 249px) { .layer-row .btn:has(.ic) { flex: none; width: 35px; padding: 0; font-size: 0; } }
 @container cajon (max-width: 369px) { .layer-row .kind { display: none; } }

@@ -924,6 +924,31 @@ try {
   await chrome.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
   await sleep(500);
 
+  // Fase 49: en el módulo Orden de un móvil, un toque solo marca (DESIGN.md, 12 ter, regla 2): solo la fila marcada lleva ▶, y
+  // poner al aire un paso son dos toques.
+  await tapEl(`document.querySelector('.dock-item[data-id=orden]')`);
+  await until(`document.querySelector('.ws[data-module=orden] .orow')`, 10);
+  await sleep(400);
+  const quietRow = `[...document.querySelectorAll('.ws[data-module=orden] .orow')].find((r) => !r.classList.contains('live') && Number(r.querySelector('small')?.textContent.match(/\\d+ vers/)?.[0].split(' ')[0]) >= 2) || [...document.querySelectorAll('.ws[data-module=orden] .orow')].find((r) => !r.classList.contains('live'))`;
+  const rowPlay = `(${quietRow}).querySelector('.icon-btn[aria-label^="Proyectar"]')`;
+  check('en un móvil, una fila sin marcar del Orden no lleva ▶', await run(`return Boolean(${quietRow}) && !(${rowPlay})?.getClientRects().length`));
+  const airBefore = await live();
+  await tapEl(quietRow);
+  check('al tocarla se marca y lleva su ▶, y lo que está al aire no cambia', await until(`(${quietRow})?.classList.contains('selected') && (${rowPlay})?.getClientRects().length > 0`, 10) && JSON.stringify(await live()) === JSON.stringify(airBefore));
+  const stepThumb = `document.querySelector('.ws[data-module=orden] .odetail .slide')`;
+  await until(stepThumb, 10);
+  await tapEl(stepThumb);
+  await sleep(400);
+  check('tocar un paso solo lo marca', await run(`return ${stepThumb}.classList.contains('armed')`) && JSON.stringify(await live()) === JSON.stringify(airBefore));
+  await tapEl(stepThumb);
+  await sleep(500);
+  check('y un segundo toque lo pone al aire', (await live()).ref !== airBefore.ref || (await live()).step !== airBefore.step, JSON.stringify(await live()));
+  await tapEl(`document.querySelector('.dock-item[aria-label="En vivo"]')`);
+  await sleep(400);
+  await tapEl(`document.querySelector('.ev-back')`);
+  await sleep(500);
+  check('«Volver a…» también deshace ese paso', (await live()).ref === airBefore.ref, JSON.stringify(await live()));
+
   // Sin conexión: sin barra nueva, para que nada se mueva. (Lleva 13 s: es lo que tarda en darse por perdida.)
   await run(`window.dispatchEvent(new Event('pagehide'))`); // suelta la conexión: el servidor deja de oírse
   check('sin noticias del servidor en 12 s, la pastilla lo dice en gris, la vista se atenúa y Siguiente se apaga', await until(`document.querySelector('.ev').dataset.state === 'offline' && document.querySelector('.ev-pill').textContent === 'SIN CONEXIÓN' && document.querySelector('.ev-next').disabled && document.querySelector('.ev-next').textContent.includes('Reconectando')`, 45) && await run(`return !${evShown('.offline-bar')} && getComputedStyle(document.querySelector('.ev-screen')).opacity < 1`));

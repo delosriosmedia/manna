@@ -1,5 +1,5 @@
 import { action, api, state, subscribe } from '../../core/api.js';
-import { h, dialog, guard, marked, toast } from '../../core/dom.js';
+import { armedClick, h, dialog, guard, marked, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { formatTime } from '../../core/playback.js';
 import { prefs } from '../../core/prefs.js';
@@ -100,7 +100,7 @@ function mount(el, ctx) {
       h('span', { class: 'item-text' }, h('strong', {}, hymn.title), h('small', {}, [book.categories[hymn.category], hymn.duration && formatTime(hymn.duration)].filter(Boolean).join(' · '))));
     // En «Letras sin música», sus diapositivas: tocar una la proyecta desde ahí.
     if (letras()) {
-      return card.replaceChildren(top, h('div', { class: 'hymn-slides' }, ...hymn.slideFiles.map((_, i) => h('button', { class: 'hymn-slide', dataset: { i }, title: i === 0 ? 'Portada' : `Diapositiva ${i + 1}`, onclick: () => project(i) },
+      return card.replaceChildren(top, h('div', { class: 'hymn-slides' }, ...hymn.slideFiles.map((_, i) => h('button', { class: 'hymn-slide', dataset: { i }, title: i === 0 ? 'Portada' : `Diapositiva ${i + 1}`, onclick: armedClick(() => project(i), () => ctx.layout() !== 'computador') },
         h('img', { src: slideUrl(hymn, i), alt: '', loading: 'lazy' }), h('small', {}, i === 0 ? 'Portada' : String(i + 1))))));
     }
     if (!hymn.lyrics) return card.replaceChildren(top, h('p', { class: 'muted' }, 'Este himno no tiene letra en la carpeta del himnario.'));

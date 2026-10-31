@@ -18,7 +18,7 @@ export const MOBILE_RULES = `(() => {
   const mine = (e, x, y) => {
     const t = document.elementFromPoint(x, y);
     // data-tapa: tapa la primera fila a propósito («Volver a…»), y lo que tapa así no responde.
-    return Boolean(t) && (t === e || e.contains(t) || (t.tagName === 'LABEL' && t.contains(e)) || Boolean(t.closest('[data-tapa]')));
+    return Boolean(t) && (t === e || e.contains(t) || Boolean(t.closest('label')?.contains(e)) || Boolean(t.closest('[data-tapa]')));
   };
 
   // Lo que se ve de algo: una fila que la lista esconde al desplazarse no está cerca de nada, y una a medio ver no responde.
@@ -43,7 +43,12 @@ export const MOBILE_RULES = `(() => {
     const v = visibleBox(e);
     if (v.bottom - v.top < r.height - 1 || v.right - v.left < r.width - 1) continue;
     // Con medio píxel de margen: lo que cae en una posición fraccionaria se redondea al tocarlo.
-    const short = [[x - 16.5, y], [x + 16.5, y], [x, y - 16.5], [x, y + 16.5]].some(([px, py]) => px >= 0 && py >= 0 && px < W && py < H && !mine(e, px, py));
+    // Lo que un recuadro flotante tapa a medias (la búsqueda abierta) vuelve a su tamaño al cerrarlo: no está pisado.
+    const floats = (px, py) => document.elementFromPoint(px, py)?.closest('.search-pop, .finder, .citas-page');
+    // Tampoco lo que la lista esconde al desplazarse: una casilla al borde de lo que se ve sigue teniendo su fila.
+    const clip = e.parentElement ? visibleBox(e.parentElement) : null;
+    const hidden = (px, py) => clip && (px < clip.left + 1 || px > clip.right - 1 || py < clip.top + 1 || py > clip.bottom - 1);
+    const short = [[x - 16.5, y], [x + 16.5, y], [x, y - 16.5], [x, y + 16.5]].some(([px, py]) => px >= 0 && py >= 0 && px < W && py < H && !hidden(px, py) && !mine(e, px, py) && !floats(px, py));
     if (short) fails.push('Zona de toque de menos de 35 px, o pisada: ' + name(e));
   }
 
@@ -54,9 +59,11 @@ export const MOBILE_RULES = `(() => {
     if (r.right <= r.left || r.bottom <= r.top || s.right <= s.left || s.bottom <= s.top) return Infinity;
     return Math.max(0, Math.max(r.left, s.left) - Math.min(r.right, s.right), Math.max(r.top, s.top) - Math.min(r.bottom, s.bottom));
   };
-  for (const e of taps.filter((t) => t.matches('[data-peligro]'))) {
+  // Lo que otra capa tapa (una ventana abierta) no se puede tocar: no está cerca de nada.
+  const hittable = (x) => { const v = visibleBox(x); return mine(x, (v.left + v.right) / 2, (v.top + v.bottom) / 2); };
+  for (const e of taps.filter((t) => t.matches('[data-peligro]') && hittable(t))) {
     for (const o of taps) {
-      if (o === e || o.matches('[data-peligro]') || e.contains(o) || o.contains(e)) continue;
+      if (o === e || o.matches('[data-peligro]') || e.contains(o) || o.contains(e) || !hittable(o)) continue;
       const need = o.matches('[data-paso]') ? 20 : 12;
       if (gap(e, o) < need - 0.5) fails.push(name(e) + ' a menos de ' + need + ' px de ' + name(o));
     }
@@ -81,6 +88,7 @@ export const MOBILE_RULES = `(() => {
     const e = t.parentElement;
     if (!t.textContent.trim() || !e || !seen(e) || inView(e)) continue;
     const c = getComputedStyle(e);
+    if (!parseFloat(c.fontSize)) continue; // un botón que solo enseña su icono: su texto no se ve, a propósito
     if (parseFloat(c.fontSize) < 10) small.add(name(e));
     const ink = parse(c.color);
     const back = backOf(e);
