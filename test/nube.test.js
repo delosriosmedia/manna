@@ -13,6 +13,8 @@ import texts from '../server/modules/texts/index.js';
 import hymns from '../server/modules/hymns/index.js';
 import cloud from '../server/modules/cloud/index.js';
 import church from '../server/modules/church/index.js';
+import { makeKey } from '../scripts/lib/keynote.mjs';
+import { makePng } from '../scripts/lib/png.mjs';
 import media from '../server/modules/media/index.js';
 import slides from '../server/modules/slides/index.js';
 import superadmin from '../server/modules/super/index.js';
@@ -332,6 +334,29 @@ test('el superadministrador: su contraseña, las iglesias, lo que puede usar cad
   } finally {
     delete process.env.MANNA_CLAVE_SUPER;
   }
+});
+
+test('un Keynote subido desde casa se traduce en la nube y llega a la iglesia como un PowerPoint', async () => {
+  const LIBRARY = [system, users, order, texts, hymns, media, slides, cloud, church];
+  const nube = await serve('nube-keynote', { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'alta-keynote' }, LIBRARY);
+  const c = await serve('iglesia-keynote', { MANNA_FALTA: 'yt-dlp,powerpoint,deckcraft' }, LIBRARY);
+  const ana = (await nube.call('/api/session/alta', { clave: 'alta-keynote', name: 'Ana', pin: '1234' })).user.id;
+  const code = (await nube.send('cloud.code')).result.code;
+  await c.call('/api/session', { role: 'control' });
+  assert.equal((await c.send('cloud.pair', { url: nube.base, code })).status, 200);
+  assert.equal((await nube.call('/api/session', { role: 'preparacion', user: ana })).status, 200);
+  const key = makeKey([{ thumbnail: makePng(4, 4), items: [{ type: 'text', x: 0, y: 0, w: 300, h: 40, text: 'Hola' }, { type: 'chart', x: 0, y: 50, w: 100, h: 50 }] }]);
+  const sent = await (await nube.raw('/api/slides/powerpoint?name=Mensaje&ext=.key', { method: 'POST', body: key, headers: { 'Content-Type': 'application/octet-stream' } })).json();
+  assert.deepEqual([sent.status, sent.source, sent.soft], ['church', 'keynote', [1]], JSON.stringify(sent));
+  assert.ok(fs.existsSync(path.join(tmp, 'nube-keynote', 'presentaciones', `${sent.id}.pptx`)), 'en la nube queda el PowerPoint, listo para la iglesia');
+
+  await c.app.services.cloud.check();
+  let arrived;
+  for (let i = 0; i < 50 && !arrived; i += 1) {
+    arrived = (await c.state()).slides.decks.find((d) => d.id === sent.id);
+    if (!arrived) await new Promise((r) => setTimeout(r, 100));
+  }
+  assert.deepEqual([arrived?.source, arrived?.soft], ['keynote', [1]], 'llega a la iglesia con lo que hay que avisar');
 });
 
 test('lo que se sube desde casa llega al equipo de la iglesia, y la nube se queda con la miniatura (decisión 64)', async () => {

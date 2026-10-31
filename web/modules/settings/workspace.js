@@ -189,7 +189,7 @@ function mount(el, ctx) {
     youtube: 'los videos descargados de YouTube',
     clips: 'los videos y audios subidos',
     images: 'las imágenes subidas',
-    slides: 'las presentaciones (PDF y PowerPoint)',
+    slides: 'las presentaciones (PDF, PowerPoint y Keynote)',
     pages: 'las páginas web hechas con un archivo',
   };
   async function loadDisk() {

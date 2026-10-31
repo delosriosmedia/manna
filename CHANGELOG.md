@@ -4,6 +4,12 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.67.0 — 2026-10-30
+
+- **Manna ahora lee presentaciones de Keynote (`.key`)**: se suben igual que un PowerPoint, sin necesitar Keynote ni un Mac, también en el equipo con Windows de la iglesia y al preparar el culto desde casa. Cada diapositiva queda como una imagen, con sus textos, formas, fotos y fondos en su sitio. Las letras que falten se instalan como las de un PowerPoint. Lo que Manna no sabe traducir (un gráfico, una tabla, un video) se ve con menos nitidez, y la tarjeta dice en qué diapositivas. Las animaciones y las transiciones no se conservan.
+- **Algunos iPhone ya no cierran la página al ver las diapositivas del orden** («Ocurrió un problema repetidamente» en Safari, «No se puede abrir esta página» en Chrome): las miniaturas que aún no cargan o no existen gastaban un gigabyte de memoria entre todas, y iOS cerraba la página.
+- **Preparar el culto ya no muestra cuadros negros** en una presentación que está en el equipo de la iglesia: enseña su portada y dice que sus diapositivas se ven allá. Una que aún se va a convertir lo dice también.
+
 ## 1.66.0 — 2026-10-30
 
 - **En el computador, el panel de la derecha se llama «En vivo»**, y «En vivo» es el primer icono del dock: lo cierra todo y deja a la vista lo que está al aire.

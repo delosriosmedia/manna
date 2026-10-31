@@ -13,6 +13,8 @@ import order from '../server/modules/order/index.js';
 import slides from '../server/modules/slides/index.js';
 import { readInfo, scaleFor, visiblePages } from '../server/modules/slides/deckcraft.js';
 import { writeFakeDeckCraft } from '../scripts/lib/deckcraft-falso.mjs';
+import { makeKey } from '../scripts/lib/keynote.mjs';
+import { makePng } from '../scripts/lib/png.mjs';
 import { makePptx } from '../scripts/lib/pptx.mjs';
 
 // Convertir un PowerPoint con DeckCraft (fase 33, parte 2). Con uno de mentira en macOS y Linux; con el de verdad si se
@@ -59,7 +61,7 @@ async function start(name, program) {
   const json = async (res) => ({ ...(await res.json()), http: res.status });
   const api = {
     app, dataDir,
-    upload: async (fileName, body) => json(await request(`/api/slides/powerpoint?name=${encodeURIComponent(fileName)}&ext=.pptx`, { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body })),
+    upload: async (fileName, body, ext = '.pptx') => json(await request(`/api/slides/powerpoint?name=${encodeURIComponent(fileName)}&ext=${ext}`, { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body })),
     async settle(id, status, ms = 60_000) {
       for (let waited = 0; waited < ms; waited += 100) {
         const deck = (await (await request('/api/state')).json()).slides.decks.find((d) => d.id === id);
@@ -87,6 +89,14 @@ async function convert(s) {
   assert.deepEqual(readImageInfo(path.join(folder, 'm1.png')), { type: 'png', width: 320, height: 180 }, 'la miniatura, pequeña');
   assert.equal(fs.existsSync(path.join(folder, '3.png')), false);
   assert.deepEqual(fs.readdirSync(path.join(s.dataDir, 'tmp')).filter((n) => !n.startsWith('.')), [], 'no quedan restos de la conversión');
+  // Lo que escribe la traducción de un Keynote lo abre DeckCraft (en el Windows de GitHub, el de verdad).
+  const fromKey = await s.upload('De Keynote', makeKey([
+    { background: '203040', items: [{ type: 'text', x: 100, y: 100, w: 700, h: 200, text: 'Bienvenidos', font: 'Rockwell-Bold', size: 60, color: 'FFFFFF', align: 2, anchor: 1, radius: 8, fill: '306090' }, { type: 'group', x: 50, y: 350, w: 300, h: 100, items: [{ type: 'text', x: 0, y: 0, w: 300, h: 0, text: 'Sin alto', size: 20, spacing: 0.9 }] }] },
+    { hidden: true, items: [{ type: 'text', x: 0, y: 0, w: 300, h: 40, text: 'Oculta' }] },
+    { items: [{ type: 'image', x: 0, y: 0, w: 960, h: 540, png: makePng(8, 8), mask: { x: 100, y: 0, w: 760, h: 540 } }] },
+  ]), '.key');
+  assert.deepEqual([fromKey.http, fromKey.source], [200, 'keynote']);
+  assert.deepEqual([(await s.settle(fromKey.id, 'ready'))?.pages], [2], 'DeckCraft la lee: dos diapositivas, sin la oculta');
   return deck;
 }
 

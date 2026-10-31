@@ -486,6 +486,12 @@ function mount(el, ctx) {
       h('button', { class: 'btn', disabled: index === 0, onclick: () => run('order.move', { id: item.id, toIndex: index - 1 }) }, icon('arrow-up', 16), 'Subir'),
       h('button', { class: 'btn', disabled: index === items.length - 1, onclick: () => run('order.move', { id: item.id, toIndex: index + 1 }) }, icon('arrow-down', 16), 'Bajar'),
       h('button', { class: 'btn danger', onclick: () => run('order.remove', { id: item.id }) }, icon('trash', 16), 'Quitar'));
+    // Lo que no está en este equipo lo dice su tipo, en vez de pedir miniaturas que no existen.
+    const away = kindOf(item.kind)?.elsewhere?.(item);
+    if (away) {
+      detail.replaceChildren(...[head, away, tools].filter(Boolean));
+      return;
+    }
     if (!loaded) {
       detail.replaceChildren(...[head, listenButton].filter(Boolean), h('div', { class: 'slides' }, ...Array.from({ length: Math.min(item.steps || 1, 4) }, () => h('div', { class: 'slide skeleton' }, h('div', { class: 'monitor' })))));
       if (tools) detail.append(tools);

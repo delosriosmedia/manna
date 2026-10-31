@@ -13,7 +13,9 @@ import slides from '../server/modules/slides/index.js';
 import { collect, explain, exportPlan, isPresentation, LIVE_SCRIPT, livePlan, MAC_SCRIPT, readLine, readLiveLine, WIN_SCRIPT } from '../server/modules/slides/powerpoint.js';
 import { fakePresentation, writeFakePowerPoint } from '../scripts/lib/powerpoint-falso.mjs';
 import { makePng } from '../scripts/lib/png.mjs';
+import { makeKey } from '../scripts/lib/keynote.mjs';
 import { makePptx } from '../scripts/lib/pptx.mjs';
+import { readZip } from '../server/modules/slides/pptx.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-diapositivas-'));
@@ -208,7 +210,7 @@ test('un PowerPoint lo convierte el PowerPoint del equipo principal, como tarea 
   const s = await start('powerpoint', { MANNA_POWERPOINT_PRUEBA: fake, MANNA_FALTA: 'deckcraft' });
   try {
     assert.equal(s.app.tools.has('powerpoint'), true);
-    assert.equal((await s.put('/api/slides/powerpoint?name=x&ext=.key', fakePresentation())).http, 415, 'solo PowerPoint');
+    assert.equal((await s.put('/api/slides/powerpoint?name=x&ext=.odp', fakePresentation())).http, 415, 'solo PowerPoint y Keynote');
     assert.equal((await s.put('/api/slides/powerpoint?name=x&ext=.pptx', 'esto no es un PowerPoint')).http, 415, 'se reconoce por su contenido');
     process.env.MANNA_POWERPOINT_PRUEBA = fake;
     const added = await s.put('/api/slides/powerpoint?name=Escuela%20sab%C3%A1tica&ext=.pptx', fakePresentation());
@@ -224,6 +226,18 @@ test('un PowerPoint lo convierte el PowerPoint del equipo principal, como tarea 
     assert.deepEqual([shown.result.thumb, shown.result.next.thumb], [`${deck.base}1.png`, `${deck.base}2.png`]);
     assert.equal((await s.send('order.add', { kind: 'slides', data: { id: deck.id } })).result.subtitle, 'PowerPoint');
     assert.deepEqual(fs.readdirSync(path.join(s.dataDir, 'tmp')), [], 'no quedan restos de la conversión');
+
+    // Un Keynote se traduce al recibirlo y sigue como un PowerPoint; uno que no se puede leer, se dice.
+    const keyBad = await s.put('/api/slides/powerpoint?name=x&ext=.key', fakePresentation());
+    assert.deepEqual([keyBad.http, /Keynote/.test(keyBad.error), /PDF/.test(keyBad.error)], [415, true, true]);
+    const keyAdded = await s.put('/api/slides/powerpoint?name=Keynote%20de%20prueba&ext=.key', makeKey([{ thumbnail: makePng(4, 4), items: [{ type: 'text', x: 0, y: 0, w: 300, h: 40, text: 'Hola' }, { type: 'chart', x: 0, y: 50, w: 100, h: 50 }] }, { items: [] }]));
+    assert.deepEqual([keyAdded.http, keyAdded.status, keyAdded.source, keyAdded.soft], [200, 'converting', 'keynote', [1]]);
+    const keyDeck = await s.settle(keyAdded.id, 'ready');
+    assert.ok(keyDeck, 'un Keynote termina de convertirse');
+    assert.ok(readZip(path.join(s.dataDir, 'presentaciones', `${keyDeck.id}.pptx`), (n) => n === 'ppt/presentation.xml').size, 'lo que queda es un PowerPoint');
+    assert.equal((await s.send('order.add', { kind: 'slides', data: { id: keyDeck.id } })).result.subtitle, 'Keynote');
+    assert.deepEqual(fs.readdirSync(path.join(s.dataDir, 'tmp')), [], 'no queda el .key ni otros restos');
+    await s.send('slides.remove', { id: keyDeck.id });
 
     // Una que PowerPoint no puede abrir: se dice, y se propone el PDF.
     const broken = await s.put('/api/slides/powerpoint?name=Da%C3%B1ada&ext=.pptx', fakePresentation('ROTA'));

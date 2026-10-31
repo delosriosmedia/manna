@@ -7,7 +7,7 @@ import { whenLabel } from '../../core/time.js';
 import { acceptsDeck, openDeckUpload } from './upload.js';
 import { pageUrl, plural, thumbUrl } from './deck.js';
 
-const SOURCES = { pdf: 'PDF', powerpoint: 'PowerPoint' };
+const SOURCES = { pdf: 'PDF', powerpoint: 'PowerPoint', keynote: 'Keynote' };
 
 // Las presentaciones de Medios (fase 22 de docs/PLAN.md): las de la iglesia (PDF o PowerPoint), convertidas
 // en imágenes. Tocar una la elige (para proyectarla o añadirla); sus diapositivas solo se ven con «Ver
@@ -121,11 +121,14 @@ export function createSlidesPanel(ctx, lib) {
     // Convertida de nuevo: mientras tanto se sigue viendo la de antes, con el avance debajo.
     // Las letras que faltan: el administrador las instala desde aquí (las de Google Fonts); si no, se dice cómo.
     if (deck.status === 'ready' && job?.state !== 'running') {
-      if (!deck.missingFonts) return null;
+      // De Keynote: lo que no se pudo traducir (un gráfico, una tabla) sale de su miniatura.
+      const soft = deck.soft && h('small', {}, `${deck.soft.length === 1 ? `La diapositiva ${deck.soft[0]} lleva` : `Las diapositivas ${deck.soft.join(', ')} llevan`} algo que Manna no sabe traducir (un gráfico, una tabla, un video): se ve con menos nitidez.`);
+      if (!deck.missingFonts) return soft ? h('div', { class: 'deck-status' }, soft) : null;
       const failed = jobsOf(deck.id).filter((j) => j.state === 'error').at(-1);
       return h('div', { class: 'deck-status error' },
         h('small', {}, `Faltan letras en este equipo: ${deck.missingFonts.join(', ')}.${ctx.user?.admin ? '' : ' Instálalas y elige «Convertir de nuevo».'}`),
         failed && h('small', {}, failed.error),
+        soft,
         // Tras un intento, lo que queda por hacer es a mano: el botón revisa lo instalado y, si ya están, la convierte.
         ctx.user?.admin && h('button', { class: 'btn deck-fonts', onclick: guard(() => action('slides.installFonts', { id: deck.id })) }, icon(failed ? 'arrow-clockwise' : 'download-simple', 16), failed ? 'Revisar de nuevo' : 'Instalar las que faltan'));
     }
@@ -133,7 +136,7 @@ export function createSlidesPanel(ctx, lib) {
       const progress = Math.round((job?.progress || 0) * 100);
       return h('div', { class: 'deck-status' },
         h('div', { class: `bar${job?.progress == null ? ' busy' : ''}`, role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': progress }, h('span', { style: `width: ${progress}%;` })),
-        h('small', {}, [deck.status === 'ready' ? job.title : 'PowerPoint la está convirtiendo', job && describeJob(job)].filter(Boolean).join(' · ')));
+        h('small', {}, [deck.status === 'ready' ? job.title : 'Se está convirtiendo', job && describeJob(job)].filter(Boolean).join(' · ')));
     }
     return h('div', { class: 'deck-status error' }, h('small', {}, deck.error || 'No se pudo convertir.'));
   }
@@ -154,7 +157,7 @@ export function createSlidesPanel(ctx, lib) {
         ctx.can('slides.edit') && h('button', { class: 'icon-btn sm deck-more', 'aria-label': `Opciones de ${deck.name}`, onclick: (e) => menu(e.currentTarget, [
           { label: 'Cambiar el nombre', icon: 'pencil-simple', onclick: () => askName(deck) },
           ...lib.menu(deck, e.currentTarget),
-          ...(usable && deck.source === 'powerpoint' && !deck.atChurch ? [{ label: 'Convertir de nuevo', note: 'Tras instalar las letras que le faltaban', icon: 'arrow-clockwise', onclick: guard(() => action('slides.reconvert', { id: deck.id })) }] : []),
+          ...(usable && deck.source !== 'pdf' && !deck.atChurch ? [{ label: 'Convertir de nuevo', note: 'Tras instalar las letras que le faltaban', icon: 'arrow-clockwise', onclick: guard(() => action('slides.reconvert', { id: deck.id })) }] : []),
           // En vivo la pasa DeckCraft en la ventana del proyector o, sin él, el propio PowerPoint (solo Windows).
           ...(deck.liveable ? [deck.live
             ? { label: 'Pasar como imágenes', note: 'Con zoom y puntero, sin animaciones', icon: 'images', onclick: guard(() => action('slides.live', { id: deck.id, on: false })) }
@@ -176,7 +179,7 @@ export function createSlidesPanel(ctx, lib) {
     if (deck.status !== 'ready') {
       delete pages.dataset.key;
       pages.replaceChildren(h('div', { class: 'empty' },
-        h('strong', {}, deck.status === 'church' ? 'Se convierte en el equipo de la iglesia' : deck.status === 'converting' ? 'PowerPoint está convirtiendo esta presentación' : 'Esta presentación no se pudo convertir'),
+        h('strong', {}, deck.status === 'church' ? 'Se convierte en el equipo de la iglesia' : deck.status === 'converting' ? 'Se está convirtiendo esta presentación' : 'Esta presentación no se pudo convertir'),
         deck.status === 'church' ? 'Sus diapositivas se verán en la iglesia. Ya se puede añadir al orden del culto.' : deck.status === 'converting' ? 'Aparecerá aquí en cuanto termine. Puedes seguir usando Manna mientras tanto.' : deck.error));
       return;
     }

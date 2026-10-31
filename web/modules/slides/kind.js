@@ -3,7 +3,7 @@ import { h } from '../../core/dom.js';
 import { registerKind } from '../../core/kinds.js';
 import { drawPicture, pictureControls } from '../projection/picture.js';
 import { allPagesButton, framingButtons } from '../projection/slot.js';
-import { thumbUrl } from './deck.js';
+import { plural, thumbUrl } from './deck.js';
 
 // DeckCraft con animaciones (fase 33, parte 3): una presentación con `deckcraft` la pasa DeckCraft (su versión web, la
 // copia de Manna) en la pantalla que suena, que es la ventana del proyector del equipo principal, encima de la imagen
@@ -127,6 +127,13 @@ const pagesOf = (item) => {
 
 registerKind('slides', {
   pagesOf,
+  // En la nube (decisión 64): de una presentación de la iglesia solo está la portada, y una por convertir no tiene imágenes.
+  elsewhere(item) {
+    const deck = (shared.slides?.decks || []).find((d) => d.id === item.data?.id);
+    if (deck?.cover) return h('div', { class: 'empty' }, h('img', { class: 'deck-cover-only', src: thumbUrl(deck, 1), alt: '' }), h('strong', {}, 'Está en el equipo de la iglesia'), `Sus ${plural(deck.pages)} se ven allá.`);
+    if (deck?.status === 'church') return h('div', { class: 'empty' }, h('strong', {}, 'Se convierte en el equipo de la iglesia'), 'Sus diapositivas se verán en la iglesia.');
+    return null;
+  },
   icon: 'presentation-chart',
   label: 'Diapositivas',
   unit: ['diapositiva', 'diapositivas'],

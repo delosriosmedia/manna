@@ -243,7 +243,7 @@ const CATALOG = [
     id: 'deckcraft',
     name: 'DeckCraft',
     level: 'optional',
-    purpose: 'Convierte las presentaciones de PowerPoint en diapositivas sin necesitar PowerPoint: un programa libre, de código abierto, que no abre ninguna ventana.',
+    purpose: 'Convierte las presentaciones de PowerPoint y Keynote en diapositivas sin necesitar PowerPoint: un programa libre, de código abierto, que no abre ninguna ventana.',
     link: 'https://github.com/storytold/deckcraft',
     binaries: ['deckcraft-cli'],
     version: { args: ['--version'], pattern: /deckcraft-cli (\S+)/ },

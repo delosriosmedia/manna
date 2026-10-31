@@ -9,6 +9,7 @@
 //     key(item),              identidad de lo dibujado: si no cambia, es lo mismo en pantalla
 //     background,             false si ocupa toda la pantalla (imagen, video); por defecto se dibuja
 //                             sobre el fondo elegido en Ajustes (texto)
+//     elsewhere?(item),       si sus pasos no están en este equipo, lo que el orden muestra en vez de sus miniaturas (si no, null)
 //     cover,                  true si en una capa va con el fondo de Ajustes, a pantalla completa, y tapa lo que hay
 //                             debajo (los versículos, fase 34); si no, en una capa se dibuja sin fondo
 //     draw(host, { stage, thumbnail }) -> { update(item, { mode, styles }), live?(state, { volume, sound, still }), stop?(), destroy?(),

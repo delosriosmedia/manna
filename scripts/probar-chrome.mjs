@@ -46,12 +46,13 @@ import { writeFakeCloudflared } from './lib/cloudflared-falso.mjs';
 import { fakePresentation, writeFakePowerPoint } from './lib/powerpoint-falso.mjs';
 import { makeImagePdf, makePdf } from './lib/pdf.mjs';
 import { makeDocx } from './lib/docx.mjs';
+import { makeKey } from './lib/keynote.mjs';
 import { makePptx } from './lib/pptx.mjs';
 import { makeFont, serveFonts } from './lib/letra.mjs';
 import { writeFakeDeckCraft } from './lib/deckcraft-falso.mjs';
 import { writeFakeDeckCraftWeb } from './lib/deckcraft-web-falso.mjs';
 import { HYMN_FACTS, hymnTitle, seedHymnal } from './lib/himnario-falso.mjs';
-import { examplePoster } from './lib/png.mjs';
+import { examplePoster, makePng } from './lib/png.mjs';
 import { checkContract, sourceFiles } from './lib/codigo.mjs';
 import { startFakeR2 } from './lib/r2-falso.mjs';
 import { startFakeGoogle } from './lib/google-falso.mjs';
@@ -2581,6 +2582,21 @@ try {
     await sleep(700);
     check('y se elimina con todas sus imágenes', (await decksNow()).length === 1 && await run(`return (await fetch(${JSON.stringify(`${made.base}1.png`)})).status === 404`));
 
+    // Un Keynote se sube igual: Manna lo traduce a PowerPoint al recibirlo; lo que no sabe traducir se dice en su tarjeta.
+    await openSlides();
+    await sleep(300);
+    const keyFile = path.join(tmp, 'mensaje de keynote.key');
+    fs.writeFileSync(keyFile, makeKey([{ thumbnail: makePng(4, 4), items: [{ type: 'text', x: 50, y: 50, w: 600, h: 100, text: 'Bienvenidos', font: 'Rockwell-Bold', size: 40 }, { type: 'chart', x: 50, y: 200, w: 300, h: 200 }] }, { items: [] }, { items: [] }]));
+    await pickFile(keyFile);
+    check('un Keynote se sube como un PowerPoint', await run(`return ${modal}.querySelector('input').value === 'mensaje de keynote' && ${modal}.querySelector('.deck-up-status').textContent.includes('La convertirá')`), await run(`return ${modal}?.textContent`));
+    await modalButton('Subir');
+    const keyReady = await until(`(await (await fetch('/api/state')).json()).slides.decks.some(d => d.name === 'mensaje de keynote' && d.status === 'ready')`, 40);
+    const fromKey = (await decksNow()).find((d) => d.name === 'mensaje de keynote') || {};
+    const keyCard = `${ws}.querySelector('.deck[data-id="${fromKey.id}"]')`;
+    check('Keynote se convierte, y su tarjeta dice de dónde viene y qué se ve con menos nitidez', keyReady && fromKey.source === 'keynote' && await until(`${keyCard}?.querySelector('.item-text small')?.textContent.includes('Keynote') && [...${keyCard}.querySelectorAll('.deck-status small')].some(t => t.textContent.includes('La diapositiva 1 lleva'))`, 10), JSON.stringify(fromKey));
+    await run(`return await ${post('slides.remove', { id: fromKey.id })}`);
+    await sleep(500);
+
     // Con DeckCraft (fase 33) convierte él, sin PowerPoint: la diapositiva oculta se salta y las miniaturas son pequeñas.
     // El de mentira se pone en la carpeta de programas de este servidor y se revisa el equipo; al terminar, se quita.
     if (process.platform !== 'win32') {
@@ -4054,6 +4070,23 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       check('con «Añadir al orden» como acción principal, sin «Proyectar»', await run(`const bar = document.querySelector('.ws[data-module=medios] .media-bar:not([hidden])'); return bar.querySelector('.btn.primary').textContent.includes('Añadir al orden') && !bar.textContent.includes('Proyectar')`));
       await click(`document.querySelector('.ws[data-module=medios] .media-bar:not([hidden]) .btn.primary')`);
       check('y la añade al orden', await until(`document.querySelector('#toast')?.textContent.startsWith('«foto de casa» añadida al orden')`, 15));
+      // Un Keynote desde casa se traduce aquí y lo convierte la iglesia: el orden lo dice, sin pedir miniaturas que no existen.
+      const homeKey = path.join(tmp, 'keynote de casa.key');
+      fs.writeFileSync(homeKey, makeKey([{ items: [{ type: 'text', x: 50, y: 50, w: 600, h: 100, text: 'Desde casa' }] }, { items: [] }]));
+      await chooseFiles(MEDIA_FILES, [homeKey]);
+      await sleep(600);
+      await modalButton('Subir');
+      check('un Keynote se sube desde casa y queda para la iglesia', await until(`(await (await fetch('/api/state')).json()).slides.decks.some(d => d.name === 'keynote de casa' && d.status === 'church' && d.source === 'keynote')`, 20));
+      await sleep(400);
+      const homeDeck = await run(`return (await (await fetch('/api/state')).json()).slides.decks.find(d => d.name === 'keynote de casa').id`);
+      const homeRow = await run(`return (await (await fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Prueba': '1' }, body: JSON.stringify({ type: 'order.add', payload: { kind: 'slides', data: { id: ${JSON.stringify(homeDeck)} } } }) })).json()).result.id`);
+      await goTo('orden');
+      await sleep(400);
+      await click(`document.querySelector('.ws[data-module=orden] .orow[data-id="${homeRow}"]')`);
+      check('y el orden dice que se convierte en la iglesia, sin pedir sus miniaturas', await until(`document.querySelector('.ws[data-module=orden]').textContent.includes('Se convierte en el equipo de la iglesia') && !document.querySelector('.ws[data-module=orden] .slides')`, 10), await text('.ws[data-module=orden]'));
+      await run(`await ${post('order.remove', { id: homeRow })}; return await ${post('slides.remove', { id: homeDeck })}`);
+      await goTo('medios');
+      await sleep(400);
       await run(`const i = document.querySelector('.ws[data-module=medios] .yt-add input'); i.value = 'Canto de entrada: https://youtu.be/dQw4w9WgXcQ'; i.dispatchEvent(new Event('input'));`);
       await click(`document.querySelector('.ws[data-module=medios] .yt-add button[type=submit]')`);
       await sleep(700);

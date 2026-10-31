@@ -56,7 +56,7 @@ function mount(el, ctx) {
   function send(files) {
     const target = groups.find((g) => files.some((file) => g.accepts(file)));
     if (!target) {
-      toast('Manna no sabe usar ese archivo. Sube imágenes, videos, audios, PDF o PowerPoint.');
+      toast('Manna no sabe usar ese archivo. Sube imágenes, videos, audios, PDF, PowerPoint o Keynote.');
       return;
     }
     const mine = files.filter((file) => target.accepts(file));
@@ -109,7 +109,7 @@ function mount(el, ctx) {
     const library = [state.media?.images, state.media?.videos, state.media?.youtube, state.media?.audios, state.slides?.decks].some((list) => list?.length);
     empty.replaceChildren(shown ? '' : library ? categories.empty()
       : h('div', { class: 'empty' }, h('strong', {}, 'Aún no hay nada en Medios'),
-        'Sube imágenes, videos, audios o presentaciones (PDF o PowerPoint) desde este equipo o desde el celular, o pega arriba el enlace de un video de YouTube. También puedes arrastrar los archivos hasta aquí.',
+        'Sube imágenes, videos, audios o presentaciones (PDF, PowerPoint o Keynote) desde este equipo o desde el celular, o pega arriba el enlace de un video de YouTube. También puedes arrastrar los archivos hasta aquí.',
         ctx.can('media.edit') && h('div', { class: 'row', style: 'justify-content: center; margin-top: 14px;' },
           h('button', { class: 'btn primary', onclick: () => picker.click() }, icon('upload-simple', 16), 'Subir'))));
   }
@@ -140,6 +140,6 @@ export default {
     { tools: ['yt-dlp', 'ffmpeg', 'node'], parts: ['videos'], feature: 'descargar videos de YouTube' },
     // Opcional: sin él convierte el PowerPoint del equipo, si está; si no, se suben los PDF, y Medios lo explica al elegir
     // un PowerPoint.
-    { tools: ['deckcraft'], parts: ['diapositivas'], feature: 'abrir presentaciones de PowerPoint sin PowerPoint (los PDF sí funcionan)' },
+    { tools: ['deckcraft'], parts: ['diapositivas'], feature: 'abrir presentaciones de PowerPoint o Keynote sin PowerPoint (los PDF sí funcionan)' },
   ],
 };

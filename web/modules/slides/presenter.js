@@ -189,7 +189,7 @@ function mount(el, ctx) {
           ...pages().map((pg) => pageRow(pg, pg.name, () => choose(pg.id, null, 'web')))]
         : [empty('Aún no hay presentaciones', 'Súbela desde «Subir».')]));
     } else {
-      list.replaceChildren(empty('Subir una presentación', 'En PDF o, si el equipo principal tiene PowerPoint, tal cual. Al terminar se abre aquí.',
+      list.replaceChildren(empty('Subir una presentación', 'En PDF o, si el equipo principal tiene con qué convertirla, de PowerPoint o Keynote. Al terminar se abre aquí.',
         h('div', { class: 'row', style: 'justify-content: center; margin-top: 14px;' },
           h('button', { class: 'btn primary', onclick: () => picker.click() }, icon('upload-simple', 16), 'Elegir archivo'))));
     }

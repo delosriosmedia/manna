@@ -4,9 +4,10 @@ import { openPdf } from './pdf.js';
 import { nameFromFile } from '../../core/names.js';
 
 // Subir una presentación. Un PDF lo convierte este navegador en imágenes y las envía una a una;
-// un PowerPoint se envía entero y lo convierte el equipo principal: DeckCraft si está, si no su PowerPoint (fase 33).
+// un PowerPoint se envía entero y lo convierte el equipo principal: DeckCraft si está, si no su PowerPoint (fase 33). Un Keynote
+// también: Manna lo traduce a PowerPoint al recibirlo (server/modules/slides/keynote.js).
 
-export const PRESENTATION_TYPES = ['.pptx', '.ppsx', '.pptm', '.ppsm', '.ppt', '.pps'];
+export const PRESENTATION_TYPES = ['.pptx', '.ppsx', '.pptm', '.ppsm', '.ppt', '.pps', '.key'];
 export const DECK_ACCEPT = ['.pdf', 'application/pdf', ...PRESENTATION_TYPES].join(',');
 const extensionOf = (name) => (/\.[^.]+$/.exec(name)?.[0] || '').toLowerCase();
 export const isPdf = (file) => file.type === 'application/pdf' || extensionOf(file.name) === '.pdf';
@@ -27,7 +28,7 @@ export function openDeckUpload(file, { cloud = false, onDone = () => {} } = {}) 
   if (!file) return;
   if (!acceptsDeck(file)) {
     const box = dialog('Ese archivo no es una presentación',
-      h('p', {}, 'Manna admite presentaciones en PDF y de PowerPoint.'), h('p', { class: 'muted' }, AS_PDF),
+      h('p', {}, 'Manna admite presentaciones en PDF, de PowerPoint y de Keynote.'), h('p', { class: 'muted' }, AS_PDF),
       h('div', { class: 'row', style: 'justify-content: flex-end; margin-top: 14px;' }, h('button', { class: 'btn primary', onclick: () => box.close() }, 'Entendido')));
     return;
   }
@@ -121,7 +122,7 @@ export function openDeckUpload(file, { cloud = false, onDone = () => {} } = {}) 
       const id = await (pdf ? sendPdf() : sendPresentation());
       working = false;
       close();
-      toast(pdf ? 'Presentación subida.' : cloud ? 'Presentación subida. Se convertirá en la iglesia.' : 'PowerPoint la está convirtiendo. Puedes seguir usando Manna mientras tanto.');
+      toast(pdf ? 'Presentación subida.' : cloud ? 'Presentación subida. Se convertirá en la iglesia.' : `${converter()} la está convirtiendo. Puedes seguir usando Manna mientras tanto.`);
       onDone(id);
     } catch (err) {
       working = false;

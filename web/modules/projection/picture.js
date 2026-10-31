@@ -37,8 +37,10 @@ export function drawPicture(host, { thumbnail = false, backdrop = false } = {}) 
   function layout() {
     const W = host.clientWidth;
     const H = host.clientHeight;
-    const iw = img.naturalWidth || item?.width;
-    const ih = img.naturalHeight || item?.height;
+    // Sin cargar, o rota, no lleva tamaño: con `will-change`, WebKit reserva memoria para ese tamaño aunque se vea pequeña
+    // (unos 120 MB por miniatura de 2560 × 1440 en un iPhone), e iOS cierra la página.
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
     if (!item || !W || !H || !iw || !ih) return;
     const p = place({ W, H, iw, ih }, { fit: item.fit, ...FULL_VIEW, ...(item.x != null && { x: item.x, y: item.y }), ...view });
     img.style.width = `${iw}px`;
@@ -64,6 +66,7 @@ export function drawPicture(host, { thumbnail = false, backdrop = false } = {}) 
     layout();
     requestAnimationFrame(() => box.classList.add('ready'));
   });
+  img.addEventListener('error', () => img.removeAttribute('style'));
   const observer = new ResizeObserver(() => {
     load();
     layout();

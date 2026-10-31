@@ -6,6 +6,7 @@ import { imageInfo, readImageInfo } from '../../core/images.js';
 import { cleanName } from '../../core/names.js';
 import { applyView, initialView } from '../../core/view.js';
 import { fontsFor, installFont, officeBlocked, officeFolder, showInFinder } from './fuentes.js';
+import { translateKeynote } from './keynote.js';
 import { hasMotion } from './pptx.js';
 import { createExporter, isPresentation, liveSupported, openLive, PRESENTATION_EXTENSIONS } from './powerpoint.js';
 
@@ -21,7 +22,7 @@ import { createExporter, isPresentation, liveSupported, openLive, PRESENTATION_E
 //
 // Cada presentación es una carpeta data/media/diapositivas/<id>/ con 1.jpg, 2.jpg… y, si las hay,
 // sus miniaturas m1.jpg, m2.jpg…, más una ficha en data/diapositivas.json:
-//   { id, name, source: 'pdf' | 'powerpoint', pages, ext, thumbs, width, height, added,
+//   { id, name, source: 'pdf' | 'powerpoint' | 'keynote', pages, ext, thumbs, width, height, added,
 //     status: 'receiving' | 'converting' | 'church' | 'ready' | 'error', error, original, live, atChurch, missingFonts, redone }
 //   receiving: el navegador aún está enviando las páginas (no se publica)
 //   church:    en la nube, un PowerPoint que se convierte en el equipo de la iglesia al llegar (decisión 64)
@@ -37,7 +38,8 @@ const MAX_PAGES = 500;
 const PAGE_LIMIT = 15 * 1024 * 1024;
 const THUMB_LIMIT = 500 * 1024;
 const FILE_LIMIT = 2 * 1024 ** 3; // un PowerPoint con videos dentro puede pesar mucho
-const SOURCES = { pdf: 'PDF', powerpoint: 'PowerPoint' };
+const UNREADABLE_KEYNOTE = 'Manna no pudo leer esa presentación de Keynote. Si tiene contraseña, quítasela; si es muy antigua, ábrela en Keynote y guárdala de nuevo. También puedes exportarla a PDF (en Keynote, Archivo → Exportar a → PDF) y subir el PDF.';
+const SOURCES = { pdf: 'PDF', powerpoint: 'PowerPoint', keynote: 'Keynote' };
 const EXT = { jpeg: 'jpg', png: 'png' };
 
 export default function setup(app) {
@@ -72,7 +74,7 @@ export default function setup(app) {
   const view = (deck) => ({
     id: deck.id, name: deck.name, source: deck.source, pages: deck.pages, width: deck.width || 0, height: deck.height || 0, added: deck.added,
     status: deck.status, error: deck.error || null, base: `/media/${FOLDER}/${deck.id}/`, ext: deck.ext || 'jpg', thumbs: Boolean(deck.thumbs), thumbExt: deck.thumbExt || 'jpg', ...(deck.atChurch && { atChurch: true }), ...(deck.cover && { cover: true }),
-    ...(deck.missingFonts?.length && { missingFonts: deck.missingFonts }), ...(deck.redone && { redone: deck.redone }),
+    ...(deck.missingFonts?.length && { missingFonts: deck.missingFonts }), ...(deck.soft?.length && { soft: deck.soft }), ...(deck.redone && { redone: deck.redone }),
     // Tras un fallo de PowerPoint va como imágenes, y el menú ofrece volver a intentarlo.
     live: liveOf(deck) && !failed.has(deck.id), liveable: liveable(deck),
   });
@@ -391,13 +393,14 @@ export default function setup(app) {
   // ---- Subir un PowerPoint: lo convierte el PowerPoint del equipo principal ----
   app.route('POST', '/api/slides/powerpoint', async (ctx) => {
     ctx.require('slides.edit');
-    const ext = String(ctx.query.get('ext') || '').toLowerCase();
-    if (!PRESENTATION_EXTENSIONS.includes(ext)) throw new HttpError(415, 'Manna admite presentaciones de PowerPoint (.pptx, .ppt, .ppsx) y PDF.');
+    let ext = String(ctx.query.get('ext') || '').toLowerCase();
+    const keynote = ext === '.key';
+    if (!keynote && !PRESENTATION_EXTENSIONS.includes(ext)) throw new HttpError(415, 'Manna admite presentaciones de PowerPoint (.pptx, .ppt, .ppsx), de Keynote (.key) y PDF.');
     if (app.cloud) app.services.church?.room(Number(ctx.req.headers['content-length']) || 0);
     if (!app.cloud && !app.tools.has('deckcraft') && !app.tools.has('powerpoint')) throw new HttpError(409, 'Este equipo no tiene con qué convertir la presentación: instala DeckCraft desde la revisión del equipo, o guárdala como PDF (en PowerPoint, Archivo → Exportar) y sube el PDF.');
     const id = crypto.randomBytes(6).toString('hex');
     fs.mkdirSync(app.tmpDir, { recursive: true });
-    const input = path.join(app.tmpDir, `presentacion-${id}${ext}`);
+    let input = path.join(app.tmpDir, `presentacion-${id}${ext}`);
     await ctx.save(input, FILE_LIMIT);
     const head = Buffer.alloc(8);
     const file = fs.openSync(input, 'r');
@@ -405,10 +408,26 @@ export default function setup(app) {
     fs.closeSync(file);
     if (!isPresentation(head)) {
       fs.rmSync(input, { force: true });
-      throw new HttpError(415, 'Ese archivo no es una presentación de PowerPoint.');
+      throw new HttpError(415, keynote ? UNREADABLE_KEYNOTE : 'Ese archivo no es una presentación de PowerPoint.');
+    }
+    // Un Keynote se traduce aquí mismo a PowerPoint (también en la nube): desde aquí es un PowerPoint más.
+    let soft = [];
+    if (keynote) {
+      const pptx = path.join(app.tmpDir, `presentacion-${id}.pptx`);
+      try {
+        ({ soft } = await translateKeynote(input, pptx));
+      } catch (err) {
+        console.error(`No se pudo leer una presentación de Keynote: ${err.message}`);
+        fs.rmSync(pptx, { force: true });
+        throw new HttpError(415, UNREADABLE_KEYNOTE);
+      } finally {
+        fs.rmSync(input, { force: true });
+      }
+      input = pptx;
+      ext = '.pptx';
     }
     const deck = {
-      id, name: cleanName(ctx.query.get('name')) || 'Presentación', source: 'powerpoint',
+      id, name: cleanName(ctx.query.get('name')) || 'Presentación', source: keynote ? 'keynote' : 'powerpoint', ...(soft.length && { soft }),
       pages: 0, ext: 'jpg', thumbs: false, width: 0, height: 0, added: Date.now(), status: app.cloud ? 'church' : 'converting', error: null,
       original: null, live: false,
     };
@@ -466,7 +485,7 @@ export default function setup(app) {
     types: ['slides'],
     has: (id) => decks().some((d) => d.id === id),
     pending: () => decks().filter((d) => !d.atChurch && (d.status === 'church' || (d.status === 'ready' && d.source === 'pdf'))).map((d) => ({
-      type: 'slides', id: d.id, entry: { name: d.name, source: d.source, pages: d.pages, ext: d.status === 'church' ? path.extname(d.original) : null },
+      type: 'slides', id: d.id, entry: { name: d.name, source: d.source === 'keynote' ? 'powerpoint' : d.source, keynote: d.source === 'keynote', pages: d.pages, ext: d.status === 'church' ? path.extname(d.original) : null, soft: d.soft },
       files: d.status === 'church' ? { original: rel(originalOf(d)) }
         : Object.fromEntries(fs.readdirSync(dirOf(d)).filter((f) => /^m?\d+\.jpg$/.test(f)).map((f) => [f, rel(path.join(dirOf(d), f))])),
     })),
@@ -484,7 +503,8 @@ export default function setup(app) {
       if (entry.source === 'powerpoint') {
         const ext = String(entry.ext || '').toLowerCase();
         if (!PRESENTATION_EXTENSIONS.includes(ext) || !files.original) throw new Error('No llegó una presentación.');
-        const deck = { id, name, source: 'powerpoint', pages: 0, ext: 'jpg', thumbs: false, width: 0, height: 0, added: Date.now(), status: 'converting', error: null, original: null, live: false };
+        const soft = Array.isArray(entry.soft) ? entry.soft.filter(Number.isInteger).slice(0, MAX_PAGES) : [];
+        const deck = { id, name, source: entry.keynote ? 'keynote' : 'powerpoint', ...(soft.length && { soft }), pages: 0, ext: 'jpg', thumbs: false, width: 0, height: 0, added: Date.now(), status: 'converting', error: null, original: null, live: false };
         decks().push(deck);
         commit();
         // Ya convertida, el orden que la usa sabe cuántas diapositivas tiene.

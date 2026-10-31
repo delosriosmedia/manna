@@ -1876,6 +1876,7 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-30 | Se replantean como fases 42 a 48: dos funciones de Orador (una fase cada una), Alabanza con la lista de B2 y cada pantalla resuelta primero para el teléfono más pequeño, de pie y acostado; la tableta deja de ser una disposición aparte | Decisión 70 |
 | 2026-10-30 | Un móvil nunca ve la versión de computador: la tableta entra en la fase de cada pantalla (44 a 47), la 48 queda para el computador y se retira «Historias» | Decisión 71 |
 | 2026-10-30 | Auditoría de los bocetos: las reglas de móviles entran en las fases 42 a 47, y se propone la 49 para los módulos y demás pantallas | Decisión 72 |
+| 2026-10-30 | Antes de la 49, las presentaciones de Keynote: se traducen a PowerPoint al recibirlas, sin programas nuevos | Decisión 73 |
 
 ## 11. Lo pendiente y los cambios sugeridos (decisión 60)
 
@@ -1900,7 +1901,8 @@ Desde el 2026-10-25 **todo lo pendiente de Manna está aquí**, en cuatro grupos
 
 | Qué | Estado |
 | --- | --- |
-| S62 · **Los manuales de `manna-iglesia.es` con las funciones y las pantallas de hoy** | Se hicieron el 2026-10-29 (decisión 67) y las fases 42 a 48 los dejaron atrás: dicen «cola del culto» y el control en el celular sale con la pantalla de «Historias». Hay que poner al día `sitio/manuales/usuarios.html` e `instalacion.html`, rehacer las capturas (`node scripts/sitio.mjs`) y volver a publicarlo. Espera el visto bueno del dueño: es una página pública |
+| S62 · **Los manuales de `manna-iglesia.es` con las funciones y las pantallas de hoy** | También falta decir que se pueden subir presentaciones de Keynote (1.67.0). Se hicieron el 2026-10-29 (decisión 67) y las fases 42 a 48 los dejaron atrás: dicen «cola del culto» y el control en el celular sale con la pantalla de «Historias». Hay que poner al día `sitio/manuales/usuarios.html` e `instalacion.html`, rehacer las capturas (`node scripts/sitio.mjs`) y volver a publicarlo. Espera el visto bueno del dueño: es una página pública |
+| S63 · **Keynote: las animaciones, y los gráficos nítidos** | Hoy cada diapositiva de un Keynote queda como acaba, y sus gráficos y tablas salen de una miniatura pequeña (decisión 73). Lo siguiente, si las iglesias lo usan: cada paso de una animación como un paso más de la diapositiva, y dibujar de verdad las tablas y los gráficos sencillos |
 
 ### 3. Tareas del dueño
 
