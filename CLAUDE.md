@@ -8,7 +8,7 @@ Diseño web: dueño del estilo = minimalist-ui · etapa = mejora de la bienvenid
 
 ## Antes de empezar a trabajar
 
-1. Lee `docs/ESTADO.md`: qué funciona, qué falta probar y qué sigue. El trabajo en curso sigue `docs/PLAN.md`, fase a fase.
+1. De `docs/ESTADO.md` (150 KB) lee solo «Próximos pasos» y «Decisiones pendientes del dueño»; lo demás, cuando la tarea lo toque. El trabajo en curso sigue `docs/PLAN.md` (330 KB), fase a fase: lee solo la fase en curso y su seguimiento.
 2. Las reglas detalladas están en `.claude/rules/` (arquitectura, servidor, web, biblias, pruebas, documentación y la nube).
 3. Antes de tocar cualquier pantalla, lee `DESIGN.md`: el sistema de diseño de la interfaz.
 
@@ -57,6 +57,7 @@ Diseño web: dueño del estilo = minimalist-ui · etapa = mejora de la bienvenid
 
 ## Forma de trabajar
 
+- Se trabaja en ODD (`docs/odd.md`): antes de cada avance, la línea **Ruta ODD:** tamaño · riesgo · dónde se hace · cómo se revierte · siguiente paso.
 - Cambios grandes: primero un plan y esperar aprobación; luego implementar.
 - Probar de verdad antes de dar algo por hecho (`.claude/rules/pruebas.md`) y decir con claridad lo que no se pudo probar.
 - **Las pruebas largas tienen tiempo máximo y se vigilan** (regla del dueño, 2026-10-18): `probar-chrome.mjs` se corta solo a los 8 min y `auditar-responsive.mjs` a los 12, diciendo por dónde iba. Quien las lanza revisa antes lo que les pide y mira su salida cuando deberían haber terminado, sin esperar a que el dueño pregunte (`.claude/rules/pruebas.md`).
