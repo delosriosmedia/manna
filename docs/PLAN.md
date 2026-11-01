@@ -162,7 +162,7 @@ De menor a mayor riesgo; cada fase deja algo usable y **se publica al cerrarla**
 | 33 | Presentaciones sin PowerPoint, con DeckCraft: medir la fidelidad, convertir y pasar en vivo dentro de Manna (decisión 51) | L | 1.38 y 1.39 |
 | 34 | Versículos en una capa y la barra de capas al estilo Dynamic Island (decisiones 51 y 54) | M | 1.40 |
 | 40 | Investigación desde cero: pantallas de control del celular para tres funciones, Control total, Alabanza y Orador (decisión 56; retomada por el dueño el 2026-10-29) | M | sin versión (documento) |
-| 41 | Organizar la interfaz desde el superadministrador (la idea I5, decisión 60), después de la 39 | por planear | |
+| 41 | Organizar la interfaz desde el superadministrador (la idea I5, decisión 60), después de la 39 | planeada, espera la aprobación del dueño | |
 | 42 | Cimientos de «En vivo» en el servidor y las funciones: Orador completo (desde Presentador) y Orador sencillo, sin Control del orden, permisos por permiso, Siguiente sin pasos dobles, «Volver», lo que sigue, la capa momentánea del orador, qué pantalla le toca a cada dispositivo y las reglas de móviles en la auditoría (decisiones 68 a 72) | L | aprobada |
 | 43 | La vista previa del celular tal cual (capas y video en movimiento) y la pantalla que no se apaga (decisión 69) | M | hecha (1.62.0) |
 | 44 | «En vivo» de Control total (A1 · Consola), en teléfono y tableta | L | hecha (1.63.0) |
@@ -1065,34 +1065,51 @@ Decisión 56. El encargo de la fase 19 (cancelada), hecho **otra vez desde cero*
 - **Sin partir de la propuesta cancelada** ni de cómo esté repartida la app en ese momento. Sí se tiene en cuenta lo que Manna haga entonces: desde la fase 19 llegaron, entre otras, las capas, Tiempo y los órdenes guardados, y con las fases 35 a 39 llegarán los usuarios y la preparación en la nube.
 - Entrega: un documento con la propuesta y las decisiones del dueño. No cambia la app: lo que se apruebe entra como fases nuevas.
 
-### Fase 41 · Organizar la interfaz desde el superadministrador — idea al plan, se planea después de la 39 (decisión 60)
+### Fase 41 · Organizar la interfaz desde el superadministrador — planeada el 2026-10-31, espera la aprobación del dueño (decisión 60)
 
-Idea del dueño del 2026-10-25 (I5, de la antigua bandeja de ideas). Depende de la fase 39 (superadministrador) si se hace desde la nube. Se planea en detalle al llegar, con lo que haya entonces.
+Idea del dueño del 2026-10-25 (I5). Se planeó después de las fases 39 y 42 a 49, que cambiaron lo que quedaba por decidir.
 
-**Qué**: una pantalla del superadministrador para organizar la interfaz de Manna:
-- el orden de los módulos del dock (a la izquierda; abajo en el celular);
-- qué elementos quedan siempre en pantalla, como la barra de arriba, la barra de abajo o la cola del culto;
-- en qué orden van esos elementos;
-- cómo se presenta cada botón o función fija: una versión más resumida (solo el icono) o una un poco más extensa (el icono con su nombre o su detalle).
+**Lo que cambió desde la idea**:
+- **El orden de los módulos ya existe.** La fase 39 dejó en la tarjeta de cada iglesia apagar módulos (`church.off`) y ordenarlos por función (`church.layout`: Control total, Alabanza y Preparar el culto; el primero es el que se abre). El equipo oficial lo recibe y lo guarda, y vale sin internet. Falta solo lo que está siempre en pantalla.
+- **En un móvil no hay nada que elegir.** Las reglas de móviles (`DESIGN.md`, 12 ter) fijan que nada cambia de sitio y que todo se resuelve para 360 × 560 y 640 × 280 (decisiones 70 a 72). Ahí sigue valiendo solo el orden de los módulos.
+- **Son dos funciones.** Solo Control total y Alabanza tienen en el computador (860 px o más) la barra de arriba, el dock, «En vivo» y la barra de abajo. Los oradores y Preparar el culto no. «Control del orden» ya no existe (decisión 69), y la cola del culto es hoy el panel «En vivo».
 
-**Lo que ya hay**:
-- El orden del dock es el de la lista `MODULES` de `web/modules/registry.js`, y cada función elige sus módulos en `web/roles/`. Está fijo en el código.
-- Lo que está siempre en pantalla lo colocan `web/core/shell.js` y `web/modules/projection/escenario.js`:
-  - la barra de arriba: la marca, «Solo fondo» y «Negro», «Al aire», el proyector, «Buscar en todo», el wifi y el QR;
-  - el dock y la cola del culto;
-  - la barra de abajo: Anterior, Siguiente, los mandos, el volumen y «Más mandos».
-- Ya hay versiones resumidas y extensas de varios botones (solo el icono en el celular, con su nombre en el escritorio), y lo que no cabe va a «Más mandos». Hoy lo decide el ancho de la pantalla, no una elección.
-- Cada dispositivo guarda sus preferencias en `prefs` (el tamaño de la interfaz, el ancho del cajón). Lo que vale para todos vive en el servidor.
+**La propuesta**: un apartado «Pantalla del computador» en la tarjeta de cada iglesia, uno por función, con esta lista cerrada:
 
-**Por decidir**:
-- **A quién se aplica**: lo que elige el superadministrador, ¿vale para todas las iglesias (el diseño de partida), o cada iglesia o su administrador puede cambiarlo después? ¿Cada función (Alabanza, Control del orden) tiene el suyo?
-- **Una iglesia sin nube**: el superadministrador vive en la nube (`admin.manna-iglesia.es`) y la iglesia recibiría el diseño al sincronizar. ¿Qué ve una iglesia que no usa la nube?
-- **Cómo se organiza**: ¿arrastrando sobre una vista previa de la interfaz, o en una lista?
-- **Qué se puede quitar**: `DESIGN.md` garantiza en cualquier pantalla ver qué está al aire, avanzar y retroceder, y llegar a la acción principal sin desplazarse, con 35 px para el dedo. La pantalla no debería dejar elegir una disposición que rompa eso: «Al aire», Anterior y Siguiente no se quitarían.
-- **Las variantes de cada elemento**: ¿dos (resumida y extensa) o tres? Si se elige la extensa y en el celular no cabe, ¿pasa sola a la resumida, como hoy?
-- **Volver atrás**: un botón «Volver al diseño original».
+| Zona | Elemento | Mover | Quitar | Variantes |
+| --- | --- | --- | --- | --- |
+| Arriba, izquierda | La marca, cambiar de función, «Solo fondo» y «Negro» | No | No | Una |
+| Arriba, centro | «Al aire» | No | No | Una |
+| Arriba, derecha | El proyector (solo en el equipo principal) | Sí | No | Una |
+| Arriba, derecha | «Buscar en todo» | Sí | Sí | Solo el icono, o con su nombre |
+| Arriba, derecha | Conexión por internet y dispositivos (el QR), donde la función los tenga | Sí | Sí | Una |
+| Izquierda | El dock | Ya existe | Ya existe | Solo los iconos, o con sus nombres |
+| Derecha | «En vivo» | No | No | Desplegado o plegado al abrir |
+| Abajo | Anterior, Siguiente, los mandos de lo que está al aire y «Más mandos» | No | No | Una |
+| Abajo | El volumen | No | No | Con su barra, o solo el icono |
 
-**Cuidado**: cada combinación es una pantalla más que la auditoría tiene que revisar en sus 10 tamaños. Conviene un número cerrado de opciones (pocas variantes por elemento, órdenes que se pueden probar) antes que una libertad total que nadie haya visto en un celular.
+Quedan fuera de la lista, a propósito, lo que `DESIGN.md` garantiza en toda pantalla: ver qué está al aire, avanzar y retroceder, y dejar la pantalla en negro.
+
+**Lo que estaba por decidir, con lo que se recomienda**:
+- **A quién se aplica**: a cada iglesia, por función, y lo decide solo el superadministrador, como lo demás de la fase 39. El de partida es el de hoy.
+- **Una iglesia sin nube**: ve el diseño original. Una emparejada guarda lo último que recibió.
+- **Cómo se organiza**: una lista con subir, bajar y casillas (la misma de la fase 39, que también sirve en un celular), junto a un dibujo sencillo de las barras que cambia mientras se elige. Sin arrastrar y sin una vista previa de verdad, que costarían más que todo lo demás.
+- **Las variantes**: dos. Lo elegido es lo más que se muestra: si no cabe, pasa sola a la resumida y después a «Más mandos», como hoy.
+- **Lo de cada dispositivo**: el tamaño de la interfaz y el ancho del cajón siguen en el dispositivo. Plegar «En vivo» también: lo elegido aquí es solo cómo empieza un dispositivo nuevo.
+- **Volver atrás**: «Volver al diseño original», por función, borra lo guardado.
+
+**Cómo se construye** (pequeña: una sesión y una versión):
+1. **Servidor**: `bars` en `cleanSettings` de `server/modules/church/index.js`, con la lista cerrada: lo que no está en ella se ignora, y lo fijo no se puede quitar aunque se pida. Viaja por donde ya viajan los ajustes (`/api/nube/super/ajustes`, `/api/nube/estado` y `church` en `GET /api/session`): el idioma de la sincronización no cambia y un equipo de antes lo ignora.
+2. **La pantalla**: `createShell` y `createEscenario` aplican `church.bars[role]` solo en el computador. En un móvil no se mira.
+3. **El superadministrador**: el apartado en `web/roles/superadmin.js`, con su dibujo y su botón de volver.
+4. **Pruebas y documentos**: `test/nube.test.js`; `probar-chrome.mjs` (grupo «red») quita y mueve algo desde el superadministrador y lo comprueba en la iglesia; `auditar-responsive.mjs` pasa dos casos extremos (todo extenso, y todo resumido con lo quitable quitado) en 1280 × 720, en 860 × 600 y con `grande`. README, `DESIGN.md` y `arquitectura.md`.
+
+**Cuidado**: cada combinación es una pantalla más. Por eso la lista es cerrada y se prueban los dos extremos, no todas las combinaciones.
+
+**Lo que decide el dueño antes de construir**:
+1. Si aprueba la tabla, en especial que se puedan quitar «Buscar en todo», la conexión y el QR.
+2. Si la deja solo al superadministrador (recomendado) o también al administrador de cada iglesia.
+3. Cuándo. Se recomienda después de probar con el dedo las pantallas de las fases 42 a 49 en la iglesia: ninguna iglesia lo ha pedido todavía y el orden de los módulos ya está.
 
 ### Fases 42 a 49 · Las pantallas «En vivo» y las reglas de móviles — aprobadas el 2026-10-30, la 49 el 2026-10-31 (decisiones 68 a 72)
 
@@ -1879,6 +1896,7 @@ Cada modificación del plan aprobado, con su motivo. Es parte de la base de la a
 | 2026-10-30 | Auditoría de los bocetos: las reglas de móviles entran en las fases 42 a 47, y se propone la 49 para los módulos y demás pantallas | Decisión 72 |
 | 2026-10-30 | Antes de la 49, las presentaciones de Keynote: se traducen a PowerPoint al recibirlas, sin programas nuevos | Decisión 73 |
 | 2026-10-31 | La 49 pasa de propuesta a aprobada y se hace (pedido del dueño) | Decisión 72 |
+| 2026-10-31 | Se hace S64 (nombres cortados por el medio, listas vacías con su botón y la puerta de los toques en los módulos) y S63, salvo las tablas, que siguen pendientes por no tener ninguna presentación real con ellas. La fase 41 queda planeada, a la espera de sus decisiones. La auditoría entera pasa las pantallas móviles por el pase rápido, en un cuarto Chrome, y mide también el espacio útil: se había pasado de su tiempo máximo con las pantallas de la fase 49 | Pedido del dueño |
 
 ## 11. Lo pendiente y los cambios sugeridos (decisión 60)
 
@@ -1904,8 +1922,7 @@ Desde el 2026-10-25 **todo lo pendiente de Manna está aquí**, en cuatro grupos
 | Qué | Estado |
 | --- | --- |
 | S62 · **Los manuales de `manna-iglesia.es` con las funciones y las pantallas de hoy** | También falta decir que se pueden subir presentaciones de Keynote (1.67.0). Se hicieron el 2026-10-29 (decisión 67) y las fases 42 a 48 los dejaron atrás: dicen «cola del culto» y el control en el celular sale con la pantalla de «Historias». Hay que poner al día `sitio/manuales/usuarios.html` e `instalacion.html`, rehacer las capturas (`node scripts/sitio.mjs`) y volver a publicarlo. Espera el visto bueno del dueño: es una página pública |
-| S63 · **Keynote: las animaciones, y los gráficos nítidos** | Hoy cada diapositiva de un Keynote queda como acaba, y sus gráficos y tablas salen de una miniatura pequeña (decisión 73). Lo siguiente, si las iglesias lo usan: cada paso de una animación como un paso más de la diapositiva, y dibujar de verdad las tablas y los gráficos sencillos |
-| S64 · **Las reglas de móviles que no se miden, en los módulos** | La fase 49 corrigió lo que mide la auditoría y lo que se vio en las capturas, sin rediseñar. Falta revisar a mano: nombres cortados por el medio (regla 9), cada estado dibujado (regla 10) y, fuera de las filas de «En vivo», las protecciones de los gestos de la regla 2 |
+| S63 · **Keynote: las tablas** | Hecho el 2026-10-31: las animaciones (un clic por paso, con un fundido) y los gráficos sencillos, con formas. Falta dibujar las tablas: su formato guarda las celdas en binario y no hay ninguna presentación real con tablas para comprobarlo; hasta tenerla siguen saliendo de la miniatura. Las animaciones tampoco se han visto con un Keynote real que las traiga |
 
 ### 3. Tareas del dueño
 

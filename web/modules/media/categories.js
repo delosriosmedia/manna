@@ -121,7 +121,8 @@ export function createCategories(ctx, onChange) {
     // Lo que se dice si no hay nada que mostrar, pero la biblioteca no está vacía.
     empty: () => (current()
       ? h('div', { class: 'empty' }, h('strong', {}, `«${current().name}» aún no tiene nada`),
-        ctx.can('media.edit') ? 'Desde «Principal», arrastra hasta su nombre lo que quieras guardar aquí, o elige «Mover a una categoría» en su menú (⋯).' : 'Desde el equipo principal se le pueden poner elementos.')
+        ctx.can('media.edit') ? 'Desde «Principal», arrastra hasta su nombre lo que quieras guardar aquí, o elige «Mover a una categoría» en su menú (⋯).' : 'Desde el equipo principal se le pueden poner elementos.',
+        h('p', { style: 'margin-top: 14px;' }, h('button', { class: 'btn', onclick: () => choose(null) }, 'Ir a Principal')))
       : h('div', { class: 'empty' }, h('strong', {}, 'Todo está en sus categorías'), 'Lo que subas o descargues aparecerá aquí.')),
     // Lo recién subido o descargado entra en la categoría elegida.
     adopt(ids) {

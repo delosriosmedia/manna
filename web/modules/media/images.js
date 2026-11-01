@@ -1,5 +1,5 @@
 import { action, state, subscribe } from '../../core/api.js';
-import { h, guard, menu, toast } from '../../core/dom.js';
+import { cutName, h, guard, menu, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { IMAGE_ACCEPT } from '../../core/images.js';
 import { kindBadge } from '../../core/kinds.js';
@@ -115,7 +115,7 @@ export function createImagesPanel(ctx, lib) {
       h('button', { class: 'media-pick', 'aria-pressed': image.id === selected, onclick: () => select(image.id), ondblclick: () => { select(image.id); project(); } },
         h('span', { class: 'media-thumb' }, h('img', { src: image.thumb || image.url, alt: '', loading: 'lazy' }), kindBadge('image'),
           image.url === onAir && h('span', { class: 'badge live' }, 'Al aire')),
-        h('span', { class: 'item-text' }, h('strong', {}, image.name),
+        h('span', { class: 'item-text' }, cutName(image.name),
           h('small', { title: `${image.width} × ${image.height} · agregada el ${new Date(image.added).toLocaleString('es')}` }, image.atChurch ? 'Ya está en la iglesia' : `${whenLabel(image.added)} · ${image.width} × ${image.height}`))),
       ctx.can('media.edit') && h('button', { class: 'icon-btn sm media-more', 'aria-label': `Opciones de ${image.name}`, onclick: (e) => menu(e.currentTarget, [
         { label: 'Cambiar el nombre', icon: 'pencil-simple', onclick: () => askName(image) },

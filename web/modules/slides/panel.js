@@ -1,5 +1,5 @@
 import { action, state, subscribe } from '../../core/api.js';
-import { h, dialog, guard, menu, toast } from '../../core/dom.js';
+import { cutName, h, dialog, guard, menu, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { describeJob } from '../../core/jobs.js';
 import { kindBadge } from '../../core/kinds.js';
@@ -152,7 +152,7 @@ export function createSlidesPanel(ctx, lib) {
           h('span', { class: `deck-cover${usable ? '' : ' blank'}` },
             usable ? h('img', { src: thumbUrl(deck, 1), alt: '', loading: 'lazy' }) : icon('presentation-chart', 26), kindBadge('slides'),
             air?.id === deck.id && h('span', { class: 'badge live' }, 'Al aire')),
-          h('span', { class: 'item-text' }, h('strong', {}, deck.name), h('small', {}, facts))),
+          h('span', { class: 'item-text' }, cutName(deck.name), h('small', {}, facts))),
         statusOf(deck),
         ctx.can('slides.edit') && h('button', { class: 'icon-btn sm deck-more', 'aria-label': `Opciones de ${deck.name}`, onclick: (e) => menu(e.currentTarget, [
           { label: 'Cambiar el nombre', icon: 'pencil-simple', onclick: () => askName(deck) },

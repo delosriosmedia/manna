@@ -7,8 +7,9 @@ import { writeZip } from '../../server/modules/slides/pptx.js';
 //     { type: 'text', x, y, w, h, text, font, size, color, bold, align, anchor, shrink, spacing, fill, radius, angle, styleless, placeholder, field },   h: 0, alto sin calcular
 //     { type: 'image', x, y, w, h, png, mask: { x, y, w, h } },
 //     { type: 'group', x, y, w, h, items: [...] },
-//     { type: 'chart', x, y, w, h },
-//   ], hidden, number, thumbnail, template: { background, items, sample } }])  -> Buffer
+//     { type: 'chart', x, y, w, h, chart: { type, rowNames, colNames, rows, colors, byRow, labels, percent, inner, legend, title } },
+//   ], hidden, number, thumbnail, template: { background, items, sample },
+//   builds: [{ item, pieces, out, action, auto }] }])  -> Buffer
 
 const varint = (n) => {
   const out = [];
@@ -24,6 +25,7 @@ const varint = (n) => {
 const u = (field, n) => Buffer.concat([varint(field << 3), varint(n)]);
 const by = (field, b) => { const data = Buffer.from(b); return Buffer.concat([varint((field << 3) | 2), varint(data.length), data]); };
 const fl = (field, x) => { const b = Buffer.alloc(4); b.writeFloatLE(x); return Buffer.concat([varint((field << 3) | 5), b]); };
+const db = (field, x) => { const b = Buffer.alloc(8); b.writeDoubleLE(x); return Buffer.concat([varint((field << 3) | 1), b]); };
 const m = (...parts) => Buffer.concat(parts.filter(Boolean));
 const rf = (field, id) => by(field, u(1, id));
 const color = ([r, g, b]) => m(u(1, 1), fl(3, r), fl(4, g), fl(5, b), fl(6, 1));
@@ -72,9 +74,24 @@ export function makeKey(slides, { width = 960, height = 540 } = {}) {
     const mask = item.mask ? add(3006, m(drawable(item.mask))) : null;
     return add(3005, m(drawable(item), rf(11, data), mask && rf(5, mask)));
   }
+  // Solo lo que Manna lee de un gráfico. Sin `chart`, uno sin datos, que sale de la miniatura.
+  function chart(item) {
+    const c = item.chart;
+    if (!c) return add(5021, drawable(item));
+    const label = paragraphStyle({ size: 14, color: 'FFFFFF', bold: true });
+    const paint = (hex) => by(1, rgb(hex));
+    const themes = c.colors.map((hex) => add(5028, m(by(1, m()), by(10000, m(by(11, paint(hex)), by(12, paint(hex)), by(13, paint(hex)), by(17, paint(hex)), by(48, m(paint(hex), fl(2, 2))))))));
+    const details = add(5029, m(by(10000, m(c.labels && m(u(38, 1), u(39, 1), u(42, 1), u(44, 1)), c.percent && by(99, u(1, 258))))));
+    const general = add(5023, m(by(10000, m(u(20, c.legend ? 1 : 0), u(21, c.title ? 1 : 0), c.title && by(23, c.title), c.inner && fl(27, c.inner)))));
+    const grid = by(7, m(...c.rowNames.map((n) => by(1, n)), ...c.colNames.map((n) => by(2, n)),
+      ...c.rows.map((row) => by(3, m(...row.map((v) => by(1, v === null ? m() : db(1, v))))))));
+    const legend = c.legend && by(3, m(by(1, m(fl(1, -item.w / 2), fl(2, -item.h / 2 - 30))), by(2, m(fl(1, item.w), fl(2, 20)))));
+    return add(5021, m(drawable(item), by(10000, m(u(1, c.type), legend, u(5, c.byRow ? 1 : 2), grid, rf(10, general), ...themes.map((id) => rf(17, id)),
+      by(19, m(...c.colors.map((_, i) => by(2, m(u(1, i), rf(2, details)))))), rf(20, label)))));
+  }
   function draw(item) {
     if (item.type === 'image') return image(item);
-    if (item.type === 'chart') return add(5021, drawable(item));
+    if (item.type === 'chart') return chart(item);
     if (item.type === 'group') return add(3008, m(drawable(item), ...item.items.map((child) => rf(2, draw(child)))));
     return text(item);
   }
@@ -87,7 +104,11 @@ export function makeKey(slides, { width = 960, height = 540 } = {}) {
       const items = (slide.template.items || []).map(draw);
       template = add(6, m(rf(1, slideStyle(slide.template.background)), ...items.map((id) => rf(42, id)), sample && rf(42, sample), sample && by(28, m(by(1, 'Placeholder-1'), rf(2, sample)))));
     }
-    const data = m(rf(1, slideStyle(slide.background)), template && rf(17, template), ...(slide.items || []).map((item) => rf(42, draw(item))));
+    const drawn = (slide.items || []).map(draw);
+    // Cada animación con sus trozos, en el orden en que salen.
+    const builds = (slide.builds || []).map((b) => ({ ...b, id: add(100, m(rf(1, drawn[b.item]), by(2, 'prueba'), by(4, by(18, m(by(1, b.out ? 'Out' : b.action ? 'Action' : 'In'), by(2, 'apple:dissolve')))))) }));
+    const chunks = builds.flatMap((b) => Array.from({ length: b.pieces ?? 1 }, () => add(101, m(rf(1, b.id), b.auto && u(5, 1)))));
+    const data = m(rf(1, slideStyle(slide.background)), template && rf(17, template), ...drawn.map((id) => rf(42, id)), ...builds.map((b) => rf(2, b.id)), ...chunks.map((id) => rf(43, id)));
     const thumbnail = slide.thumbnail ? dataFile('st-prueba', slide.thumbnail) : null;
     return add(4, m(rf(2, add(5, data)), u(4, slide.hidden ? 1 : 0), thumbnail && rf(16, thumbnail), slide.number && u(18, 1)));
   });

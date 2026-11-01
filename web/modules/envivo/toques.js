@@ -66,7 +66,7 @@ export function guardTouches(root, { list, controls, cover }) {
   };
   addEventListener('pointerup', lift, true);
   addEventListener('pointercancel', lift, true);
-  list.addEventListener('scroll', () => { scrolledAt = now(); }, { passive: true, capture: true }); // las pestañas del orador llevan varias listas dentro
+  root.addEventListener('scroll', () => { scrolledAt = now(); }, { passive: true, capture: true }); // las pestañas del orador y los módulos llevan listas dentro
 
   // Una fila que no se ve entera no responde.
   const cutOff = (el) => {
@@ -76,6 +76,17 @@ export function guardTouches(root, { list, controls, cover }) {
     const b = list.getBoundingClientRect();
     return r.top < (cover.hidden ? b.top : cover.getBoundingClientRect().bottom) - 1 || r.bottom > b.bottom + 1;
   };
+  // En un módulo, igual: lo que su lista corta no responde, salvo que sea más alto que ella (nunca se vería entero).
+  const cutByList = (el) => {
+    const row = el.closest('button, [role=option]');
+    if (!row) return false;
+    for (let p = row.parentElement; p && p !== root; p = p.parentElement) {
+      if (!/auto|scroll/.test(getComputedStyle(p).overflowY)) continue;
+      const [r, b] = [row.getBoundingClientRect(), p.getBoundingClientRect()];
+      return r.height < b.height && (r.top < b.top - 1 || r.bottom > b.bottom + 1);
+    }
+    return false;
+  };
   root.addEventListener('click', (e) => {
     const touch = start;
     start = null;
@@ -83,7 +94,8 @@ export function guardTouches(root, { list, controls, cover }) {
     const t = now();
     const inList = list.contains(e.target);
     if (spoiled || t - touch.at > LONG || t < deafUntil || (controls.contains(e.target) && t < deafControlsUntil)
-      || (inList && (t - scrolledAt < SCROLLED || cutOff(e.target)))) {
+      || (inList && (t - scrolledAt < SCROLLED || cutOff(e.target)))
+      || (e.target.closest('.drawer') && (t - scrolledAt < SCROLLED || cutByList(e.target)))) {
       e.stopPropagation();
       e.preventDefault();
     }

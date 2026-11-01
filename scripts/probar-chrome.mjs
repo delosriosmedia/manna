@@ -893,6 +893,20 @@ try {
   await sleep(500);
 
   // Un módulo sube entre la vista y la franja, sin fondo oscuro: lo que está al aire y Siguiente siguen vivos.
+  // En un módulo, lo mismo: lo que su lista corta no responde (regla 2), y un nombre largo se corta por el medio (regla 9).
+  await goTo('biblia');
+  await sleep(600);
+  const cutVerse = JSON.parse(await run(`const verses = [...document.querySelectorAll('.drawer .verse')].filter((v) => v.getClientRects().length);
+    let list = verses[0]; do { list = list.parentElement; } while (!/auto|scroll/.test(getComputedStyle(list).overflowY));
+    const end = list.getBoundingClientRect().bottom;
+    const v = verses.find((x) => { const r = x.getBoundingClientRect(); return r.top < end - 6 && r.bottom > end + 2; }) || verses.find((x) => x.getBoundingClientRect().bottom > end);
+    if (v.getBoundingClientRect().top >= end - 6) list.scrollTop += v.getBoundingClientRect().top - end + 10;
+    const r = v.getBoundingClientRect();
+    return JSON.stringify({ n: v.dataset.n, x: r.left + r.width / 2, y: (r.top + end) / 2 });`));
+  await sleep(400);
+  await clickAt(cutVerse.x, cutVerse.y);
+  await sleep(300);
+  check('un versículo que su lista corta no responde', await run(`return !document.querySelector('.drawer .verse[data-n="${cutVerse.n}"]').classList.contains('sel')`), cutVerse.n);
   await goTo('orden');
   await sleep(500);
   check('un módulo abierto sube entre la vista y la franja, con lo que está al aire y Siguiente a la vista, y sin fondo oscuro', await drawerOpen() && await run(`const d = document.querySelector('.drawer').getBoundingClientRect(); const v = document.querySelector('.ev-screen').getBoundingClientRect(); const n = document.querySelector('.ev-next').getBoundingClientRect(); return d.top >= v.bottom && d.bottom <= n.top && v.width < 200 && ${evShown('.ev-info')} && !document.querySelector('.drawer-backdrop')?.isConnected && !${evShown('.ev-list')}`));
@@ -1876,6 +1890,9 @@ try {
     check('y en el título', found[0]?.n === 10 && found[0].label === null && found[0].marks.join() === 'Sendero', JSON.stringify(found[0] || null));
     await typeIn('titulo que no es el de su video');
     check('una letra que no corresponde a su video no se encuentra', (await hits()).length === 0 && await run(`return ${ws}.querySelector('.empty').textContent.includes('Ningún himno coincide')`));
+    await click(`[...${ws}.querySelectorAll('.empty .btn')].find((b) => b.textContent === 'Borrar la búsqueda')`);
+    await sleep(200);
+    check('la lista sin resultados ofrece borrar la búsqueda', await run(`return ${ws}.querySelector('input[type=search]').value === '' && !${ws}.querySelector('.empty')`));
     await typeIn('9');
     found = await hits();
     check('un número lleva a ese himno', found.length === 1 && found[0].n === 9 && found[0].title === hymnTitle(9));
@@ -1996,6 +2013,8 @@ try {
     await goTo('textos');
     await sleep(500);
     check('Textos empieza vacío, dice para qué sirve y se escribe al lado', await run(`return document.title === 'Manna · Textos' && ${ws}.querySelector('.text-list .empty').textContent.includes('Aún no hay textos') && Boolean(${area}) && ${tbar}.hidden`));
+    await click(`[...${ws}.querySelectorAll('.text-list .empty .btn')].find((b) => b.textContent.includes('Escribir un texto'))`);
+    check('y su botón lleva a escribir', await run(`return document.activeElement === ${area}`));
     await type(area, 'Bienvenidos al culto\n\nLos esperamos en el salón al terminar');
     await sleep(300);
     check('al escribir dice en cuántas partes se pasa', await run(`return ${ws}.querySelector('.text-info').textContent.startsWith('2 partes') && !${tbar}.hidden`));

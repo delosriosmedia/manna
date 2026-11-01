@@ -163,3 +163,58 @@ test('lo que no se puede leer se dice, en otro hilo y sin dejar nada', async () 
   assert.deepEqual(await translateKeynote(good, out), { soft: [] });
   assert.match(readZip(out, (n) => n === 'ppt/slides/slide1.xml').get('ppt/slides/slide1.xml').toString(), /<a:t>Hola<\/a:t>/);
 });
+
+test('un gráfico sencillo se dibuja con formas, sin miniatura', () => {
+  const rowNames = ['Ventas'];
+  const colNames = ['Uno', 'Dos', 'Tres', 'Cuatro'];
+  const colors = ['0D492C', 'DB5D23', '0D492C', 'DB5D23'];
+  const { slide, soft } = translate([{ thumbnail: PNG, items: [
+    { type: 'chart', x: 100, y: 100, w: 200, h: 200, chart: { type: 5, rowNames, colNames, rows: [[45, 15, 30, 10]], colors, labels: true, percent: true } },
+  ] }]);
+  assert.deepEqual(soft, [], 'nítido: no se avisa');
+  const xml = slide(1);
+  assert.doesNotMatch(xml, /<p:pic>/);
+  assert.equal(xml.match(/<a:custGeom>/g).length, 4, 'una porción por valor');
+  assert.deepEqual([...xml.matchAll(/<a:t>([^<]+)</g)].map((m) => m[1]), ['45%', '15%', '30%', '10%']);
+  assert.match(xml, /<a:srgbClr val="DB5D23"/, 'con el color de su serie');
+
+  const lines = translate([{ items: [
+    { type: 'chart', x: 0, y: 0, w: 400, h: 200, chart: { type: 3, rowNames: ['Ene', 'Feb', 'Mar'], colNames: ['A', 'B'], rows: [[1, 8], [2, null], [3, 6]], colors: ['111111', '222222'], labels: true, legend: true, title: 'Asistencia' } },
+  ] }]).slide(1);
+  const words = [...lines.matchAll(/<a:t>([^<]+)</g)].map((m) => m[1]);
+  for (const word of ['Ene', 'Mar', '8', 'A', 'B', 'Asistencia']) assert.ok(words.includes(word), `sale «${word}»`);
+});
+
+test('un gráfico que no se sabe dibujar sigue saliendo de la miniatura', () => {
+  const chart = { rowNames: ['A'], colNames: ['B'], rows: [[1]], colors: ['111111'] };
+  assert.deepEqual(translate([{ thumbnail: PNG, items: [{ type: 'chart', x: 0, y: 0, w: 100, h: 100, chart: { ...chart, type: 9 } }] }]).soft, [1], 'de dispersión');
+  assert.deepEqual(translate([{ thumbnail: PNG, items: [{ type: 'chart', x: 0, y: 0, w: 100, h: 100, chart: { ...chart, type: 5, rows: [[null]] } }] }]).soft, [1], 'sin ningún dato');
+});
+
+test('las animaciones de Keynote quedan como animaciones, un clic por paso', () => {
+  const text = (body) => ({ type: 'text', x: 0, y: 0, w: 300, h: 100, text: body });
+  const { slide, out } = translate([
+    { items: [text('Fijo')] },
+    { items: [text('Fijo'), text('Primero'), { type: 'image', x: 0, y: 200, w: 50, h: 50, png: PNG }, text('Se va'), text('Se mueve')], builds: [
+      { item: 1 }, { item: 2, auto: true }, { item: 3, out: true }, { item: 4, action: true },
+    ] },
+    { items: [text('Uno\nDos\nTres')], builds: [{ item: 0, pieces: 3 }] },
+    { items: [text('Uno\nDos')], builds: [{ item: 0, pieces: 5 }] },
+    { items: [text('Sola')], builds: [{ item: 0, auto: true }] },
+  ]);
+  assert.doesNotMatch(slide(1), /<p:timing>/, 'sin animaciones, nada');
+  const second = slide(2);
+  assert.equal(second.match(/nodeType="clickEffect"/g).length, 2, 'lo automático va con el clic de antes y lo que se mueve no cuenta');
+  assert.equal(second.match(/nodeType="withEffect"/g).length, 1);
+  assert.equal(second.match(/presetClass="exit"/g).length, 1);
+  for (const [, id] of second.matchAll(/spid="(\d+)"/g)) assert.match(second, new RegExp(`<p:cNvPr id="${id}" `), 'señala una forma que existe');
+  const third = slide(3);
+  assert.equal(third.match(/nodeType="clickEffect"/g).length, 3, 'un trozo por párrafo');
+  assert.match(third, /<p:pRg st="2" end="2"\/>/);
+  assert.match(third, /<p:bldP spid="\d+" grpId="0" build="p"\/>/);
+  const fourth = slide(4);
+  assert.equal(fourth.match(/nodeType="clickEffect"/g).length, 1, 'sin un párrafo por trozo, el objeto entero');
+  assert.doesNotMatch(fourth, /<p:pRg/);
+  assert.doesNotMatch(slide(5), /<p:timing>/, 'automático al empezar: ya está a la vista');
+  assert.equal(hasMotion(out), true, 'y Manna la pasa con animaciones');
+});

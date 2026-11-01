@@ -217,6 +217,11 @@ html[data-disposicion='telefono-acostado'] .ev .ws[data-module] > .ws-head { --h
 html[data-disposicion='telefono-acostado'] .ev .compact .ws[data-module='biblia'] .crumbs { display: none; }
 @media (max-width: 639px) { html[data-disposicion='telefono-acostado'] .ev .compact .ws[data-module='biblia'] > .ws-head > .select { display: none; } } /* la cita antes que la versión */
 
+/* Con poca altura, la lista manda: lo que falta se dice al pulsar lo que lo necesita. Acostado, cada barra del módulo, lo justo. */
+@media (max-height: 560px) { .ev .ws-notice { display: none; } }
+html[data-disposicion='telefono-acostado'] .ev .drawer .abar { padding: 2px 4px; }
+html[data-disposicion='telefono-acostado'] .ev .drawer .abar .btn { min-height: 35px; height: 35px; }
+
 /* Ampliado, en el teléfono acostado más angosto, la barra de acciones sigue en una fila: lo que no es Proyectar, con su icono. */
 @media (max-width: 639px) {
   html[data-disposicion='telefono-acostado'] .ev .drawer .abar { flex-wrap: nowrap; gap: 3px; padding: 4px; }

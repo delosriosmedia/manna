@@ -4,10 +4,18 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.69.0 — 2026-11-01
+
 - **Una bienvenida nueva en manna-iglesia.es**: clara y ordenada para el líder audiovisual o el pastor que no conoce Manna: qué es y qué hace, cómo se maneja desde el celular, cómo funciona con internet y sin él, qué se necesita, qué recibe la iglesia y dónde queda en línea.
 - **Se puede probar ahí mismo**: buscar cualquier cita de la Biblia, comparar versiones (RV1909, RVR60, NTV y PDT), buscar y escuchar cualquiera de los 613 himnos, pasar el culto en el computador y ver las funciones del celular. Las muestras usan himnos reales, y fotos, video y PDF de verdad.
 - **Los manuales, en fondo claro**, con capturas nuevas: himnos reales y medios libres, sin imágenes de prueba. El de instalación aclara que el hosting de la nube es temporal para las primeras iglesias.
 - **Al publicar la bienvenida o un manual, se ve de una vez**: el navegador ya no sigue mostrando la versión anterior durante horas.
+- **Las animaciones de un Keynote ya funcionan**: lo que aparece o se va al hacer clic lo sigue haciendo con «Siguiente», también párrafo por párrafo. Pasan a un fundido sencillo, sin el efecto original. Se ven así en el proyector con DeckCraft con animaciones o con PowerPoint en vivo; en los celulares se ve la diapositiva ya completa.
+- **Los gráficos de un Keynote se ven nítidos**: tortas, anillos, columnas, barras, líneas y áreas se dibujan de verdad, con sus colores y sus números, en vez de salir de una miniatura borrosa. Las tablas y los gráficos más raros siguen saliendo de la miniatura, y Medios lo avisa.
+- **Más sitio para las listas en los móviles pequeños**: con poca altura, el aviso de un programa que falta se dice al pulsar lo que lo necesita, en vez de ocupar media pantalla. Comparar en la Biblia deja ver más versículos.
+- **Toda lista vacía dice qué hacer, con su botón**: «Borrar la búsqueda», «Ver todos los himnos», «Ir a Principal», «Escribir un texto», «Subir una presentación» y, en el equipo principal, «Abrir la carpeta». Si el himnario no se puede leer, lo dice y ofrece intentarlo otra vez.
+- **En un móvil, un nombre largo se corta por el medio** en Medios, las presentaciones y las páginas: se ve el final, que suele ser lo que los distingue.
+- **Menos toques accidentales en los módulos**: lo que su lista corta no responde, ni nada justo después de moverla, igual que en «En vivo».
 
 ## 1.68.0 — 2026-10-31
 

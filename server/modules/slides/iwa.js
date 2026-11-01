@@ -115,6 +115,10 @@ export const float = (m, field) => {
   const value = val(m, field);
   return Buffer.isBuffer(value) && value.length === 4 ? value.readFloatLE(0) : undefined;
 };
+export const double = (m, field) => {
+  const value = val(m, field);
+  return Buffer.isBuffer(value) && value.length === 8 ? value.readDoubleLE(0) : undefined;
+};
 export const floats = (m, field) => (m?.get(field) || []).flatMap((v) => (Buffer.isBuffer(v) ? Array.from({ length: Math.floor(v.length / 4) }, (_, i) => v.readFloatLE(i * 4)) : []));
 export const ints = (m, field) => (m?.get(field) || []).flatMap((v) => (Buffer.isBuffer(v) ? [...v] : [v]));
 export const bool = (m, field) => {

@@ -148,7 +148,8 @@ function mount(el, ctx) {
     const air = state.projection?.mode === 'live' && state.projection.item?.kind === 'text' ? state.projection.item.id : null;
     if (!all.length) {
       list.replaceChildren(h('div', { class: 'empty' }, h('strong', {}, 'Aún no hay textos'),
-        'Escribe un mensaje (un anuncio, una bienvenida, un motivo de oración) o una cita con su autor para proyectarlo con el fondo y la letra de la Biblia.'));
+        'Escribe un mensaje (un anuncio, una bienvenida, un motivo de oración) o una cita con su autor para proyectarlo con el fondo y la letra de la Biblia.',
+        ctx.can('texts.edit') && h('p', { style: 'margin-top: 14px;' }, h('button', { class: 'btn', onclick: () => area.focus() }, icon('pencil-simple', 16), 'Escribir un texto'))));
       return;
     }
     list.replaceChildren(...all.map((t) => {

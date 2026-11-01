@@ -1,5 +1,5 @@
 import { action, connectionIsLocal, state, subscribe, upload } from '../../core/api.js';
-import { h, go, guard, menu, toast } from '../../core/dom.js';
+import { cutName, h, go, guard, menu, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { describeJob } from '../../core/jobs.js';
 import { kindBadge } from '../../core/kinds.js';
@@ -199,7 +199,7 @@ export function createClipsPanel(ctx, kind, lib) {
             clip.duration && h('span', { class: 'media-duration' }, formatTime(clip.duration)),
             clip.subtitles && h('span', { class: 'media-cc', title: 'Tiene subtítulos' }, icon('closed-captioning', 14)),
             clip.id === onAir && h('span', { class: 'badge live' }, 'Al aire')),
-          h('span', { class: 'item-text' }, h('strong', {}, clip.name), h('small', {}, facts))),
+          h('span', { class: 'item-text' }, cutName(clip.name), h('small', {}, facts))),
         statusOf(clip),
         ctx.can('media.edit') && h('button', { class: 'icon-btn sm media-more', 'aria-label': `Opciones de ${clip.name}`, onclick: (e) => more(clip, e.currentTarget) }, icon('dots-three', 16)));
     }));

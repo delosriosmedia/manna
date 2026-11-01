@@ -169,6 +169,13 @@ html.touch .picker { grid-template-columns: 316px 248px minmax(0, 1fr); }
 html[data-disposicion='telefono-acostado'] .drawer:not(.compact) .ws[data-module='biblia'] .col-verses .col-label { display: none; }
 html[data-disposicion='telefono-acostado'] .drawer:not(.compact) .ws[data-module='biblia'] .crumbs { padding-top: 0; padding-bottom: 0; }
 html[data-disposicion='telefono-acostado'] .ws[data-module='biblia'].comparing .crumbs { display: none; } /* al comparar, los versículos a toda altura; se busca por la cita */
+@media (max-height: 600px) {
+  html[data-disposicion='telefono-pie'] .ws[data-module='biblia'].comparing .crumbs { display: none; }
+  html[data-disposicion='telefono-pie'] .ws[data-module='biblia'] .cmp-bar { padding-top: 2px; padding-bottom: 2px; }
+}
+html[data-disposicion='telefono-acostado'] .ws[data-module='biblia'] .cmp-bar { padding-top: 0; padding-bottom: 0; }
+/* Con tan poca altura, los mandos de cada barra, a su mínimo de toque: lo que se gana es de los versículos. */
+html[data-disposicion='telefono-acostado'] .ws[data-module='biblia'] :is(.ws-head, .cmp-bar, .crumbs) :is(button, select, .search, input) { min-height: 35px; height: 35px; }
 @media (max-width: 639px) { html[data-disposicion='telefono-acostado'] .ws[data-module='biblia'] > .ws-head h1 { display: none; } } /* la pestaña ya lo dice, y la cita necesita ese sitio */
 @container cajon (max-width: 249px) { .ws[data-module='biblia'] .col { padding-left: 8px; padding-right: 8px; } }
 .compact .ws[data-module='biblia'] .abar { flex-wrap: nowrap; padding: 8px 12px; }

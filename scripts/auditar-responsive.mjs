@@ -57,7 +57,7 @@ import { MOBILE_RULES } from './lib/reglas-moviles.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Separados de dos en dos: si un puerto está ocupado, el servidor prueba el siguiente.
-const PORTS = [8124, 8126, 8128];
+const PORTS = [8124, 8126, 8128, 8122];
 const SHOTS = process.argv.includes('capturas');
 // «grande»: cada página se abre con la interfaz al tamaño máximo (?escala=1.08, como el deslizador de Ajustes al tope).
 const BIG = process.argv.includes('grande');
@@ -103,6 +103,7 @@ const SCREENS = [
   { name: 'Biblia: búsqueda', url: '/control#biblia', inside: '.search-pop', settle: 1200,
     prepare: `(() => { const i = document.querySelector('.ws[data-module=biblia] .search input'); i.focus(); i.value = 'amor'; i.dispatchEvent(new Event('input')); })()` },
   { name: 'Biblia: libros', url: '/control#biblia', narrowOnly: true, prepare: `document.querySelector('.crumbs button').click()`, primary: '.abar .btn.primary', content: '.col-books' },
+  // insideIfShown: el recuadro puede no salir (con poca altura, el aviso de lo que falta).
   // «Buscar en todo»: su recuadro cabe; con una fila marcada, sus botones (▶ y +) se ven dentro del recuadro.
   // closes: la capa abierta y su recuadro; tras medir, un toque fuera del recuadro debe cerrarla.
   { name: 'Buscar en todo', url: '/control', inside: '.finder', closes: ['.finder-layer', '.finder'], settle: 1100, prepare: `(() => { document.querySelector('.finder-chip').click(); const i = document.querySelector('.finder-input input'); i.value = 'luz'; i.dispatchEvent(new Event('input')); })()` },
@@ -162,7 +163,7 @@ const SCREENS = [
   { name: 'Orden: citas de un documento', url: '/control#orden', inside: '.citas-where + .review-actions', settle: 300,
     prepare: `(async () => { const w = (ms) => new Promise((r) => setTimeout(r, ms)); document.querySelector('.ws[data-module=orden] .order-add').click(); await w(300); [...document.querySelectorAll('.menu button')].find((b) => b.textContent.includes('Citas de un texto')).click(); await w(300); document.querySelector('.review-text').value = Array.from({ length: 48 }, (_, i) => 'Leemos con atención lo que dice Salmos ' + (i + 1) + ':1 sobre la alabanza' + (i % 12 === 11 ? '\\f' : '')).join('\\n') + '\\nFíjense en el v. 3.'; [...document.querySelectorAll('.review-actions .btn')].find((b) => b.textContent.includes('Buscar')).click(); for (let i = 0; i < 40 && !document.querySelector('.citas-where'); i += 1) await w(200); })()` }, // la primera búsqueda de un servidor carga todas las biblias: se espera el resultado, no un tiempo fijo
   // El equipo de la auditoría "no tiene" navegador para la proyección: Ajustes lleva su aviso.
-  { name: 'Ajustes, con aviso', url: '/control#ajustes', content: '.settings', inside: '.ws-notice' },
+  { name: 'Ajustes, con aviso', url: '/control#ajustes', content: '.settings', inside: '.ws-notice', insideIfShown: true },
   // Ajustes → Usuarios (fase 35): la lista con sus botones y la ventana para añadir a alguien.
   { name: 'Ajustes: usuarios', url: '/control#ajustes', content: '.settings', inside: '.user-row', settle: 500,
     prepare: `document.querySelector('.user-list').scrollIntoView({ block: 'center' })` },
@@ -415,7 +416,7 @@ const MEASURE = (screen, touch, narrow) => {
   ${screen.primary ? `{ const a = q(${JSON.stringify(screen.primary)}); out.accion = inView(a) && topmost(a) && (${JSON.stringify(Boolean(screen.noDock || screen.tabs))} || Boolean(a.closest('.drawer'))); }` : ''}
   ${screen.content ? `{ const c = [...document.querySelectorAll(${JSON.stringify(screen.content)})].find(shown); out.espacioContenido = c ? Math.round(Math.min(box(c).bottom, vh) - Math.max(box(c).top, 0)) : 0; }` : ''}
   ${screen.longTitles ? `{ const t = [...document.querySelectorAll('.orow .item-text strong')].find((e) => e.textContent.length > 60); out.tituloLargo = document.documentElement.dataset.disposicion === 'telefono-acostado' || (Boolean(t) && t.scrollHeight <= t.clientHeight + 1); }` : ''}
-  ${inside ? `{ const e = q(${JSON.stringify(inside)}); const r = box(e); out.dentro = shown(e) && r.left >= -1 && r.right <= vw + 1 && r.top >= -1 && r.bottom <= vh + 1 && [...e.querySelectorAll('button')].every((b) => !shown(b) || (box(b).left >= r.left - 1 && box(b).right <= r.right + 1)); }` : ''}
+  ${inside ? `{ const e = q(${JSON.stringify(inside)}); const r = box(e); out.dentro = ${screen.insideIfShown ? '!shown(e) || ' : ''}shown(e) && r.left >= -1 && r.right <= vw + 1 && r.top >= -1 && r.bottom <= vh + 1 && [...e.querySelectorAll('button')].every((b) => !shown(b) || (box(b).left >= r.left - 1 && box(b).right <= r.right + 1)); }` : ''}
   ${screen.controls ? `{ const c = [...document.querySelectorAll(${JSON.stringify(screen.controls)})].find((e) => shown(e)) || q(${JSON.stringify(screen.controls)}); const r = box(c);
     // El volumen general no va en los mandos de la capa (vive en la barra de transporte): su CSS lo oculta a propósito.
     const list = [...c.querySelectorAll('button, select')].filter((b) => !b.closest('.volume'));
@@ -460,7 +461,8 @@ async function ready(chrome, screen) {
 }
 
 const LABELS = { buscarMarcada: 'la fila marcada de la búsqueda lleva su ▶ (y su +) a la vista y dentro del recuadro', barraUnaFila: 'la barra de abajo en una sola fila, sin salirse', masMandos: '«Más mandos» a la vista con la barra', cajonUnaFila: 'el cajón con una sola fila de cabecera y ampliar y cerrar a la vista', sinDesborde: 'sin desborde lateral', navegacion: 'dock de módulos a la vista', alAire: 'lo que está al aire y sus botones a la vista', solape: 'cajón, cola y barras sin pisarse', monitorProporcion: 'recuadro de la proyección sin deformar', accion: 'acción principal a la vista y sin nada encima', tituloLargo: 'títulos largos legibles', mandos: 'mandos en vivo completos y sin salirse', dentro: 'el recuadro cabe en la pantalla', dedos: 'botones para el dedo', deLado: 'nada se desplaza de lado sin tener nada al lado', contraste: 'el texto se lee sobre una proyección blanca y sobre una negra', cierraFuera: 'la capa se cierra al tocar fuera' };
-const MIN_CONTENT = 150;
+// Acostado en un teléfono no caben 150 px debajo de los mandos: ahí, un versículo de dos líneas. Con los botones de Android, tres filas.
+const minContent = (device) => (device.h < 480 ? 56 : device.h < 560 ? 108 : 150);
 
 // Qué revisar: las palabras que se le pasan eligen tamaños (por su nombre o «360x640») y pantallas.
 const fold = (text) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
@@ -481,7 +483,7 @@ const failuresOf = (m) => Object.keys(LABELS).filter((k) => m[k] === false).map(
 
 // Un servidor con sus datos y un Chrome que revisa unos cuantos tamaños. Cada uno tiene lo suyo
 // porque las pantallas cambian lo que está al aire y las preferencias del navegador.
-async function worker(list, n) {
+async function worker(list, n, fast = FAST) {
   const port = PORTS[n];
   const base = `http://localhost:${port}`;
   const data = path.join(tmp, `datos-${n + 1}`);
@@ -568,8 +570,8 @@ async function worker(list, n) {
     await chrome.send('Page.navigate', { url: `${base}/control` });
     await sleep(2000);
     await showInOrder(example.live);
-    if (FAST) {
-      const size = (d) => chrome.send('Emulation.setDeviceMetricsOverride', { width: d.w, height: d.h, deviceScaleFactor: 1, mobile: true });
+    if (fast) {
+      const size = (d) => chrome.send('Emulation.setDeviceMetricsOverride', { width: d.w, height: d.h, deviceScaleFactor: Number(process.env.MANNA_CAPTURAS_ESCALA) || 1, mobile: true });
       await chrome.send('Emulation.setTouchEmulationEnabled', { enabled: true });
       for (const screen of screens.filter((x) => x.tactil)) {
         const origin = screen.cloud === 'superadmin' ? superBase : screen.cloud ? cloudBase : base;
@@ -582,7 +584,7 @@ async function worker(list, n) {
         await size(list[0]);
         const [pathname, hash = ''] = screen.url.split('#');
         progress[n] = `«${screen.name}»`;
-        await chrome.send('Page.navigate', { url: `${origin}${pathname}?t=${Date.now()}&tactil${hash ? `#${hash}` : ''}` });
+        await chrome.send('Page.navigate', { url: `${origin}${pathname}?t=${Date.now()}&tactil${BIG ? '&escala=1.08' : ''}${hash ? `#${hash}` : ''}` });
         await ready(chrome, screen);
         if (screen.prepare) { await chrome.evaluate(screen.prepare); await sleep(screen.settle || 500); }
         const lines = [];
@@ -591,6 +593,7 @@ async function worker(list, n) {
           await sleep(150);
           const m = JSON.parse(await chrome.evaluate(`JSON.stringify(${MEASURE(screen, true, device.w < 860)})`) || '{}');
           const failures = [...failuresOf(m), ...JSON.parse(await chrome.evaluate(`JSON.stringify(${MOBILE_RULES})`))];
+          if (m.espacioContenido !== undefined && m.espacioContenido < minContent(device)) failures.push(`poco espacio para el contenido (${m.espacioContenido} px)`);
           problems += failures.length;
           if (failures.length) lines.push(`  ${device.w} × ${device.h}\n      ${failures.join('\n      ')}`);
           if (SHOTS) fs.writeFileSync(path.join(tmp, `${device.w}x${device.h} ${screen.name.replace(/[:"]/g, '')}.png`), Buffer.from((await chrome.send('Page.captureScreenshot', { format: 'png' })).result.data, 'base64'));
@@ -618,7 +621,7 @@ async function worker(list, n) {
       // Lo de cada tamaño se escribe de una vez al terminarlo, para que no se mezcle con el de los otros Chrome.
       const lines = [`\n${device.name} (${device.w} × ${device.h})`];
       for (const screen of screens) {
-        if ((screen.narrowOnly && !narrow) || (screen.wideOnly && narrow) || (device.min && !screen.movil) || (screen.movil && !device.min && !device.movil)) continue;
+        if (screen.tactil || (screen.narrowOnly && !narrow) || (screen.wideOnly && narrow)) continue;
         if (screen.cloud) await cloudLogin(screen.cloud);
         if (screen.prefs) await setPrefs(screen.prefs);
         if (screen.show) await showInOrder(example[screen.show]);
@@ -649,8 +652,7 @@ async function worker(list, n) {
           m.cierraFuera = await chrome.evaluate(`!document.querySelector(${JSON.stringify(screen.closesOutside)})`);
         }
         const failures = failuresOf(m);
-        if (m.espacioContenido !== undefined && m.espacioContenido < MIN_CONTENT) failures.push(`poco espacio para el contenido (${m.espacioContenido} px)`);
-        if (screen.movil && device.touch) failures.push(...JSON.parse(await chrome.evaluate(`JSON.stringify(${MOBILE_RULES})`)));
+        if (m.espacioContenido !== undefined && m.espacioContenido < minContent(device)) failures.push(`poco espacio para el contenido (${m.espacioContenido} px)`);
         problems += failures.length;
         const room = m.espacioContenido !== undefined ? ` · contenido ${m.espacioContenido} px` : '';
         lines.push(`  ${failures.length ? '✖' : '✔'} ${screen.name}${room}${failures.length ? `\n      ${failures.join('\n      ')}` : ''}`);
@@ -674,8 +676,12 @@ async function worker(list, n) {
 }
 
 // Los tamaños se reparten alternos (1.º, 4.º y 7.º al primer Chrome…): todos tardan lo mismo.
-const groups = FAST ? [devices.filter((d) => d.min || d.movil)] : PORTS.map((_, n) => devices.filter((_, k) => k % PORTS.length === n)).filter((g) => g.length);
-const results = await Promise.allSettled(groups.map((list, n) => worker(list, n)));
+// Las pantallas móviles, en otro Chrome y siempre con el pase rápido: abrirlas de nuevo en cada tamaño pasaba del tiempo máximo.
+const phones = devices.filter((d) => d.min || d.movil);
+const WIDE_PORTS = PORTS.length - 1;
+const wide = devices.filter((d) => !d.min);
+const groups = FAST ? [] : Array.from({ length: WIDE_PORTS }, (_, n) => wide.filter((_, k) => k % WIDE_PORTS === n)).filter((g) => g.length && screens.some((x) => !x.tactil));
+const results = await Promise.allSettled([...groups.map((list, n) => worker(list, n, false)), ...(phones.length && screens.some((s) => s.tactil) ? [worker(phones, FAST ? 0 : WIDE_PORTS, true)] : [])]);
 await sleep(800);
 if (!SHOTS) fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5 });
 const crash = results.find((r) => r.status === 'rejected');

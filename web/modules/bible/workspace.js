@@ -1,4 +1,5 @@
 import { state, subscribe } from '../../core/api.js';
+import { openContent } from '../../core/contenido.js';
 import { h } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { prefs } from '../../core/prefs.js';
@@ -100,7 +101,7 @@ function mount(el, ctx) {
     second.replaceChildren(...options(list));
     paintCompare();
     if (!list.length) {
-      browser.empty('No hay biblias instaladas', 'Copia archivos .xmm o .xml en la carpeta "Contenido/Biblias" del equipo principal. Aparecerán aquí solos.');
+      browser.empty('No hay biblias instaladas', 'Copia archivos .xmm o .xml en la carpeta "Contenido/Biblias" del equipo principal. Aparecerán aquí solos.', openContent(ctx));
       return;
     }
     const has = (id) => list.some((v) => v.id === id);

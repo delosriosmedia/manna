@@ -175,6 +175,7 @@ function mount(el, ctx) {
     const findPage = (id) => pages().find((pg) => pg.id === id);
     const facts = (d) => (!d ? 'Ya no está en la biblioteca' : d.status === 'ready' ? plural(d.pages) : d.status === 'converting' ? 'Convirtiéndose…' : d.error || 'No se pudo convertir');
     const empty = (strong, text, ...more) => h('div', { class: 'empty' }, h('strong', {}, strong), text, ...more);
+    const goTab = (id, label) => h('p', { style: 'margin-top: 14px;' }, h('button', { class: 'btn', onclick: () => { tab = id; render(); } }, label));
     if (view === 'orden') {
       const items = (state.order?.items || []).filter(listed);
       const find = (i) => decks().find((d) => d.id === i.data?.id);
@@ -182,12 +183,12 @@ function mount(el, ctx) {
         ? items.map((i) => (i.kind === 'web'
           ? pageRow(findPage(i.data?.id), i.title, () => choose(i.data.id, i.id, 'web'))
           : row(find(i), { title: i.title, facts: facts(find(i)) }, () => choose(i.data.id, i.id))))
-        : [empty('No hay presentaciones en el orden del culto', 'Elige una de la biblioteca o súbela.')]));
+        : [empty('No hay presentaciones en el orden del culto', 'Elige una de la biblioteca o súbela.', goTab('biblioteca', 'Ver la biblioteca'))]));
     } else if (view === 'biblioteca') {
       list.replaceChildren(...(decks().length || pages().length
         ? [...decks().map((d) => row(d, { title: d.name, facts: facts(d) }, () => choose(d.id))),
           ...pages().map((pg) => pageRow(pg, pg.name, () => choose(pg.id, null, 'web')))]
-        : [empty('Aún no hay presentaciones', 'Súbela desde «Subir».')]));
+        : [empty('Aún no hay presentaciones', 'Súbela desde el equipo o el celular.', goTab('subir', 'Subir una presentación'))]));
     } else {
       list.replaceChildren(empty('Subir una presentación', 'En PDF o, si el equipo principal tiene con qué convertirla, de PowerPoint o Keynote. Al terminar se abre aquí.',
         h('div', { class: 'row', style: 'justify-content: center; margin-top: 14px;' },

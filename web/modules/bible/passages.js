@@ -445,9 +445,9 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
     setVersion,
     refresh,
     // Sin biblias (o sin las suficientes): un mensaje en el sitio de los versículos.
-    empty(heading, text) {
+    empty(heading, text, ...more) {
       view.versionId = null;
-      colVerses.replaceChildren(h('div', { class: 'empty' }, h('strong', {}, heading), text));
+      colVerses.replaceChildren(h('div', { class: 'empty' }, h('strong', {}, heading), text, ...more.filter(Boolean)));
     },
     api: {
       keys(e) {

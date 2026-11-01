@@ -1,4 +1,5 @@
 import { action, api, state, subscribe } from '../../core/api.js';
+import { openContent } from '../../core/contenido.js';
 import { armedClick, h, dialog, guard, marked, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { formatTime } from '../../core/playback.js';
@@ -14,6 +15,7 @@ const VIEWS = [['grid', 'Todos', 'squares-four'], ['categories', 'Categorías', 
 // proyecta o se añade al orden del culto.
 function mount(el, ctx) {
   let book = { version: -1, hymns: [], categories: [], report: null }; // lo que dice /api/hymns
+  let failed = false;
   let selected = null;                                   // número del himno elegido
   let view = VIEWS.some(([id]) => id === prefs.get('himnario.vista')) ? prefs.get('himnario.vista') : 'grid';
   // Siempre «cantado» al empezar y al elegir otro himno: la pista solo cuando se elige para ese (pedido del dueño, 2026-10-29).
@@ -123,6 +125,8 @@ function mount(el, ctx) {
     paint();
     if (reveal) body.querySelector('.hymn.selected')?.scrollIntoView({ block: 'center' });
   }
+  const clearButton = () => h('p', { style: 'margin-top: 14px;' }, h('button', { class: 'btn', onclick: () => { clearSearch(); render(); } }, 'Borrar la búsqueda'));
+  const again2 = () => h('p', { style: 'margin-top: 14px;' }, h('button', { class: 'btn', onclick: () => load() }, 'Intentar otra vez'));
   function setView(id) {
     view = id;
     prefs.set('himnario.vista', id);
@@ -143,19 +147,22 @@ function mount(el, ctx) {
     if (!book.hymns.length) {
       // También mientras llega la lista: el servidor ya dice cuántos hay.
       const reading = state.hymns?.ready === false || (state.hymns?.count > 0 && book.version !== state.hymns.version);
+      if (failed) return [h('div', { class: 'empty' }, h('strong', {}, 'No se pudo leer el himnario'), 'Mira si sigue la conexión con el equipo principal.', retryButton())];
       return [h('div', { class: 'empty' }, h('strong', {}, reading ? 'Leyendo el himnario…' : 'Aún no hay himnos'),
-        !reading && 'Copia los videos de los himnos a la carpeta Contenido/Himnario/videos del equipo principal, uno por himno y con su número delante: «001 Título.mp4». Aparecen aquí solos.')];
+        !reading && 'Copia los videos de los himnos a la carpeta Contenido/Himnario/videos del equipo principal, uno por himno y con su número delante: «001 Título.mp4». Aparecen aquí solos.',
+        !reading && openContent(ctx))];
     }
     if (view === 'grid') return [h('div', { class: 'hymn-grid' }, ...book.hymns.map(tile))];
     if (view === 'letras') {
       const withSlides = book.hymns.filter((hymn) => hymn.slides > 0);
       return withSlides.length ? [h('div', { class: 'hymn-grid' }, ...withSlides.map(tile))]
-        : [h('div', { class: 'empty' }, h('strong', {}, 'Aún no hay letras sin música'), 'Copia las diapositivas del himnario a la carpeta Contenido/Himnario/diapositivas del equipo principal: una carpeta por himno, con el nombre de su video («001 Título»), y dentro 01.jpg (la portada), 02.jpg… Aparecen aquí solas.')];
+        : [h('div', { class: 'empty' }, h('strong', {}, 'Aún no hay letras sin música'), 'Copia las diapositivas del himnario a la carpeta Contenido/Himnario/diapositivas del equipo principal: una carpeta por himno, con el nombre de su video («001 Título»), y dentro 01.jpg (la portada), 02.jpg… Aparecen aquí solas.', openContent(ctx))];
     }
     if (view === 'favorites') {
       const chosen = book.hymns.filter((hymn) => favorites().includes(hymn.number));
       return chosen.length ? [h('div', { class: 'hymn-grid' }, ...chosen.map(tile))]
-        : [h('div', { class: 'empty' }, h('strong', {}, 'Aún no hay favoritos'), 'Elige un himno y toca «Favorito» en la barra de abajo: aquí quedan a mano los que más se cantan.')];
+        : [h('div', { class: 'empty' }, h('strong', {}, 'Aún no hay favoritos'), 'Elige un himno y toca «Favorito» en la barra de abajo: aquí quedan a mano los que más se cantan.',
+          h('p', { style: 'margin-top: 14px;' }, h('button', { class: 'btn', onclick: () => setView('grid') }, 'Ver todos los himnos')))];
     }
     // «Sección: Categoría» (el índice por temas del himnario): la sección encabeza sus categorías; una categoría sin
     // sección (El Espíritu Santo) va sola, con su nombre entero.
@@ -203,11 +210,11 @@ function mount(el, ctx) {
     };
     if (found.type === 'number') {
       return found.results.length ? [h('div', { class: 'hymn-hits' }, ...found.results.map(hit))]
-        : [h('div', { class: 'empty' }, h('strong', {}, `No hay un himno ${input.value.trim()}`), `El himnario tiene ${book.hymns.length} himnos.`)];
+        : [h('div', { class: 'empty' }, h('strong', {}, `No hay un himno ${input.value.trim()}`), `El himnario tiene ${book.hymns.length} himnos.`, clearButton())];
     }
     if (!found.total) {
       return [h('div', { class: 'empty' }, h('strong', {}, 'Ningún himno coincide'),
-        book.report?.withLyrics ? 'Prueba con otras palabras, con menos, o con el número del himno.' : 'No hay letras en la carpeta del himnario: solo se busca por número y por título.')];
+        book.report?.withLyrics ? 'Prueba con otras palabras, con menos, o con el número del himno.' : 'No hay letras en la carpeta del himnario: solo se busca por número y por título.', clearButton())];
     }
     return [h('div', { class: 'hymn-hits' }, ...found.levels.flatMap((level) => [
       h('div', { class: 'hymn-level' }, level.label, h('small', {}, String(level.total))),
@@ -353,8 +360,13 @@ function mount(el, ctx) {
     loading = true;
     try {
       book = await api('/api/hymns');
+      failed = false;
       if (found) clearSearch();
       render();
+    } catch (err) {
+      failed = true;
+      render();
+      throw err;
     } finally {
       loading = false;
       if (again) {

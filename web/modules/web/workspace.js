@@ -1,5 +1,5 @@
 import { action, state, subscribe, upload } from '../../core/api.js';
-import { h, dialog, guard, menu, toast } from '../../core/dom.js';
+import { cutName, h, dialog, guard, menu, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { nameFromFile } from '../../core/names.js';
 import { layerButton } from '../../core/capas.js';
@@ -130,7 +130,7 @@ function mount(el, ctx) {
       list.replaceChildren(sharedItem() || '', ...all.map((page) => h('div', { class: `web-item${page.id === pageId ? ' selected' : ''}${air === page.id ? ' live' : ''}`, dataset: { id: page.id } },
         h('button', { class: 'web-pick', 'aria-pressed': page.id === pageId, onclick: () => choose(page.id), ondblclick: () => { choose(page.id); project(); } },
           h('span', { class: 'kind k-web' }, icon('globe', 16)),
-          h('span', { class: 'item-text' }, h('strong', {}, page.name), h('small', {}, air === page.id && h('span', { class: 'badge live' }, 'Al aire'), ` ${page.subtitle}`))),
+          h('span', { class: 'item-text' }, cutName(page.name), h('small', {}, air === page.id && h('span', { class: 'badge live' }, 'Al aire'), ` ${page.subtitle}`))),
         ctx.can('web.edit') && h('button', { class: 'icon-btn sm web-more', 'aria-label': `Opciones de ${page.name}`, onclick: (e) => menu(e.currentTarget, [
           { label: 'Cambiar el nombre', icon: 'pencil-simple', onclick: () => askName(page) },
           '-',

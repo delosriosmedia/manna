@@ -245,6 +245,9 @@ html.touch .seg .icon-btn { width: var(--tap); height: var(--tap); }
 .monitor.on-air { border-color: var(--live); box-shadow: 0 0 0 1px var(--live); }
 
 .empty { padding: 28px 20px; text-align: center; color: var(--ink-3); }
+html:not([data-disposicion='computador']) .item-text strong.cut-name { display: flex; min-width: 0; white-space: pre; }
+html:not([data-disposicion='computador']) .cut-name > :first-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+html:not([data-disposicion='computador']) .cut-name > :last-child { flex: none; }
 .empty strong { display: block; color: var(--ink-2); font-weight: 600; margin-bottom: 4px; }
 
 /* ---- Aviso flotante ---- */

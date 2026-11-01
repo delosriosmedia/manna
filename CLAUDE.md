@@ -1,5 +1,7 @@
 # Manna - Church projection app
 
+Segundo cerebro: ~/Documents/Deep/dlrBRAIN/10 Proyectos/Manna.md
+
 Aplicación web para proyectar en la iglesia. Un equipo principal (con el proyector como segunda pantalla) hace de servidor; celulares y PC de la red local entran por el navegador y eligen una función (rol).
 
 Repositorio: https://github.com/delosriosmedia/manna
@@ -21,7 +23,7 @@ Diseño web: dueño del estilo = minimalist-ui · etapa = mejora de la bienvenid
   `MANNA_NAME=manna-prueba MANNA_NO_OPEN=1 MANNA_SIN_VENTANA=1 MANNA_DATA="$TMPDIR/manna-prueba" MANNA_HIMNARIO="$TMPDIR/manna-prueba/himnario" PORT=8123 node server/index.js`
   (`MANNA_SIN_VENTANA=1` es obligatorio en pruebas: sin él, si hay un proyector conectado, la prueba se proyecta y suena en él)
 - Pruebas de extremo a extremo en un Chrome real: `node scripts/probar-chrome.mjs` (tres grupos a la vez, unos 4 min; con un nombre, solo ese grupo: `control`, `biblioteca` o `red`; `rapido` se salta los pasos 2 a 4). Usa los puertos 8123, 8125, 8131 y 8133: cierra antes la demostración **y su pestaña** (también la del navegador integrado; ver `.claude/rules/pruebas.md`)
-- Auditoría de adaptación a pantallas (celular, tableta, escritorio): `node scripts/auditar-responsive.mjs` (unos 4 min; con palabras, solo esas pantallas y tamaños: `… biblia 360x640 844x390 1280x720`; con `grande`, con la interfaz al tamaño máximo de Ajustes)
+- Auditoría de adaptación a pantallas (celular, tableta, escritorio): `node scripts/auditar-responsive.mjs` (unos 7 min; con palabras, solo esas pantallas y tamaños: `… biblia 360x640 844x390 1280x720`; con `grande`, con la interfaz al tamaño máximo de Ajustes)
 - Los guiones de pruebas en Chrome (`scripts/lib/chrome.mjs`, usan el `WebSocket` integrado) necesitan **Node.js 22 o superior**.
 - La nube: `node scripts/subir-r2.mjs` sube a R2 el himnario y las biblias que falten (claves en `~/.manna-r2`); `node scripts/desplegar.mjs probar` arma el paquete del hosting y lo prueba como lo abrirá. Cómo se despliega: `.claude/rules/nube.md`
 - La bienvenida y los manuales de `manna-iglesia.es`: `node scripts/sitio.mjs` (toma las capturas con la auditoría, unos 3 min; con `sin-capturas`, para cambios de texto) arma `data/sitio/` y su `.zip`; para verlo aquí, `manna-sitio` de `.claude/launch.json`; cómo se publica: `.claude/rules/nube.md`

@@ -1,8 +1,13 @@
 import { action, state } from './api.js';
 import { h, dialog, guard, toast } from './dom.js';
+import { icon } from './icons.js';
 
 // La carpeta de contenido de la iglesia (fase 29): la eligen Ajustes y el aviso de que falta (shell.js), solo en el
 // equipo principal. Cambiarla no reinicia Manna.
+
+// Para lo que se llena copiando archivos: en el equipo principal, abrir esa carpeta (false en los demás, donde no se puede).
+export const openContent = (ctx) => ctx.isLocal && ctx.can('system.admin') && h('p', { style: 'margin-top: 14px;' },
+  h('button', { class: 'btn', onclick: guard(() => action('system.contentOpen')) }, icon('folder-simple', 16), 'Abrir la carpeta'));
 
 // ¿Hace falta elegirla? No se encuentra, o solo tiene la Reina-Valera 1909 y ningún himno (lo que trae el instalador).
 // null: aún no se sabe (el himnario se está leyendo).

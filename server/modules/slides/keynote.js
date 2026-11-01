@@ -1,17 +1,19 @@
 import fs from 'node:fs';
 import { isMainThread, parentPort, Worker, workerData } from 'node:worker_threads';
-import { bool, float, floats, ints, msg, msgs, readObjects, ref, refs, text, val } from './iwa.js';
+import { chartKind, layoutChart, seriesOf } from './grafico.js';
+import { bool, double, float, floats, ints, msg, msgs, readObjects, ref, refs, text, val } from './iwa.js';
 import { CONTENT_TYPES, HEAD, LAYOUT, MASTER, NS, readZip, rels, THEME, TREE, writeZip } from './pptx.js';
 
 // Keynote a PowerPoint: lee un .key y escribe un .pptx con lo mismo en el mismo sitio (formas, textos, imágenes, grupos y
 // fondos). Lo demás de Manna (DeckCraft, las letras que faltan, la nube) lo recibe como un PowerPoint más y no se entera.
 // No hace falta Keynote, que no existe en Windows. Los números de campo son los del formato (protobuf; ver iwa.js).
 //
-// Lo que no se traduce (un gráfico, una tabla, un video sin imagen) sale de la miniatura que Keynote guarda de cada
-// diapositiva, de 356 × 200: se ve, con menos nitidez, y se avisa (`soft`, los números de esas diapositivas). Las animaciones y
-// las transiciones no se conservan: de cada diapositiva queda cómo acaba.
+// Los gráficos sencillos se dibujan con formas (grafico.js). Lo que no se traduce (otro gráfico, una tabla, un video sin imagen)
+// sale de la miniatura que Keynote guarda de cada diapositiva, de 356 × 200: se ve, con menos nitidez, y se avisa (`soft`, los
+// números de esas diapositivas). Una animación pasa a aparecer o irse con un fundido, en su mismo clic (timingXml), y las
+// transiciones no se conservan.
 
-const T = { SHOW: 2, PLACEHOLDER: 7, STORAGE: 2001, SHAPE_INFO: 2011, TEXT_SHAPE_STYLE: 2025, NUMBER: 2043, SHAPE: 3004, IMAGE: 3005, MASK: 3006, MOVIE: 3007, GROUP: 3008, LINE: 3009, PACKAGE: 11006 };
+const T = { CHART: 5021, SHOW: 2, PLACEHOLDER: 7, STORAGE: 2001, SHAPE_INFO: 2011, TEXT_SHAPE_STYLE: 2025, NUMBER: 2043, SHAPE: 3004, IMAGE: 3005, MASK: 3006, MOVIE: 3007, GROUP: 3008, LINE: 3009, PACKAGE: 11006 };
 const SKIP_FILES = /\.(mov|mp4|m4v|m4a|mp3|aac|wav)$/i;
 // Lo que un .pptx no puede llevar como imagen.
 const NOT_RASTER = /\.(heic|heif|pdf)$/i;
@@ -24,6 +26,7 @@ const percent = (x) => Math.round(x * 100000);
 const NO_FILL = '<a:noFill/>';
 const NO_LINE = '<a:ln><a:noFill/></a:ln>';
 const RECT = '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>';
+const EMPTY_BODY = '<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:endParaRPr lang="es-CO"/></a:p></p:txBody>';
 const custom = (w, h, path) => `<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l="0" t="0" r="r" b="b"/><a:pathLst><a:path w="${emu(w)}" h="${emu(h)}">${path}</a:path></a:pathLst></a:custGeom>`;
 const pointXml = (p) => `<a:pt x="${emu(float(p, 1))}" y="${emu(float(p, 2))}"/>`;
 
@@ -138,6 +141,58 @@ function xfrm(g, extra = '') {
   return `<a:xfrm${rotation > 0.001 ? ` rot="${Math.round(rotation * 60000)}"` : ''}${g.flags & 4 ? ' flipH="1"' : ''}${g.flags & 8 ? ' flipV="1"' : ''}><a:off x="${emu(g.x)}" y="${emu(g.y)}"/><a:ext cx="${emu(g.w)}" cy="${emu(g.h)}"/>${extra}</a:xfrm>`;
 }
 
+// Las animaciones: cada clic, con lo que aparece o se va en él. Un trozo automático va con el clic de antes; al principio de la
+// diapositiva, ese objeto ya está a la vista. Un movimiento o un giro no se traduce: el objeto sigue donde está.
+export function clicksOf(slide, get, spids, paragraphsOf) {
+  const buildOf = (id) => get(id)?.data;
+  const chunks = refs(slide.data, 43).map(buildOf).filter((c) => buildOf(ref(c, 1)));
+  const steps = chunks.length ? chunks.map((c) => ({ id: ref(c, 1), auto: bool(c, 5) })) : refs(slide.data, 2).filter(buildOf).map((id) => ({ id }));
+  const pieces = new Map();
+  for (const { id } of steps) pieces.set(id, (pieces.get(id) || 0) + 1);
+  const done = new Map();
+  const clicks = [];
+  for (const { id, auto } of steps) {
+    const build = buildOf(id);
+    const n = done.get(id) || 0;
+    done.set(id, n + 1);
+    const drawable = ref(build, 1);
+    const spid = spids.get(drawable);
+    const attributes = msg(build, 4);
+    const animation = msg(attributes, 18);
+    const name = [text(animation, 1), text(animation, 2), text(attributes, 1), text(attributes, 2)].filter(Boolean).join(' ');
+    if (!spid || /action/i.test(name)) continue;
+    // Por párrafos, si hay uno por cada trozo; si no, el objeto entero, en su primer trozo.
+    const parts = paragraphsOf.get(drawable) || [];
+    const byParagraph = pieces.get(id) > 1 && pieces.get(id) === parts.length;
+    if (n && !byParagraph) continue;
+    const effect = { spid, out: /out\b/i.test(name), para: byParagraph ? parts[n] : undefined };
+    if (!auto) clicks.push([effect]);
+    else if (clicks.length) clicks.at(-1).push(effect);
+  }
+  return clicks;
+}
+
+export function timingXml(clicks) {
+  if (!clicks.length) return '';
+  let id = 2;
+  const when = '<p:stCondLst><p:cond delay="0"/></p:stCondLst>';
+  const effect = ({ spid, out, para }, first) => {
+    const target = `<p:tgtEl><p:spTgt spid="${spid}">${para === undefined ? '' : `<p:txEl><p:pRg st="${para}" end="${para}"/></p:txEl>`}</p:spTgt></p:tgtEl>`;
+    const set = (delay, value) => `<p:set><p:cBhvr><p:cTn id="${++id}" dur="1" fill="hold"><p:stCondLst><p:cond delay="${delay}"/></p:stCondLst></p:cTn>${target}<p:attrNameLst><p:attrName>style.visibility</p:attrName></p:attrNameLst></p:cBhvr><p:to><p:strVal val="${value}"/></p:to></p:set>`;
+    const fade = () => `<p:animEffect transition="${out ? 'out' : 'in'}" filter="fade"><p:cBhvr><p:cTn id="${++id}" dur="500"/>${target}</p:cBhvr></p:animEffect>`;
+    const head = `<p:cTn id="${++id}" presetID="10" presetClass="${out ? 'exit' : 'entr'}" presetSubtype="0" fill="hold"${para === undefined ? '' : ' grpId="0"'} nodeType="${first ? 'clickEffect' : 'withEffect'}">${when}<p:childTnLst>`;
+    return `<p:par>${head}${out ? `${fade()}${set(499, 'hidden')}` : `${set(0, 'visible')}${fade()}`}</p:childTnLst></p:cTn></p:par>`;
+  };
+  const click = (effects) => {
+    const outer = ++id;
+    const inner = ++id;
+    return `<p:par><p:cTn id="${outer}" fill="hold"><p:stCondLst><p:cond delay="indefinite"/></p:stCondLst><p:childTnLst><p:par><p:cTn id="${inner}" fill="hold">${when}<p:childTnLst>${effects.map((e, i) => effect(e, !i)).join('')}</p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:par>`;
+  };
+  const body = clicks.map(click).join('');
+  const texts = [...new Set(clicks.flat().filter((e) => e.para !== undefined).map((e) => e.spid))];
+  return `<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot"><p:childTnLst><p:seq concurrent="1" nextAc="seek"><p:cTn id="2" dur="indefinite" nodeType="mainSeq"><p:childTnLst>${body}</p:childTnLst></p:cTn><p:prevCondLst><p:cond evt="onPrev" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:prevCondLst><p:nextCondLst><p:cond evt="onNext" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:nextCondLst></p:seq></p:childTnLst></p:cTn></p:par></p:tnLst>${texts.length ? `<p:bldLst>${texts.map((spid) => `<p:bldP spid="${spid}" grpId="0" build="p"/>`).join('')}</p:bldLst>` : ''}</p:timing>`;
+}
+
 // Cuánto ocupa un texto, sin tener las letras a mano: un ancho medio por clase de letra. Solo para decidir cuánto encoger.
 const glyph = (ch) => (/[A-ZÁÉÍÓÚÑ]/.test(ch) ? 0.68 : /[mwMW]/.test(ch) ? 0.8 : /[iljtfr.,:;'’!¡|]/.test(ch) ? 0.3 : /\d/.test(ch) ? 0.56 : 0.53);
 function textHeight(paragraphs, width, k) {
@@ -218,6 +273,8 @@ export function keynoteToPptx(file) {
     let nextId = 2;
     const links = new Map();
     const overlays = [];
+    const spids = new Map(); // de cada objeto de la diapositiva, su número en el .pptx
+    const paragraphsOf = new Map(); // de cada texto, qué párrafos tienen letras
     const nameTag = () => `<p:cNvPr id="${nextId++}" name=""/>`;
     const thumbnail = val(msg(node.data, 16), 1);
     // Una imagen de Data/ en esta diapositiva: su enlace, o null si no está.
@@ -409,6 +466,7 @@ export function keynoteToPptx(file) {
         const fallback = layoutProp(style, (p) => ref(p, 10));
         let paragraphs = paragraphsXml(storage.data, { opacity, fallback });
         if (paragraphs.shown.trim()) {
+          paragraphsOf.set(o.id, paragraphs.metrics.flatMap((m, i) => (m.words.length ? [i] : [])));
           const padding = layoutProp(style, (p) => msg(p, 6) ?? undefined);
           const [li, ti, ri, bi] = [1, 2, 3, 4].map((f) => float(padding, f) ?? 4);
           const anchor = layoutProp(style, (p) => val(p, 2));
@@ -437,7 +495,7 @@ export function keynoteToPptx(file) {
       const fillPart = fillXml(fill, opacity, g.w, g.h);
       const linePart = lineXml(stroke, opacity, drawProp(style, (p) => msg(p, 6) ?? undefined), drawProp(style, (p) => msg(p, 7) ?? undefined));
       if (!txBody && fillPart === NO_FILL && linePart === NO_LINE) return '';
-      return `<p:sp><p:nvSpPr>${nameTag()}<p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>${xfrm(g)}${geomXml(source, g.w, g.h)}${fillPart}${linePart}${shadowXml(drawProp(style, (p) => msg(p, 4) ?? undefined))}</p:spPr>${txBody || '<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:endParaRPr lang="es-CO"/></a:p></p:txBody>'}</p:sp>`;
+      return `<p:sp><p:nvSpPr>${nameTag()}<p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>${xfrm(g)}${geomXml(source, g.w, g.h)}${fillPart}${linePart}${shadowXml(drawProp(style, (p) => msg(p, 4) ?? undefined))}</p:spPr>${txBody || EMPTY_BODY}</p:sp>`;
     }
 
     // Lo que no se traduce: ese trozo de la miniatura, encima de todo (ya trae dibujado lo que tuviera encima).
@@ -482,6 +540,90 @@ export function keynoteToPptx(file) {
       return `<p:pic><p:nvPicPr>${nameTag()}<p:cNvPicPr/><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="${id}">${opacity < 0.999 ? `<a:alphaModFix amt="${percent(opacity)}"/>` : ''}</a:blip>${crop}<a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr>${xfrm(frame)}${geom}${stroke ? lineXml(stroke, opacity) : ''}${shadowXml(ownProp(style, (p) => msg(p, 3) ?? undefined))}</p:spPr></p:pic>`;
     }
 
+    // Un gráfico sencillo, con formas (grafico.js). Si no se sabe dibujar, sale de la miniatura.
+    function chart(o, drawable) {
+      const info = msg(o.data, 10000);
+      const shapeOf = chartKind(val(info, 1));
+      const grid = msg(info, 7);
+      if (!shapeOf || !grid) return '';
+      const names = (field) => (grid.get(field) || []).map((b) => b.toString('utf8'));
+      const table = seriesOf({ rows: msgs(grid, 3).map((row) => msgs(row, 1).map((v) => double(v, 1) ?? null)), rowNames: names(1), colNames: names(2), byRow: val(info, 5) === 1 });
+      if (!table.series.some((s) => s.values.some(Number.isFinite))) return '';
+      const { kind } = shapeOf;
+      const FIELDS = { pie: { fill: 17, label: 23, show: 44 }, column: { fill: 13, label: 19, show: 39 }, bar: { fill: 12, label: 19, show: 39 }, area: { fill: 11, label: 18, show: 38 }, line: { stroke: 48, label: 21, show: 42 } }[kind];
+      const own = (id, read) => inherit(id, (d) => { const p = msg(d, 10000); return p ? read(p) : undefined; });
+      const sparse = (field) => new Map(msgs(msg(info, field), 2).map((e) => [val(e, 1), ref(e, 2)]));
+      const theme = refs(info, 17);
+      const [privateStyles, nonStyles] = [sparse(18), sparse(19)];
+      const styleOf = (i) => privateStyles.get(i) ?? theme[i % (theme.length || 1)];
+      const paragraphStyles = refs(info, 20);
+      const letters = (index) => runProps([paragraphStyles[index ?? 0]].filter((x) => x !== undefined), 1, 1);
+      const seriesLetters = table.series.map((_, i) => letters(own(styleOf(i), (p) => val(p, FIELDS.label))));
+      const plain = msg(get(ref(info, 10))?.data, 10000);
+      const [categoryStyle, categoryPlain, valueStyle] = [refs(info, 15)[0], msg(get(refs(info, 16)[0])?.data, 10000), refs(info, 13)[0]];
+      const categoryLetters = letters(own(categoryStyle, (p) => val(p, 6)));
+      const legendBox = msg(info, 3);
+      const titleLetters = letters(own(ref(info, 9), (p) => val(p, 20)));
+      const legendLetters = letters(own(ref(info, 11), (p) => val(p, 2)));
+      const marks = layoutChart({
+        ...shapeOf,
+        w: geometry(drawable).w,
+        h: geometry(drawable).h,
+        categories: table.categories,
+        dataset: val(info, 21) ?? 0,
+        start: float(plain, 19),
+        inner: float(plain, 27),
+        gapBar: own(ref(info, 9), (p) => float(p, 16)),
+        gapSet: own(ref(info, 9), (p) => float(p, 17)),
+        grid: own(valueStyle, (p) => bool(p, 28)) !== false,
+        names: bool(categoryPlain, 9) !== false,
+        title: bool(plain, 21) ? text(plain, 23) : '',
+        legend: bool(plain, 20) && legendBox ? { x: float(msg(legendBox, 1), 1) ?? 0, y: float(msg(legendBox, 1), 2) ?? 0, w: float(msg(legendBox, 2), 1) ?? 0, h: float(msg(legendBox, 2), 2) ?? 0 } : null,
+        sizes: { value: seriesLetters[0].points, category: categoryLetters.points, title: titleLetters.points, legend: legendLetters.points },
+        series: table.series.map((s, i) => {
+          const details = msg(get(nonStyles.get(i))?.data, 10000);
+          return { ...s, labels: Boolean(bool(details, FIELDS.show)), percent: val(msg(details, 99), 1) === 258, explosion: float(details, 147), symbol: kind === 'line' && bool(details, 33) !== false };
+        }),
+      });
+      const paint = (i) => {
+        const fill = FIELDS.fill && own(styleOf(i), (p) => msg(p, FIELDS.fill) ?? undefined);
+        if (fill) return fillXml(fill, 1, geometry(drawable).w, geometry(drawable).h);
+        const stroke = own(styleOf(i), (p) => msg(p, FIELDS.stroke) ?? undefined);
+        return `<a:solidFill>${colorXml(msg(stroke, 1))}</a:solidFill>`;
+      };
+      const box = (x, y, w, h) => `<a:xfrm><a:off x="${emu(x)}" y="${emu(y)}"/><a:ext cx="${emu(w)}" cy="${emu(h)}"/></a:xfrm>`;
+      const sp = (spPr, body = EMPTY_BODY) => `<p:sp><p:nvSpPr>${nameTag()}<p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>${spPr}</p:spPr>${body}</p:sp>`;
+      const poly = (points, fill, line, closed) => {
+        const [xs, ys] = [points.map((p) => p[0]), points.map((p) => p[1])];
+        const [x, y] = [Math.min(...xs), Math.min(...ys)];
+        const [w, h] = [Math.max(0.01, Math.max(...xs) - x), Math.max(0.01, Math.max(...ys) - y)];
+        const pt = (p) => `<a:pt x="${emu(p[0] - x)}" y="${emu(p[1] - y)}"/>`;
+        const path = `<a:moveTo>${pt(points[0])}</a:moveTo>${points.slice(1).map((p) => `<a:lnTo>${pt(p)}</a:lnTo>`).join('')}${closed ? '<a:close/>' : ''}`;
+        return sp(`${box(x, y, w, h)}${custom(w, h, path)}${fill}${line}`);
+      };
+      const gridLine = own(valueStyle, (p) => msg(p, 17) ?? undefined);
+      const draws = {
+        shape: (m) => poly(m.points, paint(m.series), NO_LINE, true),
+        rule: (m) => poly(m.points, NO_FILL, gridLine ? lineXml(gridLine) : NO_LINE, false),
+        line: (m) => poly(m.points, NO_FILL, lineXml(own(styleOf(m.series), (p) => msg(p, FIELDS.stroke) ?? undefined)), false),
+        dot: (m) => {
+          const size = own(styleOf(m.series), (p) => float(p, 71)) ?? 5;
+          const fill = own(styleOf(m.series), (p) => msg(p, 56) ?? undefined);
+          return sp(`${box(m.x - size / 2, m.y - size / 2, size, size)}<a:prstGeom prst="ellipse"><a:avLst/></a:prstGeom>${fill ? fillXml(fill) : paint(m.series)}${NO_LINE}`);
+        },
+        swatch: (m) => sp(`${box(m.x, m.y - m.size / 2, m.size, m.size)}${RECT}${paint(m.series)}${NO_LINE}`),
+        label: (m) => {
+          const props = m.series !== undefined ? seriesLetters[m.series] : { category: categoryLetters, title: titleLetters, legend: legendLetters }[m.role];
+          const [wide, tall] = [240, props.points * 1.5];
+          const x = m.align === 'start' ? m.x : m.align === 'end' ? m.x - wide : m.x - wide / 2;
+          return sp(`${box(x, m.y - tall / 2, wide, tall)}${RECT}${NO_FILL}`, `<p:txBody><a:bodyPr wrap="none" lIns="0" tIns="0" rIns="0" bIns="0" rtlCol="0" anchor="ctr"><a:noAutofit/></a:bodyPr><a:lstStyle/><a:p><a:pPr algn="${{ start: 'l', end: 'r' }[m.align] || 'ctr'}"><a:buNone/></a:pPr><a:r><a:rPr ${props.attrs}>${props.inner}</a:rPr><a:t>${escapeXml(m.text)}</a:t></a:r></a:p></p:txBody>`);
+        },
+      };
+      const inner = marks.map((m) => draws[m.mark](m)).join('');
+      const g = geometry(drawable);
+      return `<p:grpSp><p:nvGrpSpPr>${nameTag()}<p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr>${xfrm(g, `<a:chOff x="0" y="0"/><a:chExt cx="${emu(g.w)}" cy="${emu(g.h)}"/>`)}</p:grpSpPr>${inner}</p:grpSp>`;
+    }
+
     function draw(id, depth = 0, origin = {}) {
       const o = get(id);
       if (!o || depth > 32) return '';
@@ -489,6 +631,10 @@ export function keynoteToPptx(file) {
       if (o.type === T.IMAGE || o.type === T.MOVIE) return picture(o, origin);
       const drawable = msg(o.data, 1);
       if (!msg(drawable, 1)) return '';
+      if (o.type === T.CHART) {
+        const drawn = chart(o, drawable);
+        if (drawn) return drawn;
+      }
       if (o.type !== T.GROUP) return fromThumbnail(drawable, origin);
       const g = geometry(drawable);
       const inner = { x: (origin.x || 0) + g.x, y: (origin.y || 0) + g.y };
@@ -518,13 +664,15 @@ export function keynoteToPptx(file) {
         const kind = val(o.data, 2) ?? 0;
         if (kind === 1 ? !bool(node.data, 18) : slideProp((p) => bool(p, { 2: 4, 3: 5, 4: 7 }[kind])) === false) continue;
       }
-      tree += draw(id);
+      const drawn = draw(id);
+      tree += drawn;
+      if (drawn) spids.set(id, nextId - 1); // el último número que se dio es el suyo: lo de un grupo va antes que él
     }
     const background = slideProp((p) => msg(p, 1) ?? undefined);
     const bg = background ? fillXml(background, 1, W, H) : NO_FILL;
     const white = '<a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>';
     slides.push({
-      xml: `${HEAD}<p:sld ${NS}${bool(node.data, 4) ? ' show="0"' : ''}><p:cSld><p:bg><p:bgPr>${bg === NO_FILL ? white : bg}<a:effectLst/></p:bgPr></p:bg><p:spTree>${TREE}${tree}${overlays.join('')}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`,
+      xml: `${HEAD}<p:sld ${NS}${bool(node.data, 4) ? ' show="0"' : ''}><p:cSld><p:bg><p:bgPr>${bg === NO_FILL ? white : bg}<a:effectLst/></p:bgPr></p:bg><p:spTree>${TREE}${tree}${overlays.join('')}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>${timingXml(clicksOf(slide, get, spids, paragraphsOf))}</p:sld>`,
       links: [...links.entries()],
     });
   }

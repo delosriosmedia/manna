@@ -65,6 +65,13 @@ export function confirmBeforeClose() {
 // Envuelve una acción para mostrar el error en pantalla en lugar de dejarlo en la consola.
 // En un móvil (DESIGN.md, 12 ter, regla 2), lo que pone algo al aire desde una lista pide dos toques: el primero lo marca
 // (clase `armed`) y el segundo lo hace, para que un toque accidental no salga en el proyector. En el computador, uno.
+// Un nombre que se corta por el medio en un móvil (DESIGN.md 12 ter, regla 9; ver .cut-name): lo que lo distingue suele estar al final.
+export function cutName(name) {
+  const letters = [...name];
+  if (letters.length < 14) return h('strong', {}, name);
+  return h('strong', { class: 'cut-name', title: name }, h('span', {}, letters.slice(0, -8).join('')), h('span', {}, letters.slice(-8).join('')));
+}
+
 export function armedClick(fn, mobile) {
   return (e) => {
     const b = e.currentTarget;
