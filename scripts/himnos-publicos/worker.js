@@ -9,17 +9,19 @@ export const TOPE_VERSOS = 4;
 async function cita(request, env, [, version, libro, capitulo, primero, ultimo]) {
   const referer = request.headers.get('referer') ?? '';
   if (!ORIGEN.test(referer)) return new Response(null, { status: 403 });
+  // También en los errores: sin este permiso, el navegador esconde la respuesta y la portada no sabe qué pasó.
+  const permiso = { 'access-control-allow-origin': new URL(referer).origin, vary: 'origin' };
   const { success } = (await env.LIMITE?.limit({ key: request.headers.get('cf-connecting-ip') ?? 'sin-direccion' })) ?? { success: true };
-  if (!success) return new Response(null, { status: 429 });
+  if (!success) return new Response(null, { status: 429, headers: permiso });
 
   const objeto = await env.CONTENIDO.get(`Portada/biblias/${version}/${libro}.json`);
   const versos = objeto && (await objeto.json())[capitulo];
-  if (!versos) return new Response(null, { status: 404 });
+  if (!versos) return new Response(null, { status: 404, headers: permiso });
   const desde = Number(primero);
   const hasta = Math.max(Number(ultimo ?? primero), desde);
   const tope = Math.min(hasta, desde + TOPE_VERSOS - 1);
   return Response.json({ versos: versos.filter(([n]) => n >= desde && n <= tope), truncado: hasta > tope }, {
-    headers: { 'access-control-allow-origin': new URL(referer).origin, vary: 'origin', 'cache-control': 'private, max-age=3600' },
+    headers: { ...permiso, 'cache-control': 'private, max-age=3600' },
   });
 }
 

@@ -283,9 +283,11 @@ fetch('himnos.json').then((r) => r.json()).then((himnos) => {
   const dibujar = (sonando) => {
     tocar.querySelector('span').textContent = sonando ? 'Pausar' : 'Reproducir';
     tocar.querySelector('[data-himno-icono]').setAttribute('href', sonando ? '#i-pausa' : '#i-tocar');
-    estado.textContent = sonando ? 'Sonando' : video.currentTime === 0 ? 'Listo' : 'Pausado';
+    estado.textContent = sonando ? 'Cargando' : video.currentTime === 0 ? 'Listo' : 'Pausado';
   };
   video.addEventListener('play', () => dibujar(true));
+  video.addEventListener('waiting', () => { estado.textContent = 'Cargando'; });
+  video.addEventListener('playing', () => { estado.textContent = 'Sonando'; });
   video.addEventListener('pause', () => dibujar(false));
   video.addEventListener('ended', () => { estado.textContent = 'Listo'; });
   video.addEventListener('error', () => { if (video.getAttribute('src')) { aviso.hidden = false; estado.textContent = 'Listo'; } });

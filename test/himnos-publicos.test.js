@@ -101,3 +101,10 @@ test('corta a quien pide demasiado seguido, y no existe lo que no está', async 
   assert.equal((await citar('NTV/43/99/1')).status, 404);
   assert.equal((await citar('PDT/43/3/1')).status, 404);
 });
+
+test('también los errores llevan el permiso: sin él, la portada no distingue una cita que no existe', async () => {
+  const LIMITE = { limit: async () => ({ success: false }) };
+  for (const r of [await citar('NTV/43/99/1'), await citar('NTV/43/3/1', REFERER, { CONTENIDO: depositoBiblia(), LIMITE })]) {
+    assert.equal(r.headers.get('access-control-allow-origin'), 'https://manna-iglesia.es');
+  }
+});
