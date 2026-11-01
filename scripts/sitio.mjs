@@ -1,11 +1,13 @@
 // La página de bienvenida y los manuales de manna-iglesia.es (decisión 67): arma data/sitio/ y su .zip para el hosting.
-//   node scripts/sitio.mjs             vuelve a tomar las capturas (con la auditoría, datos inventados) y arma el sitio
+//   node scripts/sitio.mjs             vuelve a tomar las capturas (con la auditoría, los himnos de verdad y medios libres) y arma el sitio
+//                                      MANNA_HIMNARIO: otra carpeta del himnario, si no está en Contenido/Himnario
 //   node scripts/sitio.mjs sin-capturas  arma el sitio con las capturas de la última vez (para cambios de texto)
 // Las capturas no se guardan en el repositorio: se toman de la versión de ahora, así los manuales no se quedan viejos.
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseBible } from '../server/modules/bible/parsers.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'data', 'sitio');
@@ -36,9 +38,11 @@ const CAPTURES = [
 
 function capture() {
   const words = [...new Set(CAPTURES.map(([, size, screen]) => [size, screen]).flat())];
+  const himnario = process.env.MANNA_HIMNARIO || path.join(ROOT, 'Contenido', 'Himnario');
+  if (!fs.readdirSync(path.join(himnario, 'videos')).some((f) => f.endsWith('.mp4'))) throw new Error(`No hay videos en ${himnario}: señala el himnario con MANNA_HIMNARIO.`);
   console.log(`Tomando ${CAPTURES.length} capturas con la auditoría (unos 3 min)…`);
   const run = spawnSync(process.execPath, [path.join(ROOT, 'scripts', 'auditar-responsive.mjs'), 'capturas', ...words], {
-    cwd: ROOT, encoding: 'utf8', env: { ...process.env, MANNA_CAPTURAS_ESCALA: '2' }, maxBuffer: 64 * 1024 * 1024,
+    cwd: ROOT, encoding: 'utf8', env: { ...process.env, MANNA_CAPTURAS_ESCALA: '2', MANNA_CAPTURAS_REALES: himnario }, maxBuffer: 64 * 1024 * 1024,
   });
   const dir = /Capturas en: (.+)/.exec(run.stdout)?.[1]?.trim();
   if (!dir || !fs.existsSync(dir)) throw new Error(`La auditoría no dejó capturas:\n${run.stdout.slice(-2000)}\n${run.stderr.slice(-2000)}`);
@@ -64,6 +68,12 @@ for (const font of ['sora/Sora-latin.woff2', 'sora/Sora-latin-ext.woff2', 'geist
   fs.copyFileSync(path.join(ROOT, 'web', 'vendor', font), path.join(OUT, 'letras', path.basename(font)));
 }
 for (const file of ['marca.svg', 'logo.svg', 'icono-180.png']) fs.copyFileSync(path.join(ROOT, 'web', file), path.join(OUT, file));
+
+// La Biblia de la portada: la RV1909 (dominio público), un archivo por libro, y el mismo analizador de citas de la app.
+const rv1909 = parseBible(fs.readFileSync(path.join(ROOT, 'Contenido', 'Biblias', 'Reina Valera 1909.xmm'), 'utf8'));
+fs.mkdirSync(path.join(OUT, 'biblia', 'rv1909'), { recursive: true });
+for (const book of rv1909.books) fs.writeFileSync(path.join(OUT, 'biblia', 'rv1909', `${book.n}.json`), JSON.stringify(book));
+for (const file of ['canon.js', 'reference.js']) fs.copyFileSync(path.join(ROOT, 'server', 'modules', 'bible', file), path.join(OUT, 'biblia', file));
 
 const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 13);
 const zip = path.join(ROOT, 'data', 'despliegue', `sitio-${stamp}.zip`);

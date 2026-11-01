@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Una bienvenida nueva en manna-iglesia.es**: clara y ordenada para el líder audiovisual o el pastor que no conoce Manna: qué es y qué hace, cómo se maneja desde el celular, cómo funciona con internet y sin él, qué se necesita, qué recibe la iglesia y dónde queda en línea.
+- **Se puede probar ahí mismo**: buscar cualquier cita de la Biblia, comparar versiones (RV1909, RVR60, NTV y PDT), buscar y escuchar cualquiera de los 613 himnos, pasar el culto en el computador y ver las funciones del celular. Las muestras usan himnos reales, y fotos, video y PDF de verdad.
+- **Los manuales, en fondo claro**, con capturas nuevas: himnos reales y medios libres, sin imágenes de prueba. El de instalación aclara que el hosting de la nube es temporal para las primeras iglesias.
+
 ## 1.68.0 — 2026-10-31
 
 - **Los módulos, puestos al día en el celular y la tableta** (fase 49): Biblia, Himnario, Medios, Textos, Tiempo, Capas, Páginas web, Orden, Ajustes, el inicio con su PIN, Preparar el culto, Administrar la iglesia y el superadministrador cumplen las reglas de móviles, medidas en los tamaños más pequeños.

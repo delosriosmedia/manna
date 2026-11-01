@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Última actualización: 2026-10-31 · Versión: 1.68.0
+Última actualización: 2026-11-01 · Versión: 1.68.0
 
 Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver `.claude/rules/documentacion.md`). El historial está en `CHANGELOG.md`.
 
@@ -282,6 +282,7 @@ Desde el 2026-10-25 (decisión 60), lo que esta tabla da por «sin probar» en e
 
 ## Decisiones tomadas
 
+- **2026-11-01 · La bienvenida se puede probar** (decisión 74): `manna-iglesia.es` pasa a identidad clara, con muestras interactivas en vez de capturas. El dueño abre sin ingreso los 613 himnos completos, tras confirmar que tiene permiso del titular, y pide RVR60, NTV y PDT en el comparador, con un pie de uso educativo e investigativo y sus créditos. Salen de R2 por el Worker `manna-himnos-publicos` en `himnos.manna-iglesia.es`, sin copiarlos; de las biblias, solo citas con tope, nunca el archivo. No consta licencia de esas tres editoriales: el pie no dice «utilizado con permiso». Sin probar en celulares reales. Detalle en `DESIGN.md` (12 bis) y `.claude/rules/nube.md`.
 - **2026-10-30 · Keynote se traduce a PowerPoint** (decisión 73, pedido del dueño antes de la fase 49): el equipo de la iglesia es Windows y Keynote solo existe en Apple, así que no se le pide a Keynote. Manna lee el `.key` y escribe un `.pptx` con lo mismo en el mismo sitio; desde ahí sirve todo lo que ya había (DeckCraft, las letras, la nube), sin programas nuevos ni pantallas nuevas. Se descartó dibujar en el navegador con las letras de quien sube, y exigir Keynote en un Mac, que no sirve en la iglesia.
 - **2026-10-30 · Principios y reglas de móviles** (decisión 72): tras auditar solo los bocetos aprobados, con medidas a tamaño real y tres revisiones independientes, las reglas para todo Manna en un celular o una tableta son `DESIGN.md`, sección 12 ter; su origen, `docs/auditoria-bocetos-moviles.md`. Son reglas nuevas: lo de hoy se pone al día en las fases 42 a 49.
 - **2026-10-30 · Un móvil nunca ve la versión de computador** (decisión 71): en un celular o una tableta se ve siempre la pantalla de teléfono o de tableta. De pie, tableta desde 600 px de ancho; acostado, desde 480 px de alto (`docs/PLAN.md`, fases 42 a 48).

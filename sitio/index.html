@@ -3,87 +3,429 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#05070a">
-  <meta name="description" content="Manna Iglesia: proyecta la Biblia, los himnos y todo el culto desde un computador de tu iglesia, y prepáralo desde casa. Manuales de instalación y de uso.">
+  <meta name="theme-color" content="#fbfbfa">
+  <meta name="description" content="Manna es un programa para proyectar en la iglesia: la Biblia, los himnos, las fotos, los videos y las presentaciones. Una vez instalado, funciona sin internet. Requisitos, conexión y manuales.">
   <title>Manna Iglesia</title>
   <link rel="icon" type="image/svg+xml" href="logo.svg">
   <link rel="apple-touch-icon" href="icono-180.png">
-  <link rel="stylesheet" href="sitio.css">
+  <link rel="preload" href="letras-portada/Newsreader-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="portada.css">
+  <script type="module" src="portada.js"></script>
 </head>
 <body>
-  <header class="top">
-    <div class="wrap">
-      <a class="brand" href="./"><img src="logo.svg" alt="">Manna Iglesia</a>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-atras" viewBox="0 0 256 256"><path d="M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z"/></symbol><symbol id="i-sigue" viewBox="0 0 256 256"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"/></symbol><symbol id="i-biblia" viewBox="0 0 256 256"><path d="M232,48H160a40,40,0,0,0-32,16A40,40,0,0,0,96,48H24a8,8,0,0,0-8,8V200a8,8,0,0,0,8,8H96a24,24,0,0,1,24,24,8,8,0,0,0,16,0,24,24,0,0,1,24-24h72a8,8,0,0,0,8-8V56A8,8,0,0,0,232,48ZM96,192H32V64H96a24,24,0,0,1,24,24V200A39.81,39.81,0,0,0,96,192Zm128,0H160a39.81,39.81,0,0,0-24,8V88a24,24,0,0,1,24-24h64ZM160,88h40a8,8,0,0,1,0,16H160a8,8,0,0,1,0-16Zm48,40a8,8,0,0,1-8,8H160a8,8,0,0,1,0-16h40A8,8,0,0,1,208,128Zm0,32a8,8,0,0,1-8,8H160a8,8,0,0,1,0-16h40A8,8,0,0,1,208,160Z"/></symbol><symbol id="i-himno" viewBox="0 0 256 256"><path d="M212.92,17.69a8,8,0,0,0-6.86-1.45l-128,32A8,8,0,0,0,72,56V166.08A36,36,0,1,0,88,196V110.25l112-28v51.83A36,36,0,1,0,216,164V24A8,8,0,0,0,212.92,17.69ZM52,216a20,20,0,1,1,20-20A20,20,0,0,1,52,216ZM88,93.75V62.25l112-28v31.5ZM180,184a20,20,0,1,1,20-20A20,20,0,0,1,180,184Z"/></symbol><symbol id="i-imagen" viewBox="0 0 256 256"><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,16V158.75l-26.07-26.06a16,16,0,0,0-22.63,0l-20,20-44-44a16,16,0,0,0-22.62,0L40,149.37V56ZM40,172l52-52,80,80H40Zm176,28H194.63l-36-36,20-20L216,181.38V200ZM144,100a12,12,0,1,1,12,12A12,12,0,0,1,144,100Z"/></symbol><symbol id="i-video" viewBox="0 0 256 256"><path d="M164.44,105.34l-48-32A8,8,0,0,0,104,80v64a8,8,0,0,0,12.44,6.66l48-32a8,8,0,0,0,0-13.32ZM120,129.05V95l25.58,17ZM216,40H40A16,16,0,0,0,24,56V168a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,128H40V56H216V168Zm16,40a8,8,0,0,1-8,8H32a8,8,0,0,1,0-16H224A8,8,0,0,1,232,208Z"/></symbol><symbol id="i-lamina" viewBox="0 0 256 256"><path d="M216,40H136V24a8,8,0,0,0-16,0V40H40A16,16,0,0,0,24,56V176a16,16,0,0,0,16,16H79.36L57.75,219a8,8,0,0,0,12.5,10l29.59-37h56.32l29.59,37a8,8,0,1,0,12.5-10l-21.61-27H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,136H40V56H216V176ZM104,120v24a8,8,0,0,1-16,0V120a8,8,0,0,1,16,0Zm32-16v40a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm32-16v56a8,8,0,0,1-16,0V88a8,8,0,0,1,16,0Z"/></symbol><symbol id="i-buscar" viewBox="0 0 256 256"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></symbol><symbol id="i-compu" viewBox="0 0 256 256"><path d="M208,40H48A24,24,0,0,0,24,64V176a24,24,0,0,0,24,24H208a24,24,0,0,0,24-24V64A24,24,0,0,0,208,40Zm8,136a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V64a8,8,0,0,1,8-8H208a8,8,0,0,1,8,8Zm-48,48a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,224Z"/></symbol><symbol id="i-proyector" viewBox="0 0 256 256"><path d="M232,56V200a16,16,0,0,1-16,16H144a8,8,0,0,1,0-16h72V56H40V96a8,8,0,0,1-16,0V56A16,16,0,0,1,40,40H216A16,16,0,0,1,232,56ZM32,184a8,8,0,0,0,0,16,8,8,0,0,1,8,8,8,8,0,0,0,16,0A24,24,0,0,0,32,184Zm0-32a8,8,0,0,0,0,16,40,40,0,0,1,40,40,8,8,0,0,0,16,0A56.06,56.06,0,0,0,32,152Zm0-32a8,8,0,0,0,0,16,72.08,72.08,0,0,1,72,72,8,8,0,0,0,16,0A88.1,88.1,0,0,0,32,120Z"/></symbol><symbol id="i-celular" viewBox="0 0 256 256"><path d="M224,72H208V64a24,24,0,0,0-24-24H40A24,24,0,0,0,16,64v96a24,24,0,0,0,24,24H152v8a24,24,0,0,0,24,24h48a24,24,0,0,0,24-24V96A24,24,0,0,0,224,72ZM40,168a8,8,0,0,1-8-8V64a8,8,0,0,1,8-8H184a8,8,0,0,1,8,8v8H176a24,24,0,0,0-24,24v72Zm192,24a8,8,0,0,1-8,8H176a8,8,0,0,1-8-8V96a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8Zm-96,16a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h40A8,8,0,0,1,136,208Zm80-96a8,8,0,0,1-8,8H192a8,8,0,0,1,0-16h16A8,8,0,0,1,216,112Z"/></symbol><symbol id="i-internet" viewBox="0 0 256 256"><path d="M128,24h0A104,104,0,1,0,232,128,104.12,104.12,0,0,0,128,24Zm88,104a87.61,87.61,0,0,1-3.33,24H174.16a157.44,157.44,0,0,0,0-48h38.51A87.61,87.61,0,0,1,216,128ZM102,168H154a115.11,115.11,0,0,1-26,45A115.27,115.27,0,0,1,102,168Zm-3.9-16a140.84,140.84,0,0,1,0-48h59.88a140.84,140.84,0,0,1,0,48ZM40,128a87.61,87.61,0,0,1,3.33-24H81.84a157.44,157.44,0,0,0,0,48H43.33A87.61,87.61,0,0,1,40,128ZM154,88H102a115.11,115.11,0,0,1,26-45A115.27,115.27,0,0,1,154,88Zm52.33,0H170.71a135.28,135.28,0,0,0-22.3-45.6A88.29,88.29,0,0,1,206.37,88ZM107.59,42.4A135.28,135.28,0,0,0,85.29,88H49.63A88.29,88.29,0,0,1,107.59,42.4ZM49.63,168H85.29a135.28,135.28,0,0,0,22.3,45.6A88.29,88.29,0,0,1,49.63,168Zm98.78,45.6a135.28,135.28,0,0,0,22.3-45.6h35.66A88.29,88.29,0,0,1,148.41,213.6Z"/></symbol><symbol id="i-casa" viewBox="0 0 256 256"><path d="M219.31,108.68l-80-80a16,16,0,0,0-22.62,0l-80,80A15.87,15.87,0,0,0,32,120v96a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V160h32v56a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V120A15.87,15.87,0,0,0,219.31,108.68ZM208,208H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48V120l80-80,80,80Z"/></symbol><symbol id="i-volumen" viewBox="0 0 256 256"><path d="M155.51,24.81a8,8,0,0,0-8.42.88L77.25,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H77.25l69.84,54.31A8,8,0,0,0,160,224V32A8,8,0,0,0,155.51,24.81ZM32,96H72v64H32ZM144,207.64,88,164.09V91.91l56-43.55Zm54-106.08a40,40,0,0,1,0,52.88,8,8,0,0,1-12-10.58,24,24,0,0,0,0-31.72,8,8,0,0,1,12-10.58ZM248,128a79.9,79.9,0,0,1-20.37,53.34,8,8,0,0,1-11.92-10.67,64,64,0,0,0,0-85.33,8,8,0,1,1,11.92-10.67A79.83,79.83,0,0,1,248,128Z"/></symbol><symbol id="i-tocar" viewBox="0 0 256 256"><path d="M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,39.87V216.13A15.94,15.94,0,0,0,80,232a16.07,16.07,0,0,0,8.36-2.35L232.4,141.51a15.81,15.81,0,0,0,0-27ZM80,215.94V40l143.83,88Z"/></symbol><symbol id="i-pausa" viewBox="0 0 256 256"><path d="M200,32H160a16,16,0,0,0-16,16V208a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm0,176H160V48h40ZM96,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Zm0,176H56V48H96Z"/></symbol><symbol id="i-wifi" viewBox="0 0 256 256"><g fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round"><path d="M32 100a136 136 0 0 1 192 0"/><path d="M68 140a86 86 0 0 1 120 0"/><path d="M104 176a34 34 0 0 1 48 0"/></g><circle cx="128" cy="208" r="12"/></symbol><symbol id="i-detener" viewBox="0 0 256 256"><rect x="56" y="56" width="144" height="144" rx="16"/></symbol></svg>
+
+  <header class="barra">
+    <div class="ancho">
+      <a class="marca" href="./"><img src="logo.svg" alt="" width="28" height="28">Manna Iglesia</a>
       <nav aria-label="Secciones">
-        <a href="#instalacion">Instalación</a>
-        <a href="#manuales">Manuales</a>
+        <a class="solo-ancho" href="#que-hace">Qué hace</a>
+        <a class="solo-ancho" href="#celular">En el celular</a>
+        <a class="solo-ancho" href="#conexion">Conexión</a>
+        <a class="solo-ancho" href="#requisitos">Requisitos</a>
+        <a class="sin-diminuto" href="#manuales">Manuales</a>
+        <a href="#ya-uso">Ya uso Manna</a>
       </nav>
     </div>
   </header>
 
-  <main class="wrap">
-    <section class="hero">
-      <div>
-        <p class="eyebrow">Para proyectar en la iglesia</p>
-        <h1>Manna Iglesia</h1>
-        <p class="lead">Proyecta la Biblia, los himnos, las fotos, los videos y las presentaciones desde un computador de tu iglesia, manéjalo desde cualquier celular y prepara el culto desde casa.</p>
-        <p class="already"><strong>¿Tu iglesia ya usa Manna?</strong> Entra por la dirección de tu iglesia, la que te dio su administrador: por ejemplo, <code>nv.manna-iglesia.es</code>. Ahí preparas el culto y, cuando el equipo de la iglesia está encendido, entras a manejarlo.</p>
+  <main>
+    <section class="portada ancho">
+      <h1>Todo el culto en la pantalla de tu iglesia.</h1>
+      <div class="oferta">
+        <p class="entrada">Manna es un programa para proyectar en la iglesia: la Biblia, los himnos, las fotos, los videos y las presentaciones. Se instala en el computador conectado al proyector o al televisor, y el culto se maneja desde ese computador o desde cualquier celular. <strong>Una vez instalado, funciona sin internet.</strong></p>
+        <div class="botones">
+          <a class="accion" href="mailto:delosrios.media@gmail.com?subject=Quiero%20Manna%20para%20mi%20iglesia&amp;body=Hola%3A%0A%0AQuiero%20Manna%20para%20mi%20iglesia.%0A%0ANombre%20de%20la%20iglesia%3A%20%0ACiudad%3A%20%0AMi%20nombre%3A%20%0AMi%20celular%3A%20%0A">Pedir Manna para mi iglesia</a>
+          <a class="secundaria" href="manuales/instalacion.html">Ver cómo se instala</a>
+        </div>
+        <p class="nota">Tu iglesia recibe su dirección y su clave de alta. Si no se abre ninguna aplicación de correo, escribe a <a href="mailto:delosrios.media@gmail.com">delosrios.media@gmail.com</a>.</p>
       </div>
-      <img class="mark" src="marca.svg" alt="La M de luz de Manna">
+
+      <figure class="ventana">
+        <div class="noche control" data-recorre>
+          <p class="control-arriba"><img src="logo.svg" alt="" width="22" height="22"><span class="chip" data-estado role="status">Al aire</span> <b data-titulo>Salmos 100:2</b></p>
+          <div class="control-cuerpo">
+            <div class="control-pantalla">
+              <div class="diapositiva"><blockquote><p>Servid á Jehová con alegría: venid ante su acatamiento con regocijo.</p><cite>Salmos 100:2 (RV1909)</cite></blockquote></div>
+              <div class="mandos" data-control role="group" aria-label="Prueba cómo se pasa lo que se proyecta" hidden>
+                <button type="button" class="mando doble" data-oculta="fondo" aria-pressed="false">Solo fondo</button>
+                <button type="button" class="mando doble" data-oculta="negro" aria-pressed="false">Negro</button>
+                <button type="button" class="redondo" data-anterior aria-label="Anterior" disabled><svg class="ic"><use href="#i-atras"/></svg></button>
+                <button type="button" class="siguiente triple" data-siguiente>Siguiente <svg class="ic"><use href="#i-sigue"/></svg></button>
+              </div>
+            </div>
+            <div>
+              <p class="rotulo">Cola del culto <span data-cuenta>1 de 5</span></p>
+              <ol class="filas">
+                <li><button type="button" class="fila" data-paso aria-current="true" data-texto="Servid á Jehová con alegría: venid ante su acatamiento con regocijo." data-cita="Salmos 100:2 (RV1909)"><svg class="ic biblia"><use href="#i-biblia"/></svg><span><b>Salmos 100:2</b>Biblia · RV1909</span></button></li>
+                <li><button type="button" class="fila" data-paso data-imagen="medios/himno-001.jpg"><svg class="ic himno"><use href="#i-himno"/></svg><span><b>Cantad alegres al Señor</b>Himno N.º 1 · Cantado</span></button></li>
+                <li><button type="button" class="fila" data-paso data-imagen="medios/cartel-vigilia.jpg"><svg class="ic imagen"><use href="#i-imagen"/></svg><span><b>Vigilia de oración</b>Imagen</span></button></li>
+                <li><button type="button" class="fila" data-paso data-texto="Porque de tal manera amó Dios al mundo, que ha dado á su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna." data-cita="Juan 3:16 (RV1909)"><svg class="ic biblia"><use href="#i-biblia"/></svg><span><b>Juan 3:16</b>Biblia · RV1909</span></button></li>
+                <li><button type="button" class="fila" data-paso data-video="medios/video-bienvenida.mp4"><svg class="ic video"><use href="#i-video"/></svg><span><b>Video de bienvenida</b>Video · 0:14</span></button></li>
+              </ol>
+            </div>
+          </div>
+        </div>
+        <figcaption>Pruébalo: así se pasa el culto en el computador. Muestra simplificada: los himnos son reales y los anuncios, de ejemplo.</figcaption>
+      </figure>
+
+      <p class="ya-usa" id="ya-uso"><strong>¿Tu iglesia ya usa Manna?</strong> Entra por la dirección que te dio tu administrador, por ejemplo <code>nv.manna-iglesia.es</code></p>
     </section>
 
-    <h2>Cómo funciona</h2>
-    <ul class="parts">
-      <li>
-        <span class="tag">En la iglesia</span>
-        <h3>El equipo de la iglesia</h3>
-        <p>Un computador con el proyector o el televisor como segunda pantalla. Es el que proyecta y el que suena. Funciona aunque se vaya el internet.</p>
-      </li>
-      <li>
-        <span class="tag">Desde casa</span>
-        <h3>La dirección de tu iglesia</h3>
-        <p>Cada iglesia tiene la suya en <code>manna-iglesia.es</code>. Allí cada persona, con su nombre y su PIN, prepara el orden del culto; lo preparado llega solo al equipo de la iglesia.</p>
-      </li>
-      <li>
-        <span class="tag">Durante el culto</span>
-        <h3>Celulares y tabletas</h3>
-        <p>Cada quien entra con su función: el control completo, la alabanza, el presentador o solo pasar el orden. En la red de la iglesia o desde fuera, siempre con su PIN.</p>
-      </li>
-    </ul>
+    <section class="banda" id="que-hace">
+      <div class="ancho">
+        <div class="aparece">
+          <h2>Qué hace Manna</h2>
+          <p class="guia">Reúne en un solo programa todo lo que sale en la pantalla durante el culto. Prueba cada parte aquí mismo.</p>
+        </div>
+        <ul class="bento">
+          <li class="celda celda-ancha aparece">
+            <h3>La Biblia</h3>
+            <p>Escribe cualquier cita, completa o abreviada, y proyecta sus versículos. Esta muestra trae la Reina-Valera 1909 entera.</p>
+            <div class="noche muestra muestra-biblia" data-recorre data-biblia>
+              <label class="buscador"><svg class="ic"><use href="#i-buscar"/></svg><span class="oculto">Escribe una cita</span><input type="search" value="Juan 3:16-17" placeholder="sal 23, 1 co 13 4, Juan 3:16" autocomplete="off" data-cita-campo></label>
+              <p class="aviso" data-aviso role="status" hidden></p>
+              <div class="diapositiva"><blockquote><p>Porque de tal manera amó Dios al mundo, que ha dado á su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.</p><cite>Juan 3:16 (RV1909)</cite></blockquote></div>
+              <div class="mandos" data-control role="group" aria-label="Pasar los versículos" hidden>
+                  <button type="button" class="redondo" data-anterior aria-label="Anterior" disabled><svg class="ic"><use href="#i-atras"/></svg></button>
+                  <button type="button" class="siguiente triple" data-siguiente>Siguiente <svg class="ic"><use href="#i-sigue"/></svg></button>
+                </div>
+              <ol class="filas con-scroll" data-versos>
+                  <li><button type="button" class="fila" data-paso aria-current="true" data-texto="Porque de tal manera amó Dios al mundo, que ha dado á su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna." data-cita="Juan 3:16 (RV1909)"><span><b>Juan 3:16</b><i>Porque de tal manera amó Dios al mundo, que ha dado á su Hijo unigénito</i></span></button></li>
+                  <li><button type="button" class="fila" data-paso data-texto="Porque no envió Dios á su Hijo al mundo para que condene al mundo, mas para que el mundo sea salvo por él." data-cita="Juan 3:17 (RV1909)"><span><b>Juan 3:17</b><i>Porque no envió Dios á su Hijo al mundo para que condene al mundo</i></span></button></li>
+                </ol>
+            </div>
+          </li>
+          <li class="celda aparece">
+            <h3>Comparar versiones</h3>
+            <p>Cualquier cita en dos versiones a la vez. En tu iglesia, con todas las versiones que tenga instaladas.</p>
+            <div class="noche muestra" data-comparar>
+              <div class="selectores" data-control hidden>
+                <label class="buscador selector-entero"><svg class="ic"><use href="#i-buscar"/></svg><span class="oculto">Escribe una cita para comparar</span><input type="search" value="Juan 3:16" placeholder="sal 23:1, rom 8:28" autocomplete="off" data-comparar-campo></label>
+                <label class="selector">Versión<select data-version><option>RV1909</option><option>RVR60</option><option>NTV</option><option>PDT</option></select></label>
+                <label class="selector">Con<select data-version><option>RV1909</option><option selected>RVR60</option><option>NTV</option><option>PDT</option></select></label>
+              </div>
+              <div class="diapositiva comparada" data-forma="lado">
+                <div class="lado"><b>RV1909</b><p>Porque de tal manera amó Dios al mundo, que ha dado á su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.</p></div>
+                <div class="lado"><b></b><p></p></div>
+                <cite>Juan 3:16</cite>
+              </div>
+              <p class="aviso" data-comparar-aviso role="status" hidden></p>
+              <div class="mandos" data-control role="group" aria-label="Pasar los versículos que se comparan" hidden>
+                <button type="button" class="redondo" data-comparar-anterior aria-label="Anterior" disabled><svg class="ic"><use href="#i-atras"/></svg></button>
+                <button type="button" class="siguiente triple" data-comparar-siguiente disabled>Siguiente <svg class="ic"><use href="#i-sigue"/></svg></button>
+              </div>
+              <div class="par" data-elige data-control role="group" aria-label="Cómo se ven las dos versiones" hidden>
+                <button type="button" class="mando" data-forma-boton="lado" aria-pressed="true">Lado a lado</button>
+                <button type="button" class="mando" data-forma-boton="sobre" aria-pressed="false">Una sobre otra</button>
+              </div>
+            </div>
+            <p class="creditos">Para uso educativo e investigativo. Los créditos de cada versión están al pie de la página.</p>
+          </li>
+          <li class="celda celda-entera aparece">
+            <h3>El himnario</h3>
+            <p>Los 613 himnos del Himnario Adventista, completos, como salen en la iglesia. Búscalo por número o por título y ponlo a sonar. En tu iglesia también se busca por un trozo de la letra y se elige la pista sin voz.</p>
+            <div class="noche muestra muestra-himnario" data-himnario>
+              <div class="himnos-lista">
+                <label class="buscador"><svg class="ic"><use href="#i-buscar"/></svg><span class="oculto">Buscar un himno</span><input type="search" placeholder="Número o título: 100, gracia…" autocomplete="off" data-himno-campo></label>
+                <p class="rotulo">Himnario <span data-himnos-cuenta>613 himnos</span></p>
+                <ol class="filas con-scroll" data-himnos>
+                  <li><button type="button" class="fila" aria-current="true"><svg class="ic himno"><use href="#i-himno"/></svg><span><b>1. Cantad alegres al Señor</b>Adoración y alabanza</span></button></li>
+                </ol>
+              </div>
+              <div class="himno-reproductor">
+                <p class="control-arriba"><span class="chip" data-himno-estado>Listo</span> <b data-himno-titulo>1. Cantad alegres al Señor</b></p>
+                <div class="himno-pantalla"><video playsinline preload="none" poster="medios/himno-001.jpg" aria-label="Video del himno"></video></div>
+                <p class="aviso" data-himno-aviso role="status" hidden>No se pudo cargar este himno. Revisa tu conexión e inténtalo de nuevo.</p>
+                <input class="avance-himno" type="range" min="0" max="1000" value="0" aria-label="Avance del himno" data-himno-avance>
+                <div class="himno-mandos" data-control hidden>
+                  <button type="button" class="siguiente" data-himno-tocar><svg class="ic"><use href="#i-tocar" data-himno-icono/></svg><span>Reproducir</span></button>
+                  <button type="button" class="mando" data-himno-detener><svg class="ic"><use href="#i-detener"/></svg>Detener</button>
+                  <span class="tiempo" data-himno-tiempo>0:00</span>
+                  <label class="volumen"><svg class="ic"><use href="#i-volumen"/></svg><span class="oculto">Volumen</span><input type="range" min="0" max="100" value="50" data-himno-volumen><span class="tiempo" data-himno-nivel>50 %</span></label>
+                </div>
+              </div>
+            </div>
+            <p class="creditos">Himnario Adventista, edición 2009. Para uso educativo e investigativo, no comercial. Los créditos están al pie de la página.</p>
+          </li>
+          <li class="celda aparece">
+            <h3>Fotos, videos y presentaciones</h3>
+            <p>Presentaciones en PDF, PowerPoint o Keynote. Un video de YouTube se descarga una vez y se proyecta sin anuncios y sin internet.</p>
+            <div class="noche muestra" data-recorre>
+              <div class="diapositiva"><blockquote hidden><p></p><cite></cite></blockquote><img src="medios/cartel-vigilia.jpg" alt="Cartel de una vigilia de oración sobre una Biblia abierta"></div>
+              <ul class="miniaturas">
+                <li><button type="button" class="miniatura" data-paso aria-current="true" data-imagen="medios/cartel-vigilia.jpg"><img src="medios/cartel-vigilia.jpg" alt="" loading="lazy">Imagen</button></li>
+                <li><button type="button" class="miniatura" data-paso data-video="medios/video-bienvenida.mp4"><img src="medios/video-bienvenida.jpg" alt="" loading="lazy">Video</button></li>
+                <li><button type="button" class="miniatura" data-paso data-imagen="medios/lamina-1.jpg"><img src="medios/lamina-1.jpg" alt="" loading="lazy">PDF, 1</button></li>
+                <li><button type="button" class="miniatura" data-paso data-imagen="medios/lamina-2.jpg"><img src="medios/lamina-2.jpg" alt="" loading="lazy">PDF, 2</button></li>
+              </ul>
+            </div>
+            <p class="creditos">Fotos y video libres. <a href="medios/anuncios.pdf">Ver el PDF de ejemplo</a> · <a href="medios/LICENCIAS.txt">Licencias</a></p>
+          </li>
+          <li class="celda celda-ancha aparece">
+            <h3>El orden del culto</h3>
+            <p>Se arma con tiempo, también desde casa, y llega solo al computador de la iglesia. El día del culto, solo se pulsa «Siguiente».</p>
+            <div class="noche muestra muestra-preparar" data-muestra="preparar">
+              <div>
+                <p class="rotulo">Buscar</p>
+                <ul class="filas">
+                  <li class="fila"><svg class="ic biblia"><use href="#i-biblia"/></svg><span><b>Juan 3:16</b>Biblia</span><button type="button" class="mando" data-control data-anadir hidden>Añadir</button></li>
+                  <li class="fila"><svg class="ic himno"><use href="#i-himno"/></svg><span><b>Cantad alegres al Señor</b>Himno N.º 1</span><button type="button" class="mando" data-control data-anadir hidden>Añadir</button></li>
+                  <li class="fila"><svg class="ic imagen"><use href="#i-imagen"/></svg><span><b>Vigilia de oración</b>Imagen</span><button type="button" class="mando" data-control data-anadir hidden>Añadir</button></li>
+                  <li class="fila"><svg class="ic presenta"><use href="#i-lamina"/></svg><span><b>Anuncios de la semana</b>PDF · 4 láminas</span><button type="button" class="mando" data-control data-anadir hidden>Añadir</button></li>
+                </ul>
+              </div>
+              <div>
+                <p class="rotulo">Orden del culto</p>
+                <ol class="filas" data-orden tabindex="-1" aria-live="polite">
+                  <li class="fila"><svg class="ic biblia"><use href="#i-biblia"/></svg><span><b>Salmos 100:1-5</b>Biblia</span></li>
+                </ol>
+              </div>
+            </div>
+          </li>
+        </ul>
+        <p class="tambien aparece">También: mensajes y anuncios, cronómetros y temporizadores, capas encima de lo que se proyecta y páginas web como Canva o Kahoot.</p>
+      </div>
+    </section>
 
-    <h2 id="instalacion">Manuales de instalación</h2>
-    <div class="cards">
-      <a class="card main" href="manuales/instalacion.html">
-        <h3>Instalar Manna en tu iglesia</h3>
-        <p>Lo que recibe tu iglesia y lo que necesita, y los pasos en orden: crear el administrador y los usuarios, instalar el equipo de la iglesia, conectar el proyector y los celulares, y preparar el primer culto.</p>
-        <span class="go">Abrir el manual de instalación →</span>
-      </a>
-    </div>
+    <section class="funciones ancho" id="celular">
+      <div class="aparece">
+        <h2>Cada quien ve lo suyo</h2>
+        <p class="guia">Los celulares y las tabletas no instalan nada: entran por el navegador. Cada persona entra con su nombre y su PIN, y elige su función.</p>
+        <div class="nombres" role="group" aria-label="Elige una función para verla en el celular">
+          <button type="button" data-vista="control" aria-pressed="true"><b>Control completo</b><span>Biblia, himnario, medios, textos, páginas, el orden del culto y los ajustes.</span></button>
+          <button type="button" data-vista="alabanza" aria-pressed="false"><b>Servicio de alabanza</b><span>Himnario, medios, orden y Biblia, con el volumen siempre a la vista.</span></button>
+          <button type="button" data-vista="presentador" aria-pressed="false"><b>Presentador de diapositivas</b><span>Pasa una presentación, señala con el dedo y acerca lo que haga falta.</span></button>
+          <button type="button" data-vista="orden" aria-pressed="false"><b>Control del orden</b><span>Solo pasa el orden del culto, sin editarlo. Pensado para el celular.</span></button>
+        </div>
+      </div>
+      <figure class="celular-marco aparece">
+        <div class="celular noche">
+          <div class="vista" data-vista-de="control" data-recorre>
+            <p class="celular-arriba"><img src="logo.svg" alt="" width="20" height="20">Control completo<span class="chip" data-estado role="status">Al aire</span></p>
+            <div class="diapositiva"><blockquote><p>Servid á Jehová con alegría: venid ante su acatamiento con regocijo.</p><cite>Salmos 100:2 (RV1909)</cite></blockquote></div>
+            <ol class="filas">
+              <li><button type="button" class="fila" data-paso aria-current="true" data-texto="Servid á Jehová con alegría: venid ante su acatamiento con regocijo." data-cita="Salmos 100:2 (RV1909)"><svg class="ic biblia"><use href="#i-biblia"/></svg><span><b>Salmos 100:2</b>Biblia</span></button></li>
+              <li><button type="button" class="fila" data-paso data-imagen="medios/himno-001.jpg"><svg class="ic himno"><use href="#i-himno"/></svg><span><b>Cantad alegres al Señor</b>Himno N.º 1</span></button></li>
+              <li><button type="button" class="fila" data-paso data-imagen="medios/cartel-vigilia.jpg"><svg class="ic imagen"><use href="#i-imagen"/></svg><span><b>Vigilia de oración</b>Imagen</span></button></li>
+              <li><button type="button" class="fila" data-paso data-texto="Porque de tal manera amó Dios al mundo, que ha dado á su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna." data-cita="Juan 3:16 (RV1909)"><svg class="ic biblia"><use href="#i-biblia"/></svg><span><b>Juan 3:16</b>Biblia</span></button></li>
+            </ol>
+            <div class="pulgar" data-control hidden>
+              <button type="button" class="mando doble" data-oculta="fondo" aria-pressed="false">Solo fondo</button>
+              <button type="button" class="mando doble" data-oculta="negro" aria-pressed="false">Negro</button>
+              <button type="button" class="redondo" data-anterior aria-label="Anterior" disabled><svg class="ic"><use href="#i-atras"/></svg></button>
+              <button type="button" class="siguiente triple" data-siguiente>Siguiente <svg class="ic"><use href="#i-sigue"/></svg></button>
+            </div>
+          </div>
 
-    <h2 id="manuales">Manuales de uso</h2>
-    <div class="cards">
-      <a class="card" href="manuales/usuarios.html">
-        <h3>Para los usuarios</h3>
-        <p>Entrar con tu nombre y tu PIN, preparar el culto desde casa y manejarlo desde el computador o el celular.</p>
-        <span class="go">Abrir →</span>
-      </a>
-      <a class="card" href="manuales/administrador.html">
-        <h3>Para el administrador de la iglesia</h3>
-        <p>Los usuarios y sus PIN, el equipo de la iglesia, los ajustes y qué hacer si algo falla.</p>
-        <span class="go">Abrir →</span>
-      </a>
-    </div>
+          <div class="vista" data-vista-de="alabanza" data-recorre hidden>
+            <p class="celular-arriba"><img src="logo.svg" alt="" width="20" height="20">Alabanza<span class="chip">Al aire</span></p>
+            <div class="diapositiva"><blockquote hidden><p></p><cite></cite></blockquote><img src="medios/himno-001.jpg" alt="Portada del himno 1"></div>
+            <ul class="rejilla">
+              <li><button type="button" class="azulejo" data-paso aria-current="true" data-imagen="medios/himno-001.jpg"><b>1</b>Cantad alegres al Señor</button></li>
+              <li><button type="button" class="azulejo" data-paso data-imagen="medios/himno-002.jpg"><b>2</b>Da gloria al Señor</button></li>
+              <li><button type="button" class="azulejo" data-paso data-imagen="medios/himno-003.jpg"><b>3</b>Unidos en espíritu</button></li>
+              <li><button type="button" class="azulejo" data-paso data-imagen="medios/himno-004.jpg"><b>4</b>Alabanzas sin cesar</button></li>
+              <li><button type="button" class="azulejo" data-paso data-imagen="medios/himno-005.jpg"><b>5</b>A ti, glorioso Dios</button></li>
+              <li><button type="button" class="azulejo" data-paso data-imagen="medios/himno-006.jpg"><b>6</b>¡Hosanna!</button></li>
+            </ul>
+            <div class="reproductor pulgar-solo">
+              <div class="par" data-elige role="group" aria-label="Cómo suena el himno">
+                <button type="button" class="mando" aria-pressed="true">Cantado</button>
+                <button type="button" class="mando" aria-pressed="false">Pista</button>
+              </div>
+              <div class="avance" aria-hidden="true"><i></i></div>
+              <label class="volumen"><svg class="ic"><use href="#i-volumen"/></svg><span class="oculto">Volumen</span><input type="range" min="0" max="100" value="50"></label>
+              <p class="pista">El sonido sale en el computador de la iglesia, no en el celular.</p>
+            </div>
+          </div>
 
-    <p class="minor"><strong>Equipo de Manna Iglesia</strong> <a href="manuales/superadministrador.html">Manual del superadministrador</a> <span>Las iglesias, su espacio, las copias de seguridad y abrir una iglesia nueva.</span></p>
+          <div class="vista" data-vista-de="presentador" data-recorre hidden>
+            <p class="celular-arriba"><img src="logo.svg" alt="" width="20" height="20">Presentador<span class="cuenta" data-cuenta>1 de 4</span></p>
+            <div class="diapositiva" data-senalar><blockquote hidden><p></p><cite></cite></blockquote><img src="medios/lamina-1.jpg" alt="Diapositiva de bienvenida"><i class="puntero" hidden></i></div>
+            <p class="pista">Toca la diapositiva para señalar en la pantalla de la iglesia.</p>
+            <ul class="laminas">
+              <li><button type="button" class="lamina" data-paso aria-current="true" data-imagen="medios/lamina-1.jpg"><img src="medios/lamina-1.jpg" alt="" loading="lazy"><span>1. Bienvenidos</span></button></li>
+              <li><button type="button" class="lamina" data-paso data-imagen="medios/lamina-2.jpg"><img src="medios/lamina-2.jpg" alt="" loading="lazy"><span>2. Oración</span></button></li>
+              <li><button type="button" class="lamina" data-paso data-imagen="medios/lamina-3.jpg"><img src="medios/lamina-3.jpg" alt="" loading="lazy"><span>3. Escuela</span></button></li>
+              <li><button type="button" class="lamina" data-paso data-imagen="medios/lamina-4.jpg"><img src="medios/lamina-4.jpg" alt="" loading="lazy"><span>4. Ensayo</span></button></li>
+            </ul>
+            <div class="pulgar" data-control hidden>
+              <button type="button" class="redondo" data-anterior aria-label="Anterior" disabled><svg class="ic"><use href="#i-atras"/></svg></button>
+              <button type="button" class="siguiente triple" data-siguiente>Siguiente <svg class="ic"><use href="#i-sigue"/></svg></button>
+            </div>
+          </div>
+
+          <div class="vista" data-vista-de="orden" data-recorre hidden>
+            <p class="celular-arriba"><img src="logo.svg" alt="" width="20" height="20">Control del orden<span class="chip">Al aire</span></p>
+            <div class="diapositiva"><blockquote><p>Servid á Jehová con alegría: venid ante su acatamiento con regocijo.</p><cite>Salmos 100:2 (RV1909)</cite></blockquote></div>
+            <ol class="filas">
+              <li class="fila" data-paso aria-current="true" data-texto="Servid á Jehová con alegría: venid ante su acatamiento con regocijo." data-cita="Salmos 100:2 (RV1909)"><svg class="ic biblia"><use href="#i-biblia"/></svg><span><b>Salmos 100:2</b>Biblia</span></li>
+              <li class="fila" data-paso data-imagen="medios/himno-001.jpg"><svg class="ic himno"><use href="#i-himno"/></svg><span><b>Cantad alegres al Señor</b>Himno N.º 1</span></li>
+              <li class="fila" data-paso data-imagen="medios/cartel-vigilia.jpg"><svg class="ic imagen"><use href="#i-imagen"/></svg><span><b>Vigilia de oración</b>Imagen</span></li>
+              <li class="fila" data-paso data-texto="Y sabemos que á los que á Dios aman, todas las cosas les ayudan á bien, [es á saber], á los que conforme al propósito son llamados." data-cita="Romanos 8:28 (RV1909)"><svg class="ic biblia"><use href="#i-biblia"/></svg><span><b>Romanos 8:28</b>Biblia</span></li>
+            </ol>
+            <div class="pulgar" data-control hidden>
+              <button type="button" class="redondo" data-anterior aria-label="Anterior" disabled><svg class="ic"><use href="#i-atras"/></svg></button>
+              <button type="button" class="siguiente triple" data-siguiente>Siguiente <svg class="ic"><use href="#i-sigue"/></svg></button>
+            </div>
+          </div>
+        </div>
+        <figcaption>Muestra simplificada: los himnos son reales y los anuncios, de ejemplo.</figcaption>
+      </figure>
+    </section>
+
+    <section class="banda" id="conexion">
+      <div class="ancho conexion" data-conexion>
+        <div class="aparece">
+          <h2>Funciona con internet y sin él</h2>
+          <p class="guia">Una vez instalado y con todo descargado, Manna no necesita internet para el culto. Lo que cambia según la conexión es desde dónde se puede manejar.</p>
+        </div>
+        <div class="conexion-muestra aparece">
+          <div>
+            <div class="modos" data-control role="group" aria-label="Elige cómo está conectada tu iglesia" hidden>
+              <button type="button" data-modo="sin-router" aria-pressed="true">Local, sin router</button>
+              <button type="button" data-modo="con-router" aria-pressed="false">Local, con router</button>
+              <button type="button" data-modo="con-internet" aria-pressed="false">Con internet</button>
+            </div>
+            <div role="status">
+              <p class="modo-texto" data-solo="sin-router"><strong>Local, sin router.</strong> Solo el computador y el proyector. Todo se maneja desde ese computador.</p>
+              <p class="modo-texto" data-solo="con-router"><strong>Local, con router.</strong> El router crea la wifi de la iglesia, aunque no tenga internet. Los celulares y las tabletas conectados a esa wifi manejan el culto.</p>
+              <p class="modo-texto" data-solo="con-internet"><strong>Con internet.</strong> Además, lo que se prepara desde casa llega solo al computador, y se puede manejar desde fuera de la iglesia, siempre con PIN.</p>
+            </div>
+          </div>
+          <figure class="noche red" aria-label="Qué queda conectado en cada caso">
+            <div class="red-fila">
+              <span class="nodo"><svg class="ic"><use href="#i-compu"/></svg>Computador de la iglesia</span><i class="cable"></i><span class="nodo"><svg class="ic"><use href="#i-proyector"/></svg>Proyector y sonido</span>
+            </div>
+            <div class="red-fila" data-desde="con-router">
+              <span class="nodo"><svg class="ic"><use href="#i-wifi"/></svg>Router con wifi</span><i class="cable"></i><span class="nodo"><svg class="ic"><use href="#i-celular"/></svg>Celulares y tabletas en la iglesia</span>
+            </div>
+            <div class="red-fila" data-desde="con-internet">
+              <span class="nodo"><svg class="ic"><use href="#i-internet"/></svg>Internet</span><i class="cable"></i><span class="nodo"><svg class="ic"><use href="#i-casa"/></svg>Preparar desde casa y manejar desde fuera</span>
+            </div>
+          </figure>
+        </div>
+
+        <div class="tabla aparece">
+          <table>
+            <thead>
+              <tr><th scope="col"><span class="oculto">Qué se puede hacer</span></th><th scope="col" data-col="sin-router">Sin router</th><th scope="col" data-col="con-router">Con router</th><th scope="col" data-col="con-internet">Con internet</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">Proyectar la Biblia, los himnos y los medios que ya están en el computador</th><td class="si" data-col="sin-router">Sí</td><td class="si" data-col="con-router">Sí</td><td class="si" data-col="con-internet">Sí</td></tr>
+              <tr><th scope="row">Manejar el culto desde el computador de la iglesia</th><td class="si" data-col="sin-router">Sí</td><td class="si" data-col="con-router">Sí</td><td class="si" data-col="con-internet">Sí</td></tr>
+              <tr><th scope="row">Manejarlo desde celulares y tabletas en la iglesia</th><td data-col="sin-router">No</td><td class="si" data-col="con-router">Sí</td><td class="si" data-col="con-internet">Sí</td></tr>
+              <tr><th scope="row">Recibir lo que se preparó desde casa</th><td data-col="sin-router">No</td><td data-col="con-router">No</td><td class="si" data-col="con-internet">Sí</td></tr>
+              <tr><th scope="row">Manejarlo desde fuera de la iglesia, con PIN</th><td data-col="sin-router">No</td><td data-col="con-router">No</td><td class="si" data-col="con-internet">Sí</td></tr>
+              <tr><th scope="row">Mostrar páginas web y bajar videos de YouTube</th><td data-col="sin-router">No</td><td data-col="con-router">No</td><td class="si" data-col="con-internet">Sí</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="descargado aparece">
+          <h3>Qué queda descargado</h3>
+          <p>Al instalar se bajan el programa, las biblias y las letras. El himnario lo eliges tú: <strong>completo en el computador</strong> (unos 6 GB), que no depende de internet, o <strong>desde la nube</strong>, que baja antes del culto los himnos de los órdenes y, con internet, cualquier otro al usarlo.</p>
+          <p>Si se va el internet en pleno culto, la proyección y los celulares en la wifi siguen igual. Por internet viaja todo lo que se ve: con una conexión lenta, mejor manejar desde la wifi de la iglesia.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="requisitos ancho" id="requisitos">
+      <div class="aparece">
+        <h2>Qué necesitas</h2>
+        <p class="guia">Solo el computador de la iglesia instala Manna. Lo básico es esto:</p>
+      </div>
+      <dl class="aparece">
+        <div><dt>Un computador</dt><dd>Con Windows 10 u 11, o un Mac, y con Google Chrome o Microsoft Edge. Unos 2 GB libres, y 6 GB más si quieres el himnario completo en él.</dd></div>
+        <div><dt>Un proyector o un televisor</dt><dd>Conectado al computador, por ejemplo por HDMI.</dd></div>
+        <div><dt>Parlantes o la consola de sonido</dt><dd>Conectados al computador. Por ahí suenan los himnos y los videos.</dd></div>
+        <div><dt>Internet para instalar</dt><dd>También para preparar desde casa. Durante el culto no hace falta.</dd></div>
+        <div><dt>Wifi en la iglesia</dt><dd>Solo si quieres manejar el culto desde celulares y tabletas.</dd></div>
+      </dl>
+    </section>
+
+    <section class="recibe" id="instalacion">
+      <div class="ancho">
+        <div class="recibe-texto aparece">
+          <h2>Lo que recibe tu iglesia</h2>
+          <ul>
+            <li><strong>La dirección de tu iglesia</strong>, por ejemplo <code>nv.manna-iglesia.es</code>. Es la puerta de entrada para todos.</li>
+            <li><strong>Una clave de alta.</strong> Sirve una sola vez, para crear al administrador de tu iglesia.</li>
+            <li><strong>Los manuales</strong> de instalación, de los usuarios y del administrador.</li>
+          </ul>
+          <div class="botones">
+            <a class="accion" href="mailto:delosrios.media@gmail.com?subject=Quiero%20Manna%20para%20mi%20iglesia&amp;body=Hola%3A%0A%0AQuiero%20Manna%20para%20mi%20iglesia.%0A%0ANombre%20de%20la%20iglesia%3A%20%0ACiudad%3A%20%0AMi%20nombre%3A%20%0AMi%20celular%3A%20%0A">Pedir Manna para mi iglesia</a>
+            <a class="secundaria" href="manuales/instalacion.html">Ver cómo se instala</a>
+          </div>
+        </div>
+        <div class="alojado aparece">
+          <h3>Dónde queda en línea</h3>
+          <dl>
+            <div><dt>Por ahora</dt><dd>Para las primeras iglesias, la parte en línea de Manna queda temporalmente en un hosting personal del equipo de Manna Iglesia. No tienes que contratar nada.</dd></div>
+            <div><dt>Más adelante</dt><dd>Cada iglesia que quiera su copia de Manna en línea debe tener su propio hosting y su propio dominio.</dd></div>
+            <div><dt>En cualquier caso</dt><dd>El culto no depende de eso: el computador de la iglesia sigue funcionando en local.</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <section class="manuales ancho" id="manuales">
+      <h2 class="gigante"><span data-mascara>Manuales</span></h2>
+      <ul class="lista">
+        <li class="aparece"><a href="manuales/instalacion.html">
+          <h3>Instalar Manna en tu iglesia</h3>
+          <p>Lo que recibe tu iglesia y lo que necesita, y los pasos en orden: crear el administrador y los usuarios, instalar el equipo de la iglesia, conectar el proyector y los celulares, y preparar el primer culto.</p>
+        </a></li>
+        <li class="aparece"><a href="manuales/usuarios.html">
+          <h3>Para los usuarios</h3>
+          <p>Entrar con tu nombre y tu PIN, preparar el culto desde casa y manejarlo desde el computador o el celular.</p>
+        </a></li>
+        <li class="aparece"><a href="manuales/administrador.html">
+          <h3>Para el administrador de la iglesia</h3>
+          <p>Los usuarios y sus PIN, el equipo de la iglesia, los ajustes y qué hacer si algo falla.</p>
+        </a></li>
+        <li class="aparece"><a href="manuales/superadministrador.html">
+          <h3>Para el superadministrador</h3>
+          <p>Del equipo de Manna Iglesia: las iglesias, su espacio, las copias de seguridad y abrir una iglesia nueva.</p>
+        </a></li>
+      </ul>
+    </section>
+
+    <section class="banda cierre">
+      <div class="ancho aparece">
+        <h2>Lleva Manna a tu iglesia.</h2>
+        <div>
+          <div class="botones">
+            <a class="accion" href="mailto:delosrios.media@gmail.com?subject=Quiero%20Manna%20para%20mi%20iglesia&amp;body=Hola%3A%0A%0AQuiero%20Manna%20para%20mi%20iglesia.%0A%0ANombre%20de%20la%20iglesia%3A%20%0ACiudad%3A%20%0AMi%20nombre%3A%20%0AMi%20celular%3A%20%0A">Pedir Manna para mi iglesia</a>
+            <a class="secundaria" href="manuales/instalacion.html">Ver cómo se instala</a>
+          </div>
+          <p class="nota">Si no se abre ninguna aplicación de correo, escribe a <a href="mailto:delosrios.media@gmail.com">delosrios.media@gmail.com</a>.</p>
+        </div>
+      </div>
+    </section>
   </main>
 
-  <footer>
-    <div class="wrap">
+  <footer class="pie">
+    <div class="ancho pie-creditos">
+      <p><strong>Uso educativo e investigativo.</strong> Las versiones de la Biblia y los himnos de estas muestras se ofrecen solo para uso educativo e investigativo, sin fines comerciales, para conocer cómo funciona Manna. Los derechos son de sus titulares.</p>
+      <ul>
+        <li>Reina-Valera 1909: dominio público.</li>
+        <li>Reina-Valera 1960® © Sociedades Bíblicas en América Latina, 1960. Derechos renovados 1988, Sociedades Bíblicas Unidas.</li>
+        <li>Santa Biblia, Nueva Traducción Viviente (NTV), © 2010 Tyndale House Foundation.</li>
+        <li>La Biblia: La Palabra de Dios para todos (PDT), © Bible League International.</li>
+        <li>Himnario Adventista, edición 2009: los himnos y sus videos son de sus titulares.</li>
+        <li>Fotos y video de las muestras: licencias libres (<a href="medios/LICENCIAS.txt">ver las fuentes</a>).</li>
+      </ul>
+    </div>
+    <div class="ancho">
       <span>Manna Iglesia · Los Ríos Multimedia</span>
       <a href="https://github.com/delosriosmedia/manna">Manna es software libre (AGPL)</a>
       <a href="https://admin.manna-iglesia.es/privacidad.html">Privacidad</a>
       <a href="mailto:delosrios.media@gmail.com">delosrios.media@gmail.com</a>
     </div>
   </footer>
+<template data-fila-verso><li><button type="button" class="fila" data-paso><span><b></b><i></i></span></button></li></template>
+  <template data-fila-himno><li><button type="button" class="fila"><svg class="ic himno"><use href="#i-himno"/></svg><span><b></b><i></i></span></button></li></template>
 </body>
 </html>

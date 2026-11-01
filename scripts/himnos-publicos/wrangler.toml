@@ -1,0 +1,17 @@
+name = "manna-himnos-publicos"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+routes = [{ pattern = "himnos.manna-iglesia.es", custom_domain = true }]
+
+[[r2_buckets]]
+binding = "CONTENIDO"
+bucket_name = "manna-contenido"
+
+# Consultas de la Biblia por visitante y por minuto, en cada ubicación de Cloudflare.
+[[ratelimits]]
+name = "LIMITE"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 30
+  period = 60

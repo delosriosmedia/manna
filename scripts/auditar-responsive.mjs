@@ -52,6 +52,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { deadline, killOnExit, sleep, startChrome } from './lib/chrome.mjs';
 import { seedExample } from './lib/ejemplo.mjs';
+import { seedReal } from './lib/ejemplo-real.mjs';
 import { MOBILE_RULES } from './lib/reglas-moviles.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -497,15 +498,20 @@ async function worker(list, n) {
   // Tres capas (fase 31): el temporizador en marcha (fase 34: su isla de la barra de abajo suelta la burbuja con la cuenta
   // y sus botones), el archivo, a la vista (la pastilla de capas sale arriba en todas las pantallas), y la dirección
   // larga, oculta y esperando (localhost:9 no contesta).
-  fs.writeFileSync(path.join(data, 'capas.json'), JSON.stringify({ slots: [{ kind: 'clock', data: { id: 'reloj1' }, visible: true }, { kind: 'web', data: { id: 'archivo1' }, visible: true }, { kind: 'web', data: { id: 'enlace1' }, visible: false }] }));
-  // Dos relojes (fase 32): un temporizador con un nombre largo, en marcha, y un cronómetro parado.
-  const now = Date.now();
-  fs.writeFileSync(path.join(data, 'tiempo.json'), JSON.stringify({ timers: [
-    { id: 'reloj1', type: 'timer', title: 'Predicación del sábado por la mañana con un nombre largo', seconds: 2400, sound: true, added: 1, updated: 1, clock: { playing: true, position: 0, at: now, duration: 2400 } },
-    { id: 'reloj2', type: 'stopwatch', title: 'Alabanza', seconds: null, sound: false, added: 2, updated: 2, clock: { playing: false, position: 95, at: now, duration: null } },
-  ] }));
+  // Las capturas de los manuales (MANNA_CAPTURAS_REALES: la carpeta del himnario) van sin capas ni relojes de prueba.
+  const REAL = process.env.MANNA_CAPTURAS_REALES;
+  const sembrar = (dir) => (REAL ? seedReal(dir, ROOT, REAL) : seedExample(dir));
+  if (!REAL) {
+    fs.writeFileSync(path.join(data, 'capas.json'), JSON.stringify({ slots: [{ kind: 'clock', data: { id: 'reloj1' }, visible: true }, { kind: 'web', data: { id: 'archivo1' }, visible: true }, { kind: 'web', data: { id: 'enlace1' }, visible: false }] }));
+    // Dos relojes (fase 32): un temporizador con un nombre largo, en marcha, y un cronómetro parado.
+    const now = Date.now();
+    fs.writeFileSync(path.join(data, 'tiempo.json'), JSON.stringify({ timers: [
+      { id: 'reloj1', type: 'timer', title: 'Predicación del sábado por la mañana con un nombre largo', seconds: 2400, sound: true, added: 1, updated: 1, clock: { playing: true, position: 0, at: now, duration: 2400 } },
+      { id: 'reloj2', type: 'stopwatch', title: 'Alabanza', seconds: null, sound: false, added: 2, updated: 2, clock: { playing: false, position: 95, at: now, duration: null } },
+    ] }));
+  }
   // El ejemplo se escribe antes de arrancar: el servidor lee el orden y la biblioteca al abrirse.
-  const example = seedExample(data);
+  const example = sembrar(data);
   const server = killOnExit(spawn(process.execPath, ['server/index.js'], {
     cwd: ROOT, stdio: 'ignore',
     env: { ...process.env, MANNA_NAME: `manna-auditoria-${n + 1}`, MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_DATA: data, PORT: String(port), MANNA_HIMNARIO: example.hymnal, MANNA_FALTA: 'navegador,yt-dlp' },
@@ -516,7 +522,7 @@ async function worker(list, n) {
   const cloudData = path.join(tmp, `nube-${n + 1}`);
   const cloudServer = screens.some((s) => s.cloud) && killOnExit(spawn(process.execPath, ['server/index.js'], {
     cwd: ROOT, stdio: 'ignore',
-    env: { ...process.env, MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'auditoria', MANNA_CLAVE_SUPER: 'auditoria-super', MANNA_NO_OPEN: '1', MANNA_DATA: cloudData, PORT: String(port + 20), MANNA_HIMNARIO: seedExample(cloudData).hymnal },
+    env: { ...process.env, MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'auditoria', MANNA_CLAVE_SUPER: 'auditoria-super', MANNA_NO_OPEN: '1', MANNA_DATA: cloudData, PORT: String(port + 20), MANNA_HIMNARIO: sembrar(cloudData).hymnal },
   }));
   // El superadministrador (fase 39), por super.localhost: otro nombre, para que su sesión no pise ninguna.
   const superBase = `http://super.localhost:${port + 30}`;
@@ -627,7 +633,8 @@ async function worker(list, n) {
         await chrome.evaluate(`Promise.race([new Promise((r) => setTimeout(r, 1000)), Promise.allSettled(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished))])`);
         const result = await chrome.evaluate(`JSON.stringify(${MEASURE(screen, device.touch, narrow)})`);
         const m = JSON.parse(result || '{}');
-        if (screen.closes) {
+        // En las capturas de los manuales, la capa queda abierta para la foto.
+        if (screen.closes && !process.env.MANNA_CAPTURAS_REALES) {
           // Un toque de verdad fuera del recuadro, sobre el fondo de la capa.
           const [layer, panel] = screen.closes;
           const spot = JSON.parse(await chrome.evaluate(`JSON.stringify((() => { const l = document.querySelector(${JSON.stringify(layer)}); const p = document.querySelector(${JSON.stringify(panel)}).getBoundingClientRect(); for (let y = innerHeight - 6; y > 6; y -= 12) for (let x = 6; x < innerWidth; x += 24) { if (x >= p.left && x <= p.right && y >= p.top && y <= p.bottom) continue; if (document.elementFromPoint(x, y) === l) return { x, y }; } return null; })())`));

@@ -217,7 +217,18 @@ Se comprueba con `node scripts/auditar-responsive.mjs`, que abre la app en todos
 
 ## 12 bis. El sitio manna-iglesia.es
 
-La bienvenida y los manuales (`sitio/`, decisión 67) son una página de lectura, no la herramienta: usan las mismas fichas de color, Sora y el cian de la M (`sitio/sitio.css`), con el texto a lo ancho de una lectura cómoda (46 em), el índice al lado en el escritorio y arriba en el celular, y claro al imprimir. Las capturas son de la propia app con datos inventados, nunca dibujos.
+La bienvenida y los manuales (`sitio/`, decisión 67) no son la herramienta, y por eso tienen otra identidad: **el sitio público es claro y la app sigue oscura**. Fondo hueso, títulos en Newsreader y texto en la letra del sistema, con bandas que separan cada sección (`sitio/portada.css`, `sitio/sitio.css`). El cian de la M se reserva para las muestras y para la franja «Lo que recibe tu iglesia»; el botón principal es negro. Los manuales llevan el texto a lo ancho de una lectura cómoda (46 em) y el índice al lado en el escritorio y arriba en el celular.
+
+**A quién le habla la portada:** al líder audiovisual o al pastor que no conoce Manna. Primero entiende qué es, qué hace y para qué sirve; después, cómo se conecta (local sin router, local con router, con internet), qué necesita y dónde queda en línea.
+
+**Muestras en vez de capturas:** la portada usa muestras interactivas pequeñas, hechas a mano con las fichas de la app y limitadas al tema de su sección, en versión de escritorio o de celular según de qué se hable. Son réplicas: si cambia lo que muestran en la app, hay que cambiarlas. Lo que muestran es real:
+
+- **Biblia:** cualquier cita en la RV1909 completa (`data/sitio/biblia/rv1909/`, generada por `scripts/sitio.mjs` con el analizador de la app).
+- **Comparador:** cualquier cita en RV1909, RVR60, NTV y PDT. RVR60, NTV y PDT nunca están en la página ni en el repositorio: se piden por cita a `scripts/himnos-publicos/`, hasta 4 versículos por consulta y 30 consultas por minuto. Sus archivos completos no salen de R2. El aviso de uso educativo e investigativo y los créditos van al pie de la portada; no decir «utilizado con permiso» sin una licencia de la editorial.
+- **Himnario:** los 613 títulos (`sitio/himnos.json`) y sus videos completos, con el volumen a la mitad y mandos para pausar, detener y cambiar el volumen. En internet los sirve `scripts/himnos-publicos/` desde R2, sin copiarlos. Sin ese servicio conectado, el reproductor y el comparador avisan que no pudieron cargar.
+- **Medios:** fotos y video libres (`sitio/medios/LICENCIAS.txt`), nunca medios de una iglesia. Los anuncios son textos de ejemplo.
+
+Las capturas quedan para los manuales: de la propia app, nunca dibujos, y realistas, sin imágenes de prueba como barras de colores. `scripts/lib/ejemplo-real.mjs` las siembra con los himnos de verdad y medios libres, y nunca con letras: el himnario de las capturas solo lleva videos y títulos, y cada himno sale en su portada.
 
 ## 12 ter. Móviles: principios y reglas
 
