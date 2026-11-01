@@ -78,5 +78,5 @@ for (const file of ['canon.js', 'reference.js']) fs.copyFileSync(path.join(ROOT,
 const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 13);
 const zip = path.join(ROOT, 'data', 'despliegue', `sitio-${stamp}.zip`);
 fs.mkdirSync(path.dirname(zip), { recursive: true });
-execFileSync('zip', ['-qr', zip, '.', '-x', '.*'], { cwd: OUT });
+execFileSync('zip', ['-qr', zip, '.', '-x', '.DS_Store', '*/.DS_Store'], { cwd: OUT });
 console.log(`Sitio en ${path.relative(ROOT, OUT)}/ y su paquete en ${path.relative(ROOT, zip)} (${Math.round(fs.statSync(zip).size / 1024)} KB).`);

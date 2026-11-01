@@ -1,0 +1,5 @@
+# Que el navegador pregunte en cada visita si hay una versión nueva. Sin esto adivina cuánto guardar cada archivo y,
+# tras publicar, sigue mostrando el anterior durante horas. Si nada cambió, el servidor lo dice y no se baja otra vez.
+<IfModule mod_headers.c>
+  Header set Cache-Control "no-cache"
+</IfModule>
