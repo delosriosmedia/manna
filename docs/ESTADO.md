@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Última actualización: 2026-11-04 · Versión: 1.69.1
+Última actualización: 2026-11-05 · Versión: 1.69.1
 
 Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver `.claude/rules/documentacion.md`). El historial está en `CHANGELOG.md`.
 
@@ -283,6 +283,7 @@ Desde el 2026-10-25 (decisión 60), lo que esta tabla da por «sin probar» en e
 
 ## Decisiones tomadas
 
+- **2026-11-05 · La auditoría integral y sus arreglos** (decisión 75): el dueño aprueba las fases 51 a 58 que propone la auditoría (fase 50), en su orden: la 51.1 (que la prueba en Chrome vea los errores) y justo después la 52.1 (los arreglos urgentes). La 52 va en cinco partes con su versión. Las pruebas de Windows de GitHub pasan a correr antes de crear la versión, dentro de `/publicar`. El informe no se publica hasta que salgan los arreglos de seguridad (52.1, 52.3 y 52.5), porque el repositorio es público. Las otras 18 decisiones de la auditoría se preguntan al empezar cada fase (ver `docs/PLAN.md`, «Fases 50 a 58»).
 - **2026-11-01 · La bienvenida se puede probar** (decisión 74): `manna-iglesia.es` pasa a identidad clara, con muestras interactivas en vez de capturas. El dueño abre sin ingreso los 613 himnos completos, tras confirmar que tiene permiso del titular, y pide RVR60, NTV y PDT en el comparador, con un pie de uso educativo e investigativo y sus créditos. Salen de R2 por el Worker `manna-himnos-publicos` en `himnos.manna-iglesia.es`, sin copiarlos; de las biblias, solo citas con tope, nunca el archivo. No consta licencia de esas tres editoriales: el pie no dice «utilizado con permiso». Sin probar en celulares reales. Detalle en `DESIGN.md` (12 bis) y `.claude/rules/nube.md`.
 - **2026-10-30 · Keynote se traduce a PowerPoint** (decisión 73, pedido del dueño antes de la fase 49): el equipo de la iglesia es Windows y Keynote solo existe en Apple, así que no se le pide a Keynote. Manna lee el `.key` y escribe un `.pptx` con lo mismo en el mismo sitio; desde ahí sirve todo lo que ya había (DeckCraft, las letras, la nube), sin programas nuevos ni pantallas nuevas. Se descartó dibujar en el navegador con las letras de quien sube, y exigir Keynote en un Mac, que no sirve en la iglesia.
 - **2026-10-30 · Principios y reglas de móviles** (decisión 72): tras auditar solo los bocetos aprobados, con medidas a tamaño real y tres revisiones independientes, las reglas para todo Manna en un celular o una tableta son `DESIGN.md`, sección 12 ter; su origen, `docs/auditoria-bocetos-moviles.md`. Son reglas nuevas: lo de hoy se pone al día en las fases 42 a 49.
@@ -377,6 +378,8 @@ Todo lo pendiente, también lo que decide el dueño (la licencia del repositorio
 
 ## Próximos pasos
 
+- **Auditoría integral (fase 50)**: el diagnóstico de toda la app se hizo el 2026-11-05 sobre la 1.69.1. Encontró 182 hallazgos verificados: 1 crítico, 8 altos, 66 medios y 107 bajos. El dueño aprobó ese mismo día las fases 51 a 58 que propone (decisión 75). **En curso: la 51.1** (que la prueba en Chrome vea los errores); justo después va la 52.1 (cinco arreglos de una o dos líneas, entre ellos el crítico).
+  - **Dónde está el informe:** en `docs/auditoria-integral.md`, con el catálogo en `docs/auditoria-integral-hallazgos.md`, solo en el Mac de desarrollo. Está fuera de git a propósito (`.git/info/exclude`), porque describe fallos de seguridad aún sin arreglar y el repositorio es público. Se publica cuando salgan sus arreglos. Los datos en bruto están en `data/auditoria-2026-11-05/`.
 - **Nueva Vida en `nv.manna-iglesia.es`** (decisión 66, `/nueva-iglesia`): **hecho el 2026-10-29**. Su equipo se puso solo en la 1.68.0 (visto encendido el 2026-10-31, 08:36). Su nube tiene la 1.67.0 desde el 2026-10-30 (la 1.58.0 hasta entonces; su equipo se pone al día solo la próxima vez que se encienda) con sus claves, el himnario y las biblias de R2; su equipo se instaló desde la portada de `nv` (1.58.0) y se entra a él desde fuera por `servidor-nv.manna-iglesia.es`, que contesta. Falta: borrar el túnel viejo «Manna-PC» (con permiso del dueño) y que el dueño añada `nv` en `admin.manna-iglesia.es` si no lo hizo.
 - **Fases 22 y 23 (decisión 43)**: hechas el 2026-10-17 (Medios en un solo cajón, 1.26.0; órdenes del culto guardados, 1.27.0).
 - **Fase 21** (un solo Manna a la vez): hecha el 2026-10-17 (1.28.0).

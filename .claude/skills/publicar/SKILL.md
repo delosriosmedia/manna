@@ -34,6 +34,8 @@ Confirma que entre los archivos a publicar no hay:
 - De `Contenido/`, solo los `LEEME.txt` y `Contenido/Biblias/Reina Valera 1909.xmm`. Ninguna otra biblia, ningún video ni ninguna letra de himno (tampoco dentro de pruebas o documentos).
 - Nada de `data/` (incluye `manna.log`, `error.html` y los programas de `data/herramientas/`), ni archivos `.local`.
 - PIN, contraseñas o claves.
+- Nada de `Bosquejos temporales/` ni de `Presentaciones pruebas/`: son sermones y presentaciones reales de la iglesia.
+- Nada que explique cómo provocar un fallo de seguridad que todavía no tiene su arreglo publicado. El repositorio es público. Por eso el informe de la auditoría integral está en `.git/info/exclude` hasta que salgan sus arreglos (decisión 75).
 
 ## 4. Documentación
 
@@ -70,13 +72,23 @@ Pregunta si publica. **Espera la respuesta.**
 
 ## 8. Push
 
-Solo tras un sí:
+Solo tras un sí.
+
+**Las pruebas de Windows van antes de publicar** (decisión 75). Lo que se sube a `main` ya es la versión publicada: el equipo de cada iglesia mira `main` para saber si hay versión nueva. Por eso primero se sube la rama, se prueba en el Windows de GitHub y solo con todo en verde se pasa a `main`. Son unos 2 minutos.
 
 ```bash
-git push
+git push origin <rama>
+sha=$(git rev-parse <rama>)
+gh workflow run instaladores.yml --ref <rama>
+# La corrida de ese mismo commit (tarda unos segundos en aparecer: si sale vacío, se repite esta línea).
+id=$(gh run list --workflow instaladores.yml --branch <rama> --event workflow_dispatch --json databaseId,headSha --jq ".[] | select(.headSha==\"$sha\") | .databaseId" | head -1)
+gh run watch "$id" --exit-status
+git push origin <rama>:main
 ```
 
-Si hubo versión nueva, crea también la **versión de GitHub** (con su etiqueta). Es de donde se descargan los instaladores de un solo archivo (enlaces del README, «Instalación»), y **los adjunta GitHub solo**: al publicarla, `.github/workflows/instaladores.yml` compila `Instalar-Manna-Windows.exe` en un Windows, arma `Instalar-Manna-Mac.pkg` en un Mac, los prueba y los sube a la versión, y a la vez corre `npm test` en el Windows (alrededor de 1 minuto; medido el 2026-10-18: 46 s el más largo). Si las pruebas de Windows fallan, los instaladores se adjuntan igual: se dice al dueño qué falló:
+Si falla en Windows, no se pasa a `main`: se arregla y se repite. El dueño sabe qué falló. Si se trabajó en `main` directamente, la rama es una copia: `git push origin main:fase-publicar` y se prueba esa.
+
+Si hubo versión nueva, crea también la **versión de GitHub** (con su etiqueta). Es de donde se descargan los instaladores de un solo archivo (enlaces del README, «Instalación»), y **los adjunta GitHub solo**: al publicarla, `.github/workflows/instaladores.yml` compila `Instalar-Manna-Windows.exe` en un Windows, arma `Instalar-Manna-Mac.pkg` en un Mac, los prueba y los sube a la versión, y a la vez corre otra vez `npm test` en el Windows (alrededor de 1 minuto; medido el 2026-10-18: 46 s el más largo). Si esta vez fallan, los instaladores se adjuntan igual y se le dice al dueño qué falló:
 
 ```bash
 gh release create v<versión> --target main --title "Manna <versión>" --notes "<lo de esta versión en CHANGELOG.md>"
