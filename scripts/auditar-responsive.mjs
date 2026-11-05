@@ -106,7 +106,7 @@ const SCREENS = [
   // insideIfShown: el recuadro puede no salir (con poca altura, el aviso de lo que falta).
   // «Buscar en todo»: su recuadro cabe; con una fila marcada, sus botones (▶ y +) se ven dentro del recuadro.
   // closes: la capa abierta y su recuadro; tras medir, un toque fuera del recuadro debe cerrarla.
-  { name: 'Buscar en todo', url: '/control', inside: '.finder', closes: ['.finder-layer', '.finder'], settle: 1100, prepare: `(() => { document.querySelector('.finder-chip').click(); const i = document.querySelector('.finder-input input'); i.value = 'luz'; i.dispatchEvent(new Event('input')); })()` },
+  { name: 'Buscar en todo', url: '/control', ready: '.finder-chip', inside: '.finder', closes: ['.finder-layer', '.finder'], settle: 1100, prepare: `(() => { document.querySelector('.finder-chip').click(); const i = document.querySelector('.finder-input input'); i.value = 'luz'; i.dispatchEvent(new Event('input')); })()` },
   { name: 'Buscar en todo, con una fila marcada', url: '/control#biblia', inside: '.finder', marcada: true, settle: 1400, prepare: `(() => { document.querySelector('.finder-chip').click(); const i = document.querySelector('.finder-input input'); i.value = 'luz'; i.dispatchEvent(new Event('input')); setTimeout(() => document.querySelectorAll('.finder-row')[1]?.click(), 800); })()` },
   // El wifi y el QR de la barra de arriba se abren en su sitio como una tarjeta (1.31): cabe en la pantalla y se cierra
   // al tocar fuera.
@@ -238,10 +238,10 @@ const SCREENS = [
   { name: 'Al aire con una diapositiva', url: '/control#medios', show: 'slides', controls: LIVE_CONTROLS, prepare: OPEN_CONTROLS },
   { name: 'Orden con una diapositiva al aire', url: '/control#orden', show: 'slides', controls: '.odetail .live-controls' },
   // En el computador, el Presentador no lleva escenario: noDock cambia ese control por la diapositiva grande y su fila de botones.
-  { name: 'Orador: elegir presentación', url: '/orador', wideOnly: true, noDock: true, content: '.pr-choose', inside: '.pr-list .deck', settle: 600 },
-  { name: 'Orador: presentando', url: '/orador', wideOnly: true, show: 'slides', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', settle: 800 }, // sin mandos de encuadre: se acerca y se mueve sobre la diapositiva (fase 14)
+  { name: 'Orador: elegir presentación', url: '/orador', wideOnly: true, noDock: true, ready: '.pr-list .deck', content: '.pr-choose', inside: '.pr-list .deck', settle: 600 },
+  { name: 'Orador: presentando', url: '/orador', wideOnly: true, show: 'slides', noDock: true, ready: '.pr-main .transport .btn.primary', primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', settle: 800 }, // sin mandos de encuadre: se acerca y se mueve sobre la diapositiva (fase 14)
   // Con una página web al aire (un archivo propio): sin rejilla ni siguiente; la grande y Anterior / Siguiente / Negro a la vista (sus flechas van en la fila de botones, no en los mandos).
-  { name: 'Orador: una página web', url: '/orador', wideOnly: true, page: 'archivo1', noDock: true, primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', settle: 800 },
+  { name: 'Orador: una página web', url: '/orador', wideOnly: true, page: 'archivo1', noDock: true, ready: '.pr-main .transport .btn.primary', primary: '.pr-main .transport .btn.primary', inside: '.pr-tools', settle: 800 },
   { name: 'Páginas web', url: '/control#paginas', content: '.web-list', inside: '.web-item', settle: 400 },
   { name: 'Páginas web: una elegida', url: '/control#paginas', content: '.web-list', primary: '.ws[data-module=paginas] .abar .btn.primary', inside: '.ws[data-module=paginas] .abar', settle: 600,
     prepare: `document.querySelector('.ws[data-module=paginas] .web-pick').click()` },
@@ -450,14 +450,18 @@ SCREENS.push(
   ...ON_THEIR_OWN.map(named).map((x) => ({ ...x, name: `Móvil: ${x.name}`, movil: true, tactil: true })),
 );
 
+// Espera a que la pantalla esté lista y dice si llegó a estarlo: una pantalla que no abrió no se da por buena
+// (auditoría integral, T1-03). `ready` dice qué esperar cuando no hay ningún módulo abierto («Buscar en todo»).
 async function ready(chrome, screen) {
-  const done = screen.plain ? `document.querySelector(${JSON.stringify(screen.plain)})`
+  const done = screen.ready ? `document.querySelector(${JSON.stringify(screen.ready)})` : screen.plain ? `document.querySelector(${JSON.stringify(screen.plain)})`
     : `document.querySelector('.ws:not([hidden])') && (!document.querySelector('.ws:not([hidden]) .picker') || document.querySelector('.ws:not([hidden]) .verse')) && (${Boolean(screen.tabs)} || document.querySelector('.scene-caption, .ev-pill')?.textContent)`;
-  for (let i = 0; i < 40; i += 1) {
+  let ok = false;
+  for (let i = 0; i < 40 && !ok; i += 1) {
     await sleep(200);
-    if (await chrome.evaluate(`Boolean(${done})`)) break;
+    ok = Boolean(await chrome.evaluate(`Boolean(${done})`));
   }
   await sleep(350);
+  return ok;
 }
 
 const LABELS = { buscarMarcada: 'la fila marcada de la búsqueda lleva su ▶ (y su +) a la vista y dentro del recuadro', barraUnaFila: 'la barra de abajo en una sola fila, sin salirse', masMandos: '«Más mandos» a la vista con la barra', cajonUnaFila: 'el cajón con una sola fila de cabecera y ampliar y cerrar a la vista', sinDesborde: 'sin desborde lateral', navegacion: 'dock de módulos a la vista', alAire: 'lo que está al aire y sus botones a la vista', solape: 'cajón, cola y barras sin pisarse', monitorProporcion: 'recuadro de la proyección sin deformar', accion: 'acción principal a la vista y sin nada encima', tituloLargo: 'títulos largos legibles', mandos: 'mandos en vivo completos y sin salirse', dentro: 'el recuadro cabe en la pantalla', dedos: 'botones para el dedo', deLado: 'nada se desplaza de lado sin tener nada al lado', contraste: 'el texto se lee sobre una proyección blanca y sobre una negra', cierraFuera: 'la capa se cierra al tocar fuera' };
@@ -588,9 +592,10 @@ async function worker(list, n, fast = FAST) {
         const [pathname, hash = ''] = screen.url.split('#');
         progress[n] = `«${screen.name}»`;
         await chrome.send('Page.navigate', { url: `${origin}${pathname}?t=${Date.now()}&tactil${BIG ? '&escala=1.08' : ''}${hash ? `#${hash}` : ''}` });
-        await ready(chrome, screen);
+        const opened = await ready(chrome, screen);
         if (screen.prepare) { await chrome.evaluate(screen.prepare); await sleep(screen.settle || 500); }
         const lines = [];
+        if (!opened) { problems += 1; lines.push('  la pantalla no terminó de abrir: lo de abajo se midió sobre lo que había'); }
         for (const device of list) {
           await size(device);
           await sleep(150);
@@ -634,7 +639,7 @@ async function worker(list, n, fast = FAST) {
         const [pathname, hash = ''] = screen.url.split('#');
         progress[n] = `${device.w}x${device.h} «${screen.name}»`;
         await chrome.send('Page.navigate', { url: `${screen.cloud === 'superadmin' ? superBase : screen.cloud ? cloudBase : base}${pathname}?t=${Date.now()}${BIG ? '&escala=1.08' : ''}${screen.tactil ? '&tactil' : ''}${hash ? `#${hash}` : ''}` });
-        await ready(chrome, screen);
+        const opened = await ready(chrome, screen);
         if (screen.prepare) { await chrome.evaluate(screen.prepare); await sleep(screen.settle || 500); }
         // Con el equipo ocupado, lo que se abre aún puede ir por su fundido (un 3 % más pequeño): se mide ya quieto.
         await chrome.evaluate(`Promise.race([new Promise((r) => setTimeout(r, 1000)), Promise.allSettled(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished))])`);
@@ -656,7 +661,7 @@ async function worker(list, n, fast = FAST) {
           await sleep(300);
           m.cierraFuera = await chrome.evaluate(`!document.querySelector(${JSON.stringify(screen.closesOutside)})`);
         }
-        const failures = [...unmeasured(result, measureError), ...failuresOf(m)];
+        const failures = [...(opened ? [] : ['la pantalla no terminó de abrir']), ...unmeasured(result, measureError), ...failuresOf(m)];
         if (m.espacioContenido !== undefined && m.espacioContenido < minContent(device)) failures.push(`poco espacio para el contenido (${m.espacioContenido} px)`);
         problems += failures.length;
         const room = m.espacioContenido !== undefined ? ` · contenido ${m.espacioContenido} px` : '';
@@ -689,8 +694,13 @@ const groups = FAST ? [] : Array.from({ length: WIDE_PORTS }, (_, n) => wide.fil
 const results = await Promise.allSettled([...groups.map((list, n) => worker(list, n, false)), ...(phones.length && screens.some((s) => s.tactil) ? [worker(phones, FAST ? 0 : WIDE_PORTS, true)] : [])]);
 await sleep(800);
 if (!SHOTS) fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5 });
+// Si un Chrome se cae, se dice por dónde iba cada uno: lo que venía después quedó sin medir (auditoría integral, N2-6-3).
 const crash = results.find((r) => r.status === 'rejected');
-if (crash) throw crash.reason;
+if (crash) {
+  console.error(`\nLa auditoría se cortó: ${crash.reason?.stack || crash.reason}`);
+  console.error(`Iba por: ${progress.filter(Boolean).join(' · ') || 'el principio'}. Lo que venía después quedó sin medir.`);
+  process.exit(3);
+}
 
 if (SHOTS) console.log(`\nCapturas en: ${tmp}`);
 console.log(`${problems ? `\n${problems} problema(s) encontrados` : '\nSin problemas en ninguna pantalla'}${BIG ? ', con la interfaz al tamaño máximo' : ''}.`);
