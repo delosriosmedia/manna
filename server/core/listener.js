@@ -22,7 +22,12 @@ const FIRST_BYTE_MS = 30_000;
 
 export const plainAddress = (address) => String(address || '').replace(/^::ffff:/, '');
 
-export function createListener(handler, secure, { onArrival = () => {} } = {}) {
+export function createListener(handle, secure, { onArrival = () => {} } = {}) {
+  // Red de seguridad: lo que se escape de una petición se apunta y se contesta 500, pero no cierra Manna.
+  const handler = (req, res) => Promise.resolve(handle(req, res)).catch((err) => {
+    console.error('Error al atender una petición:', err?.stack || err);
+    if (!res.headersSent) { res.statusCode = 500; res.end(); }
+  });
   const plain = http.createServer(handler);
   if (!secure) {
     plain.on('connection', (socket) => onArrival({ ip: plainAddress(socket.remoteAddress), secure: false }));

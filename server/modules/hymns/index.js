@@ -228,13 +228,20 @@ export default function setup(app) {
       } catch (err) { reject(err); return; }
       child.on('error', () => reject(new HttpError(500, 'No se pudo preparar la pista instrumental.')));
       child.on('close', (code) => {
-        if (code === 0 && fs.existsSync(partial)) {
-          fs.renameSync(partial, out);
-          resolve(out);
-        } else {
-          fs.rmSync(partial, { force: true });
+        if (code !== 0 || !fs.existsSync(partial)) {
+          try { fs.rmSync(partial, { force: true }); } catch { /* data/tmp se vacía al abrir Manna */ }
           reject(new HttpError(409, 'Este himno no trae pista instrumental.'));
+          return;
         }
+        // En Windows el antivirus suele abrir un instante el archivo recién escrito y renombrarlo falla (EBUSY, EPERM):
+        // se reintenta unas veces. Ese error, sin atrapar, cerraba Manna entero (auditoría integral, N2-1-2).
+        const move = (left) => {
+          try { fs.renameSync(partial, out); resolve(out); } catch {
+            if (left > 0) setTimeout(() => move(left - 1), 200);
+            else reject(new HttpError(500, 'No se pudo preparar la pista instrumental. Vuelve a intentarlo.'));
+          }
+        };
+        move(4);
       });
     })).finally(() => preparing.delete(out));
     queue = work.catch(() => {});

@@ -4,6 +4,11 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Manna ya no se cierra de golpe por una petición mal escrita**: ahora la rechaza y sigue funcionando. Y si algo falla al atender a un dispositivo, se anota y Manna sigue abierto.
+- **La pista de un himno ya no puede cerrar Manna en Windows**: si el antivirus retiene el archivo un momento, Manna vuelve a intentarlo, y si no puede, pide repetir sin cerrarse.
+- **En el celular, después de un himno o un video, los mandos se ponen al día**: antes se quedaban los del video, y la lista seguía marcándolo «AL AIRE» hasta recargar la página. Les pasaba a Control total y a los dos oradores.
+- **En el Orador sencillo, «Anterior» ya no avanza**: el nombre de lo que sigue se corta dentro de Siguiente en vez de tapar «Anterior».
+
 ## 1.69.1 — 2026-11-04
 
 - **Buscar un libro sin capítulo ya lo encuentra**: «1 reyes», «1 corintios», «3 juan» o «génesis» abren el capítulo 1 de ese libro, en «Buscar en todo» y en la Biblia. Antes no daban nada, porque se buscaban como texto. Si la palabra sí aparece en los versículos («juan», «hechos»), se siguen mostrando esos versículos.

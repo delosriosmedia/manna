@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import http from 'node:http';
+import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -117,6 +118,27 @@ test('no se puede salir de la carpeta servida', async () => {
     assert.equal(res.status, 404, url);
     await res.arrayBuffer();
   }
+});
+
+// Una dirección que no se puede leer («manna.local//», con una barra de más) cerraba Manna entero, antes de mirar
+// ninguna sesión: la pedía cualquier dispositivo del wifi (auditoría integral, S5-02).
+test('una dirección mal escrita no cierra Manna: responde 400 y sigue contestando', async () => {
+  const { port } = new URL(main.base);
+  for (const target of ['//', '//[', '/\\']) {
+    const reply = await new Promise((resolve, reject) => {
+      const socket = net.connect(Number(port), '127.0.0.1', () => socket.write(`GET ${target} HTTP/1.1\r\nHost: manna.local\r\nConnection: close\r\n\r\n`));
+      let data = '';
+      socket.setEncoding('utf8');
+      socket.on('data', (chunk) => { data += chunk; });
+      socket.on('end', () => resolve(data));
+      socket.on('error', reject);
+      socket.setTimeout(3000, () => { socket.destroy(); resolve(data); });
+    });
+    assert.match(reply, /^HTTP\/1\.1 400/, target);
+  }
+  const ping = await main.request('/api/ping');
+  assert.equal(ping.status, 200, 'y Manna sigue abierto');
+  await ping.arrayBuffer();
 });
 
 test('una subida se guarda en disco, respeta el límite y no deja archivos a medias', async () => {

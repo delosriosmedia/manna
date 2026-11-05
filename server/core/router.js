@@ -231,7 +231,10 @@ export function createRouter({ webDir, sessions, cloud = false, refuse = () => n
   }
 
   async function handle(req, res) {
-    const url = new URL(req.url, 'http://localhost');
+    // Una dirección que no se puede leer («//», con una barra de más) lanzaba aquí, fuera del try, y cerraba Manna
+    // entero, antes de mirar ninguna sesión (auditoría integral, S5-02).
+    let url;
+    try { url = new URL(req.url, 'http://localhost'); } catch { return sendJson(res, 400, { error: 'Dirección no válida.' }); }
     // En la nube todo llega de internet, aunque no traiga las cabeceras: no hay equipo principal y todo pide ingreso.
     const internet = cloud || FORWARDED.some((name) => name in req.headers);
     const isLocal = !internet && LOOPBACK.has(req.socket.remoteAddress);

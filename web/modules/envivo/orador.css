@@ -125,10 +125,11 @@ body.envivo .ev[data-sheet='true'] .dockbar, body.envivo .ev[data-sheet='true'] 
 .ev-ofollows { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 8px; color: var(--ink-3); font-size: 11px; white-space: nowrap; }
 .ev[data-variant='sencillo'] .ev-pasos { grid-area: pasos; margin-top: 16px; gap: 10px; min-height: 0; }
 .ev[data-variant='sencillo'] .ev-prev { width: 86px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border-radius: 18px; color: var(--ink-2); font-size: 12px; }
-.ev[data-variant='sencillo'] .ev-next { height: 100%; flex-direction: column-reverse; justify-content: center; gap: 6px; border: 2px solid var(--accent); border-radius: 22px; background: #0e3a44; color: var(--ink); }
+.ev[data-variant='sencillo'] .ev-next { height: 100%; flex-direction: column-reverse; justify-content: center; gap: 6px; border: 2px solid var(--accent); border-radius: 22px; background: #0e3a44; color: var(--ink); overflow: hidden; }
 .ev[data-variant='sencillo'] .ev-next .ic { width: 26px; height: 26px; color: var(--accent); }
 .ev[data-variant='sencillo'] .ev-next.pressed { background: var(--accent); color: var(--on-accent); filter: none; }
-.ev[data-variant='sencillo'] .ev-two { align-items: center; gap: 4px; }
+/* El nombre de lo que sigue se corta dentro del botón: si se salía, tapaba «Anterior» y su toque avanzaba (E5-01). */
+.ev[data-variant='sencillo'] .ev-two { align-items: center; gap: 4px; max-width: 100%; }
 .ev[data-variant='sencillo'] .ev-two > span { font-size: 20px; font-weight: 700; }
 .ev[data-variant='sencillo'] .ev-two small { color: var(--accent); font-size: 13px; }
 .ev[data-variant='sencillo'] .ev-next:disabled { border: 1px solid var(--line); background: var(--s1); color: var(--ink-3); }

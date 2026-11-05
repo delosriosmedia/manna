@@ -366,3 +366,32 @@ test('con ffmpeg: cuánto dura cada himno, y la pista instrumental preparada al 
     await s.stop();
   }
 });
+
+// En Windows el antivirus suele abrir un instante el archivo recién escrito, y renombrarlo falla (EBUSY). Ese error,
+// sin atrapar, cerraba Manna entero la primera vez que se pedía la pista de un himno (auditoría integral, N2-1-2).
+test('con ffmpeg: si Windows no deja renombrar la pista un momento, Manna lo reintenta y no se cierra', { ...needs, timeout: 60_000 }, async () => {
+  const s = await start('pista-bloqueada');
+  const rename = fs.renameSync;
+  let refusals = 2;
+  fs.renameSync = (from, to) => {
+    if (String(from).endsWith('.parcial') && refusals > 0) {
+      refusals -= 1;
+      throw Object.assign(new Error('EBUSY: resource busy or locked, rename'), { code: 'EBUSY' });
+    }
+    return rename(from, to);
+  };
+  try {
+    assert.ok(await s.probed(), 'Manna mira todos los videos');
+    const res = await s.request('/api/hymns/2/pista.mp4', { headers: { Range: 'bytes=0-9' }, signal: AbortSignal.timeout(20_000) });
+    assert.equal(res.status, 206, 'la pista sale tras reintentar');
+    await res.arrayBuffer();
+    refusals = Infinity;
+    const stuck = await s.request('/api/hymns/9/pista.mp4', { signal: AbortSignal.timeout(20_000) });
+    assert.equal(stuck.status, 500, 'si no lo suelta nunca, lo dice');
+    assert.match((await stuck.json()).error, /vuelve a intentarlo/i);
+    assert.equal((await s.request('/api/ping')).status, 200, 'y Manna sigue abierto');
+  } finally {
+    fs.renameSync = rename;
+    await s.stop();
+  }
+});

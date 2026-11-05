@@ -2943,6 +2943,12 @@ try {
     await chrome.send('Page.navigate', { url: `${local}/orador-sencillo?m=${Date.now()}` });
     await sleep(2500);
     check('/orador-sencillo es su control de bolsillo: por cuál va, y Siguiente y Anterior enormes', await run(`return ${q('.ev')}?.dataset.variant === 'sencillo' && ${q('.ev-next')}.getBoundingClientRect().height > 100 && ${q('.ev-prev')}.getBoundingClientRect().height > 100 && document.documentElement.scrollWidth <= innerWidth`) && (await say('.ev-onums')) === '3 de 4' && (await say('.ev-ofollows small')) === 'Sigue la 4');
+    // Un nombre largo de lo que sigue se salía del botón y tapaba «Anterior»: su toque avanzaba (auditoría integral, E5-01).
+    check('un nombre largo en Siguiente se corta dentro del botón: el toque en «Anterior» llega a «Anterior»', await run(`const n = ${q('.ev-next')}, two = n.querySelector('.ev-two'), s = two.querySelector('small') || two.lastElementChild, was = s.textContent;
+      s.textContent = 'Vuelve con 9 · Anuncios de la semana y calendario de actividades de octubre';
+      const a = n.getBoundingClientRect(), b = two.getBoundingClientRect(), p = ${q('.ev-prev')}.getBoundingClientRect(), t = s.getBoundingClientRect();
+      const hit = document.elementFromPoint(p.left + p.width / 2, t.top + t.height / 2); s.textContent = was;
+      return b.left >= a.left - 1 && b.right <= a.right + 1 && Boolean(hit?.closest('.ev-prev'))`));
     await tapEl(q('.ev-next'));
     await sleep(500);
     check('en la última, «Fin»: Siguiente se apaga y no se sale de la presentación', (await num()) === 4 && (await say('.ev-next .ev-two')).startsWith('Fin') && await run(`return ${q('.ev-next')}.disabled`) && (await say('.ev-ofollows small')) === 'Sigue el orden');

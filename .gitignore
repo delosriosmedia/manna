@@ -45,3 +45,7 @@ CLAUDE.local.md
 
 # Presentaciones reales de la iglesia para medir DeckCraft (fase 33): solo en local.
 /Presentaciones pruebas/
+# Sermones reales de la iglesia para la prueba local de las citas (fase 27): solo en local.
+/Bosquejos temporales/
+# Copias de trabajo de los asistentes (ensayos en otra rama, docs/odd.md).
+.claude/worktrees/

@@ -71,9 +71,10 @@ export function createEnVivo(ctx, { variant = 'control' } = {}) {
   const slot = h('div', { class: 'ev-slot' });
   const send = guard((patch) => action('projection.control', patch));
   const toolButtons = new Set();
-  // En Alabanza, lo que suena lleva su avance y su transporte en su propio sitio (clipRow).
-  const seekBox = player && h('div', { class: 'ev-seekbox' });
-  const trans = player && h('div', { class: 'ev-trans' });
+  // En Alabanza, lo que suena lleva su avance y su transporte en su propio sitio (clipRow). Fuera de ella, null:
+  // con false, `seekHost?.replaceChildren()` lanzaba al quitar un video y los mandos se quedaban pegados (I1-01).
+  const seekBox = player ? h('div', { class: 'ev-seekbox' }) : null;
+  const trans = player ? h('div', { class: 'ev-trans' }) : null;
   const slotApi = {
     send,
     seekHost: seekBox,
