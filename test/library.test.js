@@ -52,6 +52,20 @@ test('search busca texto sin depender de tildes y marca lo encontrado', () => {
   assert.equal(library.search('prueba', 'zzz').total, 0);
 });
 
+test('search abre el capítulo 1 de un libro escrito sin capítulo, si el texto no da nada', () => {
+  const otra = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-test-'));
+  test.after(() => fs.rmSync(otra, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(otra, 'Libros.xmm'), '<bible><b n="1 Reyes"><c n="1"><v n="1">Juan bautizaba en el desierto.</v></c></b></bible>');
+  const libros = new BibleLibrary(otra);
+  libros.scan();
+  for (const q of ['1 reyes', '1 Re', 'I Reyes']) {
+    assert.deepEqual(libros.search('libros', q), { type: 'ref', ref: { book: 11, chapter: 1, verseStart: null, verseEnd: null }, reference: '1 Reyes 1' }, q);
+  }
+  assert.equal(library.search('prueba', 'genesis').reference, 'Génesis 1');
+  // Un libro que sí está en el texto se sigue buscando como texto.
+  assert.equal(libros.search('libros', 'juan').type, 'text');
+});
+
 // ---- En qué versión se busca ----
 // Los textos de estas versiones de prueba son inventados.
 

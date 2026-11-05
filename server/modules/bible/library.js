@@ -4,6 +4,7 @@ import { createTextIndex, findMarks, prepareQuery } from '../../core/search.js';
 import { parseBible } from './parsers.js';
 import { describeVersion } from './versions.js';
 import { parseReference, formatReference } from './reference.js';
+import { findBook } from './canon.js';
 
 const EXTENSIONS = new Set(['.xmm', '.xml']);
 
@@ -260,6 +261,12 @@ export class BibleLibrary {
         };
       }),
     })).filter((level) => level.total);
+
+    // Un libro sin capítulo («1 reyes», «génesis») no sale en ningún versículo: se abre su capítulo 1.
+    // Solo si el texto no dio nada, para no quitar los versículos que nombran «Juan» o «hechos».
+    const book = !levels.length && findBook(query);
+    const first = book && this.chapter(id, book, 1);
+    if (first) return { type: 'ref', ref: { book, chapter: 1, verseStart: null, verseEnd: null }, reference: `${first.name} 1` };
 
     return {
       type: 'text',

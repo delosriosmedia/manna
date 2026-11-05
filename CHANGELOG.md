@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.69.1 — 2026-11-04
+
+- **Buscar un libro sin capítulo ya lo encuentra**: «1 reyes», «1 corintios», «3 juan» o «génesis» abren el capítulo 1 de ese libro, en «Buscar en todo» y en la Biblia. Antes no daban nada, porque se buscaban como texto. Si la palabra sí aparece en los versículos («juan», «hechos»), se siguen mostrando esos versículos.
+
 ## 1.69.0 — 2026-11-01
 
 - **Una bienvenida nueva en manna-iglesia.es**: clara y ordenada para el líder audiovisual o el pastor que no conoce Manna: qué es y qué hace, cómo se maneja desde el celular, cómo funciona con internet y sin él, qué se necesita, qué recibe la iglesia y dónde queda en línea.
