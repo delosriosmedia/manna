@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.69.2 — 2026-11-05
+
 - **Manna ya no se cierra de golpe por una petición mal escrita**: ahora la rechaza y sigue funcionando. Y si algo falla al atender a un dispositivo, se anota y Manna sigue abierto.
 - **La pista de un himno ya no puede cerrar Manna en Windows**: si el antivirus retiene el archivo un momento, Manna vuelve a intentarlo, y si no puede, pide repetir sin cerrarse.
 - **En el celular, después de un himno o un video, los mandos se ponen al día**: antes se quedaban los del video, y la lista seguía marcándolo «AL AIRE» hasta recargar la página. Les pasaba a Control total y a los dos oradores.
