@@ -479,6 +479,9 @@ const screens = screenWords.length ? SCREENS.filter((s) => screenWords.some((w) 
 const devices = (sizeWords.length ? DEVICES.filter((d) => sizeWords.some((w) => sizeName(d).includes(w))) : DEVICES).filter((d) => !d.min || screens.some((s) => s.movil));
 
 let problems = 0;
+// Si medir lanzó un error en la página, eso es un fallo: antes reventaba la auditoría y, desde que evaluate da
+// undefined en vez del error (auditoría integral, T1-02), pasaría en vacío con una medida vacía.
+const unmeasured = (raw, why) => (raw ? [] : [`no se pudo medir: ${why || 'la página no contestó'}`]);
 const failuresOf = (m) => Object.keys(LABELS).filter((k) => m[k] === false).map((k) => LABELS[k] + (k === 'dedos' ? `: ${m.pequenos.join(', ')}` : k === 'solape' && m.solapan ? `: ${m.solapan.join('; ')}` : k === 'deLado' ? `: ${m.ladeados.join(', ')}` : k === 'contraste' ? `: ${m.flojos.join('; ')}` : k === 'cajonUnaFila' ? `: ${m.cajonDetalle}` : ''));
 
 // Un servidor con sus datos y un Chrome que revisa unos cuantos tamaños. Cada uno tiene lo suyo
@@ -591,8 +594,9 @@ async function worker(list, n, fast = FAST) {
         for (const device of list) {
           await size(device);
           await sleep(150);
-          const m = JSON.parse(await chrome.evaluate(`JSON.stringify(${MEASURE(screen, true, device.w < 860)})`) || '{}');
-          const failures = [...failuresOf(m), ...JSON.parse(await chrome.evaluate(`JSON.stringify(${MOBILE_RULES})`))];
+          const raw = await chrome.evaluate(`JSON.stringify(${MEASURE(screen, true, device.w < 860)})`);
+          const m = JSON.parse(raw || '{}');
+          const failures = [...unmeasured(raw, chrome.lastError), ...failuresOf(m), ...JSON.parse(await chrome.evaluate(`JSON.stringify(${MOBILE_RULES})`))];
           if (m.espacioContenido !== undefined && m.espacioContenido < minContent(device)) failures.push(`poco espacio para el contenido (${m.espacioContenido} px)`);
           problems += failures.length;
           if (failures.length) lines.push(`  ${device.w} × ${device.h}\n      ${failures.join('\n      ')}`);
@@ -636,6 +640,7 @@ async function worker(list, n, fast = FAST) {
         await chrome.evaluate(`Promise.race([new Promise((r) => setTimeout(r, 1000)), Promise.allSettled(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished))])`);
         const result = await chrome.evaluate(`JSON.stringify(${MEASURE(screen, device.touch, narrow)})`);
         const m = JSON.parse(result || '{}');
+        const measureError = chrome.lastError;
         // En las capturas de los manuales, la capa queda abierta para la foto.
         if (screen.closes && !process.env.MANNA_CAPTURAS_REALES) {
           // Un toque de verdad fuera del recuadro, sobre el fondo de la capa.
@@ -651,7 +656,7 @@ async function worker(list, n, fast = FAST) {
           await sleep(300);
           m.cierraFuera = await chrome.evaluate(`!document.querySelector(${JSON.stringify(screen.closesOutside)})`);
         }
-        const failures = failuresOf(m);
+        const failures = [...unmeasured(result, measureError), ...failuresOf(m)];
         if (m.espacioContenido !== undefined && m.espacioContenido < minContent(device)) failures.push(`poco espacio para el contenido (${m.espacioContenido} px)`);
         problems += failures.length;
         const room = m.espacioContenido !== undefined ? ` · contenido ${m.espacioContenido} px` : '';

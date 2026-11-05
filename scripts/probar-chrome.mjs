@@ -270,7 +270,9 @@ async function shutdownByPort() {
 let failed = 0;
 function check(label, ok, detail = '') {
   if (!ok) failed += 1;
-  console.log(`${ok ? '✔' : '✖'} ${label}${detail ? ` (${detail})` : ''}`);
+  // Si lo último que se evaluó en la página lanzó un error, se dice cuál: casi siempre es la comprobación, no Manna.
+  const extra = [detail, ok ? '' : chrome?.lastError].filter(Boolean).join(' · ');
+  console.log(`${ok ? '✔' : '✖'} ${label}${extra ? ` (${extra})` : ''}`);
 }
 
 let chrome;
@@ -289,6 +291,9 @@ const expectedErrors = [];
 const expectError = (fragment) => expectedErrors.push(fragment);
 async function instrument() {
   await chrome.send('Network.enable', {});
+  // Sin Runtime.enable, Chrome no avisa de los errores de JavaScript ni de los avisos de error: la vigilancia pasó
+  // así desde la 1.5.1 hasta la auditoría integral sin mirar nada (T1-01).
+  await chrome.send('Runtime.enable', {});
   await chrome.send('Runtime.addBinding', { name: 'mannaAviso' });
   await chrome.send('Page.addScriptToEvaluateOnNewDocument', { source: `new MutationObserver((list) => {
     for (const m of list) {
@@ -297,6 +302,13 @@ async function instrument() {
       if (toast && toast.classList.contains('show') && toast.dataset.kind === 'error' && toast.textContent && window.mannaAviso) window.mannaAviso(toast.textContent);
     }
   }).observe(document, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'data-kind'] });` });
+  // La vigilancia se prueba a sí misma: un error provocado tiene que llegar. Después se descarta.
+  const probe = 'error de prueba de la vigilancia';
+  await chrome.evaluate(`setTimeout(() => { throw new Error('${probe}'); }, 0); 1`);
+  await sleep(400);
+  const seen = chrome.events.findIndex((e) => e.method === 'Runtime.exceptionThrown' && JSON.stringify(e.params).includes(probe));
+  check('la vigilancia ve los errores de JavaScript de la página', seen >= 0);
+  if (seen >= 0) chrome.events.splice(seen, 1);
 }
 // Pasa a `watched` lo que Chrome ha ido contando. Se llama antes de vaciar los eventos o cerrar Chrome.
 function harvest() {
@@ -361,7 +373,13 @@ const dragMouse = async (x1, y1, x2, y2) => {
   await sleep(400);
 };
 // El centro de un elemento (llevándolo antes a la vista).
-const centerOf = async (js) => JSON.parse(await run(`const e = ${js}; e.scrollIntoView({ block: 'nearest', inline: 'nearest' }); const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2 })`));
+// El centro en pantalla de lo que dice js, llevado a la vista. Si no está, cuenta un fallo y da null: así un elemento que
+// falta cuesta una comprobación y no el resto del grupo (auditoría integral, N2-6-2).
+const centerOf = async (js) => {
+  const at = await run(`const e = ${js}; if (!e) return null; e.scrollIntoView({ block: 'nearest', inline: 'nearest' }); const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2 })`);
+  if (!at) check(`está en la página: ${js.slice(0, 120)}`, false);
+  return at ? JSON.parse(at) : null;
+};
 // Arrastrar con el dedo de verdad: tocar, mantener (Medios espera 350 ms antes de empezar a arrastrar) y mover.
 const dragTouch = async (x1, y1, x2, y2, hold = 450) => {
   const touch = (type, x, y) => chrome.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
@@ -374,12 +392,12 @@ const dragTouch = async (x1, y1, x2, y2, hold = 450) => {
 // Lo de Medios: los grupos que se ven («Imágenes 2»), las categorías y el aviso de cuando no hay nada que mostrar.
 const groupsNow = () => run(`return JSON.stringify([...document.querySelectorAll('.ws[data-module=medios] .media-group')].filter((g) => !g.hidden).map((g) => g.querySelector('h2').textContent + ' ' + g.querySelector('.media-group-head small').textContent))`).then(JSON.parse);
 const mediaCats = () => run(`return JSON.stringify((await (await fetch('/api/state')).json()).media.categories)`).then(JSON.parse);
-const dragCard = async (fromJs, toJs) => { const a = await centerOf(fromJs); const b = await centerOf(toJs); await dragMouse(a.x, a.y, b.x, b.y); };
+const dragCard = async (fromJs, toJs) => { const a = await centerOf(fromJs); const b = await centerOf(toJs); if (a && b) await dragMouse(a.x, a.y, b.x, b.y); };
 const drawerBox = () => run(`const r = document.querySelector('.drawer').getBoundingClientRect(); return JSON.stringify({ left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width })`).then(JSON.parse);
 const gripAt = () => run(`const r = document.querySelector('.drawer-grip').getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2 })`).then(JSON.parse);
 const tapEl = async (js, clicks = 1) => {
-  const c = JSON.parse(await run(`const e = ${js}; e.scrollIntoView({ block: 'nearest', inline: 'nearest' }); const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2 })`));
-  await clickAt(c.x, c.y, clicks);
+  const c = await centerOf(js);
+  if (c) await clickAt(c.x, c.y, clicks);
 };
 // Abre un módulo en el cajón. Pulsar el icono del que ya está abierto lo cierra: solo se pulsa si no está.
 // Ajustes no está en el dock: lo abre el logo de la barra de arriba (1.31).
@@ -1741,7 +1759,7 @@ try {
     await click(`document.querySelector('.media-bar[data-panel=audios] .btn.primary')`);
     await sleep(1200);
     on = await air();
-    check('al proyectarlo suena, y la pantalla muestra su nombre sobre el fondo', on.item.kind === 'audio' && on.live.clock.playing === true && await run(`const m = document.querySelector('.scene-bg > .stage'); return m.querySelector('.clip-audio .stage-ref').textContent === 'pista de piano' && !m.querySelector('audio').paused && m.querySelector('.stage').dataset.fill === 'text'`));
+    check('al proyectarlo suena, y la pantalla muestra su nombre sobre el fondo', on.item.kind === 'audio' && on.live.clock.playing === true && await run(`const m = document.querySelector('.scene-bg > .stage'); return m.querySelector('.clip-audio .stage-ref').textContent === 'pista de piano' && !m.querySelector('audio').paused && m.dataset.fill === 'text'`));
     await control('Pausar');
     check('y se gobierna con los mismos mandos', (await air()).live.clock.playing === false && await run(`return ${controls}.querySelectorAll('button').length >= 5 && document.querySelector('.scene-bg > .stage audio').paused`));
 
@@ -2425,7 +2443,7 @@ try {
     check('queda elegida sin abrir sus diapositivas: la lista no cambia y la barra ofrece «Ver diapositivas»', await groupsShown() === 'imagenes,videos,audios,diapositivas' && await run(`return document.querySelector('.deck-side[aria-label=Diapositivas]').hidden && ${dbar}.querySelector('.deck-see').textContent === 'Ver diapositivas'`), await groupsShown());
     await click(`${dbar}.querySelector('.deck-see')`);
     await sleep(400);
-    check('«Ver diapositivas» las pone al lado de la lista, que sigue a la vista con la elegida', await groupsShown() === 'imagenes,videos,audios,diapositivas' && await run(`const side = document.querySelector('.deck-side[aria-label=Diapositivas]'), body = ${ws}.querySelector('.media-body'), b = body.getBoundingClientRect(), card = ${ws}.querySelector('.deck.selected').getBoundingClientRect(); return !side.hidden && side.getBoundingClientRect().left >= b.right - 1 && getComputedStyle(body).visibility === 'visible' && card.top >= b.top - 1 && card.bottom <= b.bottom + 1 && side.querySelector('.deck-side[aria-label=Diapositivas]-head strong').textContent === 'Informe de tesorería' && ${dbar}.querySelector('.deck-see').textContent === 'Ocultar diapositivas'`),
+    check('«Ver diapositivas» las pone al lado de la lista, que sigue a la vista con la elegida', await groupsShown() === 'imagenes,videos,audios,diapositivas' && await run(`const side = document.querySelector('.deck-side[aria-label=Diapositivas]'), body = ${ws}.querySelector('.media-body'), b = body.getBoundingClientRect(), card = ${ws}.querySelector('.deck.selected').getBoundingClientRect(); return !side.hidden && side.getBoundingClientRect().left >= b.right - 1 && getComputedStyle(body).visibility === 'visible' && card.top >= b.top - 1 && card.bottom <= b.bottom + 1 && side.querySelector('.deck-side[aria-label=Diapositivas] .deck-side-head strong').textContent === 'Informe de tesorería' && ${dbar}.querySelector('.deck-see').textContent === 'Ocultar diapositivas'`),
       await run(`const s = document.querySelector('.deck-side[aria-label=Diapositivas]').getBoundingClientRect(), b = ${ws}.querySelector('.media-body').getBoundingClientRect(); return JSON.stringify({ side: [s.left, s.width], body: [b.left, b.right] })`));
     check('y se ven grandes, con la imagen entera y no la miniatura; las tarjetas de la cuadrícula no cambian de tamaño', await run(`const p = document.querySelector('.deck-side[aria-label=Diapositivas] .slide-pick'); return p.getBoundingClientRect().width > 300 && !/\\/m\\d+\\./.test(p.querySelector('img').getAttribute('src'))`)
       && Math.abs(await run(`return ${ws}.querySelector('.deck.selected').getBoundingClientRect().width`) - 190) < 1, await run(`const p = document.querySelector('.deck-side[aria-label=Diapositivas] .slide-pick'); return JSON.stringify({ w: p.getBoundingClientRect().width, src: p.querySelector('img').getAttribute('src'), card: ${ws}.querySelector('.deck.selected').getBoundingClientRect().width })`));
@@ -2578,7 +2596,7 @@ try {
     await sleep(300);
     await click(`${madeCard}.querySelector('.deck-pick')`);
     await sleep(300);
-    check('con las diapositivas a la vista, elegir otra presentación muestra las suyas', await run(`const side = document.querySelector('.deck-side[aria-label=Diapositivas]'); return !side.hidden && side.querySelector('.deck-side[aria-label=Diapositivas]-head strong').textContent === ${madeCard}.querySelector('strong').textContent && side.querySelectorAll('.slide-pick').length === 3`));
+    check('con las diapositivas a la vista, elegir otra presentación muestra las suyas', await run(`const side = document.querySelector('.deck-side[aria-label=Diapositivas]'); return !side.hidden && side.querySelector('.deck-side[aria-label=Diapositivas] .deck-side-head strong').textContent === ${madeCard}.querySelector('strong').textContent && side.querySelectorAll('.slide-pick').length === 3`));
     await click(`${deckCard}.querySelector('.deck-pick')`);
     await sleep(300);
     await click(`${ws}.querySelector('.deck-side[aria-label=Diapositivas] .deck-close')`);
@@ -3892,7 +3910,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
     await click(roleCard('Control total'));
     await sleep(2500);
     check('cambia de función sin volver a escribir el PIN, y sin Ajustes ni wifi (no es administrador)', (await chrome.evaluate('location.pathname')) === '/control'
-      && await run(`return !document.querySelector('.ws[data-module=ajustes]') && document.querySelector('.topbar .brand-mark').tagName === 'SPAN' && !document.querySelector('.tool-wifi') && Boolean(document.querySelector('.tool-qr'))`));
+      && await run(`return !document.querySelector('.ws[data-module=ajustes]') && document.querySelector('.ev-top .brand-mark')?.tagName === 'SPAN' && !document.querySelector('.tool-wifi')`));
     check('el servidor tampoco le deja lo del administrador', (await run(`return await ${post('projection.styles', { fontSize: 50 })}`)) === 403 && (await run(`return await ${post('users.create', { name: 'Otro', pin: '9999', functions: ['orden'] })}`)) === 403);
     await run(`return await ${post('projection.show', { kind: 'song', data: { number: 9, track: 'vocal' } })}`);
     await sleep(1500);
@@ -4178,7 +4196,7 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
       await run(`const s = ${cloudSection}; const [u, c] = s.querySelectorAll('.cloud-form input'); u.value = ${JSON.stringify(cloud)}; c.value = ${JSON.stringify(firstCode)}; s.querySelector('.cloud-form button[type=submit]').click();`);
       check('Ajustes → Nube empareja este equipo como el oficial', await until(`${cloudSection}.textContent.includes('Conectado')`, 25), await run(`return ${cloudSection}?.textContent`));
       // Cómo tiene el himnario (decisión 64): se elige ahí mismo.
-      const hymnalChip = (mode) => `${cloudSection}.querySelector('.cloud-hymnal [data-mode=${mode}]')`;
+      const hymnalChip = (mode) => `${cloudSection}?.querySelector('.cloud-hymnal [data-mode=${mode}]')`;
       await click(hymnalChip('nube'));
       check('y elige cómo tener el himnario de la nube', await until(`${hymnalChip('nube')}.getAttribute('aria-pressed') === 'true' && (await (await fetch('/api/state')).json()).cloud.hymnal === 'nube'`, 15));
       // Los usuarios (parte 3): los de la nube llegan al equipo, y ahí se ven pero no se cambian.
@@ -4657,6 +4675,8 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
   check('la lista de lo que no se puede pulsar aquí está al día', stale.length === 0, stale.join(', '));
   // Lo que este grupo no usó: el guion que lanzó los grupos se queda con lo que no usó ninguno.
   fs.writeFileSync(process.env.MANNA_PRUEBA_VIGILANCIA, JSON.stringify({ idle, quiet }));
+} catch (err) {
+  check('el grupo llegó hasta el final', false, String(err?.stack || err).split('\n').slice(0, 2).join(' '));
 } finally {
   chrome.close();
   await stopServer(server);

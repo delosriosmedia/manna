@@ -46,9 +46,10 @@ const freePort = () => new Promise((resolve, reject) => {
   });
 });
 
-// Devuelve { send, evaluate, events, close, acceptDialogs }.
+// Devuelve { send, evaluate, events, close, acceptDialogs, lastError }.
 //   send(method, params)  orden del protocolo DevTools
-//   evaluate(expresión)   ejecuta JavaScript en la página y devuelve el valor
+//   evaluate(expresión)   ejecuta JavaScript en la página y devuelve el valor (undefined si lanza un error,
+//                         con el motivo en lastError)
 //   events                eventos recibidos (por ejemplo, cuadros de diálogo)
 //   acceptDialogs         si es true, acepta solo el aviso "¿Salir del sitio?"; sin ello,
 //                         una navegación se queda esperando a que alguien responda
@@ -92,8 +93,15 @@ export async function startChrome({ args = [] } = {}) {
     pending.set(mine, (msg) => { clearTimeout(timer); pending.delete(mine); resolve(msg); });
     ws.send(JSON.stringify({ id: mine, method, params }));
   });
-  const evaluate = async (expression) =>
-    (await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true })).result?.result?.value;
+  // Si lo evaluado lanza un error, da undefined y deja el motivo en chrome.lastError. Antes daba el error como
+  // valor ({}), que es verdadero, y así pasaban las comprobaciones rotas (auditoría integral, T1-02).
+  const evaluate = async (expression) => {
+    chrome.lastError = '';
+    const reply = (await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true })).result;
+    if (!reply?.exceptionDetails) return reply?.result?.value;
+    chrome.lastError = (reply.exceptionDetails.exception?.description || reply.exceptionDetails.text || 'error en la página').split('\n')[0];
+    return undefined;
+  };
   await send('Page.enable');
 
   const close = () => {

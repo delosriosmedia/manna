@@ -2,7 +2,7 @@
 
 ## Automáticas
 
-- `npm test` (usa `node --test "test/*.test.js"`, sin librerías: con el patrón, porque en Windows `node --test` no acepta una carpeta). Deben pasar antes de cualquier commit. Pasan también en Windows, y en cada versión las corre un Windows de GitHub (trabajo `pruebas-windows` de `.github/workflows/instaladores.yml`, decisión 50; unos 40 s; sin ffmpeg ni guiones de mentira, 12 se saltan).
+- `npm test` (usa `node --test "test/*.test.js"`, sin librerías: con el patrón, porque en Windows `node --test` no acepta una carpeta). Deben pasar antes de cualquier commit. Pasan también en Windows. En cada versión las corre un Windows de GitHub (trabajo `pruebas-windows` de `.github/workflows/instaladores.yml`, decisión 50). Tardan unos 40 s y se saltan 12, porque ahí no hay ffmpeg ni guiones de mentira. Desde la decisión 75 corren **antes** de pasar la versión a `main`, en la rama, con `gh workflow run` (paso 8 de `/publicar`): un fallo en Windows ya no llega a publicarse.
 - Toda lógica pura del servidor lleva prueba en `test/<tema>.test.js`: lectura de formatos, citas, búsquedas, validaciones, cálculos.
 - Lo que pasa por HTTP (rutas, acciones, permisos, archivos) se prueba contra el servidor de verdad en `test/servidor.test.js`: crea la app con datos temporales y la atiende con `app.handle`, sin llamar a `listen()`, así que no abre ventanas ni se anuncia en la red.
 - Las pruebas crean sus datos en carpetas temporales. No dependen de `Contenido/` ni de `data/`, ni de internet (las descargas se prueban contra un servidor en el propio equipo).
@@ -83,6 +83,8 @@ Además de sus comprobaciones, `scripts/probar-chrome.mjs` vigila toda la sesió
 - algún botón responde con un **aviso de error que no se esperaba** (un error dentro de `guard()` no rompe la página: solo sale un aviso, y por eso pasó inadvertido). Un error provocado a propósito se declara antes con `expectError('trozo del texto')`;
 - hay un **error de JavaScript** en cualquier pantalla;
 - queda alguna **orden o dirección del servidor que la interfaz no usó pulsando** (solo en la prueba completa). Lo que de verdad no se puede pulsar ahí va en `UNTOUCHED`, con su motivo.
+
+**La vigilancia se prueba a sí misma** (fase 51). Al encenderse, `instrument()` provoca un error y comprueba que lo ve. Hasta la auditoría integral (2026-11-05), sin `Runtime.enable`, no veía ninguno: el error de los mandos del celular salía 294 veces en 10 minutos y la prueba daba «Todo correcto». **Una comprobación cuyo JavaScript lanza un error falla y dice por qué:** `evaluate` de `scripts/lib/chrome.mjs` da `undefined` y deja el motivo en `chrome.lastError`. Antes el error llegaba como `{}`, que es verdadero, y la comprobación pasaba. Un elemento que falta al tocarlo (`tapEl`, `centerOf`) cuesta un ✖ y no el resto del grupo. Si algo revienta a mitad, el grupo lo cuenta y termina con su resumen. En la auditoría de pantallas, una medición que lanza un error es un fallo («no se pudo medir»).
 
 **Una comprobación no puede pasar en vacío.** "Todas las miniaturas cargaron la imagen pequeña" es cierto también cuando aún no hay ninguna miniatura (se ve el esqueleto de carga): antes de un `every()` se comprueba cuántos elementos hay. Así pasó inadvertido, el 2026-10-05, que las miniaturas del orden pedían la imagen grande.
 
