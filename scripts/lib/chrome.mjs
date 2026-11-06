@@ -61,6 +61,10 @@ export async function startChrome({ args = [] } = {}) {
   // página se comportan igual: solo se calla la salida del navegador).
   const child = killOnExit(spawn(findBrowser(), ['--headless=new', '--mute-audio', `--remote-debugging-port=${debugPort}`, `--user-data-dir=${profile}`,
     '--no-first-run', '--window-size=1280,800', ...args, 'about:blank'], { stdio: 'ignore' }));
+  // Si el guion sale de golpe (su tiempo máximo, Ctrl+C, un error), el perfil se borra igual: quedaban de 15 a 70 MB por
+  // Chrome en la carpeta temporal, 4,9 GB en un día de pruebas (auditoría integral, N2-6-4). Va después de killOnExit,
+  // que cierra antes ese Chrome.
+  process.once('exit', () => { try { fs.rmSync(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }); } catch { /* lo limpia el sistema */ } });
 
   let target;
   for (let i = 0; i < 50 && !target; i += 1) {
