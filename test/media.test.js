@@ -199,3 +199,26 @@ test('Medios: subir, nombrar, ajustar, proyectar, encuadrar al aire, añadir al 
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+// Las cuentas que comparten la proyección y los mandos: dónde cae una imagen acercada y en qué segundo va lo que suena.
+// Si cambian sin querer, el puntero cae en otro sitio o un celular va adelantado (auditoría integral, T1-08).
+test('la vista de una imagen y el reloj de lo que suena: casos fijos', async () => {
+  const { place, visible, centerOf } = await import('../web/modules/projection/view.js');
+  const { positionAt } = await import('../web/core/playback.js');
+  const screen = { W: 1920, H: 1080, iw: 1000, ih: 1000 };
+  assert.deepEqual(place(screen, { fit: 'contain', zoom: 1, x: 0.5, y: 0.5 }), { width: 1080, height: 1080, left: 420, top: 0, scale: 1.08 }, 'entera y centrada');
+  assert.deepEqual(place(screen, { fit: 'cover', zoom: 1, x: 0.5, y: 0.5 }), { width: 1920, height: 1920, left: 0, top: -420, scale: 1.92 }, 'cubriendo, recorta arriba y abajo por igual');
+  // Al máximo y con el punto en el borde derecho: no deja hueco, se queda pegada a ese borde.
+  const edge = { fit: 'contain', zoom: 5, x: 1, y: 0.5 };
+  const at = place(screen, edge);
+  assert.deepEqual([Math.round(at.left), Math.round(at.top)], [-3480, -2160]);
+  const seen = visible(screen, edge);
+  assert.ok(Math.abs(seen.left + seen.width - 1) < 1e-9, 'se ve hasta el borde derecho, sin pasarse');
+  const c = centerOf(screen, edge);
+  assert.deepEqual([Math.round(c.x * 1000) / 1000, c.y], [0.822, 0.5], 'el centro pedido (1) se ajusta al que de verdad se ve');
+  assert.equal(positionAt(null, 5000), 0);
+  assert.equal(positionAt({ playing: false, position: 12, at: 0, duration: 30 }, 99_999), 12, 'pausado no avanza');
+  assert.equal(positionAt({ playing: true, position: 10, at: 1000, duration: 30 }, 6000), 15, 'sonando avanza con la hora del servidor');
+  assert.equal(positionAt({ playing: true, position: 28, at: 0, duration: 30 }, 10_000), 30, 'no pasa de lo que dura');
+  assert.equal(positionAt({ playing: true, position: 7, at: 9000, duration: null }, 8000), 7, 'una hora por delante no lo hace retroceder');
+});
