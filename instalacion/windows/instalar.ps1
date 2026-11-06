@@ -28,6 +28,11 @@ $oculta = if ($env:MANNA_BASE) { $env:MANNA_BASE } else { Join-Path $env:LOCALAP
 $documentos = if ($env:MANNA_DOCUMENTOS) { $env:MANNA_DOCUMENTOS } else { [Environment]::GetFolderPath('MyDocuments') }
 $interactivo = -not $env:MANNA_DESTINO -and -not [Console]::IsOutputRedirected
 $aqui = if ($env:MANNA_INSTALADOR) { Split-Path $env:MANNA_INSTALADOR } else { $PSScriptRoot }
+# La versión que pidió Manna (version-pedida.txt, junto a este archivo): se baja por su etiqueta de GitHub y no lo último
+# de main, que puede llevar algo aún no aprobado (auditoría integral, S5-04). Si esa etiqueta no existe, se baja main.
+$etiquetas = if ($env:MANNA_ETIQUETAS) { $env:MANNA_ETIQUETAS } else { 'https://github.com/delosriosmedia/manna/archive/refs/tags' }
+$pedida = Join-Path $aqui 'version-pedida.txt'
+$version = if (Test-Path -LiteralPath $pedida) { (Get-Content -Raw -LiteralPath $pedida).Trim() } else { '' }
 $pasos = 5
 
 # ---- La consola: un título, los pasos con su marca y una barra de avance ----
@@ -137,7 +142,9 @@ if ($node) {
 # ---- 3. Manna ----
 Paso 3 'Descargando Manna'
 $zip = Join-Path $temporal 'manna.zip'
-try { Bajar $descarga $zip } catch { Falla 'No se pudo descargar Manna. Comprueba que este equipo tiene internet y vuelve a intentarlo.' }
+$bajada = $false
+if ($version -match '^\d+\.\d+\.\d+$') { try { Bajar "$etiquetas/v$version.zip" $zip; $bajada = $true } catch { } }
+if (-not $bajada) { try { Bajar $descarga $zip } catch { Falla 'No se pudo descargar Manna. Comprueba que este equipo tiene internet y vuelve a intentarlo.' } }
 try { Abrir $zip (Join-Path $temporal 'abierto') } catch { Falla 'La descarga llegó dañada. Vuelve a intentarlo.' }
 $indice = Get-ChildItem -LiteralPath (Join-Path $temporal 'abierto') -Directory | ForEach-Object { Join-Path $_.FullName 'server\index.js' } | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 if (-not $indice) { Falla 'La descarga no contiene Manna. Vuelve a intentarlo.' }

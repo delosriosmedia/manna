@@ -61,6 +61,10 @@ for APP in "${MANNA_DESTINO:-/Applications}/Manna.app" "$HOME/Applications/Manna
 done
 # --aqui: si este archivo está en la carpeta de Manna (junto a su Contenido, o en Programa/programa), se ordena esa.
 AQUI="$(cd "$(dirname "$0")" && pwd)"
+# La versión que pidió Manna (version-pedida.txt, junto a este archivo): se baja por su etiqueta de GitHub y no lo último
+# de main, que puede llevar algo aún no aprobado (auditoría integral, S5-04). Si esa etiqueta no existe, se baja main.
+ETIQUETAS="${MANNA_ETIQUETAS:-https://github.com/delosriosmedia/manna/archive/refs/tags}"
+VERSION="$(tr -d '[:space:]' < "$AQUI/version-pedida.txt" 2>/dev/null)"
 TEMPORAL="$(mktemp -d)"
 trap 'rm -rf "$TEMPORAL"' EXIT
 
@@ -99,7 +103,10 @@ fi
 # ---- 3. Manna ----
 paso 3 "Descargando Manna"
 if [ -t 1 ] && [ -z "$MANNA_PKG" ]; then BARRA=(--progress-bar); else BARRA=(-sS); fi
-curl -fL "${BARRA[@]}" "$DESCARGA" -o "$TEMPORAL/manna.zip" || falla "No se pudo descargar Manna. Comprueba que este equipo tiene internet y vuelve a intentarlo."
+if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && curl -fL "${BARRA[@]}" "$ETIQUETAS/v$VERSION.zip" -o "$TEMPORAL/manna.zip" 2>/dev/null; then :
+else
+  curl -fL "${BARRA[@]}" "$DESCARGA" -o "$TEMPORAL/manna.zip" || falla "No se pudo descargar Manna. Comprueba que este equipo tiene internet y vuelve a intentarlo."
+fi
 ditto -x -k "$TEMPORAL/manna.zip" "$TEMPORAL/abierto" || falla "La descarga llegó dañada. Vuelve a intentarlo."
 ORIGEN="$(find "$TEMPORAL/abierto" -mindepth 2 -maxdepth 3 -path '*/server/index.js' | head -1)"
 [ -n "$ORIGEN" ] || falla "La descarga no contiene Manna. Vuelve a intentarlo."

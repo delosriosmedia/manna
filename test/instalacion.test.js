@@ -341,6 +341,24 @@ test('el instalador de Mac entero: baja Node.js, lo comprueba, ordena la carpeta
     const second = spawnSync('bash', [path.join(raiz, 'Programa', 'programa', MAC)], { env: { ...env, MANNA_NODE_DESCARGA: `file://${t}/no-existe` }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
     assert.equal(second.status, 0, second.stdout + second.stderr);
     assert.match(second.stdout, /Ya está el de Manna/);
+    // La versión que pide Manna (version-pedida.txt, junto al instalador) se baja por su etiqueta, no de main; y si esa
+    // etiqueta no existe, de main, como antes (auditoría integral, S5-04).
+    fs.cpSync(path.join(t, 'zip', 'manna-main'), path.join(t, 'tags', 'manna-9.9.9'), { recursive: true });
+    const pkg = path.join(t, 'tags', 'manna-9.9.9', 'package.json');
+    fs.writeFileSync(pkg, JSON.stringify({ ...json(pkg), version: '9.9.9' }));
+    fs.mkdirSync(path.join(t, 'etiquetas'));
+    execFileSync('zip', ['-qr', path.join(t, 'etiquetas', 'v9.9.9.zip'), 'manna-9.9.9'], { cwd: path.join(t, 'tags') });
+    const programDir = path.join(raiz, 'Programa', 'programa');
+    const update = (asked) => {
+      fs.writeFileSync(path.join(programDir, 'version-pedida.txt'), asked);
+      return spawnSync('bash', [path.join(programDir, MAC)], { env: { ...env, MANNA_ETIQUETAS: `file://${t}/etiquetas` }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    };
+    const tagged = update('9.9.9');
+    assert.equal(tagged.status, 0, tagged.stdout + tagged.stderr);
+    assert.match(tagged.stdout, /Manna 9\.9\.9/, 'baja la versión pedida');
+    const untagged = update('9.9.8');
+    assert.equal(untagged.status, 0, untagged.stdout + untagged.stderr);
+    assert.match(untagged.stdout, new RegExp(`Manna ${json(path.join(ROOT, 'package.json')).version.replace(/\./g, '\\.')}`), 'sin esa etiqueta, la de main');
     // Una descarga de Node.js con otra huella no se usa.
     fs.writeFileSync(path.join(t, 'nodo', 'SHASUMS256.txt'), `${'1'.repeat(64)}  ${name}.tar.gz\n`);
     // Como lo ejecuta el .pkg (MANNA_PKG): el motivo queda en un archivo, para la ventana que lo dice.

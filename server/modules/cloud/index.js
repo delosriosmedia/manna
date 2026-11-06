@@ -497,13 +497,15 @@ function churchSide(app) {
         saved.save();
         saved.flush();
         try {
-          updates.install();
+          updates.install(body.version);
           console.log(`La nube tiene Manna ${body.version}: este equipo se pone al día.`);
           return set({ status: 'updating', lastSeen: Date.now(), error: null });
         } catch (err) {
           console.error(`No se pudo poner al día con la versión de la nube (${body.version}): ${err.message}`);
         }
       }
+      // El aviso de versión nueva sigue a la nube, no a GitHub (decisión 58): «Actualizar ahora» pide esa versión.
+      if (body.version && updates?.newer(body.version) && store.get('system').update?.version !== body.version) store.set('system', { update: { version: body.version } });
       apart = (Number(body.protocol) || 1) === PROTOCOL ? null
         : `La nube tiene Manna ${body.version || 'de otra versión'} y este equipo, la ${version}: hasta que tengan la misma, este equipo sigue en local, sin sincronizar.${updates?.newer(body.version) ? ' Se pondrá al día al volver a abrir Manna.' : ''}`;
       // Lo que el superadministrador dejó a esta iglesia (fase 39): módulos, su orden y el máximo de órdenes.

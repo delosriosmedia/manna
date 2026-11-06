@@ -84,7 +84,14 @@ jobs:
       - name: Actualizar con el .bat de la carpeta del programa (reutiliza su Node.js)
         shell: pwsh
         run: |
-          $env:MANNA_DESCARGA = 'file:///' + ("$env:RUNNER_TEMP\manna.zip" -replace '\\', '/')
+          # Manna pide su versión (version-pedida.txt) y el instalador la baja por su etiqueta (fase 52.2): aquí solo la
+          # etiqueta existe, así que si bajara main, fallaría.
+          $version = (Get-Content -Raw package.json | ConvertFrom-Json).version
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\etiquetas" | Out-Null
+          Copy-Item "$env:RUNNER_TEMP\manna.zip" "$env:RUNNER_TEMP\etiquetas\v$version.zip"
+          Set-Content -NoNewline -LiteralPath "$env:RUNNER_TEMP\Documentos\Manna\Programa\programa\version-pedida.txt" -Value $version
+          $env:MANNA_ETIQUETAS = 'file:///' + ("$env:RUNNER_TEMP\etiquetas" -replace '\\', '/')
+          $env:MANNA_DESCARGA = 'file:///' + ("$env:RUNNER_TEMP\no-existe.zip" -replace '\\', '/')
           $env:MANNA_BASE = "$env:RUNNER_TEMP\oculta"
           $env:MANNA_DOCUMENTOS = "$env:RUNNER_TEMP\Documentos"
           $env:MANNA_DESTINO = "$env:RUNNER_TEMP\Iconos"

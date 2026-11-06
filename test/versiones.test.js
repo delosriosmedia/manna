@@ -70,6 +70,8 @@ test('avisa solo de una versión más nueva, calla sin internet, se puede buscar
     assert.equal(await send('system.update'), 200);
     for (let i = 0; i < 60 && !fs.existsSync(marker); i += 1) await sleep(50);
     assert.equal(fs.realpathSync(fs.readFileSync(marker, 'utf8')), fs.realpathSync(tmp), 'se abrió el instalador, en su carpeta');
+    // El instalador baja la versión anunciada, por su etiqueta, y no lo último de main (auditoría integral, S5-04).
+    assert.equal(fs.readFileSync(path.join(tmp, 'version-pedida.txt'), 'utf8'), '99.0.0', 'junto al instalador, la versión que se pide');
   } finally {
     for (const key of ['MANNA_VERSIONES_URL', 'MANNA_VERSIONES_MS', 'MANNA_ACTUALIZADOR_PRUEBA']) delete process.env[key];
     await app.close();

@@ -45,7 +45,8 @@ export function watchVersions(app, version) {
     store.set('system', { update: { version: latest } });
   }
   async function check() {
-    if (app.blocked) return;
+    // Emparejado con una nube, la versión es la de su nube, no la última de GitHub (decisión 58): avisa el módulo cloud.
+    if (app.blocked || app.services.cloud?.managedBy?.()) return;
     try {
       publish(await latestVersion());
     } catch {
@@ -62,6 +63,10 @@ export function watchVersions(app, version) {
   // «Buscar versión nueva» (Ajustes, pedido del dueño 2026-10-18): pregunta ya, sin esperar al turno. Aquí sí se dice
   // si no se pudo. En la copia con git no se avisa arriba: esa se pone al día con git.
   app.action('system.checkUpdate', { permission: 'system.admin' }, async () => {
+    if (app.services.cloud?.managedBy?.()) {
+      const announced = store.get('system').update?.version || version;
+      return { version, latest: announced, newer: newer(announced, version) };
+    }
     let latest;
     try {
       latest = await latestVersion();
@@ -74,12 +79,20 @@ export function watchVersions(app, version) {
 
   // Abre el instalador como lo haría un doble clic. Pruebas: MANNA_ACTUALIZADOR_PRUEBA, un guion de node que hace de
   // instalador.
-  function install() {
+  // version: la que se pide (la de la nube, o la anunciada). Va junto al instalador, en version-pedida.txt, y el instalador
+  // la baja por su etiqueta de GitHub en vez de lo último de main, que puede llevar algo aún no aprobado (auditoría
+  // integral, S5-04). Sin ella, baja main, como antes.
+  function install(version = store.get('system').update?.version) {
     const fake = process.env.MANNA_ACTUALIZADOR_PRUEBA;
     const file = fake || path.join(app.rootDir, INSTALLERS[process.platform] || '');
     if (!fake && (dev || !INSTALLERS[process.platform] || !fs.existsSync(file))) {
       throw new HttpError(409, 'No se encontró el instalador de Manna en este equipo. Descárgalo de GitHub y ábrelo.');
     }
+    const asked = path.join(path.dirname(file), 'version-pedida.txt');
+    try {
+      if (/^\d+\.\d+\.\d+$/.test(version || '')) fs.writeFileSync(asked, version);
+      else fs.rmSync(asked, { force: true });
+    } catch { /* sin ella, el instalador baja main */ }
     const [cmd, args] = fake ? [process.execPath, [file]]
       // Windows: como un doble clic (el Explorador lo abre en su ventana). Mac: en el Terminal.
       : process.platform === 'win32' ? ['explorer.exe', [file]] : ['open', ['-a', 'Terminal', file]];
