@@ -283,6 +283,7 @@ Desde el 2026-10-25 (decisión 60), lo que esta tabla da por «sin probar» en e
 
 ## Decisiones tomadas
 
+- **2026-11-06 · Un error sin atrapar ya no cierra Manna** (decisión 77, al empezar la fase 52.3): una promesa rechazada que nadie atrapó se apunta en el registro y Manna sigue, y cada cola de fondo atrapa sus errores. Cambia la regla de `servidor.md`.
 - **2026-11-06 · Actualizar, emparejar y el portátil** (decisión 76, al empezar la fase 52.2):
   - La puesta al día al encender se queda como está (decisión 57).
   - Al emparejar otro equipo como oficial, el de la iglesia se sigue bloqueando enseguida (decisiones 63 y 64).

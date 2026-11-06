@@ -4,6 +4,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Un fallo en una tarea de fondo ya no cierra Manna**: si una conversión, una descarga de YouTube o una presentación falla a mitad, por ejemplo porque el antivirus retiene un archivo o se llenó el disco, solo falla esa tarea, se dice por qué y lo demás sigue.
 ## 1.70.0 — 2026-11-06
 
 - **«¿No entra ningún celular?»**, en «Conectar dispositivos», dice qué revisar: la misma wifi, la red como Privada y Node.js permitido en el Firewall de Windows. Si el puerto 80 lo usa otro programa, Manna lo dice en vez de cambiar de puerto en silencio, y la conexión por internet también lo explica.

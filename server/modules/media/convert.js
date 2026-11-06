@@ -107,7 +107,22 @@ export function createConverter(app, { pause = process.platform === 'win32' ? 'r
     running.job.update({ detail: label(running.task) });
   }
 
-  async function next() {
+  // Un fallo a mitad (el antivirus retiene un archivo, el disco se llenó) no cierra Manna: esa tarea falla, quien la pidió
+  // se entera y la cola sigue con la siguiente (decisión 77, auditoría integral S5-01).
+  function next() {
+    step().catch((err) => {
+      console.error('Convertir:', err?.stack || err);
+      const current = running;
+      running = null;
+      if (current) {
+        current.job.fail('No se pudo convertir este archivo.');
+        Promise.resolve().then(() => current.task.onDone({ ok: false, error: 'No se pudo convertir este archivo.' })).catch((e) => console.error('Convertir:', e?.stack || e));
+      }
+      next();
+    });
+  }
+
+  async function step() {
     if (running || closed || held || !queue.length) return;
     running = queue.shift();
     const { task, job } = running;
@@ -127,7 +142,7 @@ export function createConverter(app, { pause = process.platform === 'win32' ? 'r
     if (result.ok) job.done('Listo');
     else if (result.cancelled) job.done('Cancelado');
     else job.fail('No se pudo convertir este archivo.');
-    task.onDone(result);
+    Promise.resolve().then(() => task.onDone(result)).catch((err) => console.error(err?.stack || err));
     next();
   }
 

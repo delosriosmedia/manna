@@ -221,7 +221,22 @@ export function createDownloader(app) {
     });
   }
 
-  async function next() {
+  // Un fallo a mitad (el antivirus retiene un archivo, el disco se llenó) no cierra Manna: esa tarea falla, quien la pidió
+  // se entera y la cola sigue con la siguiente (decisión 77, auditoría integral S5-01).
+  function next() {
+    step().catch((err) => {
+      console.error('YouTube:', err?.stack || err);
+      const current = running;
+      running = null;
+      if (current) {
+        current.job.fail('No se pudo descargar este video.');
+        Promise.resolve().then(() => current.task.onDone({ ok: false, error: 'No se pudo descargar este video.' })).catch((e) => console.error('YouTube:', e?.stack || e));
+      }
+      next();
+    });
+  }
+
+  async function step() {
     if (running || closed || !queue.length) return;
     running = queue.shift();
     const { task, job } = running;
@@ -274,7 +289,7 @@ export function createDownloader(app) {
       console.error(`YouTube no pudo descargar ${task.videoId} (código ${result.code}): ${String(result.err).trim().split(/\r?\n/).slice(-8).join(' | ')}`);
       job.fail(explain(result.err, js));
     }
-    task.onDone({ ok, cancelled: current.cancelled || closed, error: ok ? null : explain(result.err, js) });
+    Promise.resolve().then(() => task.onDone({ ok, cancelled: current.cancelled || closed, error: ok ? null : explain(result.err, js) })).catch((err) => console.error(err?.stack || err));
     next();
   }
 

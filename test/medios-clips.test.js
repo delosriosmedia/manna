@@ -319,6 +319,33 @@ test('una conversión cede el paso a lo que se reproduce: se congela y sigue, o 
   }
 });
 
+// Un fallo de disco al terminar una conversión (el antivirus retiene el archivo en Windows) cerraba Manna entero, en pleno
+// culto (auditoría integral, S5-01; decisión 77): esa conversión falla, quien la pidió se entera y la siguiente sigue.
+test('si una conversión falla al final, falla sola: Manna sigue y la cola continúa', { ...needs, timeout: 120_000 }, async () => {
+  const input = make('pequeno.avi', [...PICTURE, '-c:v', 'mpeg4']);
+  const info = readProbe(String(spawnSync('ffprobe', ['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', input]).stdout));
+  const s = await start('cola-que-falla');
+  const rename = fs.renameSync;
+  fs.renameSync = (from, to) => {
+    if (String(from).endsWith('primera.mp4.parcial')) throw Object.assign(new Error('EBUSY: resource busy or locked, rename'), { code: 'EBUSY' });
+    return rename(from, to);
+  };
+  const converter = createConverter(s.app);
+  try {
+    const convert = (id) => new Promise((resolve) => {
+      converter.enqueue({ id, name: id, input, output: path.join(tmp, `${id}.mp4`), kind: 'video', plan: planFor(info, 'video'), duration: info.duration, width: 640, onDone: resolve });
+    });
+    const [first, second] = await Promise.all([convert('primera'), convert('segunda')]);
+    assert.equal(first.ok, false, 'la que no se pudo terminar, falla');
+    assert.equal(second.ok, true, 'y la siguiente se convierte igual');
+    assert.equal(s.app.jobs.list().find((j) => j.ref === 'primera')?.state, 'error', 'la tarea queda como fallida');
+  } finally {
+    fs.renameSync = rename;
+    converter.close();
+    await s.stop();
+  }
+});
+
 test('lo copiado a la carpeta Contenido/Medios aparece solo, con sus subtítulos, y no se borra desde la app', needs, async () => {
   const mp4 = make('carpeta.mp4', [...PICTURE, '-c:v', 'libx264', '-pix_fmt', 'yuv420p']);
   const s = await start('carpeta');

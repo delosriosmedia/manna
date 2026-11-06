@@ -6,6 +6,11 @@ import { createApp, portCandidates } from './core/app.js';
 import { logToFile } from './core/log.js';
 import { mirror } from './core/r2.js';
 
+// Una promesa rechazada que nadie atrapó se apunta y Manna sigue: antes cerraba Manna entero en pleno culto y nada lo
+// volvía a abrir (decisión 77, auditoría integral S5-01). Un error que se lanza fuera de una promesa sigue cerrándolo
+// (core/log.js): cada sitio atrapa lo suyo.
+process.on('unhandledRejection', (err) => console.error('Error sin atrapar (Manna sigue):', err?.stack || err));
+
 import system from './modules/system/index.js';
 import users from './modules/users/index.js';
 import bible from './modules/bible/index.js';

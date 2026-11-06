@@ -519,11 +519,26 @@ export function createExporter(app, { platform = process.platform } = {}) {
       console.error(`${who} no pudo convertir «${task.name}»: ${String(err).trim()}`);
       job.fail(explained);
     }
-    task.onDone({ ok, pages, cancelled: current.cancelled || closed, error: ok ? null : explained });
+    Promise.resolve().then(() => task.onDone({ ok, pages, cancelled: current.cancelled || closed, error: ok ? null : explained })).catch((err) => console.error(err?.stack || err));
     next();
   }
 
-  async function next() {
+  // Un fallo a mitad (el antivirus retiene un archivo, el disco se llenó) no cierra Manna: esa tarea falla, quien la pidió
+  // se entera y la cola sigue con la siguiente (decisión 77, auditoría integral S5-01).
+  function next() {
+    step().catch((err) => {
+      console.error('Presentaciones:', err?.stack || err);
+      const current = running;
+      running = null;
+      if (current) {
+        current.job.fail('No se pudo convertir esta presentación.');
+        Promise.resolve().then(() => current.task.onDone({ ok: false, error: 'No se pudo convertir esta presentación.' })).catch((e) => console.error('Presentaciones:', e?.stack || e));
+      }
+      next();
+    });
+  }
+
+  async function step() {
     if (running || closed || !queue.length) return;
     running = queue.shift();
     const current = running;
