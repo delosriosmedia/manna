@@ -142,6 +142,19 @@ function move(from, to, avisos) {
   }
 }
 
+// El programa nuevo se copia aparte y solo entero se cambia por el de antes, que queda en «programa.anterior» para
+// volver a él. Antes se copiaba encima del que estaba en uso: una copia cortada lo dejaba mezclado y no quedaba ninguna
+// versión anterior (auditoría integral, S5-06). En Windows, el antivirus puede retener un instante una carpeta: se reintenta.
+const LOCKED = ['EBUSY', 'EPERM', 'EACCES'];
+const STILL_OPEN = 'Manna sigue abierto y no deja cambiar el programa. Ciérralo con el botón «Apagar» del control (o, si no responde, cierra «Node.js» en el Administrador de tareas o en el Monitor de actividad) y vuelve a abrir este archivo. No se cambió nada.';
+async function rename(from, to) {
+  for (let i = 0; ; i += 1) {
+    try { fs.renameSync(from, to); return; } catch (err) {
+      if (!LOCKED.includes(err.code) || i >= 4) throw err;
+      await sleep(300);
+    }
+  }
+}
 // Deja `to` igual que `from`: copia encima y quita lo que ya no viene (es solo el programa).
 function mirror(from, to) {
   fs.cpSync(from, to, { recursive: true, force: true });
@@ -155,6 +168,74 @@ function mirror(from, to) {
   };
   prune(from, to);
 }
+async function swapIn(from, programa) {
+  const nuevo = `${programa}.nuevo`;
+  const anterior = `${programa}.anterior`;
+  fs.rmSync(nuevo, { recursive: true, force: true });
+  fs.cpSync(from, nuevo, { recursive: true });
+  if (!exists(programa)) { await rename(nuevo, programa); return; }
+  fs.rmSync(anterior, { recursive: true, force: true });
+  try { await rename(programa, anterior); } catch (err) {
+    if (!LOCKED.includes(err.code)) { fs.rmSync(nuevo, { recursive: true, force: true }); throw err; }
+    // Windows no deja renombrar la carpeta que un programa tiene como carpeta de trabajo: la del programa, si la
+    // actualización se abrió desde Manna con el instalador de antes. Se guarda una copia de la de antes y el programa
+    // nuevo se copia encima, como hasta la 1.69. Así la actualización no se queda a medias por esto.
+    try {
+      fs.cpSync(programa, anterior, { recursive: true });
+      mirror(nuevo, programa);
+    } catch (copyErr) {
+      throw LOCKED.includes(copyErr.code) ? new Error(STILL_OPEN) : copyErr;
+    } finally {
+      fs.rmSync(nuevo, { recursive: true, force: true });
+    }
+    return;
+  }
+  try { await rename(nuevo, programa); } catch (err) {
+    if (exists(anterior) && !exists(programa)) await rename(anterior, programa);
+    throw LOCKED.includes(err.code) ? new Error(STILL_OPEN) : err;
+  }
+}
+
+// Junto al programa, un archivo que vuelve a la versión anterior: intercambia «programa» y «programa.anterior». Para cuando
+// una versión nueva no arranca en ese equipo. Solo letras ASCII en el .bat (y finales CRLF), como los demás de Windows.
+export const VOLVER = process.platform === 'win32' ? 'Volver a la version anterior.bat' : 'Volver a la version anterior.command';
+const VOLVER_BAT = [
+  '@echo off',
+  'rem Manna: vuelve a la version anterior, la que guardo la ultima actualizacion (programa.anterior).',
+  'cd /d "%~dp0"',
+  'if not exist "programa.anterior\\server\\index.js" goto ninguna',
+  'ren "programa" "programa.cambio" || goto abierto',
+  'ren "programa.anterior" "programa" || goto deshacer',
+  'ren "programa.cambio" "programa.anterior"',
+  'echo Listo: Manna vuelve a la version anterior. Abrelo con su icono.',
+  'pause',
+  'exit /b 0',
+  ':deshacer',
+  'ren "programa.cambio" "programa"',
+  ':abierto',
+  'echo No se pudo: Manna sigue abierto. Cierralo con el boton Apagar del control y vuelve a abrir este archivo.',
+  'pause',
+  'exit /b 1',
+  ':ninguna',
+  'echo No hay una version anterior guardada en esta carpeta.',
+  'pause',
+  'exit /b 1',
+  '',
+].join('\r\n');
+const VOLVER_SH = [
+  '#!/bin/bash',
+  '# Manna: vuelve a la versión anterior, la que guardó la última actualización (programa.anterior).',
+  'cd "$(dirname "$0")" || exit 1',
+  'if [ ! -f programa.anterior/server/index.js ]; then echo "No hay una versión anterior guardada en esta carpeta."; read -r -p "Pulsa Intro para cerrar. " _; exit 1; fi',
+  'if mv programa programa.cambio && mv programa.anterior programa && mv programa.cambio programa.anterior; then',
+  '  echo "Listo: Manna vuelve a la versión anterior. Ábrelo con su icono (si estaba abierto, apágalo antes con «Apagar»)."',
+  'else',
+  '  [ -d programa ] || mv programa.cambio programa',
+  '  echo "No se pudo cambiar de versión: no se tocó nada."',
+  'fi',
+  'read -r -p "Pulsa Intro para cerrar. " _',
+  '',
+].join('\n');
 
 export async function arrange(options) {
   const p = plan(options);
@@ -190,8 +271,9 @@ export async function arrange(options) {
   fs.mkdirSync(datos, { recursive: true });
 
   // 2. El programa, entero y al día; y dónde está cada cosa.
-  fs.mkdirSync(programa, { recursive: true });
-  mirror(p.origen, programa);
+  await swapIn(p.origen, programa);
+  fs.writeFileSync(path.join(p.base, VOLVER), process.platform === 'win32' ? VOLVER_BAT : VOLVER_SH);
+  if (process.platform !== 'win32') fs.chmodSync(path.join(p.base, VOLVER), 0o755);
   fs.writeFileSync(path.join(p.base, 'carpetas.json'), JSON.stringify({ datos, contenido: p.contenido, raiz: p.raiz, ...(p.elegida ? { elegida: true } : {}) }, null, 2));
 
   // 3. Al contenido solo se le añade lo que falte (las instrucciones y la Reina-Valera 1909).

@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
-import { arrange, pairingFrom } from '../instalacion/ordenar.mjs';
+import { execFileSync } from 'node:child_process';
+import { arrange, pairingFrom, VOLVER } from '../instalacion/ordenar.mjs';
 
 // Cómo ordenan los instaladores la carpeta de Manna (instalacion/ordenar.mjs), en carpetas temporales:
 // una instalación nueva, la de la carpeta oculta, la antigua (la carpeta entera del proyecto), la carpeta
@@ -45,6 +46,57 @@ test('una instalación nueva: la carpeta Manna con los instaladores, Contenido y
     assert.deepEqual(list(raiz), expected);
     assert.equal(fs.readFileSync(path.join(raiz, 'Programa', 'datos', 'orden.json'), 'utf8'), 'mi orden');
   } finally {
+    fs.rmSync(t.tmp, { recursive: true, force: true });
+  }
+});
+
+// Una actualización copiaba encima del programa en uso: cortada a medias lo dejaba mezclado, y no quedaba ninguna
+// versión anterior para volver si la nueva no arranca en ese equipo (auditoría integral, S5-06).
+test('al actualizar, la versión de antes queda en programa.anterior, y su archivo vuelve a ella', async () => {
+  const t = setup();
+  try {
+    await arrange({ ...t, nube: false });
+    const base = path.join(t.documentos, 'Manna', 'Programa');
+    const read = (rel) => fs.readFileSync(path.join(base, rel), 'utf8');
+    write(path.join(t.origen, 'server', 'index.js'), 'versión 2');
+    fs.rmSync(path.join(t.origen, 'web', 'app.js'));
+    await arrange({ ...t, nube: false });
+    assert.equal(read('programa/server/index.js'), 'versión 2');
+    assert.ok(!fs.existsSync(path.join(base, 'programa', 'web', 'app.js')), 'lo que la versión nueva ya no trae, no se queda');
+    assert.equal(read('programa.anterior/server/index.js'), 'nuevo server/index.js', 'la de antes, entera');
+    assert.ok(fs.existsSync(path.join(base, 'programa.anterior', 'web', 'app.js')));
+    assert.ok(!fs.existsSync(path.join(base, 'programa.nuevo')), 'no queda la copia de paso');
+    const volver = path.join(base, VOLVER);
+    assert.ok(fs.existsSync(volver), 'junto al programa, el archivo para volver');
+    if (process.platform === 'win32') execFileSync('cmd', ['/c', volver], { input: '\r\n\r\n', stdio: ['pipe', 'ignore', 'ignore'] });
+    else execFileSync('bash', [volver], { input: '\n', stdio: ['pipe', 'ignore', 'ignore'] });
+    assert.equal(read('programa/server/index.js'), 'nuevo server/index.js', 'volver deja la versión de antes');
+    assert.equal(read('programa.anterior/server/index.js'), 'versión 2', 'y guarda la otra, por si se quiere volver otra vez');
+  } finally {
+    fs.rmSync(t.tmp, { recursive: true, force: true });
+  }
+});
+
+// En Windows no se puede renombrar la carpeta que un programa tiene como carpeta de trabajo: la del programa, si la
+// actualización se abrió desde Manna con el instalador de la versión anterior.
+test('si Windows no deja renombrar la carpeta del programa, guarda una copia de la de antes y actualiza igual', async () => {
+  const t = setup();
+  const rename = fs.renameSync;
+  try {
+    await arrange({ ...t, nube: false });
+    const base = path.join(t.documentos, 'Manna', 'Programa');
+    write(path.join(t.origen, 'server', 'index.js'), 'versión 2');
+    fs.renameSync = (from, to) => {
+      if (path.basename(from) === 'programa') throw Object.assign(new Error('EBUSY: resource busy or locked, rename'), { code: 'EBUSY' });
+      return rename(from, to);
+    };
+    await arrange({ ...t, nube: false });
+    fs.renameSync = rename;
+    assert.equal(fs.readFileSync(path.join(base, 'programa', 'server', 'index.js'), 'utf8'), 'versión 2', 'actualizado');
+    assert.equal(fs.readFileSync(path.join(base, 'programa.anterior', 'server', 'index.js'), 'utf8'), 'nuevo server/index.js', 'y la de antes, guardada');
+    assert.ok(!fs.existsSync(path.join(base, 'programa.nuevo')), 'sin restos de la copia');
+  } finally {
+    fs.renameSync = rename;
     fs.rmSync(t.tmp, { recursive: true, force: true });
   }
 });
@@ -282,7 +334,7 @@ test('el instalador de Mac entero: baja Node.js, lo comprueba, ordena la carpeta
     const first = spawnSync('bash', [path.join(ROOT, MAC)], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
     assert.equal(first.status, 0, first.stdout + first.stderr);
     const raiz = path.join(t, 'Documentos', 'Manna');
-    assert.deepEqual(list(path.join(raiz, 'Programa')), ['carpetas.json', 'datos', 'node', 'programa']);
+    assert.deepEqual(list(path.join(raiz, 'Programa')), [VOLVER, 'carpetas.json', 'datos', 'node', 'programa']);
     const app = fs.readFileSync(path.join(t, 'Apps', 'Manna.app', 'Contents', 'MacOS', 'Manna'), 'utf8');
     assert.match(app, /PROYECTO\/\.\.\/node\/bin\/node/, 'la app abre Manna con su Node.js');
     // Actualizar desde la copia del programa (lo que abre Manna): sin bajar Node.js otra vez (no hay de dónde).

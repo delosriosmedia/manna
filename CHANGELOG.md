@@ -4,6 +4,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Al actualizar, la versión de antes queda guardada**: si la nueva no arranca en ese equipo, «Volver a la version anterior», en la carpeta `Programa`, vuelve a ella con un doble clic. Además, una actualización cortada a medias ya no deja el programa mezclado.
 - **YouTube**: Manna le pide a yt-dlp que no baje directos con el nombre de opción que usa hoy yt-dlp, y no con uno antiguo que solo se aceptaba abreviado. Así, una versión nueva de yt-dlp no rompe las descargas por eso.
 
 ## 1.69.2 — 2026-11-05

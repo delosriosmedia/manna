@@ -88,10 +88,18 @@ jobs:
           $env:MANNA_BASE = "$env:RUNNER_TEMP\oculta"
           $env:MANNA_DOCUMENTOS = "$env:RUNNER_TEMP\Documentos"
           $env:MANNA_DESTINO = "$env:RUNNER_TEMP\Iconos"
+          # Como un doble clic: la carpeta de trabajo es la del programa, y Windows no deja renombrarla (fase 52.2).
+          Push-Location "$env:RUNNER_TEMP\Documentos\Manna\Programa\programa"
           $salida = cmd /c "`"$env:RUNNER_TEMP\Documentos\Manna\Programa\programa\Instalar Manna en Windows.bat`"" 2>&1 | Out-String
+          $fin = $LASTEXITCODE
+          Pop-Location
           Write-Output $salida
-          if ($LASTEXITCODE) { throw "La actualización terminó con $LASTEXITCODE" }
+          if ($fin) { throw "La actualización terminó con $fin" }
           if ($salida -notmatch 'Ya está el de Manna') { throw 'No reutilizó el Node.js de Manna' }
+          # La versión de antes queda guardada, y el archivo para volver a ella, junto al programa.
+          foreach ($ruta in "$env:RUNNER_TEMP\Documentos\Manna\Programa\programa.anterior\server\index.js", "$env:RUNNER_TEMP\Documentos\Manna\Programa\Volver a la version anterior.bat") {
+            if (-not (Test-Path $ruta)) { throw "Falta $ruta" }
+          }
 
       - name: Manna arranca con su Node.js
         shell: pwsh
