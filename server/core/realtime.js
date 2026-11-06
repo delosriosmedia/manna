@@ -32,10 +32,19 @@ export function createRealtime({ store, router, sessions }) {
     return (local.find((c) => c.role === 'proyeccion') || local.find((c) => c.role === 'control' || c.role === 'alabanza'))?.id || null;
   };
 
+  // El recuento se agrupa (como mucho, uno cada 100 ms): cada conexión que entraba o salía lo reenviaba al momento a todas
+  // las demás, y con miles a la vez (un dispositivo de la wifi, sin PIN) el servidor tardaba segundos en contestar
+  // (auditoría integral, S2-2).
+  let counting = null;
   function publishCounts() {
-    const counts = {};
-    for (const c of clients) counts[c.role] = (counts[c.role] || 0) + 1;
-    store.set('conexiones', { porRol: counts, sonido: soundClient() });
+    if (counting) return;
+    counting = setTimeout(() => {
+      counting = null;
+      const counts = {};
+      for (const c of clients) counts[c.role] = (counts[c.role] || 0) + 1;
+      store.set('conexiones', { porRol: counts, sonido: soundClient() });
+    }, 100);
+    counting.unref?.();
   }
 
   // Lo de cada persona (store.personal) se le manda a cada conexión según quién entró, mirado en cada envío: así vale

@@ -149,7 +149,10 @@ export function createSessions({ storage, roles: all, cloud = false, superMode =
     store.data.list[id] = { role: roleId, user: user?.id || null, created: Date.now() };
     const ids = Object.keys(store.data.list);
     if (ids.length > MAX_SESSIONS) {
-      ids.sort((a, b) => store.data.list[a].created - store.data.list[b].created);
+      // Primero se olvidan las que no tienen usuario (una «Pantalla de proyección» no pide PIN en la red de la iglesia):
+      // así nadie puede expulsar a quien entró con su PIN abriendo cientos (auditoría integral, S2-4).
+      const named = (sid) => (store.data.list[sid].user ? 1 : 0);
+      ids.sort((a, b) => named(a) - named(b) || store.data.list[a].created - store.data.list[b].created);
       for (const old of ids.slice(0, ids.length - MAX_SESSIONS)) delete store.data.list[old];
     }
     store.save();

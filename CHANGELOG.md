@@ -4,6 +4,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Manna aguanta mejor a un dispositivo que abre cientos de pantallas a la vez**: ya no se queda sin contestar, y quien entró con su PIN no pierde su sesión por eso.
 - **Un corte de luz ya no puede borrar los órdenes ni los usuarios**: Manna guarda cada archivo de forma segura y conserva la versión anterior. Si un archivo quedó dañado, lo aparta, sin borrarlo, y vuelve a la versión anterior en vez de empezar de cero. Si Windows no deja guardar en ese momento, lo vuelve a intentar.
 - **Un fallo en una tarea de fondo ya no cierra Manna**: si una conversión, una descarga de YouTube o una presentación falla a mitad, por ejemplo porque el antivirus retiene un archivo o se llenó el disco, solo falla esa tarea, se dice por qué y lo demás sigue.
 ## 1.70.0 — 2026-11-06

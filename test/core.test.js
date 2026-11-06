@@ -170,8 +170,17 @@ test('la contraseña del administrador de la nube (hasta la 1.48) se olvida y cu
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+// Con los usuarios ya creados, como en un equipo de verdad: en una carpeta vacía, Manna pasaría las sesiones de antes de
+// la fase 35 al primer administrador.
+const withUsers = (dir) => {
+  const storage = createStorage(dir);
+  createSessions({ storage, roles: [] });
+  storage.flushAll();
+};
+
 test('las sesiones guardadas tienen un límite: al pasarlo se van las más viejas (fase 35)', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-sesiones-'));
+  withUsers(dir);
   const list = Object.fromEntries(Array.from({ length: 505 }, (_, i) => [`s${i}`, { role: 'proyeccion', user: null, created: 1000 + i }]));
   fs.writeFileSync(path.join(dir, 'sesiones.json'), JSON.stringify({ list }));
   const storage = createStorage(dir);
@@ -181,5 +190,24 @@ test('las sesiones guardadas tienen un límite: al pasarlo se van las más vieja
   const kept = Object.keys(JSON.parse(fs.readFileSync(path.join(dir, 'sesiones.json'), 'utf8')).list);
   assert.equal(kept.length, 500);
   assert.ok(!kept.includes('s0') && !kept.includes('s5') && kept.includes('s6') && kept.includes('s504'), 'se van las más viejas');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+// Un dispositivo de la wifi, sin PIN, abría cientos de «Pantalla de proyección» y expulsaba a quien entró con su PIN
+// (auditoría integral, S2-4): primero se olvidan las que no tienen usuario.
+test('al pasar el límite de sesiones, las que tienen usuario se quedan', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-sesiones-'));
+  withUsers(dir);
+  const list = Object.fromEntries(Array.from({ length: 500 }, (_, i) => [`s${i}`, { role: 'proyeccion', user: null, created: 2000 + i }]));
+  list.ana = { role: 'alabanza', user: 'u-ana', created: 1 };
+  fs.writeFileSync(path.join(dir, 'sesiones.json'), JSON.stringify({ list }));
+  const storage = createStorage(dir);
+  const sessions = createSessions({ storage, roles: [{ id: 'proyeccion', permissions: [] }] });
+  sessions.open({ isLocal: false, internet: false, ip: '192.0.2.9', session: null, res: { setHeader() {} } }, { role: 'proyeccion' });
+  storage.flushAll();
+  const kept = Object.keys(JSON.parse(fs.readFileSync(path.join(dir, 'sesiones.json'), 'utf8')).list);
+  assert.equal(kept.length, 500);
+  assert.ok(kept.includes('ana'), 'la de Ana, la más vieja pero con su PIN, se queda');
+  assert.ok(!kept.includes('s0') && !kept.includes('s1'), 'se van las anónimas más viejas');
   fs.rmSync(dir, { recursive: true, force: true });
 });

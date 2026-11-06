@@ -504,7 +504,8 @@ test('suena una sola pantalla, siempre del equipo principal: su proyección y, s
     while (!/event: hello\ndata: (.+)\n/.test(text)) text += new TextDecoder().decode((await reader.read()).value);
     return { id: JSON.parse(/event: hello\ndata: (.+)\n/.exec(text)[1]).id, close: () => controller.abort() };
   };
-  const sound = async () => { await sleep(60); return (await s.state()).conexiones.sonido; };
+  // El recuento de conexiones se publica agrupado, como mucho cada 100 ms (auditoría integral, S2-2).
+  const sound = async () => { await sleep(160); return (await s.state()).conexiones.sonido; };
   try {
     assert.equal((await s.state()).conexiones.sonido ?? null, null, 'sin nada abierto en el equipo, no suena en ningún sitio');
     const control = await open('control');
