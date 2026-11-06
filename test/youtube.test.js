@@ -261,3 +261,17 @@ test('un enlace de YouTube se descarga a la biblioteca con su título, su imagen
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+// El yt-dlp de mentira acepta cualquier opción y el de verdad no. Si una versión nueva de yt-dlp (Manna lo pone al día
+// solo) quita o renombra una opción que usa Manna, la descarga falla en la iglesia: se mira en la ayuda del de verdad,
+// si este equipo lo tiene, sin internet (auditoría integral, T1-07).
+const REAL_YTDLP = spawnSync('yt-dlp', ['--version']).status === 0;
+test('cada opción que Manna le pasa a yt-dlp la conoce el yt-dlp de verdad', { skip: !REAL_YTDLP && 'este equipo no tiene yt-dlp' }, () => {
+  const help = spawnSync('yt-dlp', ['--help'], { encoding: 'utf8' }).stdout;
+  const knows = (option) => new RegExp(`(^|[\\s,])${option}([\\s=,]|$)`, 'm').test(help);
+  const all = { id: 'dQw4w9WgXcQ', dir: '/t', ffmpegDir: '/opt/bin', js: 'node:/n' };
+  const used = [...new Set([...downloadArgs(all), ...subtitleArgs(all)].filter((a) => /^--[a-z]/.test(a)))];
+  assert.ok(used.length > 15, `Manna usa ${used.length} opciones`);
+  assert.ok(!knows('--opcion-que-no-existe'), 'la comprobación distingue una opción que no existe');
+  assert.deepEqual(used.filter((option) => !knows(option)), [], 'opciones que el yt-dlp de verdad no conoce');
+});
