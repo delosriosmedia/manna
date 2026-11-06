@@ -53,7 +53,7 @@ import { fileURLToPath } from 'node:url';
 import { deadline, killOnExit, sleep, startChrome } from './lib/chrome.mjs';
 import { seedExample } from './lib/ejemplo.mjs';
 import { seedReal } from './lib/ejemplo-real.mjs';
-import { MOBILE_RULES } from './lib/reglas-moviles.mjs';
+import { MOBILE_RULES, OVER_VIEW } from './lib/reglas-moviles.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Separados de dos en dos: si un puerto está ocupado, el servidor prueba el siguiente.
@@ -64,6 +64,9 @@ const BIG = process.argv.includes('grande');
 // «rapido»: para ir corrigiendo. Un solo Chrome, y cada pantalla móvil se abre una vez y solo cambia de tamaño, sin
 // recargar (como al girar el dispositivo). Unos segundos por pantalla; la ronda completa se deja para el final.
 const FAST = process.argv.includes('rapido');
+// «red»: añade pantallas abiertas como un celular de la red (por la IP de este equipo, con usuario y PIN), no como el
+// equipo principal (localhost): solo así sale lo que no tiene él, como la barra de «Escuchar» (auditoría integral, N1-6-3).
+const NET = process.argv.includes('red');
 // Por dónde va cada Chrome, para decirlo si se pasa del tiempo máximo.
 const progress = [];
 deadline(12, 'La auditoría', () => progress.filter(Boolean).join(' · '));
@@ -449,6 +452,11 @@ SCREENS.push(
   ...IN_LIVE.map(named).map((x) => ({ ...x, name: `Móvil ampliado: ${x.name}`, movil: true, tactil: true, prefs: { ...x.prefs, 'envivo.ancho': true } })),
   ...ON_THEIR_OWN.map(named).map((x) => ({ ...x, name: `Móvil: ${x.name}`, movil: true, tactil: true })),
 );
+if (NET) SCREENS.push(
+  { ...SCREENS.find((x) => x.name === 'En vivo: himno'), name: 'Red: En vivo con un himno', red: true, vista: true },
+  { ...named('Himnario'), name: 'Red: Himnario escuchando', movil: true, tactil: true, red: true, vista: true, settle: 1200,
+    prepare: `${named('Himnario').prepare}; setTimeout(() => document.querySelector('.hymn-listen')?.click(), 400)` },
+);
 
 // Espera a que la pantalla esté lista y dice si llegó a estarlo: una pantalla que no abrió no se da por buena
 // (auditoría integral, T1-03). `ready` dice qué esperar cuando no hay ningún módulo abierto («Buscar en todo»).
@@ -571,6 +579,20 @@ async function worker(list, n, fast = FAST) {
       return (await post('/api/session', { role: ${JSON.stringify(role)}, user, ...pass })).status; })()`);
     cloudRole = role;
   }
+  // Un celular de la red: por la IP de este equipo, con un usuario de prueba y su PIN (el equipo principal entra sin PIN).
+  const ip = Object.values(os.networkInterfaces()).flat().find((a) => a && a.family === 'IPv4' && !a.internal)?.address;
+  const netBase = ip && `http://${ip}:${port}`;
+  let netIn = false;
+  async function netLogin() {
+    if (netIn) return;
+    await chrome.send('Page.navigate', { url: `${base}/api/ping` });
+    await sleep(200);
+    const id = await chrome.evaluate(`fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'users.create', payload: { name: 'Celular de la auditoría', pin: '2580', functions: ['control'] } }) }).then((r) => r.json()).then((j) => j.result?.id)`);
+    await chrome.send('Page.navigate', { url: `${netBase}/api/ping` });
+    await sleep(200);
+    await chrome.evaluate(`fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'control', user: ${JSON.stringify(id)}, pin: '2580' }) }).then((r) => r.status)`);
+    netIn = true;
+  }
   const setPrefs = (prefs, remove = false) => chrome.evaluate(`for (const [k, v] of Object.entries(${JSON.stringify(prefs)})) ${remove ? "localStorage.removeItem('manna.' + k)" : "localStorage.setItem('manna.' + k, JSON.stringify(v))"}`);
   const showInOrder = (id) => chrome.evaluate(`fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'order.show',payload:{id:${JSON.stringify(id)}}})}).then((r) => r.status)`);
   try {
@@ -581,8 +603,10 @@ async function worker(list, n, fast = FAST) {
       const size = (d) => chrome.send('Emulation.setDeviceMetricsOverride', { width: d.w, height: d.h, deviceScaleFactor: Number(process.env.MANNA_CAPTURAS_ESCALA) || 1, mobile: true });
       await chrome.send('Emulation.setTouchEmulationEnabled', { enabled: true });
       for (const screen of screens.filter((x) => x.tactil)) {
-        const origin = screen.cloud === 'superadmin' ? superBase : screen.cloud ? cloudBase : base;
+        if (screen.red && !netBase) { console.log(`  (sin red: «${screen.name}» no se revisa)`); continue; }
+        const origin = screen.red ? netBase : screen.cloud === 'superadmin' ? superBase : screen.cloud ? cloudBase : base;
         if (screen.cloud) await cloudLogin(screen.cloud);
+        if (screen.red) await netLogin();
         await chrome.send('Page.navigate', { url: `${origin}/api/ping` });
         await sleep(200);
         await chrome.evaluate(`localStorage.clear()`);
@@ -601,7 +625,8 @@ async function worker(list, n, fast = FAST) {
           await sleep(150);
           const raw = await chrome.evaluate(`JSON.stringify(${MEASURE(screen, true, device.w < 860)})`);
           const m = JSON.parse(raw || '{}');
-          const failures = [...unmeasured(raw, chrome.lastError), ...failuresOf(m), ...JSON.parse(await chrome.evaluate(`JSON.stringify(${MOBILE_RULES})`))];
+          const failures = [...unmeasured(raw, chrome.lastError), ...failuresOf(m), ...JSON.parse(await chrome.evaluate(`JSON.stringify(${MOBILE_RULES})`)),
+            ...(screen.vista ? JSON.parse(await chrome.evaluate(`JSON.stringify(${OVER_VIEW})`) || '["no se pudo medir lo que tapa la vista"]') : [])];
           if (m.espacioContenido !== undefined && m.espacioContenido < minContent(device)) failures.push(`poco espacio para el contenido (${m.espacioContenido} px)`);
           problems += failures.length;
           if (failures.length) lines.push(`  ${device.w} × ${device.h}\n      ${failures.join('\n      ')}`);

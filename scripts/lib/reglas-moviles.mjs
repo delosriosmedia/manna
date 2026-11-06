@@ -131,3 +131,22 @@ export const MOBILE_RULES = `(() => {
   if (red) fails.push('Rojo sin nada al aire: ' + red);
   return fails;
 })()`;
+
+// DESIGN.md, 12 ter, regla 1: nada va encima de la vista de lo que está al aire ni de la pastilla de estado. Se mira con una
+// rejilla de puntos qué hay arriba de verdad. Solo en las pantallas con `vista: true` (las que se abren como un celular de
+// la red: ahí sale la barra de «Escuchar», que la tapaba; auditoría integral, N1-6-3 y N1-6-1).
+export const OVER_VIEW = `(() => {
+  const zones = [document.querySelector('[data-vista]'), document.querySelector('.ev-pill')].filter(Boolean);
+  if (!zones.length) return ['No está la vista de lo que está al aire'];
+  const over = new Set();
+  for (const z of zones) {
+    const r = z.getBoundingClientRect();
+    for (let y = Math.max(r.top, 0) + 3; y < Math.min(r.bottom, innerHeight) - 2; y += 12) {
+      for (let x = Math.max(r.left, 0) + 3; x < Math.min(r.right, innerWidth) - 2; x += 12) {
+        const e = document.elementFromPoint(x, y);
+        if (e && !z.contains(e) && !e.contains(z) && !e.closest('[data-tapa]')) over.add((e.closest('[class]')?.getAttribute('class') || e.tagName).split(' ')[0]);
+      }
+    }
+  }
+  return over.size ? ['Encima de lo que está al aire: ' + [...over].slice(0, 3).join(', ')] : [];
+})()`;
