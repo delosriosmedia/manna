@@ -20,7 +20,8 @@ test('las flechas llegan a la página de una ventana abierta con depuración', {
   try {
     assert.equal(await sendKeys(path.join(profile, 'no-existe'), ['ArrowRight']), false, 'sin ventana, dice que no pudo');
     let sent = false;
-    for (let i = 0; i < 50 && !sent; i += 1) {
+    // Hasta 30 s: en el Windows de GitHub, Chrome tardó a veces más de 10 s en abrir su puerto de depuración (2026-11-06).
+    for (let i = 0; i < 150 && !sent; i += 1) {
       await sleep(200);
       sent = await sendKeys(profile, ['ArrowRight', 'ArrowRight', 'Enter', 'ArrowLeft', 'ArrowRight']);
     }
