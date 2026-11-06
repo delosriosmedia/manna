@@ -79,25 +79,30 @@ export default function setup(app) {
   // ¿Hay otro Manna con el mismo nombre (MANNA_NAME) en este equipo (contesta en sus puertos) o en otro de la
   // red (contesta por «manna.local»)? Se confirma pidiéndole /api/ping. Devuelve { where, version, here } o
   // null. Uno con estos mismos datos (el mismo id) no es otro: es este, y lo atiende server/app.js.
+  // ¿Es este el equipo oficial de su iglesia (emparejado con su nube)?
+  const official = () => Boolean(app.services.cloud?.managedBy?.());
   async function rival() {
     const name = networkName();
     const pingAt = async (host, port) => {
       try {
         const ping = await (await fetch(`http://${host}:${port}/api/ping`, { signal: AbortSignal.timeout(700) })).json();
         // Los de antes de la 1.28 no dicen su nombre: son los de nombre «manna». Una nube (fase 36) no es rival.
-        return ping.app === 'manna' && !ping.cloud && ping.id !== settings.data.id && (ping.name || 'manna') === name ? { port, version: ping.version || '' } : null;
+        if (ping.app !== 'manna' || ping.cloud || ping.id === settings.data.id || (ping.name || 'manna') !== name) return null;
+        // El equipo oficial de la iglesia tiene prioridad (decisión 76): para él, uno que no lo es no es rival.
+        if (official() && !ping.official) return null;
+        return { port, version: ping.version || '', ...(ping.official && { official: true }) };
       } catch {
         return null;
       }
     };
     const ports = portCandidates(Number(process.env.PORT) || settings.data.port);
     const here = (await Promise.all(ports.map((port) => pingAt('127.0.0.1', port)))).find(Boolean);
-    if (here) return { here: true, where: origin('localhost', here.port), version: here.version };
+    if (here) return { here: true, where: origin('localhost', here.port), version: here.version, ...(here.official && { official: true }) };
     const interfaces = (await lanInterfaces()).filter((i) => !i.virtual);
     const others = await responder.probe(interfaces.map((i) => ({ via: i.address, address: i.address, netmask: i.netmask })));
     for (const address of others) {
       const found = (await Promise.all(ports.map((port) => pingAt(address, port)))).find(Boolean);
-      if (found) return { here: false, where: origin(address, found.port), version: found.version };
+      if (found) return { here: false, where: origin(address, found.port), version: found.version, ...(found.official && { official: true }) };
     }
     return null;
   }
@@ -132,6 +137,20 @@ export default function setup(app) {
     return checking;
   }
   app.services.network = { refresh, rival, publishBlocked };
+  // Un Manna que no es el oficial mira cada minuto si apareció el de la iglesia y, si es así, se aparta: se reinicia y
+  // al arrancar se queda bloqueado, como cuando abre segundo. Antes, un portátil con Manna que abría primero bloqueaba al
+  // equipo oficial (decisión 76, auditoría integral S5-14). Pruebas: MANNA_RIVAL_MS.
+  if (!app.cloud) {
+    store.on('listening', () => {
+      setInterval(async () => {
+        if (app.blocked || official()) return;
+        const found = await rival().catch(() => null);
+        if (!found?.official) return;
+        console.log(`El equipo oficial de la iglesia está en la red (${found.where}): este Manna se aparta.`);
+        app.restart();
+      }, Number(process.env.MANNA_RIVAL_MS) || 60_000).unref();
+    });
+  }
   app.action('system.recheck', { permission: null }, () => (app.blocked ? recheck() : null));
 
   // ¿Sigue siendo este el código que hay en disco? Se mira cada poco; al notar el cambio se avisa
@@ -207,7 +226,7 @@ export default function setup(app) {
       'Cache-Control': 'no-store',
       'Access-Control-Allow-Origin': '*',
     });
-    ctx.res.end(JSON.stringify({ app: 'manna', id: settings.data.id, version, build: app.build, name: networkName(), ...(app.cloud && { cloud: true }) }));
+    ctx.res.end(JSON.stringify({ app: 'manna', id: settings.data.id, version, build: app.build, name: networkName(), ...(app.cloud && { cloud: true }), ...(official() && { official: true }) }));
   });
 
   // Botón "Reiniciar Manna": cierra y vuelve a abrir con el código que haya en disco. Es lo que

@@ -4,6 +4,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **El equipo oficial de la iglesia tiene prioridad**: un portátil con Manna en el mismo wifi ya no lo bloquea aunque haya abierto antes. El portátil se aparta solo en cuanto ve al oficial.
 - **El equipo de la iglesia baja la versión aprobada para ella**: la de su nube, y no lo último que haya en GitHub, que aún puede no estar probado. Un equipo emparejado con su nube avisa de versión nueva según esa nube.
 - **Al actualizar, la versión de antes queda guardada**: si la nueva no arranca en ese equipo, «Volver a la version anterior», en la carpeta `Programa`, vuelve a ella con un doble clic. Además, una actualización cortada a medias ya no deja el programa mezclado.
 - **YouTube**: Manna le pide a yt-dlp que no baje directos con el nombre de opción que usa hoy yt-dlp, y no con uno antiguo que solo se aceptaba abreviado. Así, una versión nueva de yt-dlp no rompe las descargas por eso.

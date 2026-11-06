@@ -14,11 +14,11 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-unico-'));
 const PORT = 18_800 + (process.pid % 400);
 const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
 const children = [];
-function launch(name) {
+function launch(name, env = {}) {
   const child = spawn(process.execPath, ['server/index.js'], {
     cwd: ROOT, stdio: 'ignore',
     env: {
-      ...process.env, PORT: String(PORT), MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_SIN_HTTPS: '1', MANNA_NAME: 'manna-prueba-unico', MANNA_HOST: '127.0.0.1',
+      ...process.env, ...env, PORT: String(PORT), MANNA_NO_OPEN: '1', MANNA_SIN_VENTANA: '1', MANNA_SIN_HTTPS: '1', MANNA_NAME: 'manna-prueba-unico', MANNA_HOST: '127.0.0.1',
       MANNA_DATA: path.join(tmp, name), MANNA_BIBLIAS: path.join(tmp, 'biblias'), MANNA_HIMNARIO: path.join(tmp, 'himnario'), MANNA_FALTA: 'navegador,ffmpeg,yt-dlp,cloudflared',
     },
   });
@@ -80,5 +80,27 @@ test('con otro Manna del mismo nombre abierto, el segundo no funciona, lo dice y
   assert.ok(taken, 'el segundo arrancó de nuevo y ocupa el puerto del primero');
   assert.equal((await system(PORT)).blocked, null, 'y ya funciona');
   assert.equal((await send(PORT, 'order.addSection', { title: 'Apertura' })).http, 200);
+  await send(PORT, 'system.shutdown');
+});
+
+// El equipo oficial de la iglesia tiene prioridad (decisión 76, auditoría integral S5-14): un portátil con Manna en el
+// mismo wifi no lo bloquea aunque arranque antes, y se aparta solo cuando lo ve.
+test('el equipo oficial no se bloquea por un portátil con Manna: el portátil se aparta solo', async () => {
+  // Los Manna de la prueba de antes (también la copia que lanzó su reinicio) tienen que haberse ido de los puertos.
+  assert.ok(await until(async () => !(await ping(PORT)) && !(await ping(PORT + 1))), 'los puertos de la prueba, libres');
+  launch('portatil', { MANNA_RIVAL_MS: '400' });
+  const laptop = await until(() => ping(PORT));
+  assert.ok(laptop && !laptop.official, 'el portátil arranca y no es oficial');
+  // Emparejado con una nube (aunque no conteste): es el oficial.
+  fs.mkdirSync(path.join(tmp, 'oficial'), { recursive: true });
+  fs.writeFileSync(path.join(tmp, 'oficial', 'nube.json'), JSON.stringify({ url: 'http://127.0.0.1:9', token: 'clave-de-prueba', church: 'Iglesia de prueba', paired: 1 }));
+  launch('oficial');
+  const official = await until(async () => { const p = await ping(PORT + 1); return p?.official && p; });
+  assert.ok(official, 'el oficial se abre en el puerto siguiente y dice que es el oficial');
+  const system = async (port) => (await (await fetch(`${at(port)}/api/state`)).json()).system;
+  assert.equal((await system(PORT + 1)).blocked, null, 'el oficial no se bloquea por el portátil');
+  const stepped = await until(async () => { const p = await ping(PORT); if (p?.id !== laptop.id) return null; return (await system(PORT)).blocked; }, 30_000);
+  assert.ok(stepped?.official, 'el portátil se reinicia bloqueado y dice que el oficial está');
+  await send(PORT + 1, 'system.shutdown');
   await send(PORT, 'system.shutdown');
 });
