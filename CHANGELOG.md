@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **«¿No entra ningún celular?»**, en «Conectar dispositivos», dice qué revisar: la misma wifi, la red como Privada y Node.js permitido en el Firewall de Windows. Si el puerto 80 lo usa otro programa, Manna lo dice en vez de cambiar de puerto en silencio, y la conexión por internet también lo explica.
+- **En la portada de la nube**, desde el wifi de invitados de la iglesia, «¿No abre? Entra por internet».
 - **El equipo oficial de la iglesia tiene prioridad**: un portátil con Manna en el mismo wifi ya no lo bloquea aunque haya abierto antes. El portátil se aparta solo en cuanto ve al oficial.
 - **El equipo de la iglesia baja la versión aprobada para ella**: la de su nube, y no lo último que haya en GitHub, que aún puede no estar probado. Un equipo emparejado con su nube avisa de versión nueva según esa nube.
 - **Al actualizar, la versión de antes queda guardada**: si la nueva no arranca en ese equipo, «Volver a la version anterior», en la carpeta `Programa`, vuelve a ella con un doble clic. Además, una actualización cortada a medias ya no deja el programa mezclado.

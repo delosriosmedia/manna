@@ -246,7 +246,9 @@ async function frontPage() {
     $('#roles').prepend(h('a', { class: 'role church-role', href: where },
       h('span', { class: 'role-icon' }, icon('house', 22)),
       h('span', { class: 'role-text' }, h('strong', {}, 'Entrar al equipo de la iglesia'),
-        h('span', {}, front.here ? 'Estás en la red de la iglesia: entra directo, sin pasar por internet.' : 'Está encendido: entra por su conexión por internet, con tu PIN.'))));
+        h('span', {}, front.here ? 'Si estás en el wifi de la iglesia, entra directo, sin pasar por internet.' : 'Está encendido: entra por su conexión por internet, con tu PIN.'))));
+    // Desde el wifi de invitados (otra red detrás del mismo internet) la dirección de dentro no abre (auditoría integral, N2-2-3).
+    if (front.here && front.tunnel) $('.church-role').after(h('p', { class: 'church-note' }, '¿No abre? ', h('a', { href: front.tunnel }, 'Entra por internet'), ', con tu PIN.'));
   } else {
     $('#roles').prepend(h('p', { class: 'church-note' }, front.online ? 'El equipo de la iglesia está encendido. Desde fuera de la iglesia, el culto se prepara aquí.'
       : 'El equipo de la iglesia está apagado. Aquí puedes preparar el culto: le llegará cuando se encienda.'));

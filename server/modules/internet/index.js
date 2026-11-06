@@ -32,7 +32,8 @@ export function diagnose(reply, { me, own, port }) {
   if (reply.ok && reply.id === me) return null;
   if (reply.ok && reply.id) return 'Esa dirección la contesta otro equipo con Manna: el mismo túnel está abierto en otro equipo. Apaga allí la conexión por internet.';
   return `Cloudflare está conectado, pero no llega a Manna (responde ${reply.status}). ${own
-    ? `En el panel de Cloudflare, el servicio de este túnel debe ser http://localhost:${port}.`
+    ? (port === 80 ? 'En el panel de Cloudflare, el servicio de este túnel debe ser http://localhost:80.'
+      : `El puerto 80 lo usa otro programa y Manna abrió en el ${port}: ciérralo y reinicia Manna (o, en el panel de Cloudflare, pon el servicio de este túnel en http://localhost:${port}).`)
     : 'Manna lo vuelve a intentar solo.'}`;
 }
 

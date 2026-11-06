@@ -168,7 +168,7 @@ Solo cuentan los Manna con el mismo nombre en la red (`manna.local`); abrir dos 
 
 - iPhone, iPad, Mac, Windows 10/11 y Android 12 o posterior entienden este tipo de dirección sin configurar nada (con Manna aún falta comprobarlo en celulares reales). En otros dispositivos, usa el código QR o la dirección numérica que aparece en **Dispositivos**.
 - Si el navegador abre una búsqueda en vez de la página, escribe `manna.local/` con la barra final.
-- Si no abre en ningún dispositivo: en Windows, permite Node.js en el Firewall para redes privadas; en Mac, revisa Ajustes del Sistema → Privacidad y seguridad → Red local.
+- Si no abre en ningún dispositivo: en Windows, permite Node.js en el Firewall para redes privadas y comprueba que la wifi de la iglesia esté como red *Privada* (Configuración → Red e Internet → Wi-Fi → la red → Tipo de perfil de red); si Manna dice que el puerto 80 lo usa otro programa, ciérralo y reinicia Manna; en Mac, revisa Ajustes del Sistema → Privacidad y seguridad → Red local.
 - Si otro programa ya usa el puerto 80, Manna usa el 8000 y la dirección pasa a ser `manna.local:8000`. La dirección exacta siempre está en **Dispositivos**.
 - **En un televisor**: su navegador suele convertir la dirección en una página segura (`https`). Manna atiende de las dos formas; escribe la dirección completa, por ejemplo `192.168.1.14:8000/proyeccion` (está en **Dispositivos → ¿Es un televisor?**). Si el televisor muestra un aviso de seguridad, elige "Avanzado" y "Continuar": la página es tu propio equipo. Para pantalla completa, pulsa OK en su control.
 - Con dos Manna en la misma red, el segundo se llama `manna-2.local`.

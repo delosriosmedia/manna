@@ -61,6 +61,15 @@ export async function devicesBody(isLocal) {
     }
   }
 
+  // Si no entra nadie (auditoría integral, N2-2-1, N2-2-2 y N2-2-4): lo que suele ser, dicho para quien está delante.
+  if (addresses.length) {
+    body.push(h('details', { class: 'alt-addresses', open: Boolean(state.system.portBusy) },
+      h('summary', {}, '¿No entra ningún celular?'),
+      state.system.portBusy && h('p', {}, `El puerto 80 lo usa otro programa, así que Manna abrió en el ${state.system.port}: las direcciones guardadas sin puerto no abren. Cierra ese programa y reinicia Manna.`),
+      h('p', { class: 'muted' }, 'Que el celular esté en la misma wifi que este equipo, no en la de invitados.'),
+      h('p', { class: 'muted' }, 'En Windows: la wifi tiene que estar como red Privada (Configuración → Red e Internet → Wi-Fi → la red → Tipo de perfil de red), y en el Firewall de Windows → «Permitir una aplicación», Node.js con la casilla «Privada» marcada.')));
+  }
+
   // Desde la fase 35 cada persona entra con su nombre y su PIN (Ajustes → Usuarios).
   body.push(h('p', { class: 'muted', style: 'margin-top: 16px;' }, 'Al entrar, cada persona elige su nombre y escribe su PIN. Los da el administrador, en Ajustes → Usuarios. La pantalla de proyección no pide PIN.'));
   return body;

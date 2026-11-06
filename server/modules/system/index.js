@@ -28,7 +28,7 @@ export default function setup(app) {
   // actualizó estando abierto) y hay que reiniciarlo para que interfaz y servidor vuelvan a coincidir.
   // blocked: otro Manna ya funciona en este equipo o en esta red (fase 21): { where, version, here } o null.
   // update: hay una versión nueva en GitHub ({ version }) o null (versions.js).
-  store.register('system', { name: 'Manna', version, build: app.build, stale: false, addresses: [], port: null, altPort: null, secure: false, securePort: null, hostname: null, nameUrl: null, blocked: null, update: null, content: contentState(app) });
+  store.register('system', { name: 'Manna', version, build: app.build, stale: false, addresses: [], port: null, altPort: null, portBusy: false, secure: false, securePort: null, hostname: null, nameUrl: null, blocked: null, update: null, content: contentState(app) });
   app.onContent(() => store.set('system', { content: contentState(app) }));
   // En la nube, la versión la decide el despliegue (decisión 58), y no hay red local donde anunciarse.
   if (!app.cloud) watchVersions(app, version);
@@ -65,6 +65,8 @@ export default function setup(app) {
         addresses: interfaces.map((i) => origin(i.address, app.port)),
         port: app.port,
         altPort: app.altPort,
+        // Sin puerto fijado, Manna prueba el 80; si abrió en otro, el 80 lo usa otro programa (auditoría integral, N2-2-4).
+        portBusy: !app.cloud && !(Number(process.env.PORT) || settings.data.port) && app.port !== 80,
         secure: app.secure,
         securePort: app.securePort,
         hostname,

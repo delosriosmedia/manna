@@ -220,7 +220,9 @@ Write-Host '  │   ✓ LISTO. Manna se está abriendo.               │' -Fore
 Write-Host '  ╰──────────────────────────────────────────────────╯' -ForegroundColor Green
 Write-Host '  - La próxima vez, ábrelo con el icono «Manna» del Escritorio.'
 Write-Host '  - Si Windows pregunta por el Firewall, elige «Permitir acceso» en redes'
-Write-Host '    privadas. Sin eso, los celulares no podrán conectarse.'
+Write-Host '    privadas. Sin eso, los celulares no podrán conectarse. Y la wifi de la'
+Write-Host '    iglesia tiene que estar como red «Privada» (Configuración → Red e'
+Write-Host '    Internet → Wi-Fi → la red → Tipo de perfil de red).'
 Write-Host '  - Dentro de Manna, en Ajustes → «Carpeta de contenido», elige la carpeta'
 Write-Host '    de tu iglesia (biblias, himnario y medios). Ahora es:'
 Write-Host "    $($hecho.contenido)"
