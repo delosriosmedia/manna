@@ -77,7 +77,7 @@ export function downloadArgs({ id, dir, ffmpegDir = null, js = null }) {
     // de esto, yt-dlp le pide otro enlace y sigue.
     '--throttled-rate', '100K',
     // Un directo no tiene final: no se puede guardar.
-    '--match-filter', '!is_live',
+    '--match-filters', '!is_live',
     // No se le fuerza un "player_client": con «android,web» YouTube solo entrega 360p (visto el 2026-10-10).
     ...(ffmpegDir ? ['--ffmpeg-location', ffmpegDir] : []),
     '-f', FORMAT, '--merge-output-format', 'mp4',

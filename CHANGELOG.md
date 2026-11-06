@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **YouTube**: Manna le pide a yt-dlp que no baje directos con el nombre de opción que usa hoy yt-dlp, y no con uno antiguo que solo se aceptaba abreviado. Así, una versión nueva de yt-dlp no rompe las descargas por eso.
+
 ## 1.69.2 — 2026-11-05
 
 - **Manna ya no se cierra de golpe por una petición mal escrita**: ahora la rechaza y sigue funcionando. Y si algo falla al atender a un dispositivo, se anota y Manna sigue abierto.
