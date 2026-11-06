@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Última actualización: 2026-11-05 · Versión: 1.69.2
+Última actualización: 2026-11-06 · Versión: 1.70.0
 
 Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver `.claude/rules/documentacion.md`). El historial está en `CHANGELOG.md`.
 
@@ -382,7 +382,7 @@ Todo lo pendiente, también lo que decide el dueño (la licencia del repositorio
 
 ## Próximos pasos
 
-- **Auditoría integral (fase 50)**: el diagnóstico de toda la app se hizo el 2026-11-05 sobre la 1.69.1. Encontró 182 hallazgos verificados: 1 crítico, 8 altos, 66 medios y 107 bajos. El dueño aprobó ese mismo día las fases 51 a 58 que propone (decisión 75). **Hecha la 51.1**, en la rama `fase-51`: la prueba en Chrome ve los errores y no aprueba en vacío. **Publicada la 52.1** (1.69.2, 2026-11-05, con el visto bueno del dueño, también para `nv`): cinco arreglos de una o dos líneas, entre ellos el crítico. Sigue el resto de la 51 (51.2 a 51.4).
+- **Auditoría integral (fase 50)**: el diagnóstico de toda la app se hizo el 2026-11-05 sobre la 1.69.1. Encontró 182 hallazgos verificados: 1 crítico, 8 altos, 66 medios y 107 bajos. El dueño aprobó ese mismo día las fases 51 a 58 que propone (decisión 75). **Hecha la 51.1**, en la rama `fase-51`: la prueba en Chrome ve los errores y no aprueba en vacío. **Publicada la 52.1** (1.69.2, 2026-11-05, con el visto bueno del dueño, también para `nv`): cinco arreglos de una o dos líneas, entre ellos el crítico. **Hechas la 51.2 y la 51.3**, y la 51.4 sin la medición en equipos de verdad, que espera al dueño. **Publicada la 52.2** (1.70.0, 2026-11-06), en `pruebas` y `admin`: la versión anterior queda guardada al actualizar, el equipo baja la versión aprobada y el equipo oficial tiene prioridad. `nv` espera a que el PC de Leidy, el equipo oficial de `pruebas`, se ponga al día bien con ella. Sigue la 52.3.
   - **Dónde está el informe:** en `docs/auditoria-integral.md`, con el catálogo en `docs/auditoria-integral-hallazgos.md`, solo en el Mac de desarrollo. Está fuera de git a propósito (`.git/info/exclude`), porque describe fallos de seguridad aún sin arreglar y el repositorio es público. Se publica cuando salgan sus arreglos. Los datos en bruto están en `data/auditoria-2026-11-05/`.
 - **Nueva Vida en `nv.manna-iglesia.es`** (decisión 66, `/nueva-iglesia`): **hecho el 2026-10-29**. Su equipo se puso solo en la 1.68.0 (visto encendido el 2026-10-31, 08:36). Su nube tiene la 1.69.2 desde el 2026-11-05 (antes, la 1.67.0 desde el 2026-10-30); su equipo se pone al día solo la próxima vez que se encienda con sus claves, el himnario y las biblias de R2; su equipo se instaló desde la portada de `nv` (1.58.0) y se entra a él desde fuera por `servidor-nv.manna-iglesia.es`, que contesta. Falta: borrar el túnel viejo «Manna-PC» (con permiso del dueño) y que el dueño añada `nv` en `admin.manna-iglesia.es` si no lo hizo.
 - **Fases 22 y 23 (decisión 43)**: hechas el 2026-10-17 (Medios en un solo cajón, 1.26.0; órdenes del culto guardados, 1.27.0).
