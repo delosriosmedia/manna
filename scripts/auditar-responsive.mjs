@@ -551,7 +551,14 @@ async function worker(list, n, fast = FAST) {
     cwd: ROOT, stdio: 'ignore',
     env: { ...process.env, MANNA_NUBE: '1', MANNA_SUPER: '1', MANNA_CLAVE_ALTA: 'auditoria', MANNA_CLAVE_SUPER: 'auditoria-super', MANNA_NO_OPEN: '1', MANNA_DATA: superData, PORT: String(port + 30), GOOGLE_CLIENT_ID: 'auditoria', GOOGLE_CLIENT_SECRET: 'auditoria' },
   }));
-  await sleep(3000);
+  // Espera a que cada servidor conteste, en vez de 3 s fijos (auditoría integral, T1-04).
+  const up = async (url) => {
+    for (let i = 0; i < 150; i += 1) {
+      try { if ((await fetch(`${url}/api/ping`, { signal: AbortSignal.timeout(500) })).ok) return; } catch { /* aún arranca */ }
+      await sleep(100);
+    }
+  };
+  await Promise.all([up(`http://127.0.0.1:${port}`), cloudServer && up(cloudBase), superServer && up(`http://127.0.0.1:${port + 30}`)]);
   const chrome = await startChrome();
   chrome.acceptDialogs = true;
   // Entra en la nube con esa función (la primera vez crea el administrador con la clave de alta). Cada tamaño, de nuevo y
@@ -622,7 +629,8 @@ async function worker(list, n, fast = FAST) {
         if (!opened) { problems += 1; lines.push('  la pantalla no terminó de abrir: lo de abajo se midió sobre lo que había'); }
         for (const device of list) {
           await size(device);
-          await sleep(150);
+          // Hasta que la página se redibuja con el tamaño nuevo y acaba lo que se mueve (como mucho 400 ms), en vez de 150 ms fijos.
+          await chrome.evaluate(`new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))).then(() => Promise.race([new Promise((r) => setTimeout(r, 400)), Promise.allSettled(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished))]))`);
           const raw = await chrome.evaluate(`JSON.stringify(${MEASURE(screen, true, device.w < 860)})`);
           const m = JSON.parse(raw || '{}');
           const failures = [...unmeasured(raw, chrome.lastError), ...failuresOf(m), ...JSON.parse(await chrome.evaluate(`JSON.stringify(${MOBILE_RULES})`)),

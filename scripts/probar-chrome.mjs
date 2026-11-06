@@ -351,8 +351,9 @@ async function press(key, modifiers = 0, text) {
 const type = (selector, value) => run(`const i = document.querySelector(${JSON.stringify(selector)}); i.value = ${JSON.stringify(value)}; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));`);
 const click = (js) => run(`${js}.click()`);
 const text = (selector) => run(`return document.querySelector(${JSON.stringify(selector)})?.textContent`);
-// Espera (hasta unos 16 s) a que una condición de la página se cumpla.
-const until = async (js, tries = 40) => { for (let i = 0; i < tries; i += 1) { if (await run(`return Boolean(${js})`)) return true; await sleep(400); } return false; };
+// Espera (hasta unos 16 s) a que una condición de la página se cumpla. `tries` cuenta vueltas de 400 ms, como siempre, pero
+// se mira cada 100 ms: lo que ya está no espera de más (auditoría integral, T1-04).
+const until = async (js, tries = 40) => { for (let i = 0; i < tries * 4; i += 1) { if (await run(`return Boolean(${js})`)) return true; await sleep(100); } return false; };
 // Elige archivos en un campo de la página, como haría la persona en la ventana del sistema.
 async function chooseFiles(selector, files) {
   const doc = await chrome.send('DOM.getDocument', {});
@@ -2339,7 +2340,8 @@ try {
       fs.writeFileSync(scanned, makeImagePdf([{ jpeg, width: 1400, height: 800 }]));
       await open();
       await chooseFiles('.review-box input[type=file]', [scanned]);
-      check('un PDF de imágenes, sin texto: el equipo principal lee su texto y salen sus citas', await until(`${rows}.length === 2`, 60) && await run(`return Boolean(${row('Juan 3:16')} && ${row('Salmos 23:1-3')})`), await run(`return ${box}?.textContent`));
+      // Leer el texto de una imagen con el equipo cargado (tres grupos a la vez) pasó de 24 s dos veces: hasta un minuto.
+      check('un PDF de imágenes, sin texto: el equipo principal lee su texto y salen sus citas', await until(`${rows}.length === 2`, 150) && await run(`return Boolean(${row('Juan 3:16')} && ${row('Salmos 23:1-3')})`), await run(`return ${box}?.textContent`));
       await press('Escape');
     }
 
