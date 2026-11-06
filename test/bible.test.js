@@ -4,6 +4,11 @@ import { findBook } from '../server/modules/bible/canon.js';
 import { parseReference, formatReference } from '../server/modules/bible/reference.js';
 import { parseBible, cleanVerse } from '../server/modules/bible/parsers.js';
 import { describeVersion } from '../server/modules/bible/versions.js';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { BibleLibrary } from '../server/modules/bible/library.js';
 
 test('findBook reconoce nombres, abreviaturas y prefijos sin tildes', () => {
   assert.equal(findBook('Génesis'), 1);
@@ -56,4 +61,44 @@ test('describeVersion da nombres legibles', () => {
   assert.equal(describeVersion('La Biblia de Las Americas.xmm').abbr, 'LBLA');
   assert.equal(describeVersion('Reina Valera 1909.xmm').abbr, 'RV1909');
   assert.deepEqual(describeVersion('Mi Biblia.xmm'), { id: 'mi-biblia', name: 'Mi Biblia', abbr: '' });
+});
+
+// La cita rápida es lo más usado durante el sermón. Lo que hoy se lee bien queda fijado aquí, con la RV1909 del
+// repositorio. Lo que falla está como pendiente («todo»), para la fase 52.4 (auditoría integral, fase 51.4).
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const quick = (() => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-cita-rapida-'));
+  fs.copyFileSync(path.join(ROOT, 'Contenido', 'Biblias', 'Reina Valera 1909.xmm'), path.join(dir, 'Reina Valera 1909.xmm'));
+  const library = new BibleLibrary(dir);
+  library.scan();
+  test.after(() => fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5 }));
+  return (query) => {
+    const found = library.search(library.list()[0].id, query, { limit: 1 });
+    return found?.type === 'ref' ? found.reference : null;
+  };
+})();
+
+test('la cita rápida: las formas de escribir una cita que se leen bien', () => {
+  const READ = {
+    'Juan 3:16': 'Juan 3:16', 'juan 3 16': 'Juan 3:16', 'Jn 3:16': 'Juan 3:16', 'Jn3:16': 'Juan 3:16', 'Jn 3.16': 'Juan 3:16',
+    'Juan 3,16': 'Juan 3:16', 'JUAN 3:16': 'Juan 3:16', 'Juan 3:16-18': 'Juan 3:16-18', 'Juan 3:16 - 18': 'Juan 3:16-18', 'Juan 3:16–18': 'Juan 3:16-18',
+    'Juan 3': 'Juan 3', 'Génesis 1:1': 'Génesis 1:1', 'genesis 1 1': 'Génesis 1:1', 'Gn 1': 'Génesis 1', 'Gén 1:1-3': 'Génesis 1:1-3',
+    'exodo 20:3': 'Éxodo 20:3', 'Salmo 23': 'Salmos 23', 'Sal 119:105': 'Salmos 119:105', '1 co 13 4': '1 Corintios 13:4',
+    '1Co 13:4-7': '1 Corintios 13:4-7', 'I Corintios 13': '1 Corintios 13', 'I Co 13:4': '1 Corintios 13:4', 'II Timoteo 3:16': '2 Timoteo 3:16',
+    '2 Ti 3:16': '2 Timoteo 3:16', '1 Jn 4:8': '1 Juan 4:8', 'Judas 1:24': 'Judas 1:24', 'Abdías 1:15': 'Abdías 1:15',
+    'Cantar de los cantares 2:4': 'Cantares 2:4', 'Hch 2:38': 'Hechos 2:38', 'Ap 21:4': 'Apocalipsis 21:4', 'Mateo 5,3-12': 'Mateo 5:3-12',
+    'Ro 8:28': 'Romanos 8:28', 'Malaquías 4:2': 'Malaquías 4:2', 'Joel 3:1': 'Joel 3:1', 'Pr 3:5-6': 'Proverbios 3:5-6',
+  };
+  assert.deepEqual(Object.fromEntries(Object.keys(READ).map((q) => [q, quick(q)])), READ);
+  assert.equal(quick('Sal 151'), null, 'un capítulo que no existe no se lee como cita');
+});
+
+test('la cita rápida: libros de un solo capítulo sin el «1:» («Judas 24»)', { todo: 'fase 52.4: hoy busca el capítulo 24 y no da nada' }, () => {
+  assert.deepEqual(['Judas 24', 'Filemón 4', 'Abdías 15', '2 Juan 6', '3 Juan 14'].map(quick), ['Judas 1:24', 'Filemón 1:4', 'Abdías 1:15', '2 Juan 1:6', '3 Juan 1:14']);
+});
+test('la cita rápida: ordinales («1ra», «Primera de»)', { todo: 'fase 52.4: hoy no da nada' }, () => {
+  assert.deepEqual(['1ra Corintios 13', '1a Corintios 13', 'Primera de Corintios 13', 'Segunda Timoteo 3:16'].map(quick), ['1 Corintios 13', '1 Corintios 13', '1 Corintios 13', '2 Timoteo 3:16']);
+});
+test('la cita rápida: un versículo que no existe no se ofrece como cita', { todo: 'fase 52.4: hoy se ofrece y al proyectarlo da error' }, () => {
+  assert.equal(quick('Juan 3:99'), null);
 });
