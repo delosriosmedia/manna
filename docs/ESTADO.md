@@ -286,6 +286,7 @@ Desde el 2026-10-25 (decisión 60), lo que esta tabla da por «sin probar» en e
 
 ## Decisiones tomadas
 
+- **2026-11-14 · La cita rápida, para la fase 52.4** (decisión 79): una lista con saltos («Juan 3:16,18») se proyecta como el rango completo, del 16 al 18; «Juan 3:16ss» proyecta solo el 16; una cita que cruza de capítulo («Juan 3:16-4:2») se ofrece en dos trozos, Juan 3:16-36 y Juan 4:1-2. Una lista seguida («Proverbios 3:5,6») se lee como el rango, como proponía la auditoría (Q3 a Q5 de la 51.4).
 - **2026-11-06 · Un error sin atrapar ya no cierra Manna** (decisión 77, al empezar la fase 52.3): una promesa rechazada que nadie atrapó se apunta en el registro y Manna sigue, y cada cola de fondo atrapa sus errores. Cambia la regla de `servidor.md`.
 - **2026-11-06 · Actualizar, emparejar y el portátil** (decisión 76, al empezar la fase 52.2):
   - La puesta al día al encender se queda como está (decisión 57).
