@@ -6,6 +6,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 - **Manna aguanta mejor a un dispositivo que abre cientos de pantallas a la vez**: ya no se queda sin contestar, y quien entró con su PIN no pierde su sesión por eso.
 - **Un corte de luz ya no puede borrar los órdenes ni los usuarios**: Manna guarda cada archivo de forma segura y conserva la versión anterior. Si un archivo quedó dañado, lo aparta, sin borrarlo, y vuelve a la versión anterior en vez de empezar de cero. Si Windows no deja guardar en ese momento, lo vuelve a intentar.
+- **Una pantalla que pierde su sesión vuelve a entrar sola**: antes, si quitaban a esa persona en la nube, o si en otra pestaña del mismo navegador se entraba con otra función, la pantalla mostraba los órdenes vacíos hasta recargarla. Así pasó en Nueva Vida el 2026-11-14. Ahora se recarga sola: en el equipo principal vuelve a entrar, y en otro dispositivo pide el nombre y el PIN.
 - **Un fallo en una tarea de fondo ya no cierra Manna**: si una conversión, una descarga de YouTube o una presentación falla a mitad, por ejemplo porque el antivirus retiene un archivo o se llenó el disco, solo falla esa tarea, se dice por qué y lo demás sigue.
 ## 1.70.0 — 2026-11-06
 

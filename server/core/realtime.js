@@ -1,7 +1,8 @@
 // Canal en tiempo real (Server-Sent Events): el servidor empuja cada cambio de estado
 // a todos los dispositivos conectados. Las órdenes viajan aparte, por POST /api/action.
 // Eventos: 'hello' (quién es esta conexión), 'state' (todo, al conectar), 'patch' (un espacio que
-// cambió), 'ping' (latido) y 'signal' (un aviso para esa conexión sola: compartir una pestaña, S35).
+// cambió), 'ping' (latido), 'signal' (un aviso para esa conexión sola: compartir una pestaña, S35) y 'expired' (la
+// sesión con que se conectó ya no existe: la página vuelve a cargarse y entra de nuevo).
 // El latido lleva la hora del servidor: con ella cada pantalla ajusta su reloj y la
 // reproducción va a la par en todas (ver web/core/playback.js).
 import { plainAddress } from './listener.js';
@@ -49,9 +50,15 @@ export function createRealtime({ store, router, sessions }) {
 
   // Lo de cada persona (store.personal) se le manda a cada conexión según quién entró, mirado en cada envío: así vale
   // también si le cambian las funciones o cierra su sesión.
+  // Si la sesión ya no existe (le quitaron el usuario, o otra pestaña del mismo navegador entró con otra función), se le
+  // dice a la página en vez de mandarle lo de nadie: antes recibía una lista de órdenes vacía y no se notaba (2026-11-14).
   store.on('change', (ns, state) => {
     const personal = store.personal(ns);
-    for (const c of clients) send(c.res, 'patch', { ns, state: personal ? store.view(ns, sessions.fromRequest(c.req)) : state });
+    for (const c of clients) {
+      const session = personal && sessions.fromRequest(c.req);
+      if (personal && c.signedIn && !session) send(c.res, 'expired', {});
+      else send(c.res, 'patch', { ns, state: personal ? store.view(ns, session) : state });
+    }
   });
 
   router.route('GET', '/api/events', (ctx) => {
@@ -64,7 +71,7 @@ export function createRealtime({ store, router, sessions }) {
     });
     res.write('retry: 1500\n\n');
     serial += 1;
-    const client = { req, res, id: `c${serial}`, able: true, local: ctx.isLocal, role: (ctx.query.get('rol') || 'otro').slice(0, 20), ip: plainAddress(ctx.ip) };
+    const client = { req, res, id: `c${serial}`, able: true, local: ctx.isLocal, signedIn: Boolean(ctx.session), role: (ctx.query.get('rol') || 'otro').slice(0, 20), ip: plainAddress(ctx.ip) };
     clients.add(client);
     send(res, 'hello', { id: client.id, local: client.local });
     send(res, 'state', store.snapshotFor(ctx.session));

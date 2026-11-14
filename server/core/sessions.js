@@ -45,6 +45,7 @@ export function createSessions({ storage, roles: all, cloud = false, superMode =
     const user = s.user ? users.get(s.user) : null;
     // Un usuario que se quitó ya no tiene sesión.
     if (s.user && !user) {
+      console.log(`Se cerró una sesión de «${s.role}»: su usuario ya no está.`);
       delete store.data.list[m[1]];
       store.save();
       return null;

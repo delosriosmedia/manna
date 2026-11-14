@@ -172,6 +172,31 @@ test('en el tiempo real, cada conexión recibe solo sus órdenes', async (t) => 
   await m.close();
 });
 
+// Lo que pasó en Nueva Vida (2026-11-14): al arrancar, el equipo copió la lista de usuarios de su nube y la sesión de su
+// control era de un usuario que ya no estaba en ella. La pantalla recibía una lista de órdenes vacía y no lo notaba.
+test('una pantalla cuya sesión deja de existir recibe «expired», no una lista vacía', { timeout: 15_000 }, async (t) => {
+  const m = await open(t, 'caducada');
+  const admin = await m.person();
+  const { result: { id: ana } } = await admin.send('users.create', { name: 'Ana', pin: '2468', functions: ['alabanza'] });
+  const anaIn = await m.person(ana, '2468', 'alabanza');
+  await anaIn.send('order.create', { name: 'De Ana' });
+  const stop = new AbortController();
+  const reader = (await anaIn.ask('/api/events?rol=alabanza', { signal: stop.signal })).body.getReader();
+  let text = '';
+  const until = async (fn) => {
+    while (!fn(text)) text += new TextDecoder().decode((await reader.read()).value);
+  };
+  await until((x) => x.includes('event: state'));
+  const list = m.app.sessions.users;
+  list.replace(list.records().filter((u) => u.id !== ana)); // como la copia de la nube sin ella
+  await m.run('order.create', { name: 'Otro' });
+  await until((x) => x.includes('event: expired'));
+  stop.abort();
+  assert.ok(!text.includes('"ns":"orders"'), 'no le llegan los órdenes de nadie (una lista vacía)');
+  assert.equal((await admin.state()).orders.list.length, 2, 'el administrador, en cambio, sigue igual');
+  await m.close();
+});
+
 test('al apagar Manna nada queda en uso, salvo en un reinicio, tras un corte de menos de 15 minutos o si hay un solo orden de hoy', async (t) => {
   const m = await open(t, 'cerrar');
   await m.run('order.create', { name: 'Guardado' });

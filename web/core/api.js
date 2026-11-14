@@ -198,6 +198,9 @@ export function connect(role) {
       try { msg = JSON.parse(e.data); } catch { return; }
       signals.forEach((fn) => fn(msg));
     });
+    // La sesión de esta página ya no existe: se vuelve a cargar, como al actualizar Manna (sin preguntar «¿salir del
+    // sitio?»). En el equipo principal entra sola de nuevo; en otro dispositivo, pide el nombre y el PIN.
+    source.addEventListener('expired', () => whenUpdated());
     source.addEventListener('ping', (e) => {
       seen();
       try { syncClock(JSON.parse(e.data).t); } catch { /* latido sin hora */ }
