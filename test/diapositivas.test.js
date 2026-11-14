@@ -14,9 +14,9 @@ import { collect, explain, exportPlan, isPresentation, LIVE_SCRIPT, livePlan, MA
 import { fakePresentation, writeFakePowerPoint } from '../scripts/lib/powerpoint-falso.mjs';
 import { makePng } from '../scripts/lib/png.mjs';
 import { makeKey } from '../scripts/lib/keynote.mjs';
-import { makePptx } from '../scripts/lib/pptx.mjs';
+import { makePptx, zip } from '../scripts/lib/pptx.mjs';
 import { makeFont } from '../scripts/lib/letra.mjs';
-import { readZip } from '../server/modules/slides/pptx.js';
+import { hasMotion, readZip } from '../server/modules/slides/pptx.js';
 
 // Las letras que falten no se buscan en internet: un repositorio que no contesta (Manna las busca solo al convertir una
 // presentación desde el 2026-11-14).
@@ -460,5 +460,24 @@ test('al volver a abrir Manna, una subida a medias desaparece y una conversión 
     assert.equal(fs.existsSync(path.join(dataDir, 'media', 'diapositivas', 'a-medias')), false);
   } finally {
     await s.stop();
+  }
+});
+
+// Una presentación trucada (S2-3 de la auditoría integral): ocupa poco y una parte se descomprime en 70 MB. Esa parte
+// se salta sin cargarla, y lo demás se lee igual. Un tamaño que miente no se reserva.
+test('una parte que se descomprime en demasiado se salta, y un tamaño que miente no se reserva', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-zip-'));
+  try {
+    const file = path.join(dir, 'trucada.pptx');
+    fs.writeFileSync(file, zip([['ppt/slides/slide1.xml', '<p:sld><p:transition/></p:sld>'], ['ppt/slides/slide2.xml', Buffer.alloc(70 * 2 ** 20, 32)]]));
+    assert.ok(fs.statSync(file).size < 2 ** 20, 'el archivo ocupa poco');
+    assert.deepEqual([...readZip(file, (n) => n.startsWith('ppt/slides/')).keys()], ['ppt/slides/slide1.xml']);
+    assert.equal(hasMotion(file), true, 'la diapositiva que sí se lee dice que se mueve');
+    const lying = Buffer.from(zip([['ppt/slides/slide1.xml', '<p:sld/>']]));
+    lying.writeUInt32LE(0xfffffff0, lying.readUInt32LE(lying.length - 22 + 16) + 20); // su tamaño, en el índice del .zip
+    fs.writeFileSync(file, lying);
+    assert.throws(() => readZip(file, () => true), /cortado/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 });

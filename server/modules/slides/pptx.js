@@ -4,20 +4,28 @@ import zlib from 'node:zlib';
 // Leer por dentro un PowerPoint (.pptx): las letras que usa (fuentes.js) y si algo se mueve (hasMotion).
 
 // Un .pptx es un .zip: se leen solo las partes que se piden, sin cargar el archivo entero.
+// Una presentación trucada puede ocupar poco y descomprimirse en gigas: cada parte se abre con un tope, y todas juntas
+// con otro. La que se pasa se salta, como si no estuviera (S2-3 de la auditoría integral).
+const PART_MAX = 64 * 2 ** 20;
+const ZIP_MAX = 256 * 2 ** 20;
+
 export function readZip(file, wanted) {
   const fd = fs.openSync(file, 'r');
+  let size = 0;
   const read = (at, length) => {
+    if (at + length > size) throw new Error('El archivo está cortado.'); // antes de reservar lo que dice: puede mentir
     const buffer = Buffer.alloc(length);
     if (fs.readSync(fd, buffer, 0, length, at) !== length) throw new Error('El archivo está cortado.');
     return buffer;
   };
   try {
-    const size = fs.fstatSync(fd).size;
+    size = fs.fstatSync(fd).size;
     const tail = read(Math.max(0, size - 65_557), Math.min(size, 65_557));
     const end = tail.lastIndexOf(Buffer.from('PK\x05\x06', 'latin1'));
     if (end < 0) throw new Error('No es un archivo .zip.');
     const dir = read(tail.readUInt32LE(end + 16), tail.readUInt32LE(end + 12));
     const parts = new Map();
+    let left = ZIP_MAX;
     for (let at = 0; at + 46 <= dir.length && dir.readUInt32LE(at) === 0x02014b50;) {
       const method = dir.readUInt16LE(at + 10);
       const packed = dir.readUInt32LE(at + 20);
@@ -28,7 +36,18 @@ export function readZip(file, wanted) {
       if (!wanted(name) || (method !== 0 && method !== 8)) continue;
       const head = read(local, 30);
       const data = read(local + 30 + head.readUInt16LE(26) + head.readUInt16LE(28), packed);
-      parts.set(name, method === 8 ? zlib.inflateRawSync(data) : data);
+      if (method === 0) {
+        parts.set(name, data);
+        continue;
+      }
+      if (left <= 0) continue;
+      try {
+        const out = zlib.inflateRawSync(data, { maxOutputLength: Math.min(PART_MAX, left) });
+        left -= out.length;
+        parts.set(name, out);
+      } catch (err) {
+        if (err.code !== 'ERR_BUFFER_TOO_LARGE') throw err;
+      }
     }
     return parts;
   } finally {
