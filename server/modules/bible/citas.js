@@ -1,4 +1,4 @@
-import { BOOK_FORMS, CANON } from './canon.js';
+import { BOOK_FORMS, CANON, ORDINALS } from './canon.js';
 
 // Las citas bíblicas de un texto libre (un bosquejo, un sermón en Word o PDF), sin modelos de lenguaje (fase 27,
 // decisión 47; investigación y calibración en docs/ideas.md, I1 e I2):
@@ -45,11 +45,6 @@ const NOT_PLURAL = new Set(['nos', 'les', 'los', 'las', 'es', 'mas', 'pues', 'tr
 // La versión que a veces sigue a la cita: «(RVR1960)», «NVI».
 const VERSION_RE = /^\s*\(?\s*(RVR\s?1960|RV\s?1960|RV60|RVR|RV1909|RVA|NVI|LBLA|NBLA|NTV|DHH|TLA|PDT|RVC|NBV|BLP|JBS)\b/i;
 const fold = (s) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').replace(/\.$/, '');
-const ORDINALS = new Map([
-  ...['1', 'i', '1ra', '1era', '1a', '1ª', '1º', '1o', 'primera', 'primer', 'primero'].map((o) => [o, 1]),
-  ...['2', 'ii', '2da', '2a', '2ª', '2º', '2o', 'segunda', 'segundo'].map((o) => [o, 2]),
-  ...['3', 'iii', '3ra', '3era', '3a', '3ª', '3º', '3o', 'tercera', 'tercer', 'tercero'].map((o) => [o, 3]),
-]);
 const single = new Map();
 for (const [n, ...forms] of BOOKS) for (const f of forms) single.set(fold(f), n);
 const numbered = new Map();

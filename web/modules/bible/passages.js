@@ -365,7 +365,7 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
       // señalado el primer resultado, para ir a él con un segundo Enter.
       else {
         searchNow().then((res) => {
-          if (res?.type === 'ref') found.rows[0].open();
+          if (res?.type === 'ref' && !res.more?.length) found.rows[0].open();
           else if (res) setActive(0);
         });
       }
@@ -389,10 +389,15 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
     results.style.top = `${head.offsetHeight + 6}px`;
 
     if (res.type === 'ref') {
-      const row = h('button', { class: 'search-item go', onclick: () => found.rows[0].open() },
-        icon('caret-right', 14), h('span', {}, 'Ir a ', h('b', {}, res.reference)), h('kbd', {}, '↵'));
-      found.rows.push({ el: row, open: () => { closeResults(); searchInput.value = ''; searchInput.blur(); goTo(res.ref); } });
-      results.replaceChildren(h('div', { class: 'search-count' }, 'Cita', close), row);
+      // Una cita que cruza de capítulo («Juan 3:16-4:2») llega en trozos, uno por capítulo (decisión 79): se ofrecen todos.
+      const pieces = [res, ...(res.more || [])];
+      for (const piece of pieces) {
+        const open = () => { closeResults(); searchInput.value = ''; searchInput.blur(); goTo(piece.ref); };
+        const row = h('button', { class: 'search-item go', onclick: open },
+          icon('caret-right', 14), h('span', {}, 'Ir a ', h('b', {}, piece.reference)), pieces.length === 1 ? h('kbd', {}, '↵') : null);
+        found.rows.push({ el: row, open });
+      }
+      results.replaceChildren(h('div', { class: 'search-count' }, pieces.length > 1 ? 'Cita, por capítulos' : 'Cita', close), ...found.rows.map((r) => r.el));
       setActive(0, false);
       return;
     }
@@ -403,11 +408,13 @@ export function mountPassages(el, ctx, { title, controls = [], second = () => nu
       class: `chip${id === res.scope ? ' on' : ''}`, dataset: { scope: id },
       onclick: () => { prefs.set('buscar.en', id); searchNow(); searchInput.focus(); },
     }, label)));
+    // Un capítulo o un versículo que no existe («Juan 22»): se dice por qué no es una cita.
+    const hint = res.hint ? h('p', { class: 'muted search-hint' }, res.hint) : null;
     if (!res.total) {
-      results.replaceChildren(h('div', { class: 'search-count' }, `Sin resultados para "${q}" ${where}`, close), scopes);
+      results.replaceChildren(h('div', { class: 'search-count' }, `Sin resultados para "${q}" ${where}`, close), ...[hint, scopes].filter(Boolean));
       return;
     }
-    const children = [h('div', { class: 'search-count' }, `${res.total} ${res.total === 1 ? 'resultado' : 'resultados'} ${where}`, close), scopes];
+    const children = [h('div', { class: 'search-count' }, `${res.total} ${res.total === 1 ? 'resultado' : 'resultados'} ${where}`, close), ...[hint, scopes].filter(Boolean)];
     for (const level of res.levels) {
       children.push(h('div', { class: 'search-level' }, h('span', {}, level.label), h('small', {}, String(level.total))));
       for (const hit of level.results) {

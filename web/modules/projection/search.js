@@ -20,7 +20,7 @@ async function bible(q) {
   const version = versions.find((v) => v.id === prefs.get('version')) || versions[0];
   if (!version) return [];
   const res = await api(`/api/bible/${version.id}/search?q=${encodeURIComponent(q)}&limit=${LIMIT}`);
-  const hits = res.type === 'ref' ? [{ ref: res.ref, title: res.reference }]
+  const hits = res.type === 'ref' ? [res, ...(res.more || [])].map((piece) => ({ ref: piece.ref, title: piece.reference }))
     : res.levels.flatMap((l) => l.results).slice(0, LIMIT).map((r) => ({
       ref: { book: r.book, chapter: r.chapter, verseStart: r.verse, verseEnd: r.verse }, title: r.reference, text: r.text, marks: r.marks,
     }));

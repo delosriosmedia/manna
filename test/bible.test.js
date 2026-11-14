@@ -63,18 +63,21 @@ test('describeVersion da nombres legibles', () => {
   assert.deepEqual(describeVersion('Mi Biblia.xmm'), { id: 'mi-biblia', name: 'Mi Biblia', abbr: '' });
 });
 
-// La cita rápida es lo más usado durante el sermón. Lo que hoy se lee bien queda fijado aquí, con la RV1909 del
-// repositorio. Lo que falla está como pendiente («todo»), para la fase 52.4 (auditoría integral, fase 51.4).
+// La cita rápida es lo más usado durante el sermón. Lo que se lee bien queda fijado aquí, con la RV1909 del repositorio.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const quick = (() => {
+const { quick, search } = (() => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-cita-rapida-'));
   fs.copyFileSync(path.join(ROOT, 'Contenido', 'Biblias', 'Reina Valera 1909.xmm'), path.join(dir, 'Reina Valera 1909.xmm'));
   const library = new BibleLibrary(dir);
-  library.scan();
+  const [{ id }] = library.scan();
   test.after(() => fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5 }));
-  return (query) => {
-    const found = library.search(library.list()[0].id, query, { limit: 1 });
-    return found?.type === 'ref' ? found.reference : null;
+  const run = (query) => library.search(id, query, { limit: 1 });
+  return {
+    search: run,
+    quick: (query) => {
+      const found = run(query);
+      return found?.type === 'ref' ? found.reference : null;
+    },
   };
 })();
 
@@ -93,12 +96,61 @@ test('la cita rápida: las formas de escribir una cita que se leen bien', () => 
   assert.equal(quick('Sal 151'), null, 'un capítulo que no existe no se lee como cita');
 });
 
-test('la cita rápida: libros de un solo capítulo sin el «1:» («Judas 24»)', { todo: 'fase 52.4: hoy busca el capítulo 24 y no da nada' }, () => {
-  assert.deepEqual(['Judas 24', 'Filemón 4', 'Abdías 15', '2 Juan 6', '3 Juan 14'].map(quick), ['Judas 1:24', 'Filemón 1:4', 'Abdías 1:15', '2 Juan 1:6', '3 Juan 1:14']);
+test('la cita rápida: libros de un solo capítulo sin el «1:» («Judas 24»)', () => {
+  assert.deepEqual(
+    ['Judas 24', 'Filemón 4', 'Abdías 15', '2 Juan 6', '3 Juan 14', 'Judas 1', 'Judas 3-5'].map(quick),
+    ['Judas 1:24', 'Filemón 1:4', 'Abdías 1:15', '2 Juan 1:6', '3 Juan 1:14', 'Judas 1', 'Judas 1:3-5'],
+  );
 });
-test('la cita rápida: ordinales («1ra», «Primera de»)', { todo: 'fase 52.4: hoy no da nada' }, () => {
-  assert.deepEqual(['1ra Corintios 13', '1a Corintios 13', 'Primera de Corintios 13', 'Segunda Timoteo 3:16'].map(quick), ['1 Corintios 13', '1 Corintios 13', '1 Corintios 13', '2 Timoteo 3:16']);
+
+test('la cita rápida: ordinales («1ra», «Primera de»)', () => {
+  assert.deepEqual(
+    [
+      '1ra Corintios 13', '1a Corintios 13', '1ro Samuel 3', '1era Corintios 13',
+      'Primera de Corintios 13', 'Primera Corintios', 'Segunda Timoteo 3:16',
+      '2da Timoteo 3:16', '2do Reyes 5', 'Tercera de Juan', '3ra Juan',
+    ].map(quick),
+    [
+      '1 Corintios 13', '1 Corintios 13', '1 Samuel 3', '1 Corintios 13',
+      '1 Corintios 13', '1 Corintios 1', '2 Timoteo 3:16',
+      '2 Timoteo 3:16', '2 Reyes 5', '3 Juan 1', '3 Juan 1',
+    ],
+  );
 });
-test('la cita rápida: un versículo que no existe no se ofrece como cita', { todo: 'fase 52.4: hoy se ofrece y al proyectarlo da error' }, () => {
+
+test('la cita rápida: listas de versículos y «ss»', () => {
+  assert.deepEqual(
+    ['Proverbios 3:5,6', 'Juan 3:16,18', 'Juan 3:16, 18-20', 'Juan 3,16', 'Mateo 5,3-12'].map(quick),
+    ['Proverbios 3:5-6', 'Juan 3:16-18', 'Juan 3:16-20', 'Juan 3:16', 'Mateo 5:3-12'],
+  );
+  assert.deepEqual(
+    ['Juan 3:16ss', 'Juan 3:16 ss', 'Juan 3:16 y ss', 'Juan 3:16ss.'].map(quick),
+    ['Juan 3:16', 'Juan 3:16', 'Juan 3:16', 'Juan 3:16'],
+  );
+});
+
+test('la cita rápida: de un capítulo a otro devuelve el primer trozo y los siguientes en more', () => {
+  assert.deepEqual(search('Juan 3:16-4:2'), {
+    type: 'ref',
+    ref: { book: 43, chapter: 3, verseStart: 16, verseEnd: 36 },
+    reference: 'Juan 3:16-36',
+    more: [{ ref: { book: 43, chapter: 4, verseStart: 1, verseEnd: 2 }, reference: 'Juan 4:1-2' }],
+  });
+  assert.equal('more' in search('Juan 3:16-18'), false);
+});
+
+test('la cita rápida: un versículo que no existe no se ofrece como cita, y si solo se pasa el final se recorta', () => {
   assert.equal(quick('Juan 3:99'), null);
+  assert.equal(quick('Juan 3:30-40'), 'Juan 3:30-36');
+});
+
+test('la cita rápida: un capítulo o versículo que no existe busca texto y explica por qué en hint', () => {
+  const badChapter = search('Juan 22');
+  assert.equal(badChapter.type, 'text');
+  assert.equal(badChapter.hint, 'Juan tiene 21 capítulos.');
+  assert.equal(search('Sal 151').hint, 'Salmos tiene 150 capítulos.');
+  const badVerse = search('Juan 3:99');
+  assert.equal(badVerse.type, 'text');
+  assert.equal(badVerse.hint, 'Juan 3 tiene 36 versículos.');
+  assert.equal('hint' in search('amor'), false);
 });

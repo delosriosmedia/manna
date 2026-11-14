@@ -77,13 +77,22 @@ const key = (text) => normalize(text).replace(/[\s.]+/g, '');
 
 export const BOOK_FORMS = BOOKS;
 export const CANON = BOOKS.map(([name, abbr], i) => ({ n: i + 1, name, abbr }));
+export const ONE_CHAPTER_BOOKS = new Set([31, 57, 63, 64, 65]); // Abdías, Filemón, 2 Juan, 3 Juan, Judas
+export const ORDINALS = new Map([
+  ...['1', 'i', '1ra', '1era', '1ro', '1ero', '1er', '1a', '1ª', '1º', '1o', 'primera', 'primer', 'primero'].map((o) => [o, 1]),
+  ...['2', 'ii', '2da', '2do', '2a', '2ª', '2º', '2o', 'segunda', 'segundo'].map((o) => [o, 2]),
+  ...['3', 'iii', '3ra', '3era', '3ro', '3ero', '3er', '3a', '3ª', '3º', '3o', 'tercera', 'tercer', 'tercero'].map((o) => [o, 3]),
+]);
+const ORD_KEYS = [...ORDINALS.keys()].sort((a, b) => b.length - a.length).join('|');
+const ORD_PREFIX = new RegExp(`^\\s*(?:(${ORD_KEYS})\\.?\\s+(?:(?:de|a)\\s+)?|([123](?:ra|era|ro|ero|da|do|ª|º))\\.?\\s*)`, 'i');
 
 const exact = new Map();
 BOOKS.forEach((forms, i) => forms.forEach((f) => { if (!exact.has(key(f))) exact.set(key(f), i + 1); }));
 
 // Devuelve el número de libro (1-66) para un nombre o abreviatura, o null.
 export function findBook(input) {
-  let k = key(input.replace(/^\s*(iii|ii|i)\s+/i, (_, r) => `${r.length} `));
+  const plain = normalize(String(input ?? '')).replace(ORD_PREFIX, (_, a, b) => `${ORDINALS.get(a || b)} `);
+  const k = plain.replace(/[\s.]+/g, '');
   if (!k) return null;
   if (exact.has(k)) return exact.get(k);
   if (k.length < 2) return null;

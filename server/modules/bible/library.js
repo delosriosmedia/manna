@@ -222,12 +222,51 @@ export class BibleLibrary {
   // id: la versión elegida; limit: cuántos resultados por nivel; scope: 'all', 'ot' (Antiguo
   // Testamento) o 'nt' (Nuevo Testamento).
   search(id, query, { limit = 40, scope = 'all' } = {}) {
-    if (!this.#load(id)) return null;
-    const ref = parseReference(query);
-    const chapter = ref && this.chapter(id, ref.book, ref.chapter);
-    if (chapter) {
-      const reference = ref.verseStart ? formatReference(ref, chapter.name) : `${chapter.name} ${chapter.chapter}`;
-      return { type: 'ref', ref, reference };
+    const selected = this.#load(id);
+    if (!selected) return null;
+    const parsed = parseReference(query);
+    let hint = null;
+    if (parsed) {
+      const bookData = selected.byNumber.get(parsed.book);
+      const endChapter = parsed.endChapter || parsed.chapter;
+      const chapters = [];
+      for (let c = parsed.chapter; bookData && c <= endChapter; c += 1) {
+        const ch = this.chapter(id, parsed.book, c);
+        if (!ch) break;
+        chapters.push(ch);
+      }
+      if (!bookData || parsed.chapter < 1 || chapters.length !== endChapter - parsed.chapter + 1) {
+        if (bookData) {
+          const total = bookData.chapters.at(-1)?.n || bookData.chapters.length;
+          hint = `${bookData.name} tiene ${total} ${total === 1 ? 'capítulo' : 'capítulos'}.`;
+        }
+      } else if (parsed.verseStart == null) {
+        const [ch] = chapters;
+        const ref = { book: parsed.book, chapter: parsed.chapter, verseStart: null, verseEnd: null };
+        return { type: 'ref', ref, reference: `${ch.name} ${ch.chapter}` };
+      } else {
+        const [firstCh] = chapters;
+        const firstLast = firstCh.verses.at(-1).n;
+        const lastCh = chapters.at(-1);
+        const endLast = lastCh.verses.at(-1).n;
+        if (parsed.verseStart < 1 || parsed.verseStart > firstLast) {
+          hint = `${firstCh.name} ${firstCh.chapter} tiene ${firstLast} ${firstLast === 1 ? 'versículo' : 'versículos'}.`;
+        } else if (parsed.endChapter && parsed.verseEnd < 1) {
+          hint = `${lastCh.name} ${lastCh.chapter} tiene ${endLast} ${endLast === 1 ? 'versículo' : 'versículos'}.`;
+        } else if (!parsed.endChapter) {
+          const ref = { book: parsed.book, chapter: parsed.chapter, verseStart: parsed.verseStart, verseEnd: Math.min(parsed.verseEnd, firstLast) };
+          return { type: 'ref', ref, reference: formatReference(ref, firstCh.name) };
+        } else {
+          const pieces = chapters.map((ch, i) => {
+            const verseStart = i === 0 ? parsed.verseStart : ch.verses[0].n;
+            const verseEnd = i === chapters.length - 1 ? Math.min(parsed.verseEnd, ch.verses.at(-1).n) : ch.verses.at(-1).n;
+            const ref = { book: parsed.book, chapter: ch.chapter, verseStart, verseEnd };
+            return { ref, reference: formatReference(ref, ch.name) };
+          });
+          const [first, ...more] = pieces;
+          return { type: 'ref', ...first, more };
+        }
+      }
     }
 
     const started = performance.now();
@@ -263,10 +302,12 @@ export class BibleLibrary {
     })).filter((level) => level.total);
 
     // Un libro sin capítulo («1 reyes», «génesis») no sale en ningún versículo: se abre su capítulo 1.
-    // Solo si el texto no dio nada, para no quitar los versículos que nombran «Juan» o «hechos».
-    const book = !levels.length && findBook(query);
+    // Solo si el texto no dio nada (o si lleva ordinal, como «Primera Corintios» o «Tercera de Juan»), para no quitar los versículos que nombran «Juan» o «hechos».
+    const book = !hint && findBook(query);
     const first = book && this.chapter(id, book, 1);
-    if (first) return { type: 'ref', ref: { book, chapter: 1, verseStart: null, verseEnd: null }, reference: `${first.name} 1` };
+    if (first && (!levels.length || /^[123]\s/.test(first.name))) {
+      return { type: 'ref', ref: { book, chapter: 1, verseStart: null, verseEnd: null }, reference: `${first.name} 1` };
+    }
 
     return {
       type: 'text',
@@ -276,6 +317,7 @@ export class BibleLibrary {
       version: { id: meta.id, name: meta.name, abbr: meta.abbr },
       scope: where,
       ms: Math.round((performance.now() - started) * 10) / 10,
+      ...(hint ? { hint } : {}),
     };
   }
 }
