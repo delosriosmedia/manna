@@ -4,11 +4,13 @@ import { EventEmitter } from 'node:events';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseRange } from '../server/core/router.js';
 import { createStorage } from '../server/core/storage.js';
 import { applyClock, createClock, freezeClock, hasEnded, positionAt } from '../server/core/playback.js';
 import { createJobs, estimate } from '../server/core/jobs.js';
 import { createSessions } from '../server/core/sessions.js';
+import { createApp } from '../server/core/app.js';
 
 // ---- Trozos de archivo (Range) ----
 
@@ -210,4 +212,20 @@ test('al pasar el límite de sesiones, las que tienen usuario se quedan', () => 
   assert.ok(kept.includes('ana'), 'la de Ana, la más vieja pero con su PIN, se queda');
   assert.ok(!kept.includes('s0') && !kept.includes('s1'), 'se van las anónimas más viejas');
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+// En Windows, un archivo de la carpeta temporal que otro programa aún tiene abierto (un ffmpeg que no terminó de
+// cerrarse) no se deja borrar. Ese error cortaba el apagado y el reinicio, y Manna no volvía (N2-1-3 de la auditoría).
+test('si la carpeta temporal no se deja vaciar, Manna se cierra igual y la deja para la próxima vez', async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-temporal-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  t.mock.method(console, 'error', () => {});
+  const app = createApp({ rootDir: fileURLToPath(new URL('..', import.meta.url)), dataDir: dir, biblesDir: path.join(dir, 'biblias') });
+  app.port = 1; // como si estuviera abierto
+  const rm = fs.rmSync;
+  t.mock.method(fs, 'rmSync', (where, ...rest) => {
+    if (where === app.tmpDir) throw Object.assign(new Error('EBUSY: archivo en uso'), { code: 'EBUSY' });
+    return rm(where, ...rest);
+  });
+  await assert.doesNotReject(app.close());
 });

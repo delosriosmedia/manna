@@ -71,7 +71,15 @@ export function createApp({ rootDir, dataDir, biblesDir, mediaDir = null, hymnsD
   const uploadsDir = path.join(dataDir, 'media');
   // Archivos de paso (descargas, conversiones al vuelo). Se vacía al abrir y al cerrar Manna.
   const tmpDir = path.join(dataDir, 'tmp');
-  const emptyTmp = () => fs.rmSync(tmpDir, { recursive: true, force: true, maxRetries: 3 });
+  // En Windows, un archivo que otro programa aún tiene abierto (un ffmpeg que no terminó de cerrarse) no se deja borrar:
+  // queda para la próxima vez. Antes el error cortaba el arranque, el apagado o el reinicio, y Manna no volvía (N2-1-3).
+  const emptyTmp = () => {
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true, maxRetries: 3 });
+    } catch (err) {
+      console.error('No se pudo vaciar la carpeta temporal (se intenta la próxima vez):', err.message);
+    }
+  };
   fs.mkdirSync(uploadsDir, { recursive: true });
   router.mount('/media/', uploadsDir);
 
