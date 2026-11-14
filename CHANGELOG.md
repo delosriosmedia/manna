@@ -4,6 +4,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Un dibujo que falla ya no congela el proyector**: si una capa (un reloj, un texto fijo) fallaba al dibujarse, la pantalla de proyección se quedaba quieta, sin «Siguiente» ni «Negro». Ahora esa capa se oculta y lo demás sigue. Y si falla lo que se pone al aire, se ve el fondo, nunca lo anterior.
 - **Si el Chrome de la proyección se cae, vuelve a abrirse solo**: antes, una caída (la tarjeta gráfica, falta de memoria, una actualización de Windows) contaba como si alguien la hubiera cerrado a mano, y el proyector se quedaba en el escritorio hasta que el administrador la encendía de nuevo en Ajustes. Ahora se reabre enseguida, hasta tres veces en 5 minutos. Cerrarla a mano la sigue apagando.
 - **Un equipo cargado ya no cierra la proyección**: si la consulta de las pantallas tardaba (el antivirus, una conversión), Manna lo tomaba como que ya no había segunda pantalla y la cerraba. Ahora una consulta fallida no toca la ventana, y nunca corren dos a la vez.
 - **Apagar el computador con Manna abierto ya no deja la proyección apagada para el próximo culto**: el cierre de su ventana al apagar se guardaba como si alguien la hubiera apagado. Ahora solo queda apagada lo que se apaga en Ajustes.

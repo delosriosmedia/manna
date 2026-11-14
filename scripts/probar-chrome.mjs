@@ -3335,6 +3335,29 @@ fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'text/plain' }
         check('un pasaje en una capa tapa con su fondo la presentación, que sigue al aire; al apagar la capa, se ve otra vez', verseShown && overSlides === 'capa 1' && underIt === 'al aire' && (await live()).kind === 'slides', `${overSlides} → ${underIt}`);
         await run(`return await ${post('layers.clear', { n: 1 })}`);
 
+        // Un dibujo que falla no congela la proyección (N2-3-1 y N2-3-2 de la auditoría integral): se le rompe a propósito,
+        // solo a esa pantalla, el dibujo de un tipo, y «Negro» tiene que seguir funcionando.
+        const breakKind = (kind, broken) => run(`const w = document.querySelector('#pantalla').contentWindow; const k = (await w.eval("import('/core/kinds.js')")).kindOf(${JSON.stringify(kind)});
+          if (${broken}) { k.__draw ||= k.draw; k.draw = (host, o) => ({ ...k.__draw(host, o), update() { throw new Error('dibujo roto a propósito'); } }); } else if (k.__draw) { k.draw = k.__draw; delete k.__draw; } return true;`);
+        const stageMode = `${far}.querySelector('.stage').dataset.mode`;
+        await breakKind('clock', true);
+        await run(`return await ${post('layers.set', { n: 1, kind: 'clock', data: { type: 'hora' } })}`);
+        await sleep(500);
+        await run(`return await ${post('projection.mode', { mode: 'black' })}`);
+        const blackWithLayer = await until(`${stageMode} === 'black'`, 10);
+        check('una capa que falla al dibujarse se oculta, y la proyección sigue: «Negro» funciona', blackWithLayer && await run(`return getComputedStyle(${layerOf(1)}).visibility === 'hidden'`), await run(`return ${stageMode}`));
+        await run(`return await ${post('layers.clear', { n: 1 })}`);
+        await breakKind('clock', false);
+        await run(`return await ${post('projection.mode', { mode: 'live' })}`);
+        await breakKind('testcard', true);
+        await run(`return await ${post('projection.show', { kind: 'testcard', data: {} })}`);
+        const emptied = await until(`${stageMode} === 'live' && ${far}.querySelector('.stage-content').childElementCount === 0`, 10);
+        await run(`return await ${post('projection.mode', { mode: 'black' })}`);
+        check('si falla lo que se pone al aire, se quita lo de antes (queda el fondo) y «Negro» sigue funcionando', emptied && await until(`${stageMode} === 'black'`, 10));
+        await breakKind('testcard', false);
+        await run(`return await ${post('projection.show', { kind: 'testcard', data: {} })}`);
+        check('y lo siguiente que se pone al aire se dibuja de cero', await until(`${far}.querySelector('.stage-content').childElementCount > 0`, 10));
+
         // Encenderla y apagarla desde la barra de abajo, sin abrir «Capas» (pedido del dueño, 2026-10-25).
         const sw = (where) => `document.querySelector('${where} .layer-switch[data-n="2"]')`;
         const flips = async (where) => {

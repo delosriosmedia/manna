@@ -58,34 +58,23 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
   // página sigue cargada) y cambiar lo que está al aire no la toca. Solo se rehace si cambia su elemento o se recarga
   // (uid). Si deja de estar lista (una página cuya dirección dejó de contestar) se queda como está; lo que aún no se
   // ha cargado espera a que lo esté.
+  // Una capa que falla al dibujarse se vacía y se oculta, y no se reintenta hasta que tenga otra cosa (`broken`): antes
+  // el error cortaba render() y el proyector se congelaba entero, también «Negro» (N2-3-1 de la auditoría integral).
   function drawLayers() {
     slots.forEach((slot, i) => {
       const layer = layers[i] ||= { el: layerHost.appendChild(h('div', { class: 'stage-layer', dataset: { n: i + 1 } })) };
       const key = slot.kind && slot.content ? `${slot.kind}|${slot.uid}` : '';
-      if (layer.key && layer.key !== key) {
-        layer.view?.destroy?.();
+      if (layer.broken && layer.broken !== key) layer.broken = '';
+      if (layer.broken) return;
+      try {
+        drawLayer(slot, layer, key);
+      } catch (err) {
+        console.error(`La capa ${i + 1} no se pudo dibujar:`, err);
+        try { layer.view?.destroy?.(); } catch { /* ya falló */ }
         layer.el.replaceChildren();
-        layer.view = null;
-        layer.key = '';
+        layer.el.style.visibility = 'hidden';
+        Object.assign(layer, { view: null, key: '', item: null, cover: null, broken: key });
       }
-      const def = key && kindOf(slot.kind);
-      if (!layer.view && def && slot.ready && styles) {
-        let host = layer.el;
-        layer.cover = def.cover ? { back: h('div', { class: 'layer-bg' }), veil: h('div', { class: 'layer-veil' }) } : null;
-        if (layer.cover) {
-          host = h('div', { class: 'layer-body' });
-          layer.el.replaceChildren(layer.cover.back, layer.cover.veil, host);
-        }
-        // El que tapa ajusta su letra en su capa (--fit), no en todo el escenario: lo que está al aire tiene la suya.
-        layer.view = def.draw(host, { stage: layer.cover ? layer.el : container, layer: true });
-        layer.key = key;
-      }
-      if (layer.cover && layer.view) paintBackground(layer.cover.back, layer.cover.veil);
-      layer.item = layer.view ? { ...slot.content, uid: slot.uid } : null;
-      if (layer.view) layer.view.update(layer.item, { mode: 'live', styles });
-      const on = Boolean(layer.view) && slot.visible;
-      layer.el.style.visibility = on ? '' : 'hidden';
-      layer.view?.visible?.(on && document.visibilityState === 'visible');
     });
     // La del orador ya no está: su sitio queda vacío.
     for (const layer of layers.slice(slots.length)) {
@@ -94,6 +83,32 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
       Object.assign(layer, { view: null, key: '', item: null, cover: null });
     }
     liveLayers();
+  }
+  function drawLayer(slot, layer, key) {
+    if (layer.key && layer.key !== key) {
+      layer.view?.destroy?.();
+      layer.el.replaceChildren();
+      layer.view = null;
+      layer.key = '';
+    }
+    const def = key && kindOf(slot.kind);
+    if (!layer.view && def && slot.ready && styles) {
+      let host = layer.el;
+      layer.cover = def.cover ? { back: h('div', { class: 'layer-bg' }), veil: h('div', { class: 'layer-veil' }) } : null;
+      if (layer.cover) {
+        host = h('div', { class: 'layer-body' });
+        layer.el.replaceChildren(layer.cover.back, layer.cover.veil, host);
+      }
+      // El que tapa ajusta su letra en su capa (--fit), no en todo el escenario: lo que está al aire tiene la suya.
+      layer.view = def.draw(host, { stage: layer.cover ? layer.el : container, layer: true });
+      layer.key = key;
+    }
+    if (layer.cover && layer.view) paintBackground(layer.cover.back, layer.cover.veil);
+    layer.item = layer.view ? { ...slot.content, uid: slot.uid } : null;
+    if (layer.view) layer.view.update(layer.item, { mode: 'live', styles });
+    const on = Boolean(layer.view) && slot.visible;
+    layer.el.style.visibility = on ? '' : 'hidden';
+    layer.view?.visible?.(on && document.visibilityState === 'visible');
   }
   // Lo que suena en una capa (el tictac de un temporizador) suena, como todo, solo en la pantalla que suena.
   function liveLayers() {
@@ -141,8 +156,20 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
     }
     container.dataset.fill = def?.background === false ? 'full' : 'text';
     if (!def) return; // tipo que esta versión no sabe dibujar
-    if (!drawn) drawn = { kind: item.kind, view: def.draw(content, { stage: container, sound, thumbnail }) };
-    drawn.view.update(item, { mode, styles });
+    // Si lo nuevo no se puede dibujar, se quita lo que había y queda el fondo: nunca lo anterior, que sería un
+    // versículo equivocado (N2-3-2). El siguiente cambio vuelve a empezar de cero.
+    try {
+      if (!drawn) drawn = { kind: item.kind, view: def.draw(content, { stage: container, sound, thumbnail }) };
+      drawn.view.update(item, { mode, styles });
+    } catch (err) {
+      console.error(`No se pudo dibujar ${item.kind}:`, err);
+      try { drawn?.view.destroy?.(); } catch { /* ya falló */ }
+      content.replaceChildren();
+      drawn = null;
+      lastKey = '';
+      placePointer();
+      return;
+    }
     const key = keyOf(item);
     if (key !== lastKey && mode === 'live') content.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 250 });
     lastKey = key;
