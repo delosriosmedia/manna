@@ -5,7 +5,7 @@ import { HttpError } from '../../core/router.js';
 import { imageInfo, readImageInfo } from '../../core/images.js';
 import { cleanName } from '../../core/names.js';
 import { applyView, initialView } from '../../core/view.js';
-import { fontsFor, installFont, officeBlocked, officeFolder, showInFinder } from './fuentes.js';
+import { addFont, fontsFor, installFont, MAX_FONT, officeBlocked, officeFolder, showInFinder } from './fuentes.js';
 import { translateKeynote } from './keynote.js';
 import { hasMotion } from './pptx.js';
 import { createExporter, isPresentation, liveSupported, openLive, PRESENTATION_EXTENSIONS } from './powerpoint.js';
@@ -31,6 +31,7 @@ import { createExporter, isPresentation, liveSupported, openLive, PRESENTATION_E
 //   live:      se pasa «con animaciones» (DeckCraft o PowerPoint en vivo, abajo), si se eligió en su menú (liveChosen);
 //              si nadie lo eligió, va así cuando tiene animaciones, transiciones, video o sonido (motion, pptx.js)
 //   missingFonts: las letras que usa y no están en el equipo ni dentro de la presentación (fuentes.js)
+//   replacedFonts: las que no están pero se ven con una gemela de las mismas medidas ([{ name, as }]: Helvetica, con Arial)
 //   redone:    cuándo se convirtió de nuevo: va en la dirección de cada imagen, para que nadie vea la de antes
 
 const FOLDER = 'diapositivas';
@@ -74,7 +75,7 @@ export default function setup(app) {
   const view = (deck) => ({
     id: deck.id, name: deck.name, source: deck.source, pages: deck.pages, width: deck.width || 0, height: deck.height || 0, added: deck.added,
     status: deck.status, error: deck.error || null, base: `/media/${FOLDER}/${deck.id}/`, ext: deck.ext || 'jpg', thumbs: Boolean(deck.thumbs), thumbExt: deck.thumbExt || 'jpg', ...(deck.atChurch && { atChurch: true }), ...(deck.cover && { cover: true }),
-    ...(deck.missingFonts?.length && { missingFonts: deck.missingFonts }), ...(deck.soft?.length && { soft: deck.soft }), ...(deck.redone && { redone: deck.redone }),
+    ...(deck.missingFonts?.length && { missingFonts: deck.missingFonts }), ...(deck.replacedFonts?.length && { replacedFonts: deck.replacedFonts }), ...(deck.soft?.length && { soft: deck.soft }), ...(deck.redone && { redone: deck.redone }),
     // Tras un fallo de PowerPoint va como imágenes, y el menú ofrece volver a intentarlo.
     live: liveOf(deck) && !failed.has(deck.id), liveable: liveable(deck),
   });
@@ -466,6 +467,12 @@ export default function setup(app) {
             deck.motion = hasMotion(originalOf(deck));
             checkFonts(deck);
             then();
+            // Las que faltan se buscan solas, una vez por presentación (si no, lo de último momento esperaría a que alguien
+            // pulse «Instalar las que faltan»; pedido del dueño, 2026-11-14).
+            if (deck.missingFonts?.length && !tried.has(deck.id)) {
+              tried.add(deck.id);
+              installFonts(deck);
+            }
           } else if (still && !result.cancelled) Object.assign(deck, first ? { status: 'error', error: result.error } : { status: 'ready' });
         } catch (err) {
           Object.assign(deck, { status: 'error', error: err instanceof HttpError ? err.message : 'No se pudieron guardar las diapositivas.' });
@@ -607,10 +614,12 @@ export default function setup(app) {
   function checkFonts(deck) {
     if (app.cloud || !deck.original) return [];
     try {
-      const { files, missing } = fontsFor(originalOf(deck));
-      if (missing.join('|') !== (deck.missingFonts || []).join('|')) {
+      const { files, missing, replaced } = fontsFor(originalOf(deck));
+      if (JSON.stringify([missing, replaced]) !== JSON.stringify([deck.missingFonts || [], deck.replacedFonts || []])) {
         if (missing.length) deck.missingFonts = missing;
         else delete deck.missingFonts;
+        if (replaced.length) deck.replacedFonts = replaced;
+        else delete deck.replacedFonts;
         commit();
       }
       return files;
@@ -647,11 +656,15 @@ export default function setup(app) {
   }
 
   // Las que le faltan, de los repositorios de letras libres (las que estén ahí; fuentes.js), y después la convierte de
-  // nuevo con ellas. Solo el
-  // administrador: se instalan en el equipo principal. Responde enseguida; el avance va en la cola.
+  // nuevo con ellas. Solo el administrador (se instalan en el equipo principal), o Manna solo, al terminar de convertirla.
+  // Responde enseguida; el avance va en la cola.
   app.action('slides.installFonts', { permission: 'system.admin' }, ({ id }) => {
     const deck = find(id);
     if (app.cloud || !deck.missingFonts?.length) throw new HttpError(409, 'A esta presentación no le falta ninguna letra en este equipo.');
+    installFonts(deck);
+  });
+  const tried = new Set(); // las que ya se buscaron solas en este arranque
+  function installFonts(deck) {
     const job = app.jobs.start({ title: 'Instalando sus letras', owner: 'slides', ref: deck.id });
     (async () => {
       // Las instaladas a mano desde la última vez (con el Finder, en Mac) ya no se buscan.
@@ -689,12 +702,39 @@ export default function setup(app) {
       const one = nowhere.length === 1;
       const single = inOffice.length === 1;
       const note = [
-        nowhere.length ? `${nowhere.join(', ')} no ${one ? 'está' : 'están'} en Google Fonts, Fontsource ni Font Squirrel${office ? `, ni Office ${one ? 'la' : 'las'} bajó` : ''}: hay que instalarla${one ? '' : 's'} a mano y pulsar «Revisar de nuevo».` : '',
+        nowhere.length ? `${nowhere.join(', ')} no ${one ? 'está' : 'están'} en Google Fonts, Fontsource ni Font Squirrel${office ? `, ni Office ${one ? 'la' : 'las'} bajó` : ''}: si ${one ? 'la' : 'las'} tienes, súbe${one ? 'la' : 'las'} con «Subir una letra».` : '',
         inOffice.length ? `${inOffice.join(', ')} ya ${single ? 'la' : 'las'} bajó Office, pero macOS no deja que Manna ${single ? 'la' : 'las'} recoja. ${single ? 'Se abrió su carpeta' : 'Se abrieron sus carpetas'} en el Finder del equipo principal: dale doble clic a ${single ? 'la letra' : 'cada letra'} → Instalar, y pulsa «Revisar de nuevo».` : '',
       ].filter(Boolean).join(' ');
       if (note) job.fail(installed ? `Las demás se instalaron. ${note}` : note);
       else job.done('Instaladas');
     })().catch((err) => job.fail(err.message || 'No se pudieron instalar.'));
+  }
+
+  // Una letra que no está en ningún repositorio libre (una comercial que tiene la iglesia o el predicador): el
+  // administrador la sube desde cualquier dispositivo, se instala en el equipo principal y se convierten de nuevo las
+  // presentaciones que la pedían.
+  app.route('POST', '/api/slides/letra', async (ctx) => {
+    ctx.require('system.admin');
+    if (app.cloud) throw new HttpError(409, 'Las letras se instalan en el equipo de la iglesia, no en la nube.');
+    fs.mkdirSync(app.tmpDir, { recursive: true });
+    const file = path.join(app.tmpDir, `letra-${crypto.randomBytes(6).toString('hex')}`);
+    try {
+      await ctx.save(file, MAX_FONT);
+      const families = addFont(file);
+      if (!families.length) throw new HttpError(415, 'Ese archivo no es una letra: elige uno .ttf u .otf.');
+      const fixed = new Set();
+      for (const deck of decks().filter((d) => d.missingFonts?.length)) {
+        const before = deck.missingFonts;
+        checkFonts(deck);
+        const now = before.filter((family) => !(deck.missingFonts || []).includes(family));
+        if (!now.length) continue;
+        now.forEach((family) => fixed.add(family));
+        try { reconvert(deck); } catch { /* sin su PowerPoint original: se ve como estaba */ }
+      }
+      return { families, fixed: [...fixed] };
+    } finally {
+      fs.rmSync(file, { force: true });
+    }
   });
 
   app.action('slides.remove', { permission: 'slides.edit' }, ({ id }) => {

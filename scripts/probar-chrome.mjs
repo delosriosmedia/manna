@@ -2657,7 +2657,8 @@ try {
     const keyReady = await until(`(await (await fetch('/api/state')).json()).slides.decks.some(d => d.name === 'mensaje de keynote' && d.status === 'ready')`, 40);
     const fromKey = (await decksNow()).find((d) => d.name === 'mensaje de keynote') || {};
     const keyCard = `${ws}.querySelector('.deck[data-id="${fromKey.id}"]')`;
-    check('Keynote se convierte, y su tarjeta dice de dónde viene y qué se ve con menos nitidez', keyReady && fromKey.source === 'keynote' && await until(`${keyCard}?.querySelector('.item-text small')?.textContent.includes('Keynote') && [...${keyCard}.querySelectorAll('.deck-status small')].some(t => t.textContent.includes('La diapositiva 1 lleva'))`, 10), JSON.stringify(fromKey));
+    // Mientras Manna busca sola la letra que le falta (Rockwell, que no está en ningún sitio), la ficha muestra ese avance.
+    check('Keynote se convierte, y su tarjeta dice de dónde viene y qué se ve con menos nitidez', keyReady && fromKey.source === 'keynote' && await until(`${keyCard}?.querySelector('.item-text small')?.textContent.includes('Keynote') && [...${keyCard}.querySelectorAll('.deck-status small')].some(t => t.textContent.includes('La diapositiva 1 lleva'))`, 60), JSON.stringify(fromKey));
     await run(`return await ${post('slides.remove', { id: fromKey.id })}`);
     await sleep(500);
 
@@ -2670,35 +2671,43 @@ try {
       await openSlides();
       await sleep(300);
       const welcome = path.join(tmp, 'bienvenida.pptx');
-      fs.writeFileSync(welcome, makePptx([{ text: 'Bienvenidos', font: 'Letra de Prueba' }, { text: 'Oculta', hidden: true }, { text: 'Anuncios', font: 'Letra Que Falta' }]));
+      // Letra de Prueba está instalada; Letra Que Falta, en el Google Fonts de mentira; Letra Comercial, en ningún sitio; y
+      // Arial (la del tema), que no está aquí, se ve con su gemela de las mismas medidas.
+      fs.writeFileSync(welcome, makePptx([{ text: 'Bienvenidos', font: 'Letra de Prueba' }, { text: 'Oculta', hidden: true, font: 'Letra Comercial' }, { text: 'Anuncios', font: 'Letra Que Falta' }]));
       await pickFile(welcome);
       check('con DeckCraft en el equipo, un PowerPoint lo convertirá DeckCraft', await run(`return ${modal}.querySelector('.deck-up-status').textContent.includes('La convertirá DeckCraft')`), await run(`return ${modal}?.querySelector('.deck-up-status')?.textContent`));
+      expectError('no está en Google Fonts');
       await modalButton('Subir');
       const ready = await until(`(await (await fetch('/api/state')).json()).slides.decks.some(d => d.name === 'bienvenida' && d.status === 'ready')`, 40);
       const converted = (await decksNow()).find((d) => d.name === 'bienvenida');
       check('DeckCraft la convierte: sin la oculta, en PNG y con miniaturas pequeñas', ready && converted.pages === 2 && converted.thumbs && converted.thumbExt === 'png' && converted.width === 2560
         && await until(`[...${ws}.querySelectorAll('.deck[data-id="${converted.id}"] img')].some(i => i.naturalWidth === 320 && i.getAttribute('src').endsWith('m1.png'))`, 10), JSON.stringify(converted));
-      // Las letras: avisa de las que no están en el equipo; «Instalar las que faltan» baja la que está en Google Fonts (el
-      // de mentira) y la convierte de nuevo; de la otra (Arial) dice que no está ahí.
+      // Las letras (2026-11-14): al terminar de convertirla, Manna busca solo las que faltan, baja la que está en Google Fonts
+      // (el de mentira) y la convierte de nuevo; de la que no está en ningún sitio dice que se puede subir. Arial no falta:
+      // se ve con su gemela de las mismas medidas.
       const deckNow = `(await (await fetch('/api/state')).json()).slides.decks.find(d => d.id === ${JSON.stringify(converted.id)})`;
-      check('avisa de las letras que usa y no están en el equipo', converted.missingFonts?.includes('Letra Que Falta') && !converted.missingFonts.includes('Letra de Prueba')
-        && await until(`${ws}.querySelector('.deck[data-id="${converted.id}"] .deck-status.error')?.textContent.includes('Letra Que Falta')`, 5), JSON.stringify(converted.missingFonts));
-      expectError('no está en Google Fonts');
-      await click(`${ws}.querySelector('.deck[data-id="${converted.id}"] .deck-fonts')`);
-      check('«Instalar las que faltan» baja la de Google Fonts, la convierte de nuevo y dice cuál no está ahí', await until(`(${deckNow})?.redone && !(${deckNow}).missingFonts?.includes('Letra Que Falta')`, 40)
+      const card = `${ws}.querySelector('.deck[data-id="${converted.id}"]')`;
+      check('al llegar, busca sola las letras que faltan: baja la de Google Fonts, la convierte de nuevo y dice cuál no está en ningún sitio', await until(`(${deckNow})?.redone && (${deckNow}).missingFonts?.join() === 'Letra Comercial'`, 40)
         && fs.existsSync(path.join(fontsDir, 'LetraQueFalta-Regular.ttf'))
-        && await until(`${ws}.querySelector('.deck[data-id="${converted.id}"] .deck-status.error')?.textContent.includes('Arial no está en Google Fonts')`, 10)
-        && await until(`[...${ws}.querySelectorAll('.deck[data-id="${converted.id}"] img')].some(i => i.naturalWidth === 320 && i.getAttribute('src').includes('m1.png?v='))`, 10),
-        await run(`return JSON.stringify({ deck: ${deckNow}, card: ${ws}.querySelector('.deck[data-id="${converted.id}"] .deck-status')?.textContent })`));
-      const fontsCard = `${ws}.querySelector('.deck[data-id="${converted.id}"] .deck-fonts')`;
-      check('tras un intento, el botón ya no dice «Instalar»: dice «Revisar de nuevo»', await run(`return ${fontsCard}.textContent === 'Revisar de nuevo'`));
-      // Instalada a mano (lo que pide el aviso): el botón la ve y la convierte, sin más pasos.
-      const byHand = path.join(fontsDir, 'a-mano.ttf');
-      fs.writeFileSync(byHand, makeFont('Arial'));
-      const before = await run(`return (${deckNow}).redone`);
+        && await until(`${card}?.querySelector('.deck-status.error')?.textContent.includes('Letra Comercial no está en Google Fonts')`, 10)
+        && await until(`[...${card}.querySelectorAll('img')].some(i => i.naturalWidth === 320 && i.getAttribute('src').includes('m1.png?v='))`, 10),
+        await run(`return JSON.stringify({ deck: ${deckNow}, card: ${card}?.querySelector('.deck-status')?.textContent })`));
+      check('Arial no sale como letra que falta: se ve con su gemela, de las mismas medidas', !(await run(`return (${deckNow}).missingFonts.includes('Arial')`))
+        && await run(`return ${card}.querySelector('.deck-status').textContent.includes('Arial se ve con Liberation Sans, de las mismas medidas')`));
+      const fontsCard = `${card}.querySelector('.deck-fonts')`;
+      check('tras el intento, el botón ya no dice «Instalar»: dice «Revisar de nuevo»', await run(`return ${fontsCard}.textContent === 'Revisar de nuevo'`));
+      const tries = `(await (await fetch('/api/state')).json()).jobs.list.filter(j => j.ref === ${JSON.stringify(converted.id)} && j.title === 'Instalando sus letras').length`;
+      const triedBefore = await run(`return ${tries}`);
       await click(fontsCard);
-      check('«Revisar de nuevo» ve la instalada a mano, la convierte y quita el aviso', await until(`(${deckNow})?.redone > ${before} && !(${deckNow}).missingFonts?.length && !${ws}.querySelector('.deck[data-id="${converted.id}"] .deck-status.error')`, 40), await run(`return JSON.stringify(${deckNow})`));
-      fs.rmSync(byHand);
+      check('«Revisar de nuevo» vuelve a buscarla', await until(`${tries} > ${triedBefore}`, 20) && await until(`(await (await fetch('/api/state')).json()).jobs.list.filter(j => j.ref === ${JSON.stringify(converted.id)}).every(j => j.state !== 'running')`, 40));
+      // «Subir una letra»: la que alguien tiene (una comercial) se elige en el dispositivo, se instala y la convierte.
+      const before = await run(`return (${deckNow}).redone`);
+      const upFile = path.join(tmp, 'Letra Comercial.ttf');
+      fs.writeFileSync(upFile, makeFont('Letra Comercial'));
+      check('la ficha ofrece «Subir una letra»', await run(`return ${card}.querySelector('.deck-font-up')?.textContent === 'Subir una letra'`));
+      await chooseFiles(`.deck[data-id="${converted.id}"] .deck-font-actions input[type=file]`, [upFile]);
+      check('«Subir una letra» la instala, la convierte de nuevo y quita el aviso', await until(`(${deckNow})?.redone > ${before} && !(${deckNow}).missingFonts?.length && !${card}.querySelector('.deck-status.error')`, 40)
+        && fs.readdirSync(fontsDir).some((f) => f.startsWith('letracomercial-')), await run(`return JSON.stringify(${deckNow})`));
       const redone = await run(`return (${deckNow}).redone`);
       await deckMenu(`${ws}.querySelector('.deck[data-id="${converted.id}"]')`, 'Convertir de nuevo');
       check('«Convertir de nuevo» la vuelve a convertir desde el PowerPoint original', await until(`(${deckNow})?.redone > ${redone}`, 40));
@@ -2716,7 +2725,7 @@ try {
       const dcFrame = `[...document.querySelectorAll('.deckcraft-frame')].find((f) => !f.hidden)`;
       const dcSaid = `(${dcFrame}?.contentWindow.__dc || [])`;
       const onAirNumber = `(await (await fetch('/api/state')).json()).projection.item?.number`;
-      check('en la pantalla que suena la pasa DeckCraft, con el PowerPoint original y las letras del equipo que usa', await until(`${dcSaid}.some((m) => m.deckcraft === 'open' && m.size > 0 && m.fonts === 2)`, 25),
+      check('en la pantalla que suena la pasa DeckCraft, con el PowerPoint original y las letras del equipo que usa', await until(`${dcSaid}.some((m) => m.deckcraft === 'open' && m.size > 0 && m.fonts === 3)`, 25), // la de prueba, la de Google Fonts y la subida
         await run(`return JSON.stringify({ frames: document.querySelectorAll('.deckcraft-frame').length, item: (await (await fetch('/api/state')).json()).projection.item?.deckcraft, said: ${dcSaid}.filter((m) => m.deckcraft === 'open') })`));
       const next = () => run(`return await ${post('projection.step', { delta: 1 })}`);
       await next();

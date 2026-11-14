@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { deckFonts, fontDirs, fontNames, fontsFor, installedFonts, installFont, officeFolder, userFontDir } from '../server/modules/slides/fuentes.js';
+import { addFont, deckFonts, fontDirs, fontNames, fontsFor, installedFonts, installFont, officeFolder, userFontDir } from '../server/modules/slides/fuentes.js';
 import { hasMotion, readZip } from '../server/modules/slides/pptx.js';
 import { makeFont, serveFonts } from '../scripts/lib/letra.mjs';
 import { makePptx } from '../scripts/lib/pptx.mjs';
@@ -63,6 +63,32 @@ test('se mandan las instaladas que usa, y faltan las que no están ni vienen den
   assert.deepEqual(fontsFor(deck, installedFonts([dir])).missing, []);
 });
 
+// Lo de Nueva Vida (2026-11-14): Helvetica, «system-ui» y «ui-sans-serif» salían como letras que había que instalar a mano.
+test('no faltan las que tienen una gemela de las mismas medidas ni los nombres de página web; la gemela se manda', () => {
+  const web = path.join(tmp, 'de-la-web.pptx');
+  fs.writeFileSync(web, makePptx([{ text: 'Uno', font: 'Helvetica' }, { text: 'Dos', font: 'system-ui' }, { text: 'Tres', font: 'ui-sans-serif' }, { text: 'Cuatro', font: 'Helvetica Neue' }]));
+  const dir = path.join(tmp, 'con-arial');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'arial.ttf'), makeFont('Arial'));
+  const { files, missing, replaced } = fontsFor(web, installedFonts([dir]));
+  assert.deepEqual(missing, ['Helvetica Neue'], 'Helvetica Neue no tiene gemela de las mismas medidas: esa sí falta');
+  assert.deepEqual(replaced, [{ name: 'Helvetica', as: 'Arial' }]);
+  assert.deepEqual(files.map((f) => path.basename(f)), ['arial.ttf'], 'con Arial dibuja DeckCraft la Helvetica');
+});
+
+test('una letra subida: solo si es una letra, a la carpeta de letras de quien usa el equipo, con su nombre', () => {
+  const dir = path.join(tmp, 'subidas');
+  const up = path.join(tmp, 'subida');
+  fs.writeFileSync(up, makeFont('Letra Comercial'));
+  assert.deepEqual(addFont(up, dir), ['letra comercial']);
+  const asks = path.join(tmp, 'comercial.pptx');
+  fs.writeFileSync(asks, makePptx([{ text: 'Uno', font: 'Letra Comercial' }]));
+  assert.deepEqual(fontsFor(asks, installedFonts([dir])).missing, [], 'ya no falta');
+  fs.writeFileSync(up, 'esto no es una letra');
+  assert.deepEqual(addFont(up, dir), []);
+  assert.equal(fs.readdirSync(dir).length, 1, 'lo que no es una letra no se guarda');
+});
+
 test('las carpetas de letras de cada sistema, también las que baja Office', () => {
   const win = fontDirs('win32', { WINDIR: 'C:\\Windows', LOCALAPPDATA: 'C:\\Users\\Ana\\AppData\\Local' }, 'C:\\Users\\Ana');
   assert.ok(win.some((d) => d.endsWith(path.join('Microsoft', 'FontCache', '4', 'CloudFonts'))) && win.some((d) => d.endsWith(path.join('Microsoft', 'Windows', 'Fonts'))));
@@ -95,7 +121,7 @@ test('una que falta se baja de Google Fonts, Fontsource o Font Squirrel (de ment
     // Instalada con otro nombre junto («ChunkFive»), deja de faltar igual.
     const deckChunk = path.join(tmp, 'chunk.pptx');
     fs.writeFileSync(deckChunk, makePptx([{ text: 'Uno', font: 'Chunk Five' }]));
-    assert.deepEqual(fontsFor(deckChunk, installedFonts([dir])).missing, ['Arial']);
+    assert.deepEqual(fontsFor(deckChunk, installedFonts([dir])).missing, [], 'y Arial, que no está aquí, se ve con su gemela');
   } finally {
     repos.close();
   }

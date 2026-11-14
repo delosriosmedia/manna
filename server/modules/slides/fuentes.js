@@ -9,7 +9,7 @@ import { readZip } from './pptx.js';
 // (GET /api/slides/:id/fuentes). Las que no encuentra en el equipo ni vienen dentro de la presentación las dice,
 // para que se instalen; las que son de Google Fonts las instala Manna (installFont).
 
-const MAX_FONT = 32 * 1024 ** 2; // una letra más grande (las de chino o japonés) no se manda
+export const MAX_FONT = 32 * 1024 ** 2; // una letra más grande (las de chino o japonés) no se manda
 const MAX_TOTAL = 64 * 1024 ** 2;
 const FONT_FILE = /\.(ttf|otf|ttc|otc)$/i;
 
@@ -148,15 +148,25 @@ export function officeFolder(family, dirs = fontDirs()) {
 }
 export const showInFinder = (folders) => execFile('open', folders, () => {});
 
+// Lo que DeckCraft dibuja bien aunque no esté en el equipo (su tabla, crates/fonts/src/fontdb.rs de la copia de Manna):
+// las que tienen una gemela de las mismas medidas, con la que las líneas se cortan igual (Helvetica, con Arial), y los
+// nombres de página web que no son una letra («system-ui»: los escriben algunas herramientas en línea, y PowerPoint y
+// DeckCraft los dibujan con la que ponen a lo que falta). Ninguna de las dos falta: no hay nada que instalar (2026-11-14).
+const TWINS = { calibri: 'Carlito', 'calibri light': 'Carlito', cambria: 'Caladea', 'cambria math': 'Caladea', arial: 'Liberation Sans', helvetica: 'Arial', 'times new roman': 'Liberation Serif', times: 'Times New Roman', 'courier new': 'Liberation Mono', courier: 'Courier New' };
+const NOT_A_FONT = /^(-apple-system|blinkmacsystemfont|system-ui|ui-(sans-serif|serif|monospace|rounded)|sans-serif|serif|monospace|cursive|fantasy|emoji|math|fangsong)$/i;
+
 // Lo que necesita DeckCraft para una presentación: los archivos de las letras que usa y están instaladas
-// (todos los de cada familia: negrita, cursiva…), y las que no se encuentran en ninguna parte. Un archivo repetido
-// (mismo nombre y tamaño) va una vez: en Mac, Word, Excel y PowerPoint traen cada uno su copia de las mismas.
+// (todos los de cada familia: negrita, cursiva…; y los de la gemela de las que no están), las que no se encuentran en
+// ninguna parte (missing) y las que se ven con su gemela (replaced: [{ name, as }]). Un archivo repetido (mismo nombre
+// y tamaño) va una vez: en Mac, Word, Excel y PowerPoint traen cada uno su copia de las mismas.
 export function fontsFor(file, index = installedFonts()) {
   const { used, embedded } = deckFonts(file);
   const inside = new Set(embedded.map(same));
+  const absent = used.filter((name) => !index.has(same(name)) && !inside.has(same(name)) && !NOT_A_FONT.test(name));
+  const replaced = absent.filter((name) => TWINS[name.toLowerCase()]).map((name) => ({ name, as: TWINS[name.toLowerCase()] }));
   const seen = new Set();
   let total = 0;
-  const sent = [...new Set(used.flatMap((name) => index.get(same(name)) || []))].filter((f) => {
+  const sent = [...new Set([...used, ...replaced.map((r) => r.as)].flatMap((name) => index.get(same(name)) || []))].filter((f) => {
     const size = fs.statSync(f, { throwIfNoEntry: false })?.size || 0;
     const key = `${path.basename(f).toLowerCase()}:${size}`;
     if (!size || size > MAX_FONT || total + size > MAX_TOTAL || seen.has(key)) return false;
@@ -164,8 +174,7 @@ export function fontsFor(file, index = installedFonts()) {
     total += size;
     return true;
   });
-  const missing = used.filter((name) => !index.has(same(name)) && !inside.has(same(name)));
-  return { files: sent, missing };
+  return { files: sent, missing: absent.filter((name) => !TWINS[name.toLowerCase()]), replaced };
 }
 
 // ---- Instalar una que falta, de un repositorio de letras libres ----
@@ -291,13 +300,32 @@ export async function installFont(family, dir = userFontDir()) {
         continue;
       }
       saved.push(target);
-      // En Windows, además, se apunta para quien usa el equipo: así la ven también PowerPoint y los demás programas.
-      if (process.platform === 'win32' && !process.env.MANNA_LETRAS) {
-        execFile('reg', ['add', 'HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Fonts', '/v', `${path.parse(target).name} (TrueType)`, '/t', 'REG_SZ', '/d', target, '/f'], { windowsHide: true }, () => {});
-      }
+      register(target);
     }
     if (saved.length) return saved;
   }
   if (failed) throw failed;
   return [];
+}
+
+// En Windows, además, se apunta para quien usa el equipo: así la ven también PowerPoint y los demás programas.
+function register(target) {
+  if (process.platform === 'win32' && !process.env.MANNA_LETRAS) {
+    execFile('reg', ['add', 'HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Fonts', '/v', `${path.parse(target).name} (TrueType)`, '/t', 'REG_SZ', '/d', target, '/f'], { windowsHide: true }, () => {});
+  }
+}
+
+// Una letra que subió el administrador: la que no está en ningún repositorio libre (una comercial que tiene la iglesia o
+// el predicador). Solo si de verdad es una letra, y con su nombre dentro; se guarda y se apunta como las de los
+// repositorios. Devuelve sus familias, en minúsculas ([] si no es una letra).
+export function addFont(file, dir = userFontDir()) {
+  const data = fs.readFileSync(file);
+  const families = isFont(data) && data.length <= MAX_FONT ? fontNames(file) : [];
+  if (!families.length) return [];
+  const ext = { '4f54544f': '.otf', '74746366': '.ttc' }[data.subarray(0, 4).toString('hex')] || '.ttf';
+  const target = path.join(dir, `${compact(families[0]) || 'Letra'}-${Date.now().toString(36)}${ext}`);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(target, data);
+  register(target);
+  return families;
 }

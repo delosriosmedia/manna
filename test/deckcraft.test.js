@@ -17,6 +17,10 @@ import { makeKey } from '../scripts/lib/keynote.mjs';
 import { makePng } from '../scripts/lib/png.mjs';
 import { makePptx } from '../scripts/lib/pptx.mjs';
 
+// Las letras que falten no se buscan en internet: un repositorio que no contesta (Manna las busca solo al convertir una
+// presentación desde el 2026-11-14).
+process.env.MANNA_LETRAS_URL ??= 'http://127.0.0.1:9';
+
 // Convertir un PowerPoint con DeckCraft (fase 33, parte 2). Con uno de mentira en macOS y Linux; con el de verdad si se
 // le da su ruta en MANNA_DECKCRAFT_PRUEBA (lo hace el Windows de GitHub en cada versión). Las presentaciones se fabrican
 // aquí mismo (scripts/lib/pptx.mjs): ninguna de una iglesia.

@@ -4,6 +4,9 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Las letras que le faltan a una presentación se buscan solas** en cuanto llega al equipo principal, sin esperar a que alguien pulse «Instalar las que faltan»: así una presentación de último momento llega con sus letras. Y si una no está en ningún repositorio libre (casi siempre, una comercial), **«Subir una letra»** la instala desde el archivo que tenga alguien, en el computador o en el celular, y vuelve a convertir la presentación.
+- **La ficha de una presentación ya no se queda en «Instalando sus letras»** cuando la búsqueda termina sin encontrar ninguna: antes había que recargar la página para ver qué faltaba.
+- **Menos falsas alarmas de letras**: Helvetica, Calibri, Cambria, Times y Courier no se dan por faltantes, porque se ven con una equivalente de las mismas medidas (Helvetica, con Arial), y Medios solo lo menciona. Tampoco «system-ui» ni nombres parecidos, que no son letras: los escriben algunas herramientas en línea.
 ## 1.70.1 — 2026-11-14
 
 - **Manna aguanta mejor a un dispositivo que abre cientos de pantallas a la vez**: ya no se queda sin contestar, y quien entró con su PIN no pierde su sesión por eso.

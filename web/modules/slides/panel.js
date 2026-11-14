@@ -1,4 +1,4 @@
-import { action, state, subscribe } from '../../core/api.js';
+import { action, state, subscribe, upload } from '../../core/api.js';
 import { cutName, h, dialog, guard, menu, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { describeJob } from '../../core/jobs.js';
@@ -112,6 +112,18 @@ export function createSlidesPanel(ctx, lib) {
         }) }, 'Eliminar')));
   };
 
+  // Una letra que no está en ningún repositorio libre (una comercial que tiene alguien): se instala en el equipo principal
+  // y se convierten de nuevo las presentaciones que la pedían.
+  const fontUpload = () => {
+    const picker = h('input', { type: 'file', accept: '.ttf,.otf,.ttc', hidden: true, onchange: guard(async () => {
+      const file = picker.files[0];
+      if (!file) return;
+      const { fixed } = await upload('/api/slides/letra', file, { headers: { 'Content-Type': 'application/octet-stream' } });
+      toast(fixed.length ? `Instalada. Ya no falta ${fixed.join(', ')}: se convierte de nuevo.` : 'Se instaló la letra, pero no es ninguna de las que faltan.');
+    }) });
+    return [picker, h('button', { class: 'btn deck-font-up', onclick: () => picker.click() }, icon('upload-simple', 16), 'Subir una letra')];
+  };
+
   // Lo que hay que saber de una presentación que aún no está lista.
   function statusOf(deck) {
     // En la nube (decisión 64), un PowerPoint se convierte en el equipo de la iglesia al llegar.
@@ -123,14 +135,18 @@ export function createSlidesPanel(ctx, lib) {
     if (deck.status === 'ready' && job?.state !== 'running') {
       // De Keynote: lo que no se pudo traducir (un gráfico, una tabla) sale de su miniatura.
       const soft = deck.soft && h('small', {}, `${deck.soft.length === 1 ? `La diapositiva ${deck.soft[0]} lleva` : `Las diapositivas ${deck.soft.join(', ')} llevan`} algo que Manna no sabe traducir (un gráfico, una tabla, un video): se ve con menos nitidez.`);
-      if (!deck.missingFonts) return soft ? h('div', { class: 'deck-status' }, soft) : null;
+      // Las que no están pero se ven con una gemela de las mismas medidas (Helvetica, con Arial): solo se dice.
+      const twins = deck.replacedFonts && h('small', {}, `${deck.replacedFonts.map((f) => `${f.name} se ve con ${f.as}`).join(', ')}, de las mismas medidas.`);
+      if (!deck.missingFonts) return soft || twins ? h('div', { class: 'deck-status' }, soft, twins) : null;
       const failed = jobsOf(deck.id).filter((j) => j.state === 'error').at(-1);
       return h('div', { class: 'deck-status error' },
-        h('small', {}, `Faltan letras en este equipo: ${deck.missingFonts.join(', ')}.${ctx.user?.admin ? '' : ' Instálalas y elige «Convertir de nuevo».'}`),
+        h('small', {}, `Faltan letras en este equipo: ${deck.missingFonts.join(', ')}.${ctx.user?.admin ? '' : ' Que el administrador las instale o las suba.'}`),
         failed && h('small', {}, failed.error),
-        soft,
-        // Tras un intento, lo que queda por hacer es a mano: el botón revisa lo instalado y, si ya están, la convierte.
-        ctx.user?.admin && h('button', { class: 'btn deck-fonts', onclick: guard(() => action('slides.installFonts', { id: deck.id })) }, icon(failed ? 'arrow-clockwise' : 'download-simple', 16), failed ? 'Revisar de nuevo' : 'Instalar las que faltan'));
+        soft, twins,
+        // Tras un intento, el primero revisa lo instalado y, si ya están, la convierte; el otro sube la que alguien tiene.
+        ctx.user?.admin && h('div', { class: 'deck-font-actions' },
+          h('button', { class: 'btn deck-fonts', onclick: guard(() => action('slides.installFonts', { id: deck.id })) }, icon(failed ? 'arrow-clockwise' : 'download-simple', 16), failed ? 'Revisar de nuevo' : 'Instalar las que faltan'),
+          fontUpload()));
     }
     if (deck.status === 'ready' || deck.status === 'converting') {
       const progress = Math.round((job?.progress || 0) * 100);
@@ -259,7 +275,14 @@ export function createSlidesPanel(ctx, lib) {
   subscribe('slides', render);
   subscribe('projection', render);
   subscribe('tools', render);
-  subscribe('jobs', () => { if (decks().some((d) => d.status === 'converting')) render(); });
+  // Una tarea de una presentación ya lista (buscar sus letras, convertirla de nuevo) también cambia su ficha: se pinta
+  // mientras corre y una vez al terminar. Antes solo al convertirla, y la ficha se quedaba en «Instalando sus letras».
+  let working = false;
+  subscribe('jobs', () => {
+    const now = decks().some((d) => d.status === 'converting') || (state.jobs?.list || []).some((j) => j.owner === 'slides' && j.state === 'running');
+    if (now || working) render();
+    working = now;
+  });
 
   return {
     id: 'diapositivas', label: 'Presentaciones', kind: 'slides', el, bar, side,

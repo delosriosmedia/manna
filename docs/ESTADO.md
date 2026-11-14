@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Última actualización: 2026-11-14 · Versión: 1.70.1
+Última actualización: 2026-11-14 · Versión: 1.70.1 (con cambios sin publicar en la rama `letras`)
 
 Este documento es la foto actual del proyecto. Se actualiza con cada cambio (ver `.claude/rules/documentacion.md`). El historial está en `CHANGELOG.md`.
 

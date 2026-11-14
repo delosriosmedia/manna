@@ -15,8 +15,12 @@ import { fakePresentation, writeFakePowerPoint } from '../scripts/lib/powerpoint
 import { makePng } from '../scripts/lib/png.mjs';
 import { makeKey } from '../scripts/lib/keynote.mjs';
 import { makePptx } from '../scripts/lib/pptx.mjs';
+import { makeFont } from '../scripts/lib/letra.mjs';
 import { readZip } from '../server/modules/slides/pptx.js';
 
+// Las letras que falten no se buscan en internet: un repositorio que no contesta (Manna las busca solo al convertir una
+// presentación desde el 2026-11-14).
+process.env.MANNA_LETRAS_URL ??= 'http://127.0.0.1:9';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-diapositivas-'));
 test.after(() => fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5 }));
@@ -136,6 +140,36 @@ async function start(name, env = {}) {
   };
   return api;
 }
+
+test('una letra que no está en ningún repositorio la sube el administrador, y se convierte de nuevo la que la pedía', async () => {
+  const fake = writeFakePowerPoint(path.join(tmp, 'falso-letras'), { slides: 1 });
+  const fonts = path.join(tmp, 'letras-del-equipo');
+  const s = await start('letra', { MANNA_POWERPOINT_PRUEBA: fake, MANNA_FALTA: 'deckcraft', MANNA_LETRAS: fonts });
+  process.env.MANNA_LETRAS = fonts;
+  try {
+    process.env.MANNA_POWERPOINT_PRUEBA = fake;
+    const added = await s.put('/api/slides/powerpoint?name=Mensaje&ext=.pptx', makePptx([{ text: 'Uno', font: 'Letra Comercial' }]));
+    let deck = await s.settle(added.id, 'ready');
+    assert.deepEqual(deck.missingFonts, ['Letra Comercial'], 'falta, y la búsqueda sola no la encuentra');
+    const font = makeFont('Letra Comercial');
+    await s.as('alabanza');
+    assert.equal((await s.put('/api/slides/letra', font)).http, 403, 'solo el administrador');
+    await s.as('control');
+    assert.equal((await s.put('/api/slides/letra', 'esto no es una letra')).http, 415);
+    const up = await s.put('/api/slides/letra', font);
+    assert.deepEqual([up.http, up.families, up.fixed], [200, ['letra comercial'], ['Letra Comercial']]);
+    assert.equal(fs.readdirSync(fonts).length, 1, 'en la carpeta de letras de quien usa el equipo');
+    for (let waited = 0; waited < 15_000 && !deck?.redone; waited += 50) {
+      deck = (await s.decks()).find((d) => d.id === added.id);
+      await sleep(50);
+    }
+    assert.ok(deck.redone && !deck.missingFonts, 'se convierte de nuevo, ya sin el aviso');
+  } finally {
+    delete process.env.MANNA_POWERPOINT_PRUEBA;
+    delete process.env.MANNA_LETRAS;
+    await s.stop();
+  }
+});
 
 test('un PDF llega ya convertido en imágenes, página a página, y se proyecta diapositiva a diapositiva', async () => {
   const s = await start('pdf');

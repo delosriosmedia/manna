@@ -23,6 +23,10 @@ import { startFakeGoogle } from '../scripts/lib/google-falso.mjs';
 import { expired } from '../server/modules/super/drive.js';
 import { serverUrl } from '../server/modules/cloud/index.js';
 
+// Las letras que falten no se buscan en internet: un repositorio que no contesta (Manna las busca solo al convertir una
+// presentación desde el 2026-11-14).
+process.env.MANNA_LETRAS_URL ??= 'http://127.0.0.1:9';
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-nube-'));
 const opened = [];
