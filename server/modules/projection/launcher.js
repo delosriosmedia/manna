@@ -29,7 +29,8 @@ export function openKiosk({ url, screen, profileDir, onExit, debug = false }) {
     ...(debug ? ['--remote-debugging-port=0'] : []),
     url,
   ], { stdio: 'ignore' });
-  child.on('exit', () => onExit?.());
+  // onExit(código, señal): con eso se sabe si la cerraron a mano o se cayó. Sin ninguno, no se pudo abrir.
+  child.on('exit', (code, signal) => onExit?.(code, signal));
   child.on('error', () => onExit?.());
   return child;
 }

@@ -6,6 +6,7 @@ import { EXTENSIONS, IMAGE_TYPES, readImageInfo } from '../../core/images.js';
 import { listScreens, secondScreen } from './display.js';
 import { openKiosk, sendKeys } from './launcher.js';
 import { liveToRestore } from './live.js';
+import { createProjectorWindow } from './ventana.js';
 import { registerTestCard } from './testcard.js';
 
 const DEFAULT_STYLES = {
@@ -422,54 +423,24 @@ export default function setup(app) {
   });
 
   // ---- Ventana en la segunda pantalla ----
-  let child = null;
-  let closing = false;
-  let place = null; // la pantalla en que está
   const setDisplay = (patch) => store.set('projection', { display: { ...get().display, ...patch } });
-
-  function closeWindow() {
-    if (!child) return;
-    closing = true;
-    child.kill();
-    child = null;
-  }
-
-  function openWindow(screen) {
-    closing = false;
-    place = screen;
-    const mine = openKiosk({
-      url: `http://localhost:${app.port}/proyeccion`,
-      screen,
-      profileDir: path.join(app.dataDir, 'navegador-proyeccion'),
-      onExit: () => {
-        if (child !== mine) return;
-        child = null;
-        // Si alguien cerró la ventana a mano, se considera "apagada" para no reabrirla sola.
-        if (!closing) {
-          saved.data.displayOn = false;
-          saved.save();
-          setDisplay({ on: false, open: false });
-        }
-      },
-    });
-    child = mine;
-  }
-
   // Solo para pruebas y demostraciones: MANNA_SIN_VENTANA=1 hace como si no hubiera segunda
   // pantalla, para que un Manna de prueba no abra su proyección (ni suene) en el proyector de verdad.
   const windowless = Boolean(process.env.MANNA_SIN_VENTANA) || app.cloud;
-
-  // Deja la ventana en el estado correcto: abierta solo si está encendida Y hay segunda pantalla.
-  async function reconcile() {
-    const { supported, screens } = await listScreens();
-    const target = windowless ? null : secondScreen(screens);
-    const want = get().display.on && Boolean(target);
-    if (want && !child) openWindow(target);
-    else if (!want && child) closeWindow();
-    const next = { supported, hasSecond: Boolean(target), open: Boolean(child) };
-    const cur = get().display;
-    if (Object.keys(next).some((k) => next[k] !== cur[k])) setDisplay(next);
-  }
+  const projector = createProjectorWindow({
+    list: listScreens,
+    windowless,
+    open: (screen, onExit) => openKiosk({ url: `http://localhost:${app.port}/proyeccion`, screen, profileDir: path.join(app.dataDir, 'navegador-proyeccion'), onExit }),
+    isOn: () => get().display.on,
+    // Solo en memoria: apagar Windows con Manna abierto también cierra la ventana, y guardarlo la dejaba apagada para
+    // el domingo siguiente (N2-1-6). En disco queda solo lo que se elige en Ajustes (projection.display).
+    turnOff: () => setDisplay({ on: false, open: false }),
+    publish: (next) => {
+      const cur = get().display;
+      if (Object.keys(next).some((k) => next[k] !== cur[k])) setDisplay(next);
+    },
+  });
+  const reconcile = () => projector.reconcile();
 
   app.action('projection.display', { permission: 'system.display' }, async ({ on }) => {
     const { screens } = await listScreens();
@@ -497,14 +468,14 @@ export default function setup(app) {
   };
   function syncPage() {
     const { item, mode } = get();
-    const want = child && mode === 'live' ? item?.window || null : null;
+    const want = projector.isOpen() && mode === 'live' ? item?.window || null : null;
     if (want === (page?.url ?? null)) return;
     page?.child?.kill();
     page = null;
     if (!want) return;
     const mine = { url: want, child: null, sent: liveKeys()?.count ?? 0, queue: Promise.resolve() };
     page = mine;
-    mine.child = openKiosk({ url: want, screen: place, profileDir: pagesProfile, debug: true, onExit: () => { mine.child = null; } });
+    mine.child = openKiosk({ url: want, screen: projector.place(), profileDir: pagesProfile, debug: true, onExit: () => { mine.child = null; } });
   }
   function pressPage() {
     const keys = liveKeys();
@@ -554,6 +525,6 @@ export default function setup(app) {
   app.onClose(() => {
     clearInterval(timer);
     page?.child?.kill();
-    closeWindow();
+    projector.close();
   });
 }

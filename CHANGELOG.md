@@ -4,6 +4,9 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Si el Chrome de la proyección se cae, vuelve a abrirse solo**: antes, una caída (la tarjeta gráfica, falta de memoria, una actualización de Windows) contaba como si alguien la hubiera cerrado a mano, y el proyector se quedaba en el escritorio hasta que el administrador la encendía de nuevo en Ajustes. Ahora se reabre enseguida, hasta tres veces en 5 minutos. Cerrarla a mano la sigue apagando.
+- **Un equipo cargado ya no cierra la proyección**: si la consulta de las pantallas tardaba (el antivirus, una conversión), Manna lo tomaba como que ya no había segunda pantalla y la cerraba. Ahora una consulta fallida no toca la ventana, y nunca corren dos a la vez.
+- **Apagar el computador con Manna abierto ya no deja la proyección apagada para el próximo culto**: el cierre de su ventana al apagar se guardaba como si alguien la hubiera apagado. Ahora solo queda apagada lo que se apaga en Ajustes.
 - **El equipo de la iglesia recupera `manna.local` aunque un portátil con Manna se le adelante**: si un portátil con Manna abierto llegaba antes a la red, se quedaba con el nombre, el equipo de la iglesia quedaba como `manna-2.local` y el portátil no se apartaba, porque solo buscaba al de la iglesia por `manna.local`. Los celulares que entraban por ese nombre llegaban al Manna equivocado (así pasó en Nueva Vida el 2026-11-14). Ahora el portátil encuentra al de la iglesia con cualquier nombre y se aparta, y el de la iglesia recupera `manna.local` en cuanto queda libre, sin reiniciarse y sin cortar a quien entró por `manna-2.local`.
 
 ## 1.71.1 — 2026-11-14
