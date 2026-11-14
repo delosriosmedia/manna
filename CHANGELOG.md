@@ -4,6 +4,10 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.71.1 — 2026-11-14
+
+- **Un celular o una tablet que cambia de red vuelve a Manna en el momento**: al pasar de un wifi a otro, o del wifi a los datos, la conexión vieja quedaba muerta sin que nada lo notara, y Manna tardaba hasta 30 s en reconectar. Ahora lo hace en cuanto el navegador avisa del cambio y, si la red recién vuelta aún no deja pasar nada, lo intenta otra vez a los 2 s. En la tablet de la iglesia, Manna vuelve menos de 1 s después de recuperar el wifi (antes, 5 s; y hasta 30 s si el navegador no notaba el corte).
+
 ## 1.71.0 — 2026-11-14
 
 - **Las letras que le faltan a una presentación se buscan solas** en cuanto llega al equipo principal, sin esperar a que alguien pulse «Instalar las que faltan»: así una presentación de último momento llega con sus letras. Y si una no está en ningún repositorio libre (casi siempre, una comercial), **«Subir una letra»** la instala desde el archivo que tenga alguien, en el computador o en el celular, y vuelve a convertir la presentación.

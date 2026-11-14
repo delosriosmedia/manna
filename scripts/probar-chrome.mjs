@@ -982,6 +982,12 @@ try {
   await sleep(500);
   check('«Volver a…» también deshace ese paso', (await live()).ref === airBefore.ref, JSON.stringify(await live()));
 
+  // Al cambiar de red el navegador sigue «en línea» y la conexión vieja queda muerta: el aviso de que volvió la red la
+  // rehace en el momento, aunque Manna aún no la diera por perdida (antes esperaba al vigilante, hasta 30 s).
+  await run(`window.__abiertas = 0; const ES = window.EventSource; window.EventSource = class extends ES { constructor(...a) { super(...a); window.__abiertas++; } };`);
+  await run(`window.dispatchEvent(new Event('online'))`);
+  check('al cambiar de red (otro wifi, o de wifi a datos) rehace la conexión en el momento', await until(`window.__abiertas === 1 && document.querySelector('.ev').dataset.state !== 'offline'`, 5));
+
   // Sin conexión: sin barra nueva, para que nada se mueva. (Lleva 13 s: es lo que tarda en darse por perdida.)
   await run(`window.dispatchEvent(new Event('pagehide'))`); // suelta la conexión: el servidor deja de oírse
   check('sin noticias del servidor en 12 s, la pastilla lo dice en gris, la vista se atenúa y Siguiente se apaga', await until(`document.querySelector('.ev').dataset.state === 'offline' && document.querySelector('.ev-pill').textContent === 'SIN CONEXIÓN' && document.querySelector('.ev-next').disabled && document.querySelector('.ev-next').textContent.includes('Reconectando')`, 45) && await run(`return !${evShown('.offline-bar')} && getComputedStyle(document.querySelector('.ev-screen')).opacity < 1`));

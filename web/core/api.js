@@ -228,15 +228,30 @@ export function connect(role) {
     source?.close();
   };
 
-  // Al volver del segundo plano (celular) o recuperar la red, no esperar al siguiente reintento.
+  // Al volver del segundo plano (celular), no esperar al siguiente reintento.
   const wake = () => { if (!stopped && (!online || isStale())) open(); };
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wake(); });
-  window.addEventListener('online', wake);
+  // Al cambiar de red (otro wifi, o de wifi a datos) la conexión vieja queda muerta aunque nada lo diga, y el vigilante
+  // tardaría hasta 30 s: se rehace ya. Del tipo de red solo cuenta que cambie (wifi, datos, ninguna), no la velocidad.
+  // La red recién vuelta a veces aún no deja pasar nada (en la tablet, el navegador reintentaba 5 s después): si en
+  // 2 s no llegó nada por la conexión nueva, otro intento.
+  let again = null;
+  const renew = () => {
+    if (stopped) return;
+    open();
+    const opened = lastSeen;
+    clearTimeout(again);
+    again = setTimeout(() => { if (!stopped && lastSeen === opened) open(); }, 2000);
+  };
+  window.addEventListener('online', renew);
+  const net = navigator.connection;
+  let netType = net?.type;
+  net?.addEventListener('change', () => { if (net.type !== netType) { netType = net.type; renew(); } });
   window.addEventListener('pageshow', (e) => { if (e.persisted && !stopped) open(); });
   // Al salir de la página se suelta la conexión. Si no, el navegador puede dejar la página
   // "congelada" con la conexión abierta, y tras unas cuantas navegaciones agota las seis que
   // permite por servidor: la app dejaría de cargar.
-  window.addEventListener('pagehide', () => { clearTimeout(retry); source?.close(); });
+  window.addEventListener('pagehide', () => { clearTimeout(retry); clearTimeout(again); source?.close(); });
 
   open();
 }
