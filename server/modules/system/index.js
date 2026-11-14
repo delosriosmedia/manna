@@ -59,11 +59,15 @@ export default function setup(app) {
       const broken = checked && !ok;
       failures = broken ? failures + 1 : 0;
       if (ok) said = '';
-      if (!app.blocked && (signature !== announced || broken)) {
-        const why = announced === null ? '' : signature !== announced ? 'cambió la red; ' : 'el nombre dejó de contestar; ';
+      // Con sufijo («manna-2»: al arrancar, otro equipo tenía el nombre), en cuanto el nombre queda libre se recupera.
+      // Así el equipo oficial vuelve a ser «manna.local» cuando el portátil que se le adelantó se aparta.
+      const base = `${networkName()}.local`;
+      const previous = responder.name;
+      const reclaim = ok && previous !== base && (await responder.free(base));
+      if (!app.blocked && (signature !== announced || broken || reclaim)) {
+        const why = announced === null ? '' : signature !== announced ? 'cambió la red; ' : reclaim ? `${base} quedó libre; ` : 'el nombre dejó de contestar; ';
         announced = signature;
-        await responder.start(networks);
-        const base = `${networkName()}.local`;
+        await responder.start(networks, reclaim ? previous : null);
         const result = !responder.name ? `no se pudo anunciar ${base}` : responder.name === base ? `anunciado como ${base}` : `otro equipo de la red ya contesta por ${base}: este queda como ${responder.name}`;
         // Una vez cada cosa: donde la comprobación no funciona, se vuelve a anunciar cada 10 s.
         const line = `Red: ${why}${result} (${networks.map((n) => n.address).join(', ') || 'ninguna red'}).`;
@@ -90,7 +94,7 @@ export default function setup(app) {
     }
   }
   // ¿Hay otro Manna con el mismo nombre (MANNA_NAME) en este equipo (contesta en sus puertos) o en otro de la
-  // red (contesta por «manna.local»)? Se confirma pidiéndole /api/ping. Devuelve { where, version, here } o
+  // red (contesta por «manna.local» o, si lo encontró ocupado al arrancar, por «manna-2.local»…)? Se confirma pidiéndole /api/ping. Devuelve { where, version, here } o
   // null. Uno con estos mismos datos (el mismo id) no es otro: es este, y lo atiende server/app.js.
   // ¿Es este el equipo oficial de su iglesia (emparejado con su nube)?
   const official = () => Boolean(app.services.cloud?.managedBy?.());

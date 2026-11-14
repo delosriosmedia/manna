@@ -129,8 +129,9 @@ export function createResponder({ base }) {
   let sockets = [];      // uno por red: { socket, via, address, netmask }
   let candidate = base;  // nombre que se está comprobando
   let hostname = null;   // nombre ya conseguido
+  let former = null;     // el nombre de antes, que se sigue contestando tras recuperar el base (ver start)
   let conflict = false;
-  const rivals = new Set(); // direcciones de otros equipos que contestaron por el nombre que se comprobaba
+  const asked = new Map(); // nombre por el que se pregunta (probe, free) → direcciones de otros equipos que contestaron
 
   const send = (entry, packet, port = PORT, to = GROUP) => {
     try { entry.socket.send(packet, port, to, () => {}); } catch { /* red caída: se reintenta en el próximo anuncio */ }
@@ -142,25 +143,23 @@ export function createResponder({ base }) {
     const name = `${hostname || candidate}.local`;
 
     if (message.isResponse) {
-      const addresses = message.answers.filter((r) => r.name === name && r.type === A && r.address).map((r) => r.address);
-      for (const s of sockets) {
-        // Nuestra propia respuesta, que vuelve por la red: prueba de que esta red oye y habla (ver healthy).
-        if (addresses.includes(s.address)) s.heard = Date.now();
-      }
-      // Otro equipo responde por el nombre que queremos, con una dirección que no es nuestra.
       const mine = sockets.map((s) => s.address);
-      for (const address of addresses.filter((a) => !mine.includes(a))) {
-        conflict = true;
-        rivals.add(address);
+      for (const r of message.answers.filter((a) => a.type === A && a.address)) {
+        // Nuestra propia respuesta, que vuelve por la red: prueba de que esta red oye y habla (ver healthy).
+        if (r.name === name) for (const s of sockets) if (s.address === r.address) s.heard = Date.now();
+        if (mine.includes(r.address)) continue;
+        // Otro equipo responde por el nombre que queremos, o por uno que se está preguntando.
+        if (r.name === name) conflict = true;
+        asked.get(r.name)?.add(r.address);
       }
       return;
     }
     if (!hostname) return; // todavía comprobando si el nombre está libre
-    const question = message.questions.find((q) => q.name === name && [A, AAAA, ANY].includes(q.type));
+    const question = message.questions.find((q) => (q.name === name || q.name === former) && [A, AAAA, ANY].includes(q.type));
     // Cada red contesta solo a los dispositivos de su propia red, con su propia dirección.
     if (!question || !sameSubnet(rinfo.address, entry.via, entry.netmask)) return;
-    if (rinfo.port === PORT) send(entry, buildResponse({ name, address: entry.address }));
-    else send(entry, buildResponse({ name, address: entry.address, legacy: { id: message.id, type: question.type } }), rinfo.port, rinfo.address);
+    if (rinfo.port === PORT) send(entry, buildResponse({ name: question.name, address: entry.address }));
+    else send(entry, buildResponse({ name: question.name, address: entry.address, legacy: { id: message.id, type: question.type } }), rinfo.port, rinfo.address);
   }
 
   function openSocket({ via, address, netmask }) {
@@ -217,8 +216,10 @@ export function createResponder({ base }) {
   }
 
   // networks: [{ via, address, netmask }]. via = dirección de la interfaz; address = la que se anuncia.
-  // Devuelve el nombre conseguido ("manna.local") o null si no se pudo.
-  async function start(networks) {
+  // keep: el nombre que tenía (al recuperar el base), que se sigue contestando para no dejar colgados a los
+  // dispositivos que entraron por él. Devuelve el nombre conseguido ("manna.local") o null si no se pudo.
+  async function start(networks, keep = null) {
+    former = keep;
     closeSockets();
     sockets = (await Promise.all(networks.map(openSocket))).filter(Boolean);
     if (!sockets.length) {
@@ -245,18 +246,36 @@ export function createResponder({ base }) {
 
   // Quién más contesta por el nombre, sin anunciarse ni quedárselo: las direcciones de otros equipos (las
   // del propio, como un Manna abierto en otro puerto, no cuentan). Lo usa el aviso de «otro Manna en la red».
+  // También por los nombres con sufijo: quien lo encontró ocupado al arrancar quedó como «manna-2», y puede ser el
+  // equipo oficial, al que un portátil se le adelantó (2026-11-14).
   async function probe(networks) {
     closeSockets();
     sockets = (await Promise.all(networks.map(openSocket))).filter(Boolean);
     hostname = null;
     candidate = base;
-    rivals.clear();
+    const names = Array.from({ length: MAX_SUFFIX }, (_, i) => `${i ? `${base}-${i + 1}` : base}.local`);
+    asked.clear();
+    for (const n of names) asked.set(n, new Set());
     for (let i = 0; i < 3; i += 1) {
-      for (const s of sockets) send(s, buildQuery(`${base}.local`));
+      for (const s of sockets) for (const n of names) send(s, buildQuery(n));
       await wait(PROBE_MS / 2);
     }
     closeSockets();
-    return [...rivals];
+    const found = new Set(names.flatMap((n) => [...(asked.get(n) || [])]));
+    asked.clear();
+    return [...found];
+  }
+
+  // ¿Nadie más contesta por este nombre? Se pregunta por las redes ya abiertas, sin soltar el nombre propio.
+  async function free(name) {
+    asked.set(name, new Set());
+    for (let i = 0; i < 2; i += 1) {
+      for (const s of sockets) send(s, buildQuery(name));
+      await wait(PROBE_MS / 2);
+    }
+    const others = asked.get(name); // un probe() a la vez lo habría borrado: entonces no se sabe, y no se da por libre
+    asked.delete(name);
+    return sockets.length > 0 && others?.size === 0;
   }
 
   async function stop() {
@@ -264,7 +283,8 @@ export function createResponder({ base }) {
     await wait(50);
     closeSockets();
     hostname = null;
+    former = null;
   }
 
-  return { start, stop, probe, healthy, announce, get name() { return hostname ? `${hostname}.local` : null; } };
+  return { start, stop, probe, free, healthy, announce, get name() { return hostname ? `${hostname}.local` : null; } };
 }

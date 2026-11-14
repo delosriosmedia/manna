@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **El equipo de la iglesia recupera `manna.local` aunque un portátil con Manna se le adelante**: si un portátil con Manna abierto llegaba antes a la red, se quedaba con el nombre, el equipo de la iglesia quedaba como `manna-2.local` y el portátil no se apartaba, porque solo buscaba al de la iglesia por `manna.local`. Los celulares que entraban por ese nombre llegaban al Manna equivocado (así pasó en Nueva Vida el 2026-11-14). Ahora el portátil encuentra al de la iglesia con cualquier nombre y se aparta, y el de la iglesia recupera `manna.local` en cuanto queda libre, sin reiniciarse y sin cortar a quien entró por `manna-2.local`.
+
 ## 1.71.1 — 2026-11-14
 
 - **Un celular o una tablet que cambia de red vuelve a Manna en el momento**: al pasar de un wifi a otro, o del wifi a los datos, la conexión vieja quedaba muerta sin que nada lo notara, y Manna tardaba hasta 30 s en reconectar. Ahora lo hace en cuanto el navegador avisa del cambio y, si la red recién vuelta aún no deja pasar nada, lo intenta otra vez a los 2 s. En la tablet de la iglesia, Manna vuelve menos de 1 s después de recuperar el wifi (antes, 5 s; y hasta 30 s si el navegador no notaba el corte).

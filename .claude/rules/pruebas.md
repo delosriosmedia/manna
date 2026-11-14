@@ -9,6 +9,7 @@
 - Un hook corre la revisión del código sin ejecutarlo (abajo; 1 s) al editar `server/`, `web/`, `scripts/` o `test/`. `npm test` entero (unos 30 s; varios minutos con el equipo ocupado) se corre al terminar cada cambio, no en cada edición.
 - **Revisión del código sin ejecutarlo** (`test/codigo.test.js`, con `scripts/lib/codigo.mjs`): falla si un archivo importa algo que el otro no ofrece, si una variable o un parámetro lleva el nombre de algo importado (así se rompió la subida del fondo: un campo `upload` tapaba la función `upload`), o si la interfaz envía una orden o pide una dirección que el servidor no tiene. Un fallo aquí se arregla cambiando el nombre o el código, no aflojando la regla.
 - Lo que Manna le pide a una ventana de Chrome por el protocolo de depuración (las flechas a una página web) se prueba con un Chrome sin ventana de verdad: `test/teclas.test.js` (se salta, diciéndolo, si el equipo no tiene Chrome ni Edge).
+- El nombre en la red (mDNS, `server/modules/system/mdns.js`) se prueba con anunciadores de verdad, pero solo por `127.0.0.1` y con direcciones inventadas para que se vean como equipos distintos (`test/nombre.test.js`): nada sale a la red. Si el sistema no entrega por ahí lo que se manda al grupo de mDNS, se salta diciéndolo.
 - Lo que solo pasa entre arranques (notar una actualización, relevar a una copia anterior, reiniciar) se prueba con procesos de verdad sobre una copia del programa: `test/arranque.test.js`.
 
 ## En navegador
