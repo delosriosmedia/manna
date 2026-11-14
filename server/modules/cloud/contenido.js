@@ -12,6 +12,18 @@ import { pipeline } from 'node:stream/promises';
 // Cada archivo se baja a «.parte» y, si se corta, sigue donde iba.
 const ALWAYS = /^(Biblias|Himnario\/letras)\//;
 const numberOf = (key) => Number(/^Himnario\/(?:videos|diapositivas)\/(\d+)\s/.exec(key)?.[1]) || null;
+const MARGIN = 2 * 2 ** 30; // lo que se deja libre en el disco, para guardar los datos, convertir y descargar
+
+// Qué bajar de lo que falta (S5-11 de la auditoría integral): lo que toca si cabe en `room`; si no, solo lo de siempre
+// y los himnos de los próximos cultos (`full`, para avisarlo); si tampoco cabe eso, nada. El himnario completo son
+// varios gigas, y un disco lleno deja a Manna sin poder guardar sus datos.
+export function pick(list, { all, soon, room }) {
+  const needed = list.filter(({ key }) => ALWAYS.test(key) || soon.has(numberOf(key)));
+  const wanted = all ? list : needed;
+  const fits = (l) => l.reduce((n, f) => n + (f.size || 0), 0) <= room;
+  if (fits(wanted)) return { wanted, full: false };
+  return { wanted: fits(needed) ? needed : [], full: true };
+}
 
 export function createContent(app, { ask, link, mode, onProgress }) {
   const listFile = path.join(app.dataDir, 'nube-contenido.json');
@@ -26,6 +38,15 @@ export function createContent(app, { ask, link, mode, onProgress }) {
     return top === 'Himnario' && app.hymnsDir ? path.join(app.hymnsDir, ...rest) : null;
   };
   const have = (key) => fs.existsSync(target(key) || '');
+  // Lo libre en el disco del himnario; si el sistema no lo dice (Node.js anterior a la 18.15), no se limita.
+  const free = () => {
+    try {
+      const s = fs.statfsSync(app.hymnsDir || app.dataDir);
+      return s.bavail * s.bsize;
+    } catch {
+      return Infinity;
+    }
+  };
 
   const running = new Map(); // archivo → promesa
   function fetchKey(key) {
@@ -99,17 +120,18 @@ export function createContent(app, { ask, link, mode, onProgress }) {
         fs.writeFileSync(listFile, JSON.stringify({ files }));
         app.services.hymns?.reload();
       }
-      const all = mode() === 'completo';
-      const soon = upcoming();
-      const wanted = files.filter(({ key }) => target(key) && !have(key) && (ALWAYS.test(key) || all || soon.has(numberOf(key))));
+      const { wanted, full } = pick(files.filter(({ key }) => target(key) && !have(key)), { all: mode() === 'completo', soon: upcoming(), room: free() - MARGIN });
+      if (full) console.log('Nube: el disco está casi lleno: no se baja todo el himnario.');
       let done = 0;
       let failed = 0;
+      const tell = () => onProgress({ done, total: wanted.length, failed, ...(full && { full }) });
       for (const { key } of wanted) {
-        onProgress({ done, total: wanted.length, failed });
+        tell();
         try { await fetchKey(key); } catch { failed += 1; }
         done += 1;
       }
-      onProgress(wanted.length ? { done, total: wanted.length, failed } : null);
+      if (wanted.length || full) tell();
+      else onProgress(null);
       if (wanted.length) console.log(`Nube: del himnario y las biblias bajaron ${done - failed} de ${wanted.length} archivos${failed ? ` (fallaron ${failed})` : ''}.`);
     })().finally(() => {
       filling = null;

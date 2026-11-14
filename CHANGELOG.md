@@ -4,6 +4,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **El himnario de la nube ya no llena el disco**: con «Completo en este equipo», Manna bajaba los 613 videos aunque no cupieran, y con el disco lleno no podía guardar sus datos ni convertir nada. Ahora deja siempre 2 GB libres. Si no cabe todo, baja solo las biblias, las letras y los himnos de los próximos cultos, y Ajustes → Nube lo dice. Los demás himnos suenan desde la nube.
 - **Un himno de la nube cuya bajada se cortó ya no queda trabado ni dañado**: si se cortaba justo al terminar, el himno no volvía a bajar nunca y solo sonaba por internet; y tras un corte de luz a mitad, podía quedar dañado por dentro sin que nadie lo notara. Ahora se termina o se vuelve a bajar lo necesario.
 - **Un archivo en uso ya no impide reiniciar ni abrir Manna**: si una descarga de YouTube o una conversión seguía abierta un instante, Windows no dejaba vaciar la carpeta de archivos de paso, y Manna se quedaba sin volver al reiniciar o no abría con su icono. Ahora sigue, y esa carpeta se vacía la próxima vez.
 - **«Citas de un documento» ya no deja quieto a Manna**: buscar las citas de un documento largo detenía todo lo demás mientras tanto (con 1 MB de texto, unos 10 s sin proyección). Ahora tarda menos de 1 s. Un documento de más de unas 300 páginas se rechaza con un aviso que dice que se busquen por partes.

@@ -22,6 +22,7 @@ import { startFakeR2 } from '../scripts/lib/r2-falso.mjs';
 import { startFakeGoogle } from '../scripts/lib/google-falso.mjs';
 import { expired } from '../server/modules/super/drive.js';
 import { serverUrl } from '../server/modules/cloud/index.js';
+import { pick } from '../server/modules/cloud/contenido.js';
 
 // Las letras que falten no se buscan en internet: un repositorio que no contesta (Manna las busca solo al convertir una
 // presentación desde el 2026-11-14).
@@ -559,4 +560,22 @@ test('copias en Google Drive: conectar la cuenta, hacer una copia y volver a ell
     for (const key of Object.keys(env)) delete process.env[key];
     await google.stop();
   }
+});
+
+// Antes de bajar el himnario de la nube (S5-11 de la auditoría integral): siempre queda margen en el disco. Si no cabe
+// todo, solo las biblias, las letras y los himnos de los próximos cultos; si tampoco, nada. Y lo dice.
+test('el himnario de la nube no llena el disco', () => {
+  const GB = 2 ** 30;
+  const list = [
+    { key: 'Biblias/Prueba.xmm', size: 0.01 * GB },
+    { key: 'Himnario/letras/Letras.md', size: 0.001 * GB },
+    { key: 'Himnario/videos/002 Otro himno.mp4', size: 1 * GB },
+    { key: 'Himnario/videos/003 Tercero.mp4', size: 3 * GB },
+  ];
+  const soon = new Set([2]);
+  const keys = (r) => [r.wanted.map((f) => f.key.split('/').pop()), r.full];
+  assert.deepEqual(keys(pick(list, { all: true, soon, room: 5 * GB })), [['Prueba.xmm', 'Letras.md', '002 Otro himno.mp4', '003 Tercero.mp4'], false]);
+  assert.deepEqual(keys(pick(list, { all: true, soon, room: 2 * GB })), [['Prueba.xmm', 'Letras.md', '002 Otro himno.mp4'], true], 'solo lo de los próximos cultos');
+  assert.deepEqual(keys(pick(list, { all: false, soon, room: 2 * GB })), [['Prueba.xmm', 'Letras.md', '002 Otro himno.mp4'], false], 'desde la nube, lo de siempre');
+  assert.deepEqual(keys(pick(list, { all: true, soon, room: 0.5 * GB })), [[], true], 'ni eso cabe: nada');
 });

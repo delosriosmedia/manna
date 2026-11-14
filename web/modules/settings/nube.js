@@ -52,7 +52,8 @@ export function cloudBody() {
       b.classList.toggle('on', b.dataset.mode === c.hymnal);
       b.setAttribute('aria-pressed', String(b.dataset.mode === c.hymnal));
     }
-    const progress = c.content ? ` Bajando: ${c.content.done} de ${c.content.total} archivos${c.content.failed ? ` (${c.content.failed} no se pudieron: se reintentan más tarde)` : ''}.` : '';
+    const progress = (c.content?.total ? ` Bajando: ${c.content.done} de ${c.content.total} archivos${c.content.failed ? ` (${c.content.failed} no se pudieron: se reintentan más tarde)` : ''}.` : '')
+      + (c.content?.full ? ' El disco de este equipo está casi lleno: no se baja todo el himnario, solo lo de los próximos cultos si cabe. Los demás himnos suenan desde la nube.' : '');
     hymnalNote.textContent = (HYMNALS.find(([id]) => id === c.hymnal)?.[2] || 'Elige cómo tener aquí el himnario de la nube. Las biblias y las letras se bajan siempre.') + progress;
     if (!paired || c.status === 'unknown') form.hidden = false;
     else if (document.activeElement && !form.contains(document.activeElement)) form.hidden = true;
