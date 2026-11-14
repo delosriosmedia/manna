@@ -197,7 +197,7 @@ test('emparejar con un código de «Administrar», el equipo oficial y el bloque
 test('instalar el equipo principal desde la nube: el instalador emparejado y el himnario de la nube (decisión 64)', async () => {
   // Un R2 de mentira con una biblia, unas letras y un himno que el equipo no tiene; y un «GitHub» con el instalador.
   const r2dir = path.join(tmp, 'r2-instalar');
-  for (const [file, text] of [['Biblias/Prueba.xmm', 'biblia'], ['Himnario/letras/Letras.md', '# Himnario'], ['Himnario/videos/002 Otro himno.mp4', 'video 2'], ['Himnario/diapositivas/002 Otro himno/01.jpg', 'portada']]) {
+  for (const [file, text] of [['Biblias/Prueba.xmm', 'biblia'], ['Himnario/letras/Letras.md', '# Himnario'], ['Himnario/videos/002 Otro himno.mp4', 'video 2'], ['Himnario/videos/003 Tercero.mp4', 'video 3'], ['Himnario/videos/004 Cuarto.mp4', 'video 4'], ['Himnario/diapositivas/002 Otro himno/01.jpg', 'portada']]) {
     fs.mkdirSync(path.dirname(path.join(r2dir, file)), { recursive: true });
     fs.writeFileSync(path.join(r2dir, file), text);
   }
@@ -277,6 +277,16 @@ test('instalar el equipo principal desde la nube: el instalador emparejado y el 
     assert.equal(fs.readFileSync(file, 'utf8'), 'video 2', 'y queda en la carpeta del himnario');
     c.app.services.hymns.reload();
     assert.equal((await two()).url, '/himnos/002%20Otro%20himno.mp4');
+    // Lo que quedó de una bajada cortada (N2-1-4 y N2-1-5 de la auditoría integral): un .parte ya entero, que se cortó
+    // justo antes de darle su nombre, se termina sin pedir nada (R2 diría 416 y quedaba trabado para siempre); uno con el
+    // final dañado por un corte de luz se vuelve a bajar desde un mega antes (aquí, de cero).
+    const videos = path.join(tmp, 'iglesia-instalada-himnario', 'videos');
+    fs.writeFileSync(path.join(videos, '003 Tercero.mp4.parte'), 'video 3');
+    fs.writeFileSync(path.join(videos, '004 Cuarto.mp4.parte'), 'vidXX');
+    for (const n of ['003%20Tercero', '004%20Cuarto']) assert.equal((await c.raw(`/himnos-nube/${n}.mp4`, { redirect: 'manual' })).status, 302);
+    const got = () => ['003 Tercero.mp4', '004 Cuarto.mp4'].map((f) => fs.existsSync(path.join(videos, f)) && fs.readFileSync(path.join(videos, f), 'utf8'));
+    for (let i = 0; i < 50 && got().includes(false); i += 1) await new Promise((r) => setTimeout(r, 100));
+    assert.deepEqual(got(), ['video 3', 'video 4']);
   } finally {
     delete process.env.MANNA_INSTALADORES_URL;
     github.close();

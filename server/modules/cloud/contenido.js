@@ -36,16 +36,38 @@ export function createContent(app, { ask, link, mode, onProgress }) {
       if (fs.existsSync(dest)) return dest;
       const part = `${dest}.parte`;
       fs.mkdirSync(path.dirname(dest), { recursive: true });
-      const from = fs.existsSync(part) ? fs.statSync(part).size : 0;
-      const res = await fetch(await link(key), { headers: from ? { range: `bytes=${from}-` } : {}, signal: AbortSignal.timeout(30 * 60_000) });
-      if (!res.ok) throw new Error(`R2 respondió ${res.status}.`);
-      await pipeline(Readable.fromWeb(res.body), fs.createWriteStream(part, { flags: res.status === 206 ? 'a' : 'w' }));
       const size = files?.find((f) => f.key === key)?.size;
+      // Lo que quedó de una bajada cortada (N2-1-4 y N2-1-5 de la auditoría integral). Si ya está entero (se cortó justo
+      // antes de darle su nombre), se termina sin pedir nada: R2 diría 416 y quedaba trabado. Si mide más, es de otra
+      // versión y se empieza de cero. Si no, se sigue un mega antes: tras un corte de luz, el final escrito puede no
+      // haber llegado al disco.
+      let from = fs.existsSync(part) ? fs.statSync(part).size : 0;
+      if (size != null && from > size) from = 0;
+      if (size == null || from < size) {
+        from = Math.max(0, from - 2 ** 20);
+        if (from) fs.truncateSync(part, from);
+        const get = async (start) => fetch(await link(key), { headers: start ? { range: `bytes=${start}-` } : {}, signal: AbortSignal.timeout(30 * 60_000) });
+        let res = await get(from);
+        if (res.status === 416) res = await get(0);
+        if (!res.ok) throw new Error(`R2 respondió ${res.status}.`);
+        await pipeline(Readable.fromWeb(res.body), fs.createWriteStream(part, { flags: res.status === 206 ? 'a' : 'w' }));
+      }
       if (size != null && fs.statSync(part).size !== size) {
         fs.rmSync(part, { force: true });
         throw new Error('El archivo llegó incompleto.');
       }
-      fs.renameSync(part, dest);
+      // Al disco antes de darle su nombre, y el nombre otra vez si Windows lo retiene un momento (el antivirus).
+      const fd = fs.openSync(part, 'r+');
+      try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+      for (let tries = 1; ; tries += 1) {
+        try {
+          fs.renameSync(part, dest);
+          break;
+        } catch (err) {
+          if (tries >= 4 || !['EPERM', 'EBUSY', 'EACCES'].includes(err.code)) throw err;
+          await new Promise((resolve) => { setTimeout(resolve, 200); });
+        }
+      }
       return dest;
     })().finally(() => running.delete(key));
     running.set(key, work);

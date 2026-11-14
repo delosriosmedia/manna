@@ -38,6 +38,16 @@ export async function startFakeR2(dir, { bucket = 'manna-prueba' } = {}) {
       return;
     }
     if (!fs.existsSync(file)) { res.writeHead(404).end(); return; }
+    // Como R2: un trozo desde donde se pide (206), o 416 si se pide desde el final o más allá.
+    const total = fs.statSync(file).size;
+    const range = /^bytes=(\d+)-$/.exec(req.headers.range || '');
+    if (range) {
+      const start = Number(range[1]);
+      if (start >= total) { res.writeHead(416, { 'Content-Range': `bytes */${total}` }).end(); return; }
+      res.writeHead(206, { 'Content-Length': total - start, 'Content-Range': `bytes ${start}-${total - 1}/${total}` });
+      fs.createReadStream(file, { start }).pipe(res);
+      return;
+    }
     res.writeHead(200, { 'Content-Length': fs.statSync(file).size, 'Content-Type': file.endsWith('.mp4') ? 'video/mp4' : 'application/octet-stream' });
     fs.createReadStream(file).pipe(res);
   });
