@@ -179,13 +179,21 @@ export function createDetector({ structure, verses: verseTexts = null }) {
 
   // ---- Comparar con el texto copiado en el documento ----
   const words = (s) => plain(s).toLowerCase().match(/\p{L}{4,}/gu) || [];
+  // Las palabras de cada versículo, una vez por documento: un documento largo compara los mismos capítulos en cada
+  // cita, con todas las versiones (S2-1 de la auditoría integral: 1 MB dejaba quieto al servidor 10 s).
+  const memo = new Map();
+  const verseWords = (t) => {
+    let w = memo.get(t);
+    if (!w) memo.set(t, (w = words(t)));
+    return w;
+  };
   // Qué parte de las palabras del versículo (en la versión que más se le parezca) está en el trozo del documento.
   function likeness(book, chapter, verse, bag) {
     const texts = verseTexts?.(book, chapter)?.[verse - 1];
     if (!texts) return 0;
     let best = 0;
     for (const t of texts) {
-      const w = words(t);
+      const w = verseWords(t);
       if (w.length < 3) continue;
       best = Math.max(best, w.filter((x) => bag.has(x)).length / w.length);
     }
@@ -198,7 +206,7 @@ export function createDetector({ structure, verses: verseTexts = null }) {
     const n = count(book, chapter);
     const hits = [];
     for (let v = 1; v <= n; v += 1) {
-      const long = (verseTexts?.(book, chapter)?.[v - 1] || []).some((t) => words(t).length >= 6);
+      const long = (verseTexts?.(book, chapter)?.[v - 1] || []).some((t) => verseWords(t).length >= 6);
       if (likeness(book, chapter, v, bag) >= (long ? 0.7 : 1)) hits.push(v);
     }
     return hits;
@@ -219,10 +227,17 @@ export function createDetector({ structure, verses: verseTexts = null }) {
   }
 
   return function detect(raw) {
+    memo.clear();
     // Una ligadura que el PDF no sabe escribir (la «ti» de Calibri) llega como un carácter nulo: «Corin\0os».
     const text = raw.normalize('NFC').replace(/\u0000/g, 'ti').replace(/\r/g, '').replace(/[^\S\n\f]*\n[^\S\n\f]*/g, '\n').replace(/-\n(?=\p{Ll})/gu, '');
     const flat = plain(text);
-    const lineAt = (pos) => (text.slice(0, pos).match(/\n/g) || []).length + 1;
+    // Dónde empieza cada línea y cada página (un PDF llega con un salto de página, \f, entre ellas), una vez: contarlas
+    // desde el principio en cada cita crecía con el cuadrado del documento.
+    const breaks = (ch) => { const at = []; for (let i = text.indexOf(ch); i >= 0; i = text.indexOf(ch, i + 1)) at.push(i); return at; };
+    const before = (list, pos) => { let lo = 0; let hi = list.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (list[mid] < pos) lo = mid + 1; else hi = mid; } return lo; };
+    const lines = breaks('\n');
+    const pagesAt = breaks('\f');
+    const lineAt = (pos) => before(lines, pos) + 1;
     const original = (a, b) => text.slice(a, b).trim();
     const found = [];
     const dropped = [];
@@ -406,7 +421,7 @@ export function createDetector({ structure, verses: verseTexts = null }) {
     }
     dropped.sort((a, b) => a.pos - b.pos);
     // La página (un PDF llega con un salto de página, \f, entre ellas) y el trozo del documento donde está.
-    const pageAt = (pos) => (text.slice(0, pos).match(/\f/g) || []).length + 1;
+    const pageAt = (pos) => before(pagesAt, pos) + 1;
     const line = (str) => str.replace(/\s+/g, ' ');
     // El contexto es la línea de la cita (hasta 90 letras a cada lado): lo de otras líneas confunde en la lista.
     const around = (a, b) => {
@@ -486,7 +501,7 @@ export function createReview({ structure, verses, versionOf = () => null }) {
     return {
       items,
       dropped: dropped.map((d) => ({ page: d.page, line: d.line, context: d.context, why: d.why })),
-      pages: Math.max(1, ...found.map((c) => c.page), ...dropped.map((d) => d.page)),
+      pages: found.concat(dropped).reduce((n, c) => Math.max(n, c.page), 1), // con miles de citas, Math.max(...) no cabe
     };
   };
 }

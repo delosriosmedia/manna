@@ -63,14 +63,18 @@ export default function setup(app) {
 
   app.action('bible.rescan', { permission: 'bible.manage' }, rescan);
 
-  // Citas de un texto o documento (fase 27): el texto llega tal cual (text/plain, hasta 4 MB; un PDF trae «\f» entre
+  // Citas de un texto o documento (fase 27): el texto llega tal cual (text/plain, hasta 1 MB; un PDF trae «\f» entre
   // páginas) y vuelve la lista para revisar (citas.js). Con el permiso de editar el orden, que es adonde van.
   const SIGLAS = { RV60: 'RVR1960', RV1960: 'RVR1960', RVR: 'RVR1960' };
   const versionOf = (sigla) => library.list().find((v) => (v.abbr || '').toUpperCase().replace(/\s+/g, '') === (SIGLAS[sigla] || sigla))?.id || null;
   let review = null;
   app.route('POST', '/api/bible/citas', async (ctx) => {
     ctx.require('order.edit');
-    const text = (await ctx.raw(4 * 1024 * 1024)).toString('utf8');
+    // Hasta 1 MB, unas 300 páginas: mientras se buscan, el servidor no atiende nada más (S2-1 de la auditoría integral).
+    const body = await ctx.raw(2 ** 20).catch((err) => {
+      throw err.status === 413 ? new HttpError(413, 'El documento es demasiado largo para buscar sus citas de una vez (hasta unas 300 páginas): búscalas por partes.') : err;
+    });
+    const text = body.toString('utf8');
     if (!text.trim()) throw new HttpError(400, 'No hay texto en el que buscar citas.');
     review ||= createReview({ structure: (b) => library.shape(b), verses: (b, c) => library.verseTexts(b, c), versionOf });
     return review(text);

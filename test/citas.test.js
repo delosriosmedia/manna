@@ -113,6 +113,10 @@ test('por el servidor: buscar las citas de un texto y añadirlas al orden, con s
     const cookie = login.headers.get('set-cookie').split(';')[0];
     const ask = (text) => fetch(`${base}/api/bible/citas`, { method: 'POST', headers: { 'Content-Type': 'text/plain; charset=utf-8', cookie }, body: text });
     assert.equal((await ask('   ')).status, 400, 'sin texto');
+    // Más de 1 MB (unas 300 páginas) dejaba quieto al servidor (S2-1): se rechaza y se dice qué hacer.
+    const long = await ask('a'.repeat(2 ** 20 + 1));
+    assert.equal(long.status, 413, 'más de 1 MB de texto');
+    assert.match((await long.json()).error, /por partes/);
     const { items } = await (await ask('Texto: Juan 3:16-18. Luego Mt 5–7 y Rut 5 años.')).json();
     assert.deepEqual(items.map((i) => i.choices[0].label), ['Juan 3:16-18', 'Mateo 5–7']);
     const send = (type, payload) => fetch(`${base}/api/action`, { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ type, payload }) });

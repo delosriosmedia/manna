@@ -54,8 +54,15 @@ const TOO_BIG = 'El archivo o la petición es demasiado grande.';
 const OPEN_FROM_INTERNET = new Set(['/api/session', '/api/session/alta', '/api/ping']);
 const LOGIN = 'Escribe el PIN de Manna para entrar.';
 
-function readBody(req, limit) {
+function readBody(req, res, limit) {
   return new Promise((resolve, reject) => {
+    // Lo que dice de entrada que pasa del límite no se lee: se responde y se corta la conexión, como en saveBody. Si se
+    // cortaba antes de responder, el navegador no recibía el aviso, solo «se cerró la conexión».
+    if (Number(req.headers['content-length']) > limit) {
+      res.setHeader('Connection', 'close');
+      reject(new HttpError(413, TOO_BIG));
+      return;
+    }
     const chunks = [];
     let size = 0;
     req.on('data', (chunk) => {
@@ -264,11 +271,11 @@ export function createRouter({ webDir, sessions, cloud = false, refuse = () => n
           session,
           async json() {
             if (!/^application\/json/.test(req.headers['content-type'] || '')) throw new HttpError(415, 'Se esperaba JSON.');
-            const raw = await readBody(req, 1024 * 1024);
+            const raw = await readBody(req, res, 1024 * 1024);
             try { return JSON.parse(raw.toString('utf8') || '{}'); } catch { throw new HttpError(400, 'JSON no válido.'); }
           },
           // Cuerpo pequeño, en memoria. Para archivos, save().
-          raw: (limit) => readBody(req, limit),
+          raw: (limit) => readBody(req, res, limit),
           // Guarda el cuerpo en un archivo, sin límite de memoria. Devuelve el tamaño en bytes.
           save: (file, limit) => saveBody(req, res, file, limit),
           // Responde con un archivo del equipo (con saltos, para video y audio).
