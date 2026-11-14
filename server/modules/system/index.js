@@ -37,6 +37,7 @@ export default function setup(app) {
   let announced = null;
   let busy = false;
   let failures = 0; // comprobaciones fallidas seguidas
+  let said = ''; // lo último que se apuntó del nombre en el registro
 
   async function refresh() {
     if (busy || !app.port) return;
@@ -53,15 +54,21 @@ export default function setup(app) {
       // Si la comprobación falla tres veces seguidas incluso recién rehecho, es que este sistema
       // no permite hacerla; se deja de comprobar para no reiniciar el nombre sin parar.
       // Con otro Manna en la red, este no se anuncia: los dispositivos irían a dos sitios.
-      const broken = !app.blocked && failures < 3 && !(await responder.healthy());
+      const checked = !app.blocked && failures < 3;
+      const ok = checked && (await responder.healthy());
+      const broken = checked && !ok;
       failures = broken ? failures + 1 : 0;
+      if (ok) said = '';
       if (!app.blocked && (signature !== announced || broken)) {
-        const addresses = networks.map((n) => n.address).join(', ') || 'ninguna red';
-        if (announced !== null) console.log(`Red: ${signature !== announced ? `cambió la red (ahora ${addresses})` : `${responder.name || 'el nombre'} dejó de contestar`}: se anuncia de nuevo.`);
+        const why = announced === null ? '' : signature !== announced ? 'cambió la red; ' : 'el nombre dejó de contestar; ';
         announced = signature;
         await responder.start(networks);
         const base = `${networkName()}.local`;
-        console.log(`Red: ${!responder.name ? `no se pudo anunciar ${base}` : responder.name === base ? `anunciado como ${base}` : `otro equipo de la red ya contesta por ${base}: este queda como ${responder.name}`} (${addresses}).`);
+        const result = !responder.name ? `no se pudo anunciar ${base}` : responder.name === base ? `anunciado como ${base}` : `otro equipo de la red ya contesta por ${base}: este queda como ${responder.name}`;
+        // Una vez cada cosa: donde la comprobación no funciona, se vuelve a anunciar cada 10 s.
+        const line = `Red: ${why}${result} (${networks.map((n) => n.address).join(', ') || 'ninguna red'}).`;
+        if (line !== said) console.log(line);
+        said = line;
       }
 
       const hostname = responder.name;
