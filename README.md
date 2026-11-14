@@ -131,7 +131,7 @@ Al actualizar Manna con el instalador, el contenido y los datos no se tocan. Nad
 
 Al cerrar o recargar la pestaña del control, el navegador pide confirmación para evitar cierres por error.
 
-Si Manna no abre, vuelve a pulsar el icono. Si sigue sin abrir, aparece una página con el motivo; el detalle queda en `manna.log`, en la carpeta de datos (ver «Instalación»).
+Si Manna no abre, vuelve a pulsar el icono. Si sigue sin abrir, aparece una página con el motivo; el detalle queda en `manna.log`, en la carpeta de datos (ver «Instalación»). Ese registro también cuenta lo que pasa con la nube de la iglesia (cada revisión, lo que llega o se va al sincronizar, los usuarios y los archivos que bajan) y con `manna.local` (cuándo se anuncia y si hay otro Manna en la red), con la hora de cada cosa.
 
 ### Al actualizar Manna
 

@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { HttpError } from '../../core/router.js';
 import { cleanName } from '../../core/names.js';
-import { mergeSets, setVersion } from '../../core/sync.js';
+import { changesOf, mergeSets, setVersion } from '../../core/sync.js';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { createContent } from './contenido.js';
@@ -48,6 +48,9 @@ export function serverUrl(host) {
 const SETS = { orders: (app) => app.services.order?.sync, texts: (app) => app.services.texts?.sync, favorites: (app) => app.services.hymns?.sync };
 // Lo que se sube desde casa y baja el equipo (decisión 64): imágenes, videos y audios, y presentaciones.
 const transfers = (app) => [app.services.media?.transfer, app.services.slides?.transfer].filter(Boolean);
+const LABELS = { orders: 'órdenes', texts: 'textos', favorites: 'favoritos' };
+// Para el registro (manna.log): por qué falló algo que se pidió a la nube.
+const reasonOf = (err) => (err?.name === 'TimeoutError' ? 'no contestó a tiempo' : [err?.message, err?.cause?.code].filter(Boolean).join(' · ') || 'sin detalle');
 const exportAll = (app) => Object.fromEntries(Object.entries(SETS).map(([name, of]) => [name, of(app)?.export()]).filter(([, set]) => set));
 const CHECK_MS = 60_000;
 const hash = (text) => crypto.createHash('sha256').update(String(text)).digest('hex');
@@ -240,7 +243,11 @@ function cloudSide(app) {
       const mine = service.export();
       const merged = mergeSets(mine, sets[name], { since: Number(since) || 0 });
       const found = name === 'orders' ? merged.conflicts.map((c) => ({ id: c.id, where: c.kept === 'mine' ? 'la nube' : 'la iglesia' })) : [];
-      if (setVersion({ x: mine }) !== setVersion({ x: merged }) || found.length) service.apply({ records: merged.records, deleted: merged.deleted }, found);
+      if (setVersion({ x: mine }) !== setVersion({ x: merged }) || found.length) {
+        service.apply({ records: merged.records, deleted: merged.deleted }, found);
+        const said = changesOf(LABELS[name], mine, merged, name === 'orders');
+        if (said) console.log(`Del equipo de la iglesia: ${said}${found.length ? ` (${found.length} con conflicto)` : ''}.`);
+      }
       out[name] = { records: merged.records, deleted: merged.deleted };
       conflicts = conflicts.concat(found);
     }
@@ -390,10 +397,16 @@ function churchSide(app) {
       for (const [from, to] of Object.entries(same || {})) app.services.order?.reassign(from, to);
       saved.data.usersUp = true;
       saved.save();
+      console.log(`Nube: los usuarios de este equipo subieron a la nube (${users.list().length}).`);
     }
     const { version: theirs, list } = await ask('GET', '/api/nube/usuarios');
+    const before = users.list();
     const gone = users.replace(list);
     for (const id of gone) app.services.order?.reassign(id, users.firstAdmin().id);
+    const names = (some) => some.map((u) => `«${u.name}»`).join(', ');
+    const added = users.list().filter((u) => !before.some((b) => b.id === u.id));
+    const removed = before.filter((b) => gone.includes(b.id));
+    console.log(`Nube: usuarios copiados de la nube (${users.list().length})${added.length ? `; entraron ${names(added)}` : ''}${removed.length ? `; se quitaron ${names(removed)} (sus órdenes pasan a «${users.firstAdmin().name}»)` : ''}.`);
     saved.data.users = theirs;
     saved.save();
     app.services.users?.publish();
@@ -406,24 +419,34 @@ function churchSide(app) {
   const live = () => Boolean(saved.data.token) && !saved.data.replaced;
   let apart = null; // con versiones distintas de la nube, lo que se dice (parte 7)
   const syncs = () => live() && !apart;
-  function syncData() {
+  // motive: por qué, para el registro (la revisión de cada minuto, un aviso de la nube, un cambio aquí).
+  function syncData(motive = 'hubo un cambio durante la anterior') {
     if (!syncs()) return Promise.resolve();
     if (syncing) { again = true; return syncing; }
     syncing = (async () => {
       const sentAt = Date.now();
       const res = await ask('POST', '/api/nube/sincronizar', { since: saved.data.syncedAt, sets: exportAll(app) });
+      const said = [];
       for (const [name, of] of Object.entries(SETS)) {
         const service = of(app);
         if (!service || !res.sets?.[name]) continue;
         const here = service.export();
         const merged = mergeSets(here, res.sets[name]);
         const found = name === 'orders' ? res.conflicts || [] : [];
-        if (setVersion({ x: here }) !== setVersion({ x: merged }) || found.length) service.apply({ records: merged.records, deleted: merged.deleted }, found);
+        if (setVersion({ x: here }) !== setVersion({ x: merged }) || found.length) {
+          service.apply({ records: merged.records, deleted: merged.deleted }, found);
+          said.push(changesOf(LABELS[name], here, merged, name === 'orders') + (found.length ? ` (${found.length} con conflicto)` : ''));
+        }
       }
       Object.assign(saved.data, { syncedAt: sentAt, synced: setVersion(exportAll(app)), cloudData: res.version });
       saved.save();
       fillSoon();
-    })().finally(() => {
+      const changes = said.filter(Boolean);
+      console.log(`Nube: sincronizado (${motive}) en ${Date.now() - sentAt} ms${changes.length ? `: ${changes.join(' · ')}` : ', sin cambios aquí'}.`);
+    })().catch((err) => {
+      console.error(`Nube: no se pudo sincronizar (${motive}): ${reasonOf(err)}`);
+      throw err;
+    }).finally(() => {
       syncing = null;
       if (again) { again = false; syncData().catch(() => {}); }
     });
@@ -435,7 +458,7 @@ function churchSide(app) {
     if (!['orders', 'texts', 'hymns'].includes(ns) || !syncs()) return;
     clearTimeout(pushTimer);
     pushTimer = setTimeout(() => {
-      if (setVersion(exportAll(app)) !== saved.data.synced) syncData().catch(() => {});
+      if (setVersion(exportAll(app)) !== saved.data.synced) syncData('cambio en este equipo').catch(() => {});
     }, PUSH_MS);
     pushTimer.unref?.();
   });
@@ -445,6 +468,7 @@ function churchSide(app) {
     if (waitingFor) return;
     waitingFor = new AbortController();
     const { signal } = waitingFor;
+    let failed = false; // para apuntar solo el primer fallo seguido, no uno cada 30 s
     while (syncs() && !signal.aborted) {
       try {
         const res = await fetch(`${saved.data.url}/api/nube/esperar?v=${encodeURIComponent(saved.data.cloudData)}`, {
@@ -452,9 +476,13 @@ function churchSide(app) {
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body.error || String(res.status));
-        if (body.version && body.version !== saved.data.cloudData) await syncData();
-      } catch {
+        if (failed) console.log('Nube: el aviso de cambios volvió a funcionar.');
+        failed = false;
+        if (body.version && body.version !== saved.data.cloudData) await syncData('aviso de la nube');
+      } catch (err) {
         if (signal.aborted) break;
+        if (!failed) console.error(`Nube: el aviso de cambios falló (${reasonOf(err)}): se reintenta cada 30 s.`);
+        failed = true;
         await new Promise((resolve) => { setTimeout(resolve, 30_000).unref?.(); });
       }
     }
@@ -468,6 +496,8 @@ function churchSide(app) {
     starting = false;
     await pairFromInstaller();
     if (!saved.data.token || saved.data.replaced) return;
+    const started = Date.now();
+    const took = () => `${Date.now() - started} ms`;
     try {
       // Con sus direcciones, para la portada de la nube: la de la red de la iglesia y, si está encendida, la de internet.
       const { addresses } = store.get('system') || {};
@@ -477,8 +507,14 @@ function churchSide(app) {
         signal: AbortSignal.timeout(15_000),
       });
       const body = await res.json().catch(() => ({}));
-      if (res.status === 401) return set({ status: 'unknown', error: body.error || 'La nube no reconoce este equipo: vuelve a emparejarlo.' });
-      if (!res.ok) return set({ status: 'offline', error: body.error || `La nube respondió ${res.status}.` });
+      if (res.status === 401) {
+        console.log(`Nube: la nube no reconoce este equipo (${took()}).`);
+        return set({ status: 'unknown', error: body.error || 'La nube no reconoce este equipo: vuelve a emparejarlo.' });
+      }
+      if (!res.ok) {
+        console.log(`Nube: la nube respondió ${res.status} (${took()})${body.error ? `: ${body.error}` : '.'}`);
+        return set({ status: 'offline', error: body.error || `La nube respondió ${res.status}.` });
+      }
       if (body.replaced) {
         saved.data.replaced = { by: cleanName(body.replaced.by, 60), at: Number(body.replaced.at) || Date.now() };
         saved.save();
@@ -487,7 +523,11 @@ function churchSide(app) {
         set({ status: 'replaced', error: null });
         return restartAs(blocked());
       }
-      if (body.suspended) return set({ status: 'suspended', lastSeen: Date.now(), error: null });
+      if (body.suspended) {
+        console.log(`Nube: la iglesia está suspendida; este equipo sigue en local (${took()}).`);
+        return set({ status: 'suspended', lastSeen: Date.now(), error: null });
+      }
+      console.log(`Nube: revisión${atStart ? ' al arrancar' : ''} bien en ${took()} (la nube tiene la ${body.version || '?'}).`);
       // La misma versión (parte 7, decisiones 57 y 58): si la nube tiene una más nueva, el equipo se pone al día al
       // encenderse, antes de que lo use nadie, como con «Actualizar ahora» pero sin preguntar. Nunca con Manna abierto
       // (ni tras un reinicio o con algo al aire), y una vez por versión, por si el instalador no pudo.
@@ -506,14 +546,16 @@ function churchSide(app) {
       }
       // El aviso de versión nueva sigue a la nube, no a GitHub (decisión 58): «Actualizar ahora» pide esa versión.
       if (body.version && updates?.newer(body.version) && store.get('system').update?.version !== body.version) store.set('system', { update: { version: body.version } });
+      const wasApart = apart;
       apart = (Number(body.protocol) || 1) === PROTOCOL ? null
         : `La nube tiene Manna ${body.version || 'de otra versión'} y este equipo, la ${version}: hasta que tengan la misma, este equipo sigue en local, sin sincronizar.${updates?.newer(body.version) ? ' Se pondrá al día al volver a abrir Manna.' : ''}`;
       // Lo que el superadministrador dejó a esta iglesia (fase 39): módulos, su orden y el máximo de órdenes.
+      if (apart && apart !== wasApart) console.log(`Nube: ${apart}`);
       if (body.settings) app.services.church?.apply(body.settings);
       useTunnel(body.tunnel);
       if (!apart && body.users && body.users !== saved.data.users) await syncUsers();
       // Por si se perdió un aviso: si la nube o el equipo tienen algo distinto de lo último que se juntó.
-      if (!apart && (body.data !== saved.data.cloudData || setVersion(exportAll(app)) !== saved.data.synced)) await syncData();
+      if (!apart && (body.data !== saved.data.cloudData || setVersion(exportAll(app)) !== saved.data.synced)) await syncData(atStart ? 'al arrancar' : 'revisión de cada minuto');
       set({ status: apart ? 'version' : 'on', lastSeen: Date.now(), error: apart });
       if (!apart) {
         waitLoop();
@@ -523,7 +565,8 @@ function churchSide(app) {
         filled = Date.now();
         content.fill().catch((err) => console.error('No se pudo bajar el himnario de la nube:', err.message));
       }
-    } catch {
+    } catch (err) {
+      console.error(`Nube: la revisión falló (${took()}): ${reasonOf(err)}`);
       set({ status: 'offline', error: null });
     }
   }
@@ -531,6 +574,7 @@ function churchSide(app) {
   // en un orden), y avisa a la nube. Los videos de YouTube añadidos por su enlace se descargan aquí y en el orden pasan a
   // ser el video de la biblioteca. Una vez a la vez.
   let receiving = null;
+  const stuck = new Set(); // los videos de YouTube que no pudieron empezar a bajar (ya apuntados)
   function receive() {
     if (receiving || !syncs()) return receiving || Promise.resolve();
     receiving = (async () => {
@@ -540,6 +584,7 @@ function churchSide(app) {
       fs.mkdirSync(app.tmpDir, { recursive: true });
       for (const item of fresh) {
         const work = fs.mkdtempSync(path.join(app.tmpDir, 'nube-'));
+        const from = Date.now();
         try {
           const files = {};
           for (const f of item.files) {
@@ -549,6 +594,9 @@ function churchSide(app) {
             await pipeline(Readable.fromWeb(res.body), fs.createWriteStream(files[f.name]));
           }
           await transfers(app).find((t) => t.types.includes(item.type))?.adopt(item, files);
+          const size = item.files.reduce((sum, f) => sum + (f.size || 0), 0);
+          const type = { image: 'imagen', slides: 'presentación' }[item.type] || item.type;
+          console.log(`Nube: llegó «${item.entry?.name}» (${type}, ${(size / 1e6).toFixed(1).replace('.', ',')} MB) en ${Math.round((Date.now() - from) / 1000)} s.`);
         } catch (err) {
           console.error(`No se pudo traer de la nube «${item.entry?.name}»:`, err.message);
         } finally {
@@ -559,8 +607,15 @@ function churchSide(app) {
       if (ids.length) await ask('POST', '/api/nube/archivos/recibidos', { ids });
       app.services.order?.convert('ytlink', (item) => {
         try {
-          return { kind: 'youtube', data: { id: app.run('media.youtube', { link: `https://youtu.be/${item.data.videoId}` }).id } };
-        } catch { return null; } // sin yt-dlp: se intenta en la próxima vuelta
+          const { id } = app.run('media.youtube', { link: `https://youtu.be/${item.data.videoId}` });
+          console.log(`Nube: «${item.title}», de YouTube, empieza a bajar.`);
+          return { kind: 'youtube', data: { id } };
+        } catch (err) {
+          // Sin yt-dlp: se intenta en la próxima vuelta (y se apunta una vez).
+          if (!stuck.has(item.data.videoId)) console.error(`Nube: «${item.title}», de YouTube, no pudo empezar a bajar: ${err.message}`);
+          stuck.add(item.data.videoId);
+          return null;
+        }
       });
     })().finally(() => { receiving = null; });
     return receiving;

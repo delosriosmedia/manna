@@ -88,6 +88,7 @@ export function createContent(app, { ask, link, mode, onProgress }) {
         done += 1;
       }
       onProgress(wanted.length ? { done, total: wanted.length, failed } : null);
+      if (wanted.length) console.log(`Nube: del himnario y las biblias bajaron ${done - failed} de ${wanted.length} archivos${failed ? ` (fallaron ${failed})` : ''}.`);
     })().finally(() => {
       filling = null;
       if (again) { again = false; fill().catch(() => {}); }

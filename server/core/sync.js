@@ -34,6 +34,20 @@ export function mergeSets(mine, theirs, { since = 0, now = Date.now() } = {}) {
   return { records, deleted, conflicts };
 }
 
+// Qué cambió de un conjunto a otro, en una línea para el registro ('' si nada). Con byName, por su nombre (los
+// órdenes); sin él, cuántos: un texto puede llevar cualquier cosa y no se escribe en el registro.
+export function changesOf(label, before, after, byName = false) {
+  const old = new Map((before?.records || []).map((r) => [r.id, r]));
+  const now = new Map((after?.records || []).map((r) => [r.id, r]));
+  const say = (verb, list) => list.length > 0 && `${verb} ${byName ? list.map((r) => `«${r.name}»`).join(', ') : list.length}`;
+  const parts = [
+    say('llegaron', [...now.values()].filter((r) => !old.has(r.id))),
+    say('cambiaron', [...now.values()].filter((r) => old.has(r.id) && old.get(r.id).updated !== r.updated)),
+    say('se quitaron', [...old.values()].filter((r) => !now.has(r.id))),
+  ].filter(Boolean);
+  return parts.length ? `${label}: ${parts.join('; ')}` : '';
+}
+
 // La huella de unos conjuntos: igual si tienen lo mismo, en el orden que sea (también el de las claves de cada ficha).
 const stable = (value) => (Array.isArray(value) ? value.map(stable)
   : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map((k) => [k, stable(value[k])])) : value);

@@ -56,8 +56,12 @@ export default function setup(app) {
       const broken = !app.blocked && failures < 3 && !(await responder.healthy());
       failures = broken ? failures + 1 : 0;
       if (!app.blocked && (signature !== announced || broken)) {
+        const addresses = networks.map((n) => n.address).join(', ') || 'ninguna red';
+        if (announced !== null) console.log(`Red: ${signature !== announced ? `cambió la red (ahora ${addresses})` : `${responder.name || 'el nombre'} dejó de contestar`}: se anuncia de nuevo.`);
         announced = signature;
         await responder.start(networks);
+        const base = `${networkName()}.local`;
+        console.log(`Red: ${!responder.name ? `no se pudo anunciar ${base}` : responder.name === base ? `anunciado como ${base}` : `otro equipo de la red ya contesta por ${base}: este queda como ${responder.name}`} (${addresses}).`);
       }
 
       const hostname = responder.name;
@@ -83,6 +87,7 @@ export default function setup(app) {
   // null. Uno con estos mismos datos (el mismo id) no es otro: es este, y lo atiende server/app.js.
   // ¿Es este el equipo oficial de su iglesia (emparejado con su nube)?
   const official = () => Boolean(app.services.cloud?.managedBy?.());
+  const ignored = new Set(); // los Manna que no son el oficial que este ya vio (se apunta una vez cada uno)
   async function rival() {
     const name = networkName();
     const pingAt = async (host, port) => {
@@ -91,7 +96,11 @@ export default function setup(app) {
         // Los de antes de la 1.28 no dicen su nombre: son los de nombre «manna». Una nube (fase 36) no es rival.
         if (ping.app !== 'manna' || ping.cloud || ping.id === settings.data.id || (ping.name || 'manna') !== name) return null;
         // El equipo oficial de la iglesia tiene prioridad (decisión 76): para él, uno que no lo es no es rival.
-        if (official() && !ping.official) return null;
+        if (official() && !ping.official) {
+          if (!ignored.has(ping.id)) console.log(`Red: hay otro Manna ${ping.version || ''} en ${host}:${port}, que no es el equipo oficial: este sigue.`);
+          ignored.add(ping.id);
+          return null;
+        }
         return { port, version: ping.version || '', ...(ping.official && { official: true }) };
       } catch {
         return null;

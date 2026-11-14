@@ -167,7 +167,7 @@ async function run() {
 
   const { addresses: [main, ...others], nameUrl } = app.store.get('system');
   console.log('\n==========================================================');
-  console.log('  Manna - Church projection app');
+  console.log(`  Manna ${app.store.get('system').version} - Church projection app`);
   console.log('==========================================================');
   console.log(`  En este equipo:        ${localUrl(port)}/control`);
   if (nameUrl) console.log(`  Desde otro dispositivo: ${nameUrl}`);
@@ -208,7 +208,7 @@ async function runInCloud(app) {
   };
   app.restart = app.shutdown;
   const port = await app.listen();
-  console.log(`Manna en modo nube, en el puerto ${port}.`);
+  console.log(`Manna ${app.store.get('system').version} en modo nube, en el puerto ${port}.`);
   if (dir) {
     mirror(app.r2, dir).then((n) => {
       console.log(`Contenido de R2: ${n} archivos nuevos.`);

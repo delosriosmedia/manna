@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeSets, restoreSet, setVersion } from '../server/core/sync.js';
+import { changesOf, mergeSets, restoreSet, setVersion } from '../server/core/sync.js';
 
 const r = (id, updated, extra = {}) => ({ id, updated, ...extra });
 
@@ -39,4 +39,12 @@ test('volver a una copia: lo de la copia gana al juntarse con el otro lado, y lo
   // El equipo de la iglesia todavía tiene lo de antes: al juntarse queda la copia.
   const merged = mergeSets(now, restored, { now: 100 });
   assert.deepEqual(merged.records, [{ id: 'a', name: 'viejo', updated: 100 }]);
+});
+
+test('el registro dice qué llegó, qué cambió y qué se fue; de los textos, solo cuántos', () => {
+  const before = { records: [r('a', 1, { name: 'Domingo' }), r('b', 1, { name: 'Viejo' }), r('c', 1, { name: 'Igual' })] };
+  const after = { records: [r('a', 2, { name: 'Domingo' }), r('c', 1, { name: 'Igual' }), r('d', 3, { name: 'De Leidy' })] };
+  assert.equal(changesOf('órdenes', before, after, true), 'órdenes: llegaron «De Leidy»; cambiaron «Domingo»; se quitaron «Viejo»');
+  assert.equal(changesOf('textos', before, after), 'textos: llegaron 1; cambiaron 1; se quitaron 1');
+  assert.equal(changesOf('órdenes', after, after, true), '', 'sin cambios, nada');
 });
