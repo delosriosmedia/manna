@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.72.0 — 2026-11-14
+
 - **Los toques y las teclas, más fiables**: si el celular perdía un «soltar», las protecciones contra toques accidentales quedaban apagadas para siempre; ahora el siguiente toque las repone. Al volver al celular tras 12 a 25 s, «Siguiente» ya no queda apagado. En el computador, Intro sobre un botón de las barras lo pulsa, en vez de proyectar lo marcado. Si la wifi parpadea justo al abrir Manna en un celular, insiste y, si no hay manera, lo dice y vuelve a intentarlo. Partir la ventana del control en dos ya no la recarga varias veces.
 - **Arreglos pequeños de lo que se proyecta**: una tableta o un celular usado como pantalla de proyección ya no se apaga a mitad del culto. Un audio al aire se lee sobre el fondo oscuro, y el texto fijo en Sora sale con su letra en el proyector. Un elemento borrado mientras está al aire deja la pantalla en el fondo, en vez de verse roto en los celulares que entran después. Un texto editado después de ponerlo en el orden se pasa entero.
 - **Arreglos pequeños de los módulos**: el buscador del Himnario ya no se borra cuando llega un himno nuevo. Cambiar el tamaño de un reloj desde otro dispositivo ya no le cambia el estilo ni el sitio. «Subir» y «Bajar» del Orden mueven un puesto desde donde está, aunque otro haya cambiado el orden. En Medios, arrastrar mientras otro pulsa «Siguiente» ya no deja la etiqueta pegada. Una preferencia vieja de otra forma ya no impide abrir la Biblia. Y si el control no puede sonar, el temporizador lo dice.
