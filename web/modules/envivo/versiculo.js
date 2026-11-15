@@ -17,12 +17,18 @@ export const versionNow = () => {
 const chapters = new Map();
 export function chapterOf(versionId, book, chapter) {
   const key = `${versionId}|${book}|${chapter}`;
-  if (!chapters.has(key)) chapters.set(key, api(`/api/bible/${versionId}/chapter/${book}/${chapter}`).catch(() => null));
+  // Un corte de red no se guarda (undefined): lo que se teclee después lo vuelve a pedir. Antes la hoja decía «No está»
+  // hasta recargar la página (I1-02 de la auditoría integral). Lo que de verdad no está (null) sí se guarda.
+  if (!chapters.has(key)) chapters.set(key, api(`/api/bible/${versionId}/chapter/${book}/${chapter}`).catch((e) => {
+    if (e.status !== 0) return null;
+    chapters.delete(key);
+    return undefined;
+  }));
   return chapters.get(key);
 }
 const bookLists = new Map();
 const booksOf = (versionId) => {
-  if (!bookLists.has(versionId)) bookLists.set(versionId, api(`/api/bible/${versionId}/books`).then((r) => r.books));
+  if (!bookLists.has(versionId)) bookLists.set(versionId, api(`/api/bible/${versionId}/books`).then((r) => r.books, (e) => { bookLists.delete(versionId); throw e; }));
   return bookLists.get(versionId);
 };
 
@@ -91,7 +97,13 @@ export function createVerseSheet({ message, under, keeps, onOpen = () => {}, onC
   async function chooseOther() {
     choosing = true;
     paint();
-    const list = await booksOf(versionNow().id);
+    let list;
+    try {
+      list = await booksOf(versionNow().id);
+    } catch (e) {
+      if (choosing) all.replaceChildren(h('p', { class: 'muted' }, e.message));
+      return;
+    }
     if (!choosing) return;
     all.replaceChildren(...list.map((b) => h('button', { class: 'ev-sheet-book', onclick: () => pickBook({ n: b.n, name: b.name }) }, b.name)));
   }
@@ -131,6 +143,10 @@ export function createVerseSheet({ message, under, keeps, onOpen = () => {}, onC
     const mine = ++token;
     chapterOf(v.id, book.n, ask.chapter).then((data) => {
       if (mine !== token) return;
+      if (data === undefined) {
+        preview.textContent = 'Sin conexión con el equipo principal. Vuelve a intentarlo.';
+        return;
+      }
       const found = data?.verses?.filter((x) => x.n >= ask.verseStart && x.n <= ask.verseEnd) || [];
       if (!found.length) {
         preview.textContent = `No está en ${v.abbr || v.name}`;

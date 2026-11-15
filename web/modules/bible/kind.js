@@ -18,7 +18,12 @@ const verseCells = (count) => stepCells(count, {
 const verseLayer = (getItem) => can('layers.edit') && mando({ label: 'Encima', glyph: 'stack', title: 'Ponerlo en una capa, encima de lo que se proyecte', onclick: (e) => {
   const item = getItem();
   const { ref, versionId, versions } = item.source.data;
-  chooseLayer(e.currentTarget, { kind: 'verses', data: { versionId: versionId ?? versions[0], ref }, title: item.reference });
+  // Un pasaje de más de los que se ven juntos va de a un versículo, el del paso al aire: entero llenaba el proyector de
+  // letra diminuta (E5-02 de la auditoría integral).
+  const first = ref.verseStart ?? 1;
+  const many = item.source.step != null && (ref.verseStart ? ref.verseEnd - first + 1 : Infinity) > 6;
+  const shown = many ? { ...ref, verseStart: first + item.source.step, verseEnd: first + item.source.step } : ref;
+  chooseLayer(e.currentTarget, { kind: 'verses', data: { versionId: versionId ?? versions[0], ref: shown }, title: item.reference });
 } });
 
 // Tipo de contenido "pasaje bíblico": el texto de los versículos y la cita.

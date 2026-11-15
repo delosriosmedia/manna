@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **«Encima» con un pasaje largo pone solo el versículo al aire**: antes ponía el capítulo entero en la capa, con letra diminuta.
+- **La hoja «Versículo» del orador se recupera sola de un corte de red**: decía «No está» hasta recargar la página. Ahora dice que no hay conexión, y lo siguiente que se teclee se vuelve a pedir.
 - **Las diapositivas pasan sin parpadeo**: en cada «Siguiente», el proyector pasaba un instante por el fondo antes de mostrar la nueva, y si tardaba en cargar volvía a aparecer la anterior. Ahora la diapositiva vieja se queda hasta que llega la nueva. Lo mismo entre dos imágenes.
 - **Tras reiniciar Manna, el himno al aire vuelve**, como ya volvían las imágenes, los versículos y los videos. Al reiniciar o apagar con algo sonando, se pausa antes: los celulares y los televisores se paran en el mismo punto, en vez de seguir solos durante el corte. Y si el control no puede sonar, sigue diciéndolo después del reinicio, en vez de dejar el himno sonando mudo sin aviso.
 - **«Volver a…» ya no lo deshace cualquiera**: solo quien saltó y Control total. Los demás celulares ven quién puso qué, sin botón: antes, Alabanza podía deshacer con un toque lo que acababa de poner el orador. Además caduca de verdad a los 10 s, también para una pantalla que se abre tarde, y cambiar la versión de la Biblia al aire ya no lo ofrece.

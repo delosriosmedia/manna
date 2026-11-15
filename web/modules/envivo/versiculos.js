@@ -50,6 +50,7 @@ export function createVerseList({ anchor, onCite }) {
     const ref = refOf(item);
     if (!known && v) {
       chapterOf(v.id, ref.book, ref.chapter).then((data) => {
+        if (data === undefined) return; // sin conexión: se vuelve a pedir en el próximo dibujo, sin decir «No está»
         const found = data?.verses?.filter((x) => x.n >= ref.verseStart && x.n <= ref.verseEnd) || [];
         texts.set(key, found.length ? { text: found.map((x) => x.text).join(' ') } : { missing: true });
         paintVerses();
