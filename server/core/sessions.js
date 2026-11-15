@@ -37,6 +37,9 @@ export function createSessions({ storage, roles: all, cloud = false, superMode =
   const roleById = new Map(roles.map((r) => [r.id, r]));
   const fails = new Map(); // ip o usuario -> { count, until }
 
+  // Si esa persona puede usar esa función (la misma regla al entrar y en cada petición).
+  const allowed = (user, roleId) => (roleId === 'administrar' ? user.admin : ['proyeccion', 'preparacion'].includes(roleId) || user.functions.includes(roleId));
+
   function fromRequest(req) {
     const m = /(?:^|;\s*)manna_sid=([a-f0-9]+)/.exec(req.headers.cookie || '');
     const s = m && store.data.list[m[1]];
@@ -44,8 +47,9 @@ export function createSessions({ storage, roles: all, cloud = false, superMode =
     if (!s || !roleById.has(s.role)) return null;
     const user = s.user ? users.get(s.user) : null;
     // Un usuario que se quitó ya no tiene sesión.
-    if (s.user && !user) {
-      console.log(`Se cerró una sesión de «${s.role}»: su usuario ya no está.`);
+    // Ni la de una función que ya no tiene (se la quitaron en Ajustes o en la nube): antes seguía dentro (N1-3-3).
+    if (s.user && (!user || !allowed(user, s.role))) {
+      console.log(`Se cerró una sesión de «${s.role}»: ${user ? `${user.name} ya no tiene esa función` : 'su usuario ya no está'}.`);
       delete store.data.list[m[1]];
       store.save();
       return null;
@@ -62,29 +66,40 @@ export function createSessions({ storage, roles: all, cloud = false, superMode =
     return !ADMIN_ONLY.has(permission) || session.admin;
   }
 
-  function locked(key, ms) {
+  const wait = (ms) => (ms > 90_000 ? `${Math.ceil(ms / 60_000)} minutos` : `${Math.ceil(ms / 1000)} segundos`);
+  // Lanza el aviso si key está bloqueada (whose: de quién es el bloqueo, para decirlo); si no, da cómo apuntar un fallo,
+  // que devuelve cuántos intentos le quedan (0: acaba de bloquearse).
+  function locked(key, ms, whose) {
     const f = fails.get(key);
-    if (f && f.until > Date.now()) throw new HttpError(429, `Demasiados intentos. Espera ${Math.ceil((f.until - Date.now()) / 1000) > 90 ? `${Math.ceil((f.until - Date.now()) / 60_000)} minutos` : `${Math.ceil((f.until - Date.now()) / 1000)} segundos`}.`);
+    if (f && f.until > Date.now()) throw new HttpError(429, whose ? `${whose} quedó bloqueado por demasiados intentos: espera ${wait(f.until - Date.now())}${whose === 'Este nombre' ? ' o pídele al administrador que te cambie el PIN' : ''}.` : `Demasiados intentos. Espera ${wait(f.until - Date.now())}.`);
     return () => {
       const count = (f?.count || 0) + 1;
       fails.set(key, count >= MAX_FAILS ? { count: 0, until: Date.now() + ms } : { count, until: 0 });
+      return Math.max(0, MAX_FAILS - count);
     };
   }
 
-  // Cinco fallos bloquean esa IP y esa cuenta (key) un rato.
-  function checkSecret(key, ip, ok, wrong) {
+  // Cinco fallos bloquean esa IP un minuto y esa cuenta (key) 15. El de la cuenta se mira primero, porque es el largo, y
+  // se avisa de cuántos intentos quedan antes de llegar a él: antes no se decía, y el aviso hablaba del minuto de la IP
+  // aunque la cuenta quedara bloqueada 15 (E4-07 de la auditoría integral).
+  function checkSecret(key, ip, ok, wrong, whose) {
+    const failKey = locked(key, USER_LOCK_MS, whose);
     const failIp = locked(`ip:${ip}`, LOCK_MS);
-    const failKey = locked(key, USER_LOCK_MS);
     if (ok()) {
       fails.delete(`ip:${ip}`);
       fails.delete(key);
       return;
     }
     failIp();
-    failKey();
-    throw new HttpError(401, wrong);
+    const left = failKey();
+    if (!left) throw new HttpError(401, `${wrong} ${whose} quedó bloqueado ${USER_LOCK_MS / 60_000} minutos${whose === 'Este nombre' ? ': el administrador lo destraba cambiándole el PIN' : ''}.`);
+    throw new HttpError(401, left <= MAX_FAILS - 3 ? `${wrong} Te ${left === 1 ? 'queda 1 intento' : `quedan ${left} intentos`}.` : wrong);
   }
-  const checkPin = (user, pin, ip) => checkSecret(`u:${user.id}`, ip, () => users.check(user.id, typeof pin === 'string' ? pin : ''), 'PIN incorrecto.');
+  // Los fallos desde internet se cuentan aparte de los de la red de la iglesia: desde fuera se podía dejar a cualquiera
+  // 15 minutos sin poder entrar, también en el wifi de la iglesia (S5-10). En la nube todo llega de internet.
+  const checkPin = (user, pin, ip, internet) => checkSecret(`u:${user.id}${internet ? ':internet' : ''}`, ip, () => users.check(user.id, typeof pin === 'string' ? pin : ''), 'PIN incorrecto.', 'Este nombre');
+  // Lo usa cambiar el PIN de alguien: el administrador lo destraba así.
+  const unlock = (userId) => { fails.delete(`u:${userId}`); fails.delete(`u:${userId}:internet`); };
 
   // La clave de alta (decisión 62): en la nube, la que el dueño puso en `MANNA_CLAVE_ALTA` deja crear el primer
   // administrador, con su nombre y su PIN (decisión 64); en el sitio del superadministrador, su cuenta, con su
@@ -131,7 +146,7 @@ export function createSessions({ storage, roles: all, cloud = false, superMode =
     const role = roleById.get(roleId);
     if (!role) throw new HttpError(400, 'Manna no reconoce esa función. Si acabas de actualizarlo, ciérralo y vuelve a abrirlo.');
     let user = null;
-    if (role.super) checkSecret('super', ctx.ip, () => matches(password, account.data.password), 'Contraseña incorrecta.');
+    if (role.super) checkSecret('super', ctx.ip, () => matches(password, account.data.password), 'Contraseña incorrecta.', 'La cuenta');
     else if (ctx.isLocal) user = users.firstAdmin();
     else if (role.requiresPin || ctx.internet) {
       // Desde internet, también la pantalla de proyección.
@@ -139,11 +154,11 @@ export function createSessions({ storage, roles: all, cloud = false, superMode =
       if (!user) throw new HttpError(400, 'Elige tu nombre en la lista.');
       // Administrar, solo un administrador; preparar el culto, todos los usuarios de la iglesia.
       if (role.id === 'administrar' && !user.admin) throw new HttpError(403, `${user.name} no es administrador de la iglesia.`);
-      if (!['proyeccion', 'preparacion', 'administrar'].includes(role.id) && !user.functions.includes(role.id)) {
+      if (!allowed(user, role.id)) {
         throw new HttpError(403, `${user.name} no puede usar «${role.name}». Se lo da el administrador, en Ajustes → Usuarios.`);
       }
       // Quien ya entró con su PIN cambia de función sin volver a escribirlo.
-      if (ctx.session?.user?.id !== user.id) checkPin(user, pin, ctx.ip);
+      if (ctx.session?.user?.id !== user.id) checkPin(user, pin, ctx.ip, ctx.internet);
     }
     if (ctx.session) delete store.data.list[ctx.session.id];
     const id = crypto.randomBytes(24).toString('hex');
@@ -171,5 +186,5 @@ export function createSessions({ storage, roles: all, cloud = false, superMode =
 
   // Cuándo entró alguien por última vez (para el superadministrador).
   const lastUse = () => Math.max(0, ...Object.values(store.data.list).map((s) => s.created || 0));
-  return { roles, users, fromRequest, can, permissions, open, closeUser, alta, newAlta, lastUse, altaPending: () => Boolean(envKey() || recovery()), superName: () => account?.data.name || null };
+  return { roles, users, fromRequest, can, permissions, open, closeUser, unlock, alta, newAlta, lastUse, altaPending: () => Boolean(envKey() || recovery()), superName: () => account?.data.name || null };
 }

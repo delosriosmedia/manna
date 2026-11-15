@@ -4,6 +4,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Las cuentas, más seguras y más claras**: quitarle una función a alguien, o cambiarle el PIN desde «Administrar la iglesia», lo saca de esa función en el equipo; antes seguía dentro. Desde el tercer PIN equivocado, Manna dice cuántos intentos quedan, y al bloquearse un nombre dice que son 15 minutos y que el administrador lo destraba cambiándole el PIN. Los intentos desde internet se cuentan aparte: alguien de fuera ya no puede dejar a una persona sin entrar en el wifi de la iglesia.
 ## 1.72.0 — 2026-11-14
 
 - **Los toques y las teclas, más fiables**: si el celular perdía un «soltar», las protecciones contra toques accidentales quedaban apagadas para siempre; ahora el siguiente toque las repone. Al volver al celular tras 12 a 25 s, «Siguiente» ya no queda apagado. En el computador, Intro sobre un botón de las barras lo pulsa, en vez de proyectar lo marcado. Si la wifi parpadea justo al abrir Manna en un celular, insiste y, si no hay manera, lo dice y vuelve a intentarlo. Partir la ventana del control en dos ya no la recarga varias veces.

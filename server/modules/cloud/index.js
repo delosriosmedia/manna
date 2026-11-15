@@ -401,8 +401,9 @@ function churchSide(app) {
     }
     const { version: theirs, list } = await ask('GET', '/api/nube/usuarios');
     const before = users.list();
-    const gone = users.replace(list);
+    const { gone, repinned } = users.replace(list);
     for (const id of gone) app.services.order?.reassign(id, users.firstAdmin().id);
+    for (const id of repinned) app.sessions.closeUser(id); // le cambiaron el PIN en la nube: vuelve a escribirlo (N1-3-3)
     const names = (some) => some.map((u) => `«${u.name}»`).join(', ');
     const added = users.list().filter((u) => !before.some((b) => b.id === u.id));
     const removed = before.filter((b) => gone.includes(b.id));

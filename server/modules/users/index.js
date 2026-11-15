@@ -39,6 +39,7 @@ export default function setup(app) {
     own();
     users.setPin(id, String(pin ?? ''));
     sessions.closeUser(id, ctx?.session?.id);
+    sessions.unlock(id); // cambiarle el PIN destraba a quien se bloqueó por intentos (E4-07)
   });
   app.action('users.remove', { permission: 'users.manage' }, ({ id } = {}, ctx) => {
     own();

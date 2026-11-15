@@ -229,3 +229,50 @@ test('si la carpeta temporal no se deja vaciar, Manna se cierra igual y la deja 
   });
   await assert.doesNotReject(app.close());
 });
+
+// Cuentas y PIN (fase 52.5 de la auditoría integral). Una persona entra desde un celular de la red, con su PIN.
+const pinSetup = () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-pin-'));
+  const storage = createStorage(dir);
+  const roles = ['control', 'alabanza'].map((id) => ({ id, name: id, permissions: [], requiresPin: true }));
+  const sessions = createSessions({ storage, roles });
+  const enter = (role, user, pin, { internet = false, ip = '192.0.2.5' } = {}) => {
+    let cookie = '';
+    try {
+      sessions.open({ isLocal: false, internet, ip, session: null, res: { setHeader: (k, v) => { cookie = v.split(';')[0]; } } }, { role, user, pin });
+    } catch (err) {
+      return { error: err.message, status: err.status };
+    }
+    return { req: { headers: { cookie } } };
+  };
+  return { dir, sessions, enter };
+};
+
+test('quitarle una función a alguien lo saca de ella, y la nube dice a quién le cambió el PIN (N1-3-3)', (t) => {
+  const { dir, sessions, enter } = pinSetup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const ana = sessions.users.create({ name: 'Ana', pin: '1357', functions: ['alabanza', 'control'] });
+  const { req } = enter('alabanza', ana.id, '1357');
+  assert.equal(sessions.fromRequest(req)?.role, 'alabanza');
+  sessions.users.update(ana.id, { functions: ['control'] });
+  assert.equal(sessions.fromRequest(req), null, 'sin la función, su sesión ya no vale: vuelve a escribir su PIN');
+  const tmp = sessions.users.create({ name: 'Otro', pin: '2468', functions: ['control'] });
+  const list = sessions.users.records().filter((u) => u.id !== tmp.id).map((u) => (u.id === ana.id ? { ...u, pin: sessions.users.records().find((x) => x.id === tmp.id).pin } : u));
+  const { gone, repinned } = sessions.users.replace(list);
+  assert.deepEqual([gone, repinned], [[tmp.id], [ana.id]], 'quien la llama cierra sus sesiones');
+});
+
+test('un PIN equivocado dice cuántos intentos quedan, y el bloqueo de internet no deja fuera a la red de la iglesia (E4-07, S5-10)', (t) => {
+  const { dir, sessions, enter } = pinSetup();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const ana = sessions.users.create({ name: 'Ana', pin: '1357', functions: ['alabanza'] });
+  const tries = [1, 2, 3, 4, 5].map((i) => enter('alabanza', ana.id, '0000', { internet: true, ip: `203.0.113.${i}` }).error);
+  assert.deepEqual(tries.slice(0, 2), ['PIN incorrecto.', 'PIN incorrecto.']);
+  assert.match(tries[2], /Te quedan 2 intentos/);
+  assert.match(tries[4], /quedó bloqueado 15 minutos/);
+  assert.match(enter('alabanza', ana.id, '1357', { internet: true, ip: '203.0.113.9' }).error, /bloqueado/, 'desde internet, bloqueado');
+  assert.ok(enter('alabanza', ana.id, '1357').req, 'desde el wifi de la iglesia, entra');
+  sessions.users.setPin(ana.id, '2468');
+  sessions.unlock(ana.id);
+  assert.ok(enter('alabanza', ana.id, '2468', { internet: true, ip: '203.0.113.10' }).req, 'el administrador la destraba cambiándole el PIN');
+});

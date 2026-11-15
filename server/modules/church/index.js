@@ -155,7 +155,7 @@ export default function setup(app) {
     let copy;
     try { copy = JSON.parse((await ctx.raw(32 * 1024 * 1024)).toString('utf8')); } catch { throw new HttpError(400, 'Esa copia no se puede leer.'); }
     if (copy?.manna !== 1 || !Array.isArray(copy.users) || !copy.sets || typeof copy.sets !== 'object') throw new HttpError(400, 'Eso no es una copia de Manna.');
-    app.sessions.users.replace(copy.users);
+    for (const id of app.sessions.users.replace(copy.users).repinned) app.sessions.closeUser(id);
     app.services.users?.publish();
     for (const [name, sync] of Object.entries(SETS)) {
       const set = copy.sets[name];

@@ -120,14 +120,16 @@ export function createUsers({ storage, legacyPin = null }) {
       store.save();
       return same;
     },
-    // La copia del equipo: la lista entera de la nube (con al menos un administrador). Devuelve los que ya no están.
+    // La copia del equipo: la lista entera de la nube (con al menos un administrador). Devuelve los que ya no están
+    // (gone) y a quién le cambió el PIN (repinned), para que quien la llama cierre sus sesiones (N1-3-3).
     replace(records) {
       const next = records.map(validRecord).filter(Boolean);
       if (!next.some((u) => u.admin)) throw new HttpError(409, 'La lista de la nube no trae ningún administrador.');
       const gone = list.filter((u) => !next.some((n) => n.id === u.id)).map((u) => u.id);
+      const repinned = next.filter((n) => list.some((u) => u.id === n.id && JSON.stringify(u.pin) !== JSON.stringify(n.pin))).map((n) => n.id);
       list.splice(0, list.length, ...next);
       store.save();
-      return gone;
+      return { gone, repinned };
     },
     remove(id) {
       const user = find(id);
