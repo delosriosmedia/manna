@@ -99,7 +99,8 @@ test('el equipo oficial no se bloquea por un portátil con Manna: el portátil s
   assert.ok(official, 'el oficial se abre en el puerto siguiente y dice que es el oficial');
   const system = async (port) => (await (await fetch(`${at(port)}/api/state`)).json()).system;
   assert.equal((await system(PORT + 1)).blocked, null, 'el oficial no se bloquea por el portátil');
-  const stepped = await until(async () => { const p = await ping(PORT); if (p?.id !== laptop.id) return null; return (await system(PORT)).blocked; }, 30_000);
+  // El portátil se reinicia en medio: una pregunta puede encontrar la conexión cortada (ECONNRESET, en Windows) y se repite.
+  const stepped = await until(async () => { const p = await ping(PORT); if (p?.id !== laptop.id) return null; return (await system(PORT).catch(() => null))?.blocked; }, 30_000);
   assert.ok(stepped?.official, 'el portátil se reinicia bloqueado y dice que el oficial está');
   await send(PORT + 1, 'system.shutdown');
   await send(PORT, 'system.shutdown');
