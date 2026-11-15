@@ -564,6 +564,46 @@ test('copias en Google Drive: conectar la cuenta, hacer una copia y volver a ell
 
 // Antes de bajar el himnario de la nube (S5-11 de la auditoría integral): siempre queda margen en el disco. Si no cabe
 // todo, solo las biblias, las letras y los himnos de los próximos cultos; si tampoco, nada. Y lo dice.
+// Los usuarios entre el equipo y su nube (fase 52.5 de la auditoría integral): una lista dañada en el equipo se cura sola
+// (N1-3-4); una nube sin administrador no se copia (N1-3-1); reemparejar con una nube rehecha no borra a nadie (N1-3-2).
+test('los usuarios entre el equipo y su nube: una lista dañada, una nube sin administrador y una nube rehecha', async () => {
+  const nube = await serve('nube-usuarios', { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'clave-usuarios' });
+  const nueva = await serve('nube-rehecha', { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'clave-rehecha' });
+  const a = await serve('iglesia-usuarios');
+  assert.equal((await nube.call('/api/session/alta', { clave: 'clave-usuarios', name: 'Ana', pin: '1234' })).status, 200);
+  await a.call('/api/session', { role: 'control' });
+  await a.send('users.create', { name: 'Carla', pin: '2222', functions: ['presentador'] });
+  await a.send('cloud.pair', { url: nube.base, code: (await nube.send('cloud.code')).result.code });
+  await a.app.services.cloud.check();
+  const names = async (s) => s.app.sessions.users.list().map((u) => u.name).sort(); // la lista de verdad, no la publicada
+  const everyone = ['Administrador', 'Ana', 'Carla'];
+  assert.deepEqual(await names(a), everyone);
+
+  // La lista del equipo se daña (queda solo el administrador): en la siguiente comprobación vuelve la de la nube.
+  const here = a.app.sessions.users;
+  here.replace(here.records().filter((u) => u.admin));
+  await a.app.services.cloud.check();
+  assert.deepEqual(await names(a), everyone, 'el equipo vuelve a pedir la lista buena');
+  assert.equal(JSON.stringify(here.records()), JSON.stringify(nube.app.sessions.users.records()), 'idéntica: no se vuelve a pedir cada minuto');
+
+  // A la nube se le pierde la lista (vuelve al «Administrador» de fábrica, sin alta): el equipo se queda con la suya.
+  const there = nube.app.sessions.users;
+  const fresh = [{ id: 'f'.repeat(12), name: 'Administrador', admin: true, functions: ['control', 'alabanza', 'presentador', 'orador-sencillo'], pin: there.records()[0].pin, added: 1 }];
+  Object.assign(there, { claimed: () => false, records: () => fresh });
+  await a.app.services.cloud.check();
+  delete there.claimed;
+  delete there.records;
+  assert.deepEqual(await names(a), everyone, 'no copia una lista sin administrador: nadie podría entrar');
+  assert.match((await a.state()).cloud.error || '', /administrador/i, 'y lo dice en Ajustes → Nube');
+
+  // La iglesia rehace su nube (otra, con su alta) y empareja el equipo con ella: sus usuarios suben, no se borran.
+  assert.equal((await nueva.call('/api/session/alta', { clave: 'clave-rehecha', name: 'Ana', pin: '1234' })).status, 200);
+  assert.equal((await a.send('cloud.pair', { url: nueva.base, code: (await nueva.send('cloud.code')).result.code })).status, 200);
+  await a.app.services.cloud.check();
+  assert.deepEqual(await names(a), everyone, 'el equipo conserva a todos');
+  assert.deepEqual(await names(nueva), everyone, 'y la nube nueva los recibe');
+});
+
 test('el himnario de la nube no llena el disco', () => {
   const GB = 2 ** 30;
   const list = [

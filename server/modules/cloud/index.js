@@ -341,7 +341,8 @@ function cloudSide(app) {
   app.route('GET', '/api/nube/usuarios', (ctx) => {
     speaking(ctx);
     const list = users.records();
-    return { version: versionOf(list), list };
+    // claimed: si ya tiene administrador; una lista de fábrica (se le perdió o se le dañó la suya) no se copia (N1-3-1).
+    return { version: versionOf(list), list, claimed: users.claimed() };
   });
   app.route('POST', '/api/nube/usuarios', async (ctx) => {
     speaking(ctx);
@@ -392,14 +393,25 @@ function churchSide(app) {
   // La primera vez, los del equipo suben (el que ya está en la nube con su nombre se queda, y sus órdenes pasan a él);
   // luego, la lista de la nube pasa a ser la del equipo. Los órdenes de quien ya no está pasan al administrador.
   async function syncUsers() {
+    let cloudList = await ask('GET', '/api/nube/usuarios');
+    // Una nube sin administrador (se le perdió o se le dañó la lista): copiarla dejaría a todos sin poder entrar en un
+    // minuto. El equipo se queda con la suya y lo dice (N1-3-1 de la auditoría integral).
+    if (cloudList.claimed === false) {
+      console.error('Nube: su lista de usuarios no tiene administrador; no se copia.');
+      return 'La nube no tiene administrador: revisa «Administrar la iglesia». Este equipo sigue con sus usuarios.';
+    }
+    // Una nube rehecha (ninguna persona en común con el equipo): los del equipo suben otra vez, en vez de borrarse (N1-3-2).
+    const mine = users.records();
+    if (saved.data.usersUp && !cloudList.list?.some((u) => mine.some((m) => m.id === u.id))) saved.data.usersUp = false;
     if (!saved.data.usersUp) {
-      const { same } = await ask('POST', '/api/nube/usuarios', { list: users.records() });
+      const { same } = await ask('POST', '/api/nube/usuarios', { list: mine });
       for (const [from, to] of Object.entries(same || {})) app.services.order?.reassign(from, to);
       saved.data.usersUp = true;
       saved.save();
       console.log(`Nube: los usuarios de este equipo subieron a la nube (${users.list().length}).`);
+      cloudList = await ask('GET', '/api/nube/usuarios');
     }
-    const { version: theirs, list } = await ask('GET', '/api/nube/usuarios');
+    const { version: theirs, list } = cloudList;
     const before = users.list();
     const { gone, repinned } = users.replace(list);
     for (const id of gone) app.services.order?.reassign(id, users.firstAdmin().id);
@@ -554,10 +566,11 @@ function churchSide(app) {
       if (apart && apart !== wasApart) console.log(`Nube: ${apart}`);
       if (body.settings) app.services.church?.apply(body.settings);
       useTunnel(body.tunnel);
-      if (!apart && body.users && body.users !== saved.data.users) await syncUsers();
+      // También si la lista del equipo ya no es la de la nube (se dañó aquí): se cura sola (N1-3-4).
+      const usersWarning = !apart && body.users && (body.users !== saved.data.users || body.users !== versionOf(users.records())) ? await syncUsers() : null;
       // Por si se perdió un aviso: si la nube o el equipo tienen algo distinto de lo último que se juntó.
       if (!apart && (body.data !== saved.data.cloudData || setVersion(exportAll(app)) !== saved.data.synced)) await syncData(atStart ? 'al arrancar' : 'revisión de cada minuto');
-      set({ status: apart ? 'version' : 'on', lastSeen: Date.now(), error: apart });
+      set({ status: apart ? 'version' : 'on', lastSeen: Date.now(), error: apart || usersWarning || null });
       if (!apart) {
         waitLoop();
         receive().then(pushLibrary).catch((err) => console.error('No se pudo poner al día lo de Medios con la nube:', err.message));

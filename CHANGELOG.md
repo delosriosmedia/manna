@@ -4,6 +4,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **Los usuarios del equipo ya no se pierden por un problema de la nube**: si a la nube se le pierde o se le daña su lista de usuarios, el equipo de la iglesia se queda con la suya y lo avisa en Ajustes → Nube, en vez de dejar a todos sin poder entrar. Emparejarlo con una nube rehecha sube sus usuarios en vez de borrarlos. Y si se daña la lista del propio equipo, vuelve sola desde la nube en el primer minuto con internet.
 - **Las cuentas, más seguras y más claras**: quitarle una función a alguien, o cambiarle el PIN desde «Administrar la iglesia», lo saca de esa función en el equipo; antes seguía dentro. Desde el tercer PIN equivocado, Manna dice cuántos intentos quedan, y al bloquearse un nombre dice que son 15 minutos y que el administrador lo destraba cambiándole el PIN. Los intentos desde internet se cuentan aparte: alguien de fuera ya no puede dejar a una persona sin entrar en el wifi de la iglesia.
 ## 1.72.0 — 2026-11-14
 
