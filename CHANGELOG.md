@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.73.0 — 2026-11-14
+
 - **El orden en uso ya no se pierde por un borrado desde casa**: si alguien lo borraba desde la nube en plena reunión, la cola del culto se vaciaba. Ahora la iglesia lo conserva, vuelve a la nube y el Orden lo avisa. En la nube, un orden creado de noche ya no lleva la fecha de mañana. Y si la hora del equipo va desfasada, Ajustes → Nube lo dice, porque así un cambio del orden podía perderse al sincronizar.
 - **El himnario de la nube, más fiable**: un himno o una biblia con tilde ya no se baja dos veces en Windows, ni sale como «repetido». Los himnos favoritos de antes de la 1.48 ya no se pierden al emparejar el equipo con su nube. Y un himno que se proyecta desde la nube espera menos si internet va lento.
 - **Los usuarios del equipo ya no se pierden por un problema de la nube**: si a la nube se le pierde o se le daña su lista de usuarios, el equipo de la iglesia se queda con la suya y lo avisa en Ajustes → Nube, en vez de dejar a todos sin poder entrar. Emparejarlo con una nube rehecha sube sus usuarios en vez de borrarlos. Y si se daña la lista del propio equipo, vuelve sola desde la nube en el primer minuto con internet.
