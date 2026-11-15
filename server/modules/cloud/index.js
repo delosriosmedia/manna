@@ -40,6 +40,15 @@ export const PROTOCOL = 1;
 export const contentKey = (key) => typeof key === 'string' && /^(Biblias|Himnario\/(videos|letras|diapositivas))\//.test(key) && !key.split('/').some((p) => !p || p === '.' || p === '..');
 // El equipo de una iglesia desde internet (regla del dueño, 2026-10-29): servidor-<iglesia> en el dominio de su nube
 // (nv.manna-iglesia.es → https://servidor-nv.manna-iglesia.es). Sin dominio (una IP o localhost), ninguna.
+// Si la hora del equipo va desfasada más de 5 minutos de la de la nube (contando la ida y la vuelta), qué decir: en la
+// sincronización gana el cambio más reciente, y con el reloj atrasado una edición de la iglesia perdía (S5-12).
+export function clockWarning(cloudNow, sentAt, receivedAt) {
+  if (!Number.isFinite(cloudNow)) return null;
+  const off = (sentAt + receivedAt) / 2 - cloudNow;
+  if (Math.abs(off) < 5 * 60_000) return null;
+  return `La hora de este equipo va ${Math.round(Math.abs(off) / 60_000)} minutos ${off < 0 ? 'atrasada' : 'adelantada'}: corrígela en el sistema, o un cambio del orden puede perderse al sincronizar.`;
+}
+
 export function serverUrl(host) {
   const m = /^([a-z0-9-]+)\.((?:[a-z0-9-]+\.)*[a-z]{2,})$/i.exec(String(host).split(':')[0]);
   return m ? `https://servidor-${m[1]}.${m[2]}` : null;
@@ -221,7 +230,7 @@ function cloudSide(app) {
       o.ip = ctx.ip;
       saved.save();
       publish();
-      return { official: true, church: host(ctx), users: versionOf(users.records()), data: versionNow(), settings: app.services.church?.settings(), tunnel: tunnelOf(ctx),
+      return { now: Date.now(), official: true, church: host(ctx), users: versionOf(users.records()), data: versionNow(), settings: app.services.church?.settings(), tunnel: tunnelOf(ctx),
         version: process.env.MANNA_NUBE_VERSION || store.get('system')?.version, protocol: speaks() };
     }
     const former = saved.data.former.find((f) => same(mine, f.tokenHash));
@@ -449,6 +458,8 @@ function churchSide(app) {
         const found = name === 'orders' ? res.conflicts || [] : [];
         if (setVersion({ x: here }) !== setVersion({ x: merged }) || found.length) {
           service.apply({ records: merged.records, deleted: merged.deleted }, found);
+          // Si el servicio conservó algo (el orden en uso que se borró desde la nube, N1-2-1), otra vuelta lo sube.
+          if (setVersion({ x: service.export() }) !== setVersion({ x: merged })) again = true;
           said.push(changesOf(LABELS[name], here, merged, name === 'orders') + (found.length ? ` (${found.length} con conflicto)` : ''));
         }
       }
@@ -521,6 +532,7 @@ function churchSide(app) {
         signal: AbortSignal.timeout(15_000),
       });
       const body = await res.json().catch(() => ({}));
+      const clock = clockWarning(body.now, started, Date.now());
       if (res.status === 401) {
         console.log(`Nube: la nube no reconoce este equipo (${took()}).`);
         return set({ status: 'unknown', error: body.error || 'La nube no reconoce este equipo: vuelve a emparejarlo.' });
@@ -571,7 +583,7 @@ function churchSide(app) {
       const usersWarning = !apart && body.users && (body.users !== saved.data.users || body.users !== versionOf(users.records())) ? await syncUsers() : null;
       // Por si se perdió un aviso: si la nube o el equipo tienen algo distinto de lo último que se juntó.
       if (!apart && (body.data !== saved.data.cloudData || setVersion(exportAll(app)) !== saved.data.synced)) await syncData(atStart ? 'al arrancar' : 'revisión de cada minuto');
-      set({ status: apart ? 'version' : 'on', lastSeen: Date.now(), error: apart || usersWarning || null });
+      set({ status: apart ? 'version' : 'on', lastSeen: Date.now(), error: apart || usersWarning || clock || null });
       if (!apart) {
         waitLoop();
         receive().then(pushLibrary).catch((err) => console.error('No se pudo poner al día lo de Medios con la nube:', err.message));

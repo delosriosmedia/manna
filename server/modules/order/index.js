@@ -262,14 +262,23 @@ export default function setup(app) {
     sync: {
       export: () => ({ records: structuredClone(data.saved), deleted: [...data.deleted] }),
       apply({ records, deleted }, conflicts = []) {
+        const inUse = find(data.active);
         data.saved = records.filter((o) => typeof o.id === 'string' && typeof o.name === 'string' && Array.isArray(o.items));
         data.deleted = deleted;
+        // El orden en uso que se borró desde la nube se conserva: si no, la cola del culto se vaciaba en plena reunión
+        // (N1-2-1 de la auditoría integral). Vuelve como recién cambiado, así reaparece en la nube, y se avisa. Solo en el
+        // equipo de la iglesia: en la nube no se proyecta, y conservarlo allí deshacía lo que se borra en la iglesia.
+        if (!app.cloud && inUse && !find(inUse.id)) {
+          data.saved.push({ ...inUse, updated: Date.now() });
+          data.deleted = data.deleted.filter((d) => d.id !== inUse.id);
+          conflicts = [...conflicts, { id: inUse.id, why: 'en uso' }];
+        }
         if (!find(data.active)) data.active = null;
         for (const [user, open] of Object.entries(data.editing)) if (!find(open)) delete data.editing[user];
         const at = Date.now();
         for (const c of conflicts) {
           const o = find(c.id);
-          if (o) data.conflicts = [...data.conflicts.filter((x) => x.id !== c.id), { id: c.id, name: o.name, owner: o.owner, at, where: c.where }].slice(-20);
+          if (o) data.conflicts = [...data.conflicts.filter((x) => x.id !== c.id), { id: c.id, name: o.name, owner: o.owner, at, where: c.where, ...(c.why && { why: c.why }) }].slice(-20);
         }
         save();
       },

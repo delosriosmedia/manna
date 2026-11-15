@@ -22,6 +22,7 @@ Las que no llevan claves (`MANNA_NUBE`, `MANNA_DATA`, `MANNA_NO_OPEN`, `MANNA_SI
 | `MANNA_NUBE` | `1` (el asistente) |
 | `MANNA_NO_OPEN`, `MANNA_SIN_VENTANA` | `1` (el asistente) |
 | `MANNA_DATA` | `/home/u887958304/domains/<sitio>/manna-datos` (el asistente) |
+| `TZ` (opcional) | la zona horaria de la iglesia, si no es `America/Bogota`, que pone `server/inicio.cjs` si falta: el hosting va en UTC, y de noche un orden nuevo salía con la fecha de mañana (fase 52.5, N1-3-7) |
 | `MANNA_CLAVE_ALTA` | la clave de un solo uso con la que entra el primer administrador (la elige el dueño) |
 | `R2_ACCOUNT_ID`, `R2_BUCKET` | los de `~/.manna-r2` |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | una clave de R2 **de solo lectura**, solo para el depósito `manna-contenido` y **una por sitio** (S54): «manna-<sitio>-solo-lectura» (Cloudflare → R2 → Manage API tokens → Create Account API token, «Object Read only»). `pruebas` usa «manna-pruebas-solo-lectura» desde el 2026-10-29. Nunca la de subir («R2 Account Token», de lectura y escritura, la de `~/.manna-r2` de este Mac) |

@@ -569,7 +569,8 @@ function mount(el, ctx) {
     const left = limit - total;
     full.hidden = !ctx.can('order.edit') || left > WARN_LEFT;
     conflicts.replaceChildren(...(ctx.can('order.edit') ? state.orders?.conflicts || [] : []).map((c) => h('div', { class: 'order-note', role: 'status' },
-      h('span', {}, `«${c.name}» se cambió en la iglesia y en la nube a la vez, sin conexión entre ellas: quedó el cambio más reciente, el de ${c.where}.`),
+      h('span', {}, c.why === 'en uso' ? `«${c.name}» se borró desde la nube mientras se usaba en la iglesia: se conserva y vuelve a la nube. Bórralo cuando ya no se use.`
+        : `«${c.name}» se cambió en la iglesia y en la nube a la vez, sin conexión entre ellas: quedó el cambio más reciente, el de ${c.where}.`),
       h('button', { class: 'btn', onclick: guard(() => action('order.dismissConflict', { id: c.id })) }, 'Entendido'))));
     full.replaceChildren(...[h('span', {}, `${left > 0 ? `Quedan ${plural(left, 'orden libre', 'órdenes libres')} de ${limit}.` : `Ya hay ${limit} órdenes, el máximo: no se pueden crear más.`} Limpia los órdenes antiguos que ya no necesites${me?.admin ? '' : ' (los de otras personas los borra el administrador)'}.`),
       view !== 'ordenes' && h('button', { class: 'btn', onclick: () => setView('ordenes') }, 'Ver los órdenes')].filter(Boolean));

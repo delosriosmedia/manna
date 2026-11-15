@@ -21,7 +21,7 @@ import superadmin from '../server/modules/super/index.js';
 import { startFakeR2 } from '../scripts/lib/r2-falso.mjs';
 import { startFakeGoogle } from '../scripts/lib/google-falso.mjs';
 import { expired } from '../server/modules/super/drive.js';
-import { serverUrl } from '../server/modules/cloud/index.js';
+import { clockWarning, serverUrl } from '../server/modules/cloud/index.js';
 import { createContent, pick } from '../server/modules/cloud/contenido.js';
 
 // Las letras que falten no se buscan en internet: un repositorio que no contesta (Manna las busca solo al convertir una
@@ -633,6 +633,44 @@ test('un himno con la tilde escrita de otra forma no se baja otra vez', () => {
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// El orden que se está usando en la iglesia no se pierde si alguien lo borra desde casa: antes la cola del culto se
+// vaciaba en plena reunión (N1-2-1 de la auditoría integral). Se conserva, vuelve a la nube y se avisa.
+test('el orden en uso no se pierde si lo borran desde la nube', async () => {
+  const nube = await serve('nube-en-uso', { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'clave-en-uso' });
+  const a = await serve('iglesia-en-uso');
+  assert.equal((await nube.call('/api/session/alta', { clave: 'clave-en-uso', name: 'Ana', pin: '1234' })).status, 200);
+  await a.call('/api/session', { role: 'control' });
+  await a.send('cloud.pair', { url: nube.base, code: (await nube.send('cloud.code')).result.code });
+  const id = (await a.send('order.create', { name: 'Culto del domingo' })).result.id;
+  await a.send('order.addSection', { title: 'Apertura' });
+  await a.send('order.use', { id });
+  await a.app.services.cloud.check();
+  assert.ok((await nube.state()).orders.list.some((o) => o.id === id), 'llegó a la nube');
+  const ana = (await nube.state()).users.list.find((u) => u.name === 'Ana').id;
+  await nube.call('/api/session', { role: 'preparacion', user: ana }); // quien prepara desde casa (ya entró: sin PIN)
+  assert.equal((await nube.send('order.deleteOrder', { id })).status, 200);
+  await a.app.services.cloud.check();
+  const here = await a.state();
+  assert.deepEqual([here.order.active, here.order.items.length], [id, 1], 'en la iglesia sigue en uso, con lo que tenía');
+  assert.match(JSON.stringify(here.orders.conflicts), /en uso/, 'y lo avisa');
+  let back = false;
+  for (let i = 0; i < 50 && !back; i += 1) {
+    back = (await nube.state()).orders.list.some((o) => o.id === id);
+    if (!back) await new Promise((r) => { setTimeout(r, 100); });
+  }
+  assert.ok(back, 'y vuelve a la nube en la vuelta siguiente');
+});
+
+// Un reloj del equipo desfasado se avisa: en la sincronización gana el cambio más reciente (S5-12).
+test('si la hora del equipo va desfasada, se avisa', () => {
+  const now = Date.UTC(2026, 10, 15, 12);
+  assert.equal(clockWarning(now, now - 200, now + 200), null, 'en hora');
+  assert.equal(clockWarning(now + 4 * 60_000, now, now), null, 'unos minutos, sin aviso');
+  assert.match(clockWarning(now + 12 * 60_000, now, now), /12 minutos atrasada/);
+  assert.match(clockWarning(now - 30 * 60_000, now, now), /30 minutos adelantada/);
+  assert.equal(clockWarning(undefined, now, now), null, 'una nube anterior, que no dice su hora');
 });
 
 test('el himnario de la nube no llena el disco', () => {
