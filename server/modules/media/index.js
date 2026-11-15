@@ -270,12 +270,14 @@ export default function setup(app) {
     for (const c of saved.data.categories) c.items = c.items.filter((v) => v !== id);
     if (library.has(id)) {
       library.remove(id);
+      app.services.projection?.prune();
       return;
     }
     const image = find(id);
     for (const file of [image.file, image.thumb].filter(Boolean)) fs.rmSync(path.join(app.uploadsDir, file), { force: true });
     saved.data.images = saved.data.images.filter((i) => i.id !== id);
     commit();
+    app.services.projection?.prune();
   });
 
   // ---- Categorías ----

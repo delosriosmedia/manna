@@ -1,12 +1,26 @@
+import { reportSound } from '../../core/api.js';
 // Sonidos de los temporizadores (fase 32), hechos en el momento con el sintetizador del navegador (Web Audio): sin
 // archivos de terceros. En los últimos 10 segundos, un tictac de reloj suave (tic y tac alternos); en los últimos 5,
 // más marcado; y al llegar a cero, una alarma corta, suave y bonita: tres notas de campana que suben (la, do#, mi).
 // Solo suena la pantalla que suena (la regla de una sola, ver projection/stage.js), con el volumen general de Manna.
 
 let context = null;
+// En una pestaña que nadie ha tocado, el navegador no deja sonar y resume() se queda esperando: se avisa, como hacen los
+// videos, para que suene otra pantalla o los mandos lo digan; al primer toque, se avisa que ya puede (N2-4-2).
+let muted = false;
 const audio = () => {
   context ||= new (window.AudioContext || window.webkitAudioContext)();
-  if (context.state === 'suspended') context.resume().catch(() => {});
+  if (context.state === 'suspended') {
+    context.resume().catch(() => {});
+    if (!muted) {
+      muted = true;
+      setTimeout(() => {
+        if (context.state === 'running') { muted = false; return; }
+        reportSound(false);
+        document.addEventListener('pointerdown', () => { muted = false; reportSound(true); }, { once: true });
+      }, 300);
+    }
+  }
   return context;
 };
 

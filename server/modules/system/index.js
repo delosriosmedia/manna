@@ -291,9 +291,7 @@ export default function setup(app) {
       try { app.run(type, { id }); } catch (err) { failed += 1; console.error(`Limpiar: no se pudo borrar ${id} (${type}): ${err.message}`); }
     }
     app.services.order?.prune();
-    // Lo que estaba al aire y ya no existe deja la pantalla en el fondo.
-    const item = store.get('projection')?.item;
-    if (item && !app.kinds.get(item.kind)?.resolve(item.source.data, item.source.step)) app.run('projection.clear');
+    app.services.projection?.prune(); // lo que estaba al aire y ya no existe deja la pantalla en el fondo
     return { removed: removals.length - failed, failed, freed: Math.max(0, before - diskUsage(app).total) };
   });
 

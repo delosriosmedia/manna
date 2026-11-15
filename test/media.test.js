@@ -179,6 +179,7 @@ test('Medios: subir, nombrar, ajustar, proyectar, encuadrar al aire, añadir al 
 
     // Eliminar borra la imagen y su miniatura; el elemento del orden deja de poder proyectarse.
     assert.equal((await control.send('media.remove', { id: up.id })).status, 200);
+    assert.equal((await state()).projection.item, null, 'estaba al aire: la pantalla queda en el fondo, no rota para quien entra después (N1-2-4)');
     assert.deepEqual(files(), [`${second.id}.png`]);
     assert.equal((await control.request(up.url)).status, 404);
     assert.equal((await control.send('order.show', { id: added.result.id })).status, 404);

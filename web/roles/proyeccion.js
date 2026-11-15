@@ -4,6 +4,7 @@ import { createStage, withOver } from '../modules/projection/stage.js';
 import { preferStableAddress } from '../core/upgrade.js';
 import { ensureRole } from '../core/session.js';
 import { watchBlocked } from '../core/blocked.js';
+import { keepAwake } from '../core/despierto.js';
 
 // Pantalla de proyección: solo muestra. La usan la ventana de la segunda pantalla
 // y cualquier dispositivo que elija esta función.
@@ -41,12 +42,9 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'Enter') enterFullscreen();
 });
 
-// Mantiene la pantalla encendida en celulares y tabletas (si el navegador lo permite).
-const keepAwake = () => navigator.wakeLock?.request('screen').catch(() => {});
+// Mantiene la pantalla encendida en celulares y tabletas: Wake Lock no lo da el navegador por http, así que se usa el
+// video mudo de los móviles (E1-10 de la auditoría integral: una tableta como proyección se apagaba a mitad del culto).
 keepAwake();
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') keepAwake();
-});
 
 const hint = $('#hint');
 if (isTv) hint.textContent = 'Pulsa OK en el control para pantalla completa';

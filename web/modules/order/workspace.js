@@ -296,8 +296,8 @@ function mount(el, ctx) {
   function rowMenu(anchor, item, index) {
     menu(anchor, [
       { label: 'Cambiar nombre', icon: 'pencil-simple', onclick: () => rename(item) },
-      { label: 'Subir', icon: 'arrow-up', disabled: index === 0, onclick: () => run('order.move', { id: item.id, toIndex: index - 1 }) },
-      { label: 'Bajar', icon: 'arrow-down', disabled: index === items.length - 1, onclick: () => run('order.move', { id: item.id, toIndex: index + 1 }) },
+      { label: 'Subir', icon: 'arrow-up', disabled: index === 0, onclick: () => run('order.move', { id: item.id, delta: -1 }) },
+      { label: 'Bajar', icon: 'arrow-down', disabled: index === items.length - 1, onclick: () => run('order.move', { id: item.id, delta: 1 }) },
       '-',
       { label: 'Quitar del orden', icon: 'trash', onclick: () => run('order.remove', { id: item.id }) },
     ]);
@@ -483,8 +483,8 @@ function mount(el, ctx) {
     const index = items.indexOf(item);
     const tools = editable && h('div', { class: 'odetail-tools' },
       h('button', { class: 'btn', onclick: () => rename(item) }, icon('pencil-simple', 16), 'Nombre'),
-      h('button', { class: 'btn', disabled: index === 0, onclick: () => run('order.move', { id: item.id, toIndex: index - 1 }) }, icon('arrow-up', 16), 'Subir'),
-      h('button', { class: 'btn', disabled: index === items.length - 1, onclick: () => run('order.move', { id: item.id, toIndex: index + 1 }) }, icon('arrow-down', 16), 'Bajar'),
+      h('button', { class: 'btn', disabled: index === 0, onclick: () => run('order.move', { id: item.id, delta: -1 }) }, icon('arrow-up', 16), 'Subir'),
+      h('button', { class: 'btn', disabled: index === items.length - 1, onclick: () => run('order.move', { id: item.id, delta: 1 }) }, icon('arrow-down', 16), 'Bajar'),
       h('button', { class: 'btn danger', onclick: () => run('order.remove', { id: item.id }) }, icon('trash', 16), 'Quitar'));
     // Lo que no está en este equipo lo dice su tipo, en vez de pedir miniaturas que no existen.
     const away = kindOf(item.kind)?.elsewhere?.(item);

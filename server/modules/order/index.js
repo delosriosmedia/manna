@@ -275,10 +275,17 @@ export default function setup(app) {
       },
     },
     // Salta lo que ya no existe (una imagen quitada de Medios): si no, «Siguiente» se atascaba en ello con un error
-    // (N1-2-3 de la auditoría integral). El de partida cuenta siempre, exista o no.
+    // (N1-2-3). Y cuenta los pasos de hoy: un texto o unas letras editados después de ponerlos en el orden tienen otros
+    // (S1-D). El de partida cuenta siempre, exista o no.
     neighbor(id, step, delta) {
-      const target = neighbor(items().filter((i) => i.id === id || exists(i)), id, step, delta);
-      const item = target && items().find((i) => i.id === target.id);
+      const now = items().flatMap((i) => {
+        if (i.kind === 'section') return [i];
+        const described = app.kinds.get(i.kind)?.describe(i.data);
+        if (described) return [{ ...i, steps: described.steps ?? i.steps }];
+        return i.id === id ? [i] : [];
+      });
+      const target = neighbor(now, id, step, delta);
+      const item = target && now.find((i) => i.id === target.id);
       return item ? { kind: item.kind, data: item.data, step: target.step, orderId: item.id, title: item.title, steps: item.steps } : null;
     },
   };
@@ -349,9 +356,13 @@ export default function setup(app) {
     update(o, o.items.filter((i) => i.id !== id));
   });
 
-  app.action('order.move', { permission: 'order.edit' }, ({ id, toIndex }, ctx) => {
+  // toIndex: el puesto exacto (al arrastrar). delta: un puesto arriba o abajo desde donde está ahora («Subir» y «Bajar»),
+  // aunque otro operador haya cambiado el orden mientras tanto (N1-4-4 de la auditoría integral).
+  app.action('order.move', { permission: 'order.edit' }, ({ id, toIndex, delta }, ctx) => {
     const o = target(ctx);
-    update(o, moveItem(o.items, id, Number(toIndex)));
+    if (delta != null && delta !== 1 && delta !== -1) throw new HttpError(400, 'Se sube o se baja de un puesto en un puesto.');
+    const to = delta != null ? o.items.findIndex((i) => i.id === id) + delta : Number(toIndex);
+    update(o, moveItem(o.items, id, to));
   });
 
   app.action('order.clear', { permission: 'order.edit' }, (_, ctx) => {
@@ -424,7 +435,8 @@ export default function setup(app) {
     if (!item) throw new HttpError(404, 'Ese elemento ya no está en el orden del culto.');
     const kind = app.kinds.get(item.kind);
     const steps = [];
-    for (let i = 0; i < Math.min(item.steps || 0, MAX_STEPS_SHOWN); i += 1) {
+    const count = kind?.describe(item.data)?.steps ?? item.steps; // los de hoy (S1-D)
+    for (let i = 0; i < Math.min(count || 0, MAX_STEPS_SHOWN); i += 1) {
       const content = kind?.resolve(item.data, i);
       if (content) steps.push({ kind: item.kind, ...content });
     }

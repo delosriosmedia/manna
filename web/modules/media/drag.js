@@ -20,7 +20,7 @@ export function attachDrag(list, { drop, place: put }) {
   const under = (x, y) => {
     const el = document.elementFromPoint(x, y);
     const card = put && el?.closest('[data-drag]');
-    return el?.closest('[data-category]') || (card && card !== press.card && card.parentElement === press.card.parentElement ? card : null);
+    return el?.closest('[data-category]') || (card && card !== press.card && card.parentElement === press.list ? card : null);
   };
   const mark = (next, x = 0, y = 0) => {
     let column = false;
@@ -58,7 +58,7 @@ export function attachDrag(list, { drop, place: put }) {
       const key = done ? target.dataset.category : undefined;
       // El orden nuevo de la lista, si se soltó sobre otro elemento.
       const order = done && target.dataset.drag && (() => {
-        const ids = [...press.card.parentElement.querySelectorAll(':scope > [data-drag]')].map((c) => c.dataset.drag).filter((id) => id !== press.id);
+        const ids = [...press.list.querySelectorAll(':scope > [data-drag]')].map((c) => c.dataset.drag).filter((id) => id !== press.id);
         ids.splice(ids.indexOf(target.dataset.drag) + (after ? 1 : 0), 0, press.id);
         return ids;
       })();
@@ -86,7 +86,9 @@ export function attachDrag(list, { drop, place: put }) {
     const card = e.target.closest?.('[data-drag]');
     if (!card || e.button !== 0 || e.target.closest('.media-more, .deck-more')) return;
     const touch = e.pointerType !== 'mouse';
-    press = { id: card.dataset.drag, name: card.dataset.name, card, x: e.clientX, y: e.clientY, touch };
+    // La lista se guarda al empezar: si otro pulsa «Siguiente», la lista se vuelve a dibujar y la tarjeta queda fuera de la
+    // página; antes eso dejaba la etiqueta del arrastre pegada y daba un error (N1-4-1 de la auditoría integral).
+    press = { id: card.dataset.drag, name: card.dataset.name, card, list: card.parentElement, x: e.clientX, y: e.clientY, touch };
     if (touch) press.timer = setTimeout(begin, HOLD_MS);
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', end);

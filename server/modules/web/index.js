@@ -177,6 +177,7 @@ export default function setup(app) {
     if (page.source === 'file') fs.rmSync(fileOf(page.id), { force: true });
     saved.data.pages = pages().filter((p) => p.id !== id);
     commit();
+    app.services.projection?.prune();
   });
 
   setupShare(app);

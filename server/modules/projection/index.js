@@ -276,8 +276,17 @@ export default function setup(app) {
     over = step == null ? null : { ...over, step, uid: ++uid, content: app.kinds.get(over.kind).resolve(over.data, step) };
     store.set('projection', { over });
   }
+  // Lo que estaba al aire y ya no existe (se borró de su biblioteca) deja la pantalla en el fondo: si no, quien entra
+  // después lo ve roto (N1-2-4 de la auditoría integral). Lo llaman los módulos al borrar algo.
+  function prune() {
+    const { item } = get();
+    if (!item) return;
+    let alive = false;
+    try { alive = Boolean(app.kinds.get(item.kind)?.resolve(item.source.data, item.source.step)); } catch { /* ya no está */ }
+    if (!alive) app.run('projection.clear');
+  }
   // next(): vuelve a decir qué pondrá «Siguiente» (lo usa quien sabe algo que no cambia lo que está al aire: DeckCraft).
-  services.projection = { present, refresh, covering: () => Boolean(over), next: () => publishNext() };
+  services.projection = { present, refresh, prune, covering: () => Boolean(over), next: () => publishNext() };
   app.action('projection.over', { permission: 'projection.control' }, ({ data, step = 0 } = {}) => {
     const def = app.kinds.get(BIBLE);
     if (!def || !data || typeof data !== 'object' || Array.isArray(data)) throw new HttpError(400, 'Falta qué poner encima.');

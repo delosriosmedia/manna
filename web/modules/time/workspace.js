@@ -34,11 +34,12 @@ function mount(el, ctx) {
   const setLook = (patch) => {
     prefs.set(`tiempo.aspecto.${chosen}`, { ...lookOf(chosen), ...patch });
     paintLook();
-    // Si ese reloj está en una capa, la capa toma el aspecto nuevo (sin mostrarse si estaba oculta).
+    // Si ese reloj está en una capa, la capa toma lo que cambió (sin mostrarse si estaba oculta). Solo eso: el resto del
+    // aspecto que recuerda este dispositivo pisaba el estilo y el sitio que había puesto otro (N1-4-3 de la auditoría).
     const it = what();
     for (const slot of state.layers?.slots || []) {
       if (it && slot.kind === 'clock' && (slot.data?.id || null) === (it.data.id || null)) {
-        action('layers.set', { n: slot.n, kind: 'clock', data: it.data, visible: slot.visible }).catch(() => {});
+        action('layers.set', { n: slot.n, kind: 'clock', data: { ...slot.data, ...patch }, visible: slot.visible }).catch(() => {});
       }
     }
   };

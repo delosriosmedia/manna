@@ -752,5 +752,6 @@ export default function setup(app) {
     fs.rmSync(dirOf(deck), { recursive: true, force: true });
     saved.data.decks = decks().filter((d) => d.id !== id);
     commit();
+    app.services.projection?.prune();
   });
 }

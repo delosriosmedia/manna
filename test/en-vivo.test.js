@@ -190,6 +190,23 @@ test('al cerrar Manna, lo que suena se pausa donde iba', async () => {
   assert.equal(saved.live.state.clock.playing, false, 'y así quedó guardado');
 });
 
+// «Subir» y «Bajar» del Orden mueven un puesto desde donde está ahora, aunque otro operador haya cambiado el orden
+// mientras tanto: antes mandaban el puesto de destino calculado con la lista vieja (N1-4-4 de la auditoría integral).
+test('Subir y Bajar mueven un puesto desde donde está ahora', async () => {
+  const s = await start('subir-bajar');
+  try {
+    const ids = [];
+    for (const v of [1, 2, 3]) ids.push((await s.send('order.add', { kind: 'verses', data: passage(s, 1, v, v) })).result.id);
+    const titles = async () => (await s.state()).order.items.map((i) => i.title.split(':')[1]);
+    await s.send('order.move', { id: ids[0], toIndex: 2 }); // otro arrastró el primero al final: 2, 3, 1
+    assert.equal((await s.send('order.move', { id: ids[2], delta: -1 })).http, 200);
+    assert.deepEqual(await titles(), ['3', '2', '1'], 'el 3 sube un puesto desde donde estaba');
+    assert.equal((await s.send('order.move', { id: ids[2], delta: 5 })).http, 400, 'solo un puesto');
+  } finally {
+    await s.stop();
+  }
+});
+
 // Un «Siguiente» que espera a su tipo (PowerPoint o DeckCraft tardan en contestar) no pisa lo que otro proyectó
 // mientras tanto (S1-C de la auditoría integral).
 test('Siguiente lento no pisa lo que otro acaba de proyectar', async () => {

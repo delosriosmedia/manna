@@ -361,8 +361,10 @@ function mount(el, ctx) {
     try {
       book = await api('/api/hymns');
       failed = false;
-      if (found) clearSearch();
-      render();
+      // Lo escrito en el buscador se conserva y se vuelve a buscar con el catálogo nuevo: antes se borraba cuando llegaba
+      // un himno nuevo a la carpeta, en plena búsqueda (N1-4-5 de la auditoría integral).
+      if (found && input.value.trim()) await searchNow();
+      else render();
     } catch (err) {
       failed = true;
       render();

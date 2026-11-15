@@ -113,3 +113,21 @@ test('el texto fijo va solo en una capa, con su aspecto (2026-10-29)', async () 
     await s.stop();
   }
 });
+
+// Un texto editado después de ponerlo en el orden se pasa entero: «Siguiente» contaba los pasos que tenía al añadirlo
+// (S1-D de la auditoría integral).
+test('un texto editado en el orden se pasa con sus partes de ahora', async () => {
+  const s = await start('texto-editado');
+  try {
+    const id = (await s.send('texts.save', { style: 'normal', text: 'Uno\n\nDos\n\nTres' })).result.id;
+    const item = (await s.send('order.add', { kind: 'text', data: { id } })).result;
+    await s.send('order.add', { kind: 'text', data: { id } });
+    await s.send('texts.save', { id, style: 'normal', text: 'Uno\n\nDos\n\nTres\n\nCuatro\n\nCinco' });
+    await s.send('order.show', { id: item.id, step: 0 });
+    let last;
+    for (let i = 0; i < 4; i += 1) last = (await s.send('projection.step', { delta: 1 })).result;
+    assert.deepEqual([last.source.orderId, last.source.step], [item.id, 4], 'llega a la quinta parte sin saltar al siguiente');
+  } finally {
+    await s.stop();
+  }
+});
