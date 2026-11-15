@@ -67,7 +67,23 @@ export async function action(type, payload = {}, options = {}) {
 }
 
 export const session = {
-  get: () => api('/api/session'),
+  // Solo al abrir una página: si la wifi parpadea, se insiste unas veces y, si no hay manera, se dice y se vuelve a
+  // intentar sola; antes quedaba en blanco sin avisar (N1-5-2 de la auditoría integral). Una orden no se repite sola.
+  get: async () => {
+    for (let tries = 1; ; tries += 1) {
+      try {
+        return await api('/api/session');
+      } catch (err) {
+        if (err.status !== 0) throw err;
+        if (tries >= 4) {
+          document.body.textContent = `${err.message} Se vuelve a intentar en unos segundos.`;
+          setTimeout(() => location.reload(), 5000);
+          throw err;
+        }
+        await new Promise((resolve) => { setTimeout(resolve, 1500); });
+      }
+    }
+  },
   open: (role, pin, user, password) => postJson('/api/session', { role, pin, user, password }),
   // El primer administrador en la nube, con la clave de alta (decisión 62): deja la sesión de /administrar abierta.
   alta: (data) => postJson('/api/session/alta', data),
@@ -238,7 +254,9 @@ export function connect(role) {
   };
 
   // Al volver del segundo plano (celular), no esperar al siguiente reintento.
-  const wake = () => { if (!stopped && (!online || isStale())) open(); };
+  // Al volver a la página, se reconecta si lleva 12 s sin noticias, lo que tarda «En vivo» en darse por desconectado:
+  // entre 12 y 25 s, «Siguiente» quedaba apagado hasta el siguiente latido (E5-10 de la auditoría integral).
+  const wake = () => { if (!stopped && (!online || Date.now() - lastSeen > 12_000)) open(); };
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wake(); });
   // Al cambiar de red (otro wifi, o de wifi a datos) la conexión vieja queda muerta aunque nada lo diga, y el vigilante
   // tardaría hasta 30 s: se rehace ya. Del tipo de red solo cuenta que cambie (wifi, datos, ninguna), no la velocidad.

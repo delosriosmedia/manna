@@ -32,6 +32,12 @@ export function guardTouches(root, { list, controls, cover }) {
   const unpress = () => { pressed?.classList.remove('pressed'); pressed = null; };
 
   root.addEventListener('pointerdown', (e) => {
+    // El primer dedo empieza de cero: si el celular perdió un «soltar», ese dedo fantasma dejaba apagadas para siempre
+    // las protecciones contra toques accidentales (E5-09 de la auditoría integral).
+    if (e.isPrimary) {
+      fingers.clear();
+      onZone = 0;
+    }
     fingers.add(e.pointerId);
     if (inZone(e.target)) onZone += 1;
     if (fingers.size > 1) {

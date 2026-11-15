@@ -800,6 +800,12 @@ try {
   const pill = () => run(`const p = document.querySelector('.scene-status .live-pill'); return JSON.stringify([p.textContent, p.dataset.state, document.querySelector('.scene-bg').dataset.state])`).then(JSON.parse);
   // «Solo fondo» y «Negro» van arriba como iconos, junto a la marca y aparte de «AL AIRE», que va al centro (1.31).
   const transportBtn = (label) => `document.querySelector('.scene-modes .mode-btn[aria-label="${label}"]')`;
+  // Intro sobre un botón de la barra lo pulsa, como en cualquier página; antes el atajo se la comía (I3-01).
+  await run(`${transportBtn('Solo fondo')}.focus()`);
+  await press('Enter', 0, '\r'); // con su carácter: así activa el botón, como el teclado de verdad
+  check('Intro sobre un botón de la barra lo pulsa (aquí, «Solo fondo»)', (await live()).mode === 'clear', JSON.stringify(await live()));
+  await press('Enter', 0, '\r');
+  await run(`document.activeElement?.blur()`);
   check('«AL AIRE» va en su burbuja, al centro de la barra, y «Solo fondo» y «Negro» son iconos junto a cambiar de función', await run(`const s = document.querySelector('.scene-status').getBoundingClientRect(); const mid = (s.left + s.right) / 2; const m = document.querySelector('.scene-modes').getBoundingClientRect(); const b = document.querySelector('.brand').getBoundingClientRect(); return !document.querySelector('.scene-status button') && Math.abs(mid - innerWidth / 2) < innerWidth * 0.08 && m.left >= b.right && m.left - b.right < 16 && [...document.querySelectorAll('.scene-modes .mode-btn')].map((x) => x.querySelector('use').getAttribute('href').split('#')[1] + ':' + x.getAttribute('aria-label')).join() === 'text-t-slash:Solo fondo,pantalla-negra:Negro'`),
     await run(`return [...document.querySelectorAll('.scene-modes .mode-btn')].map((x) => x.title).join(' | ')`));
   await tapEl(transportBtn('Negro'));

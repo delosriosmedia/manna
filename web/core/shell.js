@@ -59,12 +59,18 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
   const landscape = matchMedia('(max-width: 859px) and (max-height: 480px)');
   // Entre el computador y el resto cambian las piezas enteras: se vuelve a abrir la página (lo compartido está en el servidor).
   const onComputer = layoutNow() === 'computador';
+  // Se vuelve a abrir tras 400 ms sin cambios de tamaño, comparando otra vez: partir la ventana en dos, arrastrando el
+  // borde, recargaba la página varias veces, y volver al mismo lado también (I1-06 de la auditoría integral).
+  let settling = null;
   const paintLayout = () => {
     document.documentElement.dataset.disposicion = layoutNow();
-    if (createLiveScene && (layoutNow() === 'computador') !== onComputer) {
-      allowLeaving();
-      location.reload();
-    }
+    clearTimeout(settling);
+    settling = setTimeout(() => {
+      if (createLiveScene && (layoutNow() === 'computador') !== onComputer) {
+        allowLeaving();
+        location.reload();
+      }
+    }, 400);
   };
   paintLayout();
   addEventListener('resize', paintLayout);
@@ -467,6 +473,9 @@ export function createShell({ role, isLocal, user = null, modules, topTools = []
       }
     }
     if (tabs) return; // sin proyección, no hay nada que pasar
+    // Intro sobre un botón de las barras (el dock, los modos, la cabecera de un módulo) lo pulsa, como en cualquier página:
+    // antes proyectaba lo preparado (I3-01 de la auditoría integral). En las listas, Intro sigue proyectando lo marcado.
+    if (e.key === 'Enter' && e.target.closest?.('.topbar, .scene-modes, .dockbar, .tools-row, .ws-head, .drawer-head, .queue-head')) return;
     const global = {
       ArrowRight: () => step(1), PageDown: () => step(1),
       ArrowLeft: () => step(-1), PageUp: () => step(-1),
