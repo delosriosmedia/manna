@@ -37,7 +37,10 @@ export function createContent(app, { ask, link, mode, onProgress }) {
     if (top === 'Biblias') return path.join(app.biblesDir, ...rest);
     return top === 'Himnario' && app.hymnsDir ? path.join(app.hymnsDir, ...rest) : null;
   };
-  const have = (key) => fs.existsSync(target(key) || '');
+  // Lo que ya está, también si su nombre lleva las tildes escritas de la otra forma (NFD): en Windows son archivos
+  // distintos, y se bajaba otra vez y salía «repetido» en los avisos del himnario (N1-1-2).
+  const present = (key) => [target(key), target(key.normalize('NFD'))].find((p) => p && fs.existsSync(p)) || null;
+  const have = (key) => Boolean(present(key));
   // Lo libre en el disco del himnario; si el sistema no lo dice (Node.js anterior a la 18.15), no se limita.
   const free = () => {
     try {
@@ -54,7 +57,8 @@ export function createContent(app, { ask, link, mode, onProgress }) {
     const work = (async () => {
       const dest = target(key);
       if (!dest) throw new Error('Ese archivo no es del himnario ni de las biblias.');
-      if (fs.existsSync(dest)) return dest;
+      const already = present(key);
+      if (already) return already;
       const part = `${dest}.parte`;
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       const size = files?.find((f) => f.key === key)?.size;

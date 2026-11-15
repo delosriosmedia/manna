@@ -22,7 +22,7 @@ import { startFakeR2 } from '../scripts/lib/r2-falso.mjs';
 import { startFakeGoogle } from '../scripts/lib/google-falso.mjs';
 import { expired } from '../server/modules/super/drive.js';
 import { serverUrl } from '../server/modules/cloud/index.js';
-import { pick } from '../server/modules/cloud/contenido.js';
+import { createContent, pick } from '../server/modules/cloud/contenido.js';
 
 // Las letras que falten no se buscan en internet: un repositorio que no contesta (Manna las busca solo al convertir una
 // presentación desde el 2026-11-14).
@@ -602,6 +602,37 @@ test('los usuarios entre el equipo y su nube: una lista dañada, una nube sin ad
   await a.app.services.cloud.check();
   assert.deepEqual(await names(a), everyone, 'el equipo conserva a todos');
   assert.deepEqual(await names(nueva), everyone, 'y la nube nueva los recibe');
+});
+
+// Los favoritos de antes de la 1.48 no tenían hora (favoritesUpdated): al emparejar, la lista vacía de la nube les
+// ganaba y se perdían (N1-3-5 de la auditoría integral).
+test('los favoritos de antes de la 1.48 sobreviven al emparejar con una nube vacía', async () => {
+  fs.mkdirSync(path.join(tmp, 'iglesia-favoritos'), { recursive: true });
+  fs.writeFileSync(path.join(tmp, 'iglesia-favoritos', 'himnario.json'), JSON.stringify({ files: {}, favorites: [1] }));
+  const nube = await serve('nube-favoritos', { MANNA_NUBE: '1', MANNA_CLAVE_ALTA: 'clave-favoritos' });
+  const a = await serve('iglesia-favoritos');
+  assert.equal((await nube.call('/api/session/alta', { clave: 'clave-favoritos', name: 'Ana', pin: '1234' })).status, 200);
+  await a.call('/api/session', { role: 'control' });
+  await a.send('cloud.pair', { url: nube.base, code: (await nube.send('cloud.code')).result.code });
+  await a.app.services.cloud.check();
+  assert.deepEqual([(await a.state()).hymns.favorites, (await nube.state()).hymns.favorites], [[1], [1]]);
+});
+
+// Un himno cuyo nombre lleva la tilde escrita de otra forma (NFD, como la dejan algunos programas): en Windows es otro
+// archivo, y se bajaba otra vez y salía «repetido» (N1-1-2). En Mac (APFS) da igual; en el Windows de GitHub, no.
+test('un himno con la tilde escrita de otra forma no se baja otra vez', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'manna-tildes-'));
+  try {
+    const hymnsDir = path.join(dir, 'himnario');
+    fs.mkdirSync(path.join(hymnsDir, 'videos'), { recursive: true });
+    const name = '002 Canción de prueba.mp4';
+    fs.writeFileSync(path.join(hymnsDir, 'videos', name.normalize('NFD')), 'x');
+    fs.writeFileSync(path.join(dir, 'nube-contenido.json'), JSON.stringify({ files: [{ key: `Himnario/videos/${name.normalize('NFC')}`, size: 1 }] }));
+    const content = createContent({ dataDir: dir, biblesDir: path.join(dir, 'biblias'), hymnsDir }, { ask() {}, link() {}, mode: () => 'nube', onProgress() {} });
+    assert.deepEqual(content.missing(), [], 'ya está en la carpeta');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('el himnario de la nube no llena el disco', () => {

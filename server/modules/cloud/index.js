@@ -385,7 +385,8 @@ function churchSide(app) {
     return out;
   });
   // El himnario y las biblias de la nube (decisión 64, cloud/contenido.js).
-  const link = async (key) => (await ask('POST', '/api/nube/enlaces', { keys: [key] })).links[key];
+  // Con un tope corto: un himno que se proyecta desde la nube espera este enlace, y con internet lento esperaba de más (S5-09).
+  const link = async (key) => (await ask('POST', '/api/nube/enlaces', { keys: [key] }, 8000)).links[key];
   const content = createContent(app, { ask, link, mode: () => saved.data.hymnal, onProgress: (progress) => set({ content: progress }) });
   let filled = 0; // cuándo se puso al día por última vez (cada media hora, o en cuanto algo lo pide)
   const fillSoon = () => { filled = 0; };

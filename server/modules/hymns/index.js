@@ -49,6 +49,12 @@ export default function setup(app) {
   const saved = app.storage('himnario', { files: {}, favorites: [] });
   saved.data.files ||= {};
   saved.data.favorites ||= [];
+  // Los favoritos de antes de la 1.48 no tienen hora: se la pone este arranque, para que al emparejar no empaten en 0 con
+  // la lista vacía de la nube y se pierdan la primera vez que alguien marque uno desde casa (N1-3-5).
+  if (saved.data.favorites.length && !saved.data.favoritesUpdated) {
+    saved.data.favoritesUpdated = Date.now();
+    saved.save();
+  }
   store.set('hymns', { favorites: [...saved.data.favorites] });
 
   let catalog = buildCatalog([]);
@@ -136,11 +142,12 @@ export default function setup(app) {
     // Con el equipo emparejado (decisión 64), los videos y las diapositivas que están en la nube y aún no en la carpeta
     // salen igual: se ven desde la nube y se bajan al usarlos.
     const local = listFiles(videosDir, VIDEO_EXTENSIONS);
-    const here = new Set(local.map((f) => f.name));
+    // Comparados en NFC: en Windows, un nombre con tilde escrito en NFD no es el mismo archivo (N1-1-2).
+    const here = new Set(local.map((f) => f.name.normalize('NFC')));
     const remote = [];
     for (const { key, size } of app.services.cloud?.missing?.() || []) {
       const [, kind, dir, file] = key.split('/');
-      if (kind === 'videos' && !here.has(dir) && VIDEO_EXTENSIONS.includes(path.extname(dir).toLowerCase())) remote.push({ name: dir, size, modified: 0 });
+      if (kind === 'videos' && !here.has(dir.normalize('NFC')) && VIDEO_EXTENSIONS.includes(path.extname(dir).toLowerCase())) remote.push({ name: dir, size, modified: 0 });
       const number = Number(/^(\d+)\s/.exec(dir)?.[1]);
       if (kind !== 'diapositivas' || !file || !number || (slidesOf.has(number) && !slidesOf.get(number).remote)) continue;
       if (!slidesOf.has(number)) slidesOf.set(number, { dir, files: [], remote: true });
