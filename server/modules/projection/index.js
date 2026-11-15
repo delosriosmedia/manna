@@ -102,7 +102,15 @@ export default function setup(app) {
   liveTimer.unref();
   app.onClose(() => {
     clearInterval(liveTimer);
-    if (get().item) touchLive();
+    // Lo que suena se pausa antes de cerrar: los celulares y los televisores se paran en el mismo punto, en vez de seguir
+    // solos durante el reinicio, y se guarda ahí (N1-5-3). Al volver queda en pausa, como siempre tras un reinicio.
+    const { item } = get();
+    const live = store.get('live');
+    const def = item && app.kinds.get(item.kind);
+    if (def?.control && live.uid === item.uid && live.state?.clock?.playing) {
+      try { store.set('live', { state: def.control(live.state, { playing: false }, { content: item, now: Date.now() }) }); } catch { /* sigue cerrando */ }
+    }
+    if (item) touchLive();
   });
 
   // Proyecta un contenido. source: { kind, data, step, orderId }.
@@ -148,13 +156,14 @@ export default function setup(app) {
     const next = { kind: item.kind, ...content, uid: item.uid, source: item.source };
     if (JSON.stringify(next) !== JSON.stringify(item)) store.set('projection', { item: next });
   }
-  // Se restaura cuando todos los módulos han registrado sus tipos de contenido.
-  store.on('listening', () => {
+  // Se restaura cuando todos los módulos han registrado sus tipos de contenido y leído su carpeta: tras los demás
+  // oyentes de «listening» (setImmediate). El himnario lee la suya ahí, y antes el himno al aire no volvía (S1-B).
+  store.on('listening', () => setImmediate(() => {
     if (app.blocked) return;
     const restore = liveToRestore(saved.data.live);
     if (!restore) return;
     try { present(restore.source, restore.mode, restore.previous, false); } catch { /* ese contenido ya no existe */ }
-  });
+  }));
 
   app.action('projection.show', { permission: 'projection.control' }, ({ kind, data, step }, ctx) =>
     present({ kind, data, step: Number.isInteger(step) ? step : null, by: actor(ctx) }));

@@ -13,6 +13,7 @@ import bible from '../server/modules/bible/index.js';
 import layers from '../server/modules/layers/index.js';
 import users from '../server/modules/users/index.js';
 import { layoutFor } from '../web/core/disposicion.js';
+import { applyClock, createClock } from '../server/core/playback.js';
 
 // Los cimientos de las pantallas «En vivo» (fase 42): las funciones, Siguiente sin pasos dobles, «Volver», lo que sigue y la
 // capa del orador, contra el servidor de verdad; y qué pantalla le toca a cada dispositivo.
@@ -169,6 +170,24 @@ test('Siguiente salta lo del orden que ya no existe', async () => {
   } finally {
     await s.stop();
   }
+});
+
+// Al reiniciar o apagar Manna con algo sonando, se pausa antes de cerrar (N1-5-3 de la auditoría integral): así los
+// celulares y los televisores se paran en el mismo punto, en vez de seguir solos durante el corte, y se guarda ahí.
+test('al cerrar Manna, lo que suena se pausa donde iba', async () => {
+  const s = await start('cerrar-sonando');
+  s.app.kind('prueba-suena', {
+    label: 'Prueba', describe: () => ({ title: 'Suena', steps: 1 }), resolve: () => ({ title: 'Suena' }),
+    live: () => ({ clock: { ...createClock({ duration: 60 }), playing: true } }),
+    control: (state, patch, { now }) => ({ ...state, clock: applyClock(state.clock, patch, now) }),
+    endsAt: (state) => (state.clock.playing ? state.clock.at + (60 - state.clock.position) * 1000 : Infinity),
+  });
+  await s.send('projection.show', { kind: 'prueba-suena', data: {} });
+  assert.equal(s.app.store.get('live').state.clock.playing, true);
+  await s.stop();
+  assert.equal(s.app.store.get('live').state.clock.playing, false, 'se pausó al cerrar');
+  const saved = JSON.parse(fs.readFileSync(path.join(tmp, 'cerrar-sonando', 'proyeccion.json'), 'utf8'));
+  assert.equal(saved.live.state.clock.playing, false, 'y así quedó guardado');
 });
 
 // Un «Siguiente» que espera a su tipo (PowerPoint o DeckCraft tardan en contestar) no pisa lo que otro proyectó

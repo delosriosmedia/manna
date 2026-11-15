@@ -136,7 +136,9 @@ export const connectionId = () => clientId;
 export const connectionIsLocal = () => clientLocal;
 export const connectionRole = () => clientRole;
 // Esta pantalla avisa de si el navegador la deja sonar. Si no puede, el servidor elige a otra.
+let soundAble = null; // lo último que dijo esta página: si el navegador la deja sonar
 export function reportSound(able) {
+  soundAble = able;
   if (!clientId) return;
   fetch('/api/events/sound', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: clientId, able }) }).catch(() => {});
 }
@@ -177,6 +179,9 @@ export function connect(role) {
     source.addEventListener('hello', (e) => {
       seen();
       try { ({ id: clientId, local: clientLocal = false } = JSON.parse(e.data)); } catch { clientId = null; }
+      // Tras un reinicio la conexión es otra, y el servidor no sabe que esta página no puede sonar: se le repite, si nadie
+      // la ha tocado desde entonces. Si no, el aviso «no suena en ningún sitio» desaparecía y el himno corría mudo (N2-4-1).
+      if (soundAble === false && !navigator.userActivation?.hasBeenActive) reportSound(false);
     });
     source.addEventListener('state', (e) => {
       seen();

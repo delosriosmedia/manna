@@ -195,6 +195,24 @@ async function start(name, { env = {}, count = 12 } = {}) {
   return api;
 }
 
+// Un himno al aire vuelve tras un reinicio, como lo demás (S1-B de la auditoría integral): la proyección se restauraba
+// antes de que el himnario leyera su carpeta, y el himno no existía todavía.
+test('tras un reinicio, el himno al aire vuelve', async () => {
+  const s = await start('reinicio-himno', { env: { MANNA_FALTA: 'ffmpeg' } });
+  await s.send('projection.show', { kind: 'song', data: { number: 2, track: 'vocal' } });
+  assert.equal((await s.state()).projection.item?.kind, 'song');
+  await s.stop();
+  const app = createApp({ rootDir: ROOT, dataDir: s.dataDir, biblesDir: path.join(tmp, 'biblias'), hymnsDir: s.hymnsDir });
+  try {
+    for (const setup of [projection, order, hymns]) await setup(app);
+    app.store.emit('listening', 0);
+    await new Promise((resolve) => { setImmediate(resolve); });
+    assert.deepEqual([app.store.get('projection').item?.kind, app.store.get('projection').item?.source.data.number], ['song', 2]);
+  } finally {
+    await app.close();
+  }
+});
+
 test('Letras sin música: las diapositivas de un himno se pasan a mano y no salen de él, ni en el orden del culto', async () => {
   const s = await start('letras', { env: { MANNA_FALTA: 'ffmpeg' } });
   try {
