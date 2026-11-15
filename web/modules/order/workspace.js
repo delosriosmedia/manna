@@ -607,11 +607,14 @@ function mount(el, ctx) {
   subscribe('projection', (p) => {
     const next = p.mode === 'live' ? p.item?.source : null;
     const moved = next?.orderId && next.orderId !== live?.orderId;
+    // Salvo que la persona eligiera otro mientras algo del orden estaba al aire: entonces se queda ahí, y un Intro no
+    // reinicia lo que suena (N1-4-6 de la auditoría integral).
+    const following = !selectedId || !live?.orderId || selectedId === live.orderId;
     live = next || null;
     if (!items.length) return;
     renderList();
     // La selección acompaña a lo que está al aire cuando se avanza por el orden.
-    if (moved && !collapsed && items.some((i) => i.id === next.orderId)) select(next.orderId, { reveal: true });
+    if (moved && following && !collapsed && items.some((i) => i.id === next.orderId)) select(next.orderId, { reveal: true });
     else if (selectedId) renderDetail(items.find((i) => i.id === selectedId));
   });
 

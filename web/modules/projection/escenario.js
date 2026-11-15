@@ -189,6 +189,8 @@ export function createEscenario(ctx) {
   const focusKey = (el) => el?.closest?.('[data-key]')?.dataset.key || null;
   function renderQueue() {
     const items = orderItems();
+    // Lo marcado que ya no está en el orden (otro lo quitó) se olvida: Intro lo proyectaba y daba error (S4-5).
+    if (prepared && !items.some((i) => i.id === prepared.orderId)) prepared = null;
     const src = liveSource();
     const liveId = src?.orderId;
     const at = items.findIndex((i) => i.id === liveId);

@@ -202,6 +202,7 @@ export function createEnVivo(ctx, { variant = 'control' } = {}) {
     if (offline()) say('Reconectando…', '', null, 'off');
     else if (!item) say('Empezar', first ? `1 · ${first.title}` : 'Nada en el orden', first ? () => action('order.show', { id: first.id }) : null, first ? '' : 'off');
     else if (oratorBody?.finished(p)) say('Fin', 'Ya no hay más diapositivas', null, 'end');
+    else if (p.next?.gone) say('Fin', 'Ya no está en el orden', null, 'off');
     else if (p.next?.end) {
       if (first) say('Ir al primero', '', () => action('order.show', { id: first.id }), 'first');
       else say('Fin', '', null, 'off');

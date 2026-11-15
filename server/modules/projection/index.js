@@ -215,11 +215,16 @@ export default function setup(app) {
       if (get().mode !== 'live') setMode('live');
       return get().item;
     }
+    // Mientras se esperaba al tipo, otro pudo proyectar algo: eso manda (S1-C de la auditoría integral).
+    if (get().item?.uid !== item.uid) return get().item;
     // Cortar algo que suena no es el paso que tocaba: se puede deshacer.
     const live = store.get('live');
     const sounding = live.uid === item.uid && Boolean(live.state) && Number.isFinite(def?.endsAt?.(live.state));
     const { kind, data, step, orderId } = item.source;
-    if (orderId && services.order?.has(orderId)) {
+    // Lo que salió del orden mientras estaba al aire no sigue por su cuenta: la Biblia leía sola el versículo de después
+    // (N1-2-2 y N1-4-2). «En vivo» dice que ya no está en el orden.
+    if (orderId && !services.order?.has(orderId)) return null;
+    if (orderId) {
       const next = services.order.neighbor(orderId, step, d);
       // Dentro del mismo elemento, los pasos siguen en lo que está al aire (`projection.swap` pudo
       // cambiar su versión); al pasar a otro elemento vale el contenido de ese elemento.
@@ -253,7 +258,8 @@ export default function setup(app) {
     over = step == null ? null : { ...over, step, uid: ++uid, content: app.kinds.get(over.kind).resolve(over.data, step) };
     store.set('projection', { over });
   }
-  services.projection = { present, refresh, covering: () => Boolean(over) };
+  // next(): vuelve a decir qué pondrá «Siguiente» (lo usa quien sabe algo que no cambia lo que está al aire: DeckCraft).
+  services.projection = { present, refresh, covering: () => Boolean(over), next: () => publishNext() };
   app.action('projection.over', { permission: 'projection.control' }, ({ data, step = 0 } = {}) => {
     const def = app.kinds.get(BIBLE);
     if (!def || !data || typeof data !== 'object' || Array.isArray(data)) throw new HttpError(400, 'Falta qué poner encima.');
@@ -500,7 +506,8 @@ export default function setup(app) {
     const own = def?.peek?.(item);
     if (own) return own;
     const { kind, data, step, orderId } = item.source;
-    if (orderId && services.order?.has(orderId)) {
+    if (orderId && !services.order?.has(orderId)) return { end: true, gone: true };
+    if (orderId) {
       const next = services.order.neighbor(orderId, step, 1);
       return next ? { title: next.title, kind: next.kind, orderId: next.orderId, step: next.step, steps: next.steps, inside: next.orderId === orderId } : { end: true };
     }

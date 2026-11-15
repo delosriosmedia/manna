@@ -139,7 +139,56 @@ test('Siguiente: dos toques casi juntos no pasan dos pasos, y se sabe qué pondr
     // El orden cambia y lo que sigue se pone al día.
     await s.send('order.show', { id: b.id, step: 0 });
     await s.send('order.remove', { id: b.id });
-    assert.deepEqual((await s.state()).projection.next.end, undefined, 'lo que estaba al aire ya no está en el orden: sigue leyendo la Biblia');
+    // Lo que estaba al aire ya no está en el orden (N1-2-2 y N1-4-2): Siguiente no sigue por su cuenta (la Biblia leía
+    // sola el versículo de después) y lo dice.
+    assert.deepEqual((await s.state()).projection.next, { end: true, gone: true });
+    assert.equal((await s.send('projection.step', { delta: 1 })).result, null);
+    assert.equal((await s.state()).projection.item.source.orderId, b.id, 'lo de antes sigue al aire');
+  } finally {
+    await s.stop();
+  }
+});
+
+// Un elemento del orden cuyo contenido se borró (una imagen quitada de Medios) no atasca «Siguiente»: se salta
+// (N1-2-3 de la auditoría integral). Antes, el paso fallaba con un error y no se podía seguir.
+test('Siguiente salta lo del orden que ya no existe', async () => {
+  const s = await start('siguiente-borrado');
+  try {
+    let gone = false;
+    s.app.kind('prueba-borrable', {
+      label: 'Prueba', describe: (data) => (gone ? null : { title: 'Borrable', steps: 1, data }), resolve: () => (gone ? null : { title: 'Borrable' }),
+    });
+    const a = (await s.send('order.add', { kind: 'verses', data: passage(s, 3, 16, 16) })).result;
+    await s.send('order.add', { kind: 'prueba-borrable', data: {} });
+    const b = (await s.send('order.add', { kind: 'verses', data: passage(s, 1, 1, 1) })).result;
+    await s.send('order.show', { id: a.id, step: 0 });
+    gone = true;
+    const next = await s.send('projection.step', { delta: 1 });
+    assert.deepEqual([next.http, next.result?.source?.orderId], [200, b.id], 'pasa al siguiente que sí existe');
+    assert.equal((await s.send('projection.step', { delta: -1 })).result?.source?.orderId, a.id, 'y hacia atrás, igual');
+  } finally {
+    await s.stop();
+  }
+});
+
+// Un «Siguiente» que espera a su tipo (PowerPoint o DeckCraft tardan en contestar) no pisa lo que otro proyectó
+// mientras tanto (S1-C de la auditoría integral).
+test('Siguiente lento no pisa lo que otro acaba de proyectar', async () => {
+  const s = await start('siguiente-lento');
+  try {
+    let release;
+    s.app.kind('prueba-lenta', {
+      label: 'Prueba', describe: () => ({ title: 'Lenta', steps: 2 }), resolve: () => ({ title: 'Lenta' }),
+      neighbor: (data, step, d) => ({ data, step: (step ?? 0) + d }),
+      step: () => new Promise((resolve) => { release = () => resolve(false); }),
+    });
+    await s.send('projection.show', { kind: 'prueba-lenta', data: {} });
+    const slow = s.send('projection.step', { delta: 1 });
+    for (let i = 0; i < 50 && !release; i += 1) await new Promise((r) => { setTimeout(r, 10); });
+    await s.send('projection.show', { kind: 'verses', data: passage(s, 3, 16, 16) });
+    release();
+    await slow;
+    assert.equal((await s.state()).projection.item.kind, 'verses', 'lo que proyectó el otro sigue al aire');
   } finally {
     await s.stop();
   }

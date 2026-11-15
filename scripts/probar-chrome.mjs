@@ -787,6 +787,16 @@ try {
   check('«Siguiente» pasa al elemento que viene en la cola', nextRow.includes('Salmos 23') && (await live()).ref === 'Salmos 23:1', nextRow);
   await tapEl(`document.querySelector('.transport-bar .btn[aria-label=Anterior]')`);
   check('«Anterior» vuelve', (await live()).ref === 'Juan 3:19');
+  // Lo marcado que otro quita del orden se olvida: Intro no lo proyecta ni da un aviso de error (S4-5).
+  await run(`return await ${post('order.add', { kind: 'verses', data: { versionId: VERSION, ref: { book: 43, chapter: 1, verseStart: 1, verseEnd: 1 } } })}`);
+  await until(`${queueRow('Juan 1:1')}`, 10);
+  const extra = await run(`return (await (await fetch('/api/state')).json()).order.items.find((i) => i.title === 'Juan 1:1')?.id`);
+  await tapEl(queueRow('Juan 1:1'));
+  await run(`return await ${post('order.remove', { id: 'EXTRA' })}`.replace('"EXTRA"', JSON.stringify(extra)));
+  await until(`!${queueRow('Juan 1:1')}`, 10);
+  await press('Enter');
+  await sleep(400);
+  check('lo marcado en la cola que otro quita del orden se olvida: Intro no hace nada', (await live()).ref === 'Juan 3:19' && await run(`return !document.querySelector('.queue-item.prepared')`));
   const pill = () => run(`const p = document.querySelector('.scene-status .live-pill'); return JSON.stringify([p.textContent, p.dataset.state, document.querySelector('.scene-bg').dataset.state])`).then(JSON.parse);
   // «Solo fondo» y «Negro» van arriba como iconos, junto a la marca y aparte de «AL AIRE», que va al centro (1.31).
   const transportBtn = (label) => `document.querySelector('.scene-modes .mode-btn[aria-label="${label}"]')`;
@@ -2733,6 +2743,8 @@ try {
       const onAirNumber = `(await (await fetch('/api/state')).json()).projection.item?.number`;
       check('en la pantalla que suena la pasa DeckCraft, con el PowerPoint original y las letras del equipo que usa', await until(`${dcSaid}.some((m) => m.deckcraft === 'open' && m.size > 0 && m.fonts === 3)`, 25), // la de prueba, la de Google Fonts y la subida
         await run(`return JSON.stringify({ frames: document.querySelectorAll('.deckcraft-frame').length, item: (await (await fetch('/api/state')).json()).projection.item?.deckcraft, said: ${dcSaid}.filter((m) => m.deckcraft === 'open') })`));
+      const nextSays = `(await (await fetch('/api/state')).json()).projection.next`;
+      check('mientras DeckCraft la pasa, «Siguiente» dice que lo decide ella (puede ser una animación)', await until(`${nextSays}?.animation === true`, 15));
       const next = () => run(`return await ${post('projection.step', { delta: 1 })}`);
       await next();
       check('«Siguiente» le llega a DeckCraft, y Manna pone la imagen de la diapositiva en que va', await until(`${onAirNumber} === 2 && ${dcSaid}.some((m) => m.deckcraft === 'key' && m.key === 'ArrowRight')`, 15));
@@ -2745,6 +2757,7 @@ try {
       check('una animación de DeckCraft no cambia de diapositiva', await until(`${dcFrame}?.contentDocument.body.textContent.includes('paso 1')`, 10) && (await run(`return ${onAirNumber}`)) === 2);
       await next();
       check('pasada la última, se ve la imagen de la última', await until(`!${dcFrame}`, 10) && (await run(`return ${onAirNumber}`)) === 2);
+      check('y «Siguiente» ya no anuncia una animación: sin DeckCraft, es lo de después (S4-3)', await until(`!${nextSays}?.animation`, 10), await run(`return JSON.stringify(${nextSays})`));
       if (airBefore.item) await run(`return await ${post('projection.show', { kind: airBefore.item.source.kind, data: airBefore.item.source.data, step: airBefore.item.source.step })}`);
       await run(`return await ${post('projection.mode', { mode: airBefore.mode })}`);
       fs.rmSync(dcWeb, { recursive: true, force: true });
@@ -2824,6 +2837,7 @@ try {
     await sleep(500);
     check('«Siguiente» pasa a la 2, se ve en la grande y el recuadro «Siguiente» muestra la 3', (await num()) === 2 && await until(`${pr}.querySelector('.pr-live .img-view img')?.getAttribute('src')?.endsWith('/2.jpg')`, 10)
       && await run(`return ${pr}.querySelector('.slide-pick[data-n="2"]').classList.contains('live') && !${pr}.querySelector('.slide-pick[data-n="1"]').classList.contains('live') && /3 de 4/.test(${pr}.querySelector('.pr-around > div:last-child .dock-label').textContent)`));
+    check('«Siguiente» es el de todos: no le ofrece «Volver» a quien lleva Control total (S4-1)', await run(`return !(await (await fetch('/api/state')).json()).projection.back`));
     check('a la izquierda de la siguiente, del mismo tamaño, se ve la anterior (la 1)', await run(`const prev = ${pr}.querySelector('.pr-prev'); const next = ${pr}.querySelector('.pr-next'); const a = prev.getBoundingClientRect(); const b = next.getBoundingClientRect(); return /1 de 4/.test(${pr}.querySelector('.pr-around > div:first-child .dock-label').textContent) && !prev.disabled && /m?1\\.(jpg|png)$/.test(prev.querySelector('img').getAttribute('src')) && a.right <= b.left && Math.abs(a.width - b.width) < 2 && Math.abs(a.height - b.height) < 2`));
     await click(`${pr}.querySelector('.slide-pick[data-n="4"]')`);
     await sleep(500);
@@ -2883,6 +2897,12 @@ try {
     await click(`document.querySelector('.pr-bible .ev-back')`);
     await sleep(400);
     check('y su botón lo quita', !await sees(`document.querySelector('.pr-bible .ev-back')`));
+    // Con un versículo «Encima», «Siguiente» pasa el versículo (aquí uno solo: lo quita) y no cambia la diapositiva (S4-1).
+    const slideBefore = await num();
+    await run(`return await ${post('projection.over', { data: { versionId: VERSION, ref: { book: 43, chapter: 3, verseStart: 19, verseEnd: 19 } } })}`);
+    const overHere = await until(`(await import('/core/api.js')).state.projection?.over`, 10); // lo tiene ya la página del Orador
+    await click(`${pr}.querySelector('.btn.primary.grow')`);
+    check('con un versículo «Encima», «Siguiente» lo pasa sin cambiar la diapositiva', overHere && await until(`!(await (await fetch('/api/state')).json()).projection.over`, 10) && (await num()) === slideBefore, `diapositiva ${await num()} (antes ${slideBefore})`);
     await click(`document.querySelector('.pr-bible .ev-cite')`);
     await sleep(300);
     await click(`document.querySelector('.modal .ev-sheet-book')`);

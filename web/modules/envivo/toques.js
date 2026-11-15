@@ -120,7 +120,7 @@ export function guardTouches(root, { list, controls, cover }) {
     const button = now() - pressedAt < LONG + 200 && !lastButton?.closest('.drawer') ? lastButton : null;
     if (!button) return;
     const slow = setTimeout(() => button.classList.add('waiting'), SLOW);
-    const lost = setTimeout(() => toast('Manna no ha contestado. Mira si sigue la conexión e inténtalo otra vez.', 'error'), LOST);
+    const lost = setTimeout(() => toast('Manna aún no contesta. Mira la pantalla antes de volver a tocar: puede que llegue.', 'error'), LOST);
     const end = () => { clearTimeout(slow); clearTimeout(lost); button.classList.remove('waiting'); };
     sent.then(end, end);
   });

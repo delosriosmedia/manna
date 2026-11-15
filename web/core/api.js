@@ -1,6 +1,8 @@
 // Comunicación con el servidor: peticiones, acciones y estado en tiempo real.
 
 const OFFLINE_MESSAGE = 'Sin conexión con el equipo principal. Inténtalo de nuevo en unos segundos.';
+// Sin respuesta a tiempo, lo pedido pudo hacerse igual (la wifi va lenta): no se invita a repetirlo a ciegas (E5-03).
+const SLOW_MESSAGE = 'No hubo respuesta a tiempo. Puede que se haya hecho: mira la pantalla antes de volver a tocar.';
 
 // timeout en ms (0 = sin límite). Sin él, un botón pulsado sin red se quedaría esperando sin avisar.
 export async function api(path, { timeout = 10_000, ...options } = {}) {
@@ -8,8 +10,8 @@ export async function api(path, { timeout = 10_000, ...options } = {}) {
   try {
     const signal = timeout && AbortSignal.timeout ? AbortSignal.timeout(timeout) : undefined;
     res = await fetch(path, { ...options, signal });
-  } catch {
-    const err = new Error(OFFLINE_MESSAGE);
+  } catch (e) {
+    const err = new Error(e?.name === 'TimeoutError' ? SLOW_MESSAGE : OFFLINE_MESSAGE);
     err.status = 0;
     throw err;
   }
@@ -56,8 +58,10 @@ export const watchActions = (fn) => { actionWatcher = fn; };
 
 // Ejecuta una acción de un módulo, p. ej. action('projection.show', { versionId, ref }).
 // options.timeout: lo que puede tardar en contestar (como en api()); 0, sin límite (una ventana en el equipo principal).
+// Una orden espera hasta 25 s, lo mismo que el tiempo real sin noticias: con la wifi lenta, a los 10 s el aviso llegaba
+// cuando lo pedido ya se había hecho, y al repetirlo el canto quedaba dos veces en el orden (N1-5-1).
 export async function action(type, payload = {}, options = {}) {
-  const sent = postJson('/api/action', { type, payload }, options);
+  const sent = postJson('/api/action', { type, payload }, { timeout: 25_000, ...options });
   actionWatcher?.(sent);
   return (await sent).result;
 }

@@ -274,8 +274,10 @@ export default function setup(app) {
         save();
       },
     },
+    // Salta lo que ya no existe (una imagen quitada de Medios): si no, «Siguiente» se atascaba en ello con un error
+    // (N1-2-3 de la auditoría integral). El de partida cuenta siempre, exista o no.
     neighbor(id, step, delta) {
-      const target = neighbor(items(), id, step, delta);
+      const target = neighbor(items().filter((i) => i.id === id || exists(i)), id, step, delta);
       const item = target && items().find((i) => i.id === target.id);
       return item ? { kind: item.kind, data: item.data, step: target.step, orderId: item.id, title: item.title, steps: item.steps } : null;
     },

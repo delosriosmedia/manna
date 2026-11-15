@@ -1,4 +1,4 @@
-import { action, state, subscribe } from '../../core/api.js';
+import { action, state, stepAir, subscribe } from '../../core/api.js';
 import { h, dialog, guard } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { createStage, withOver } from '../projection/stage.js';
@@ -129,10 +129,18 @@ function mount(el, ctx) {
   });
   const press = guard((key) => action('projection.control', { key }));
   const pageKeys = (item) => Boolean(item && (item.file || item.window));
+  const step = guard((delta) => stepAir(delta));
   // Sin salir de la presentación: si no hay ninguna de ella en pantalla, «Siguiente» empieza por la primera.
+  // Con ella al aire, o con un versículo «Encima», por el mismo «Siguiente» que todos (stepAir): así pasan las
+  // animaciones de DeckCraft y de PowerPoint, el versículo de encima, y nadie ve «Volver» tras cada diapositiva (S4-1 de
+  // la auditoría integral). En la última, solo si queda una animación: así no se sale al siguiente del orden.
   // Una página: si no está en pantalla, «Proyectar» la pone; si está, las flechas (si las admite).
+  const canStep = (delta) => Boolean(state.projection?.over) || (delta > 0 ? at() < (deck()?.pages ?? 0) || Boolean(state.projection?.next?.animation) : at() > 1);
   function go(delta) {
-    if (!pageId) return project(at() ? at() + delta : 1);
+    if (!pageId) {
+      if (!at() && !state.projection?.over) return project(1);
+      return canStep(delta) && step(delta);
+    }
     const item = pageOnAir();
     if (!item) return delta > 0 && showPage();
     return pageKeys(item) && press(delta > 0 ? 'ArrowRight' : 'ArrowLeft');
@@ -259,8 +267,8 @@ function mount(el, ctx) {
     // Lo de otra cosa en pantalla se dice: la grande muestra siempre lo que se proyecta.
     onAir.hidden = Boolean(n) || !p?.item;
     if (!onAir.hidden) onAir.textContent = `En pantalla: ${describeLive(p).text || describeLive(p).label}. «Empezar» proyecta la primera diapositiva.`;
-    prev.disabled = n <= 1;
-    next.disabled = n >= d.pages;
+    prev.disabled = !n || !canStep(-1);
+    next.disabled = Boolean(n) && !canStep(1);
     next.replaceChildren(n ? 'Siguiente' : 'Empezar', icon('caret-right', 18));
     const upcoming = n + 1 <= d.pages ? n + 1 : 0;
     nextLabel.textContent = upcoming ? `${upcoming} de ${d.pages}` : '';

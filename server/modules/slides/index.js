@@ -267,6 +267,7 @@ export default function setup(app) {
     const deck = ready(String(id ?? ''));
     if (!deck || !inDeckCraft(deck)) return { ok: false };
     shown = { id: deck.id, page: Number.isInteger(page) && page >= 1 && page <= deck.pages ? page : null, step: Number(step) || 0, at: Date.now(), ended: ended === true };
+    app.services.projection?.next?.(); // terminada, «Siguiente» ya no lo decide DeckCraft (S4-3)
     const { item } = store.get('projection');
     if (item?.kind !== 'slides' || item.source.data?.id !== deck.id) return { ok: true };
     // Alguien pasó (o DeckCraft llegó a otra diapositiva): al aire, la imagen de esa. Pasada la última, desde la
@@ -324,7 +325,12 @@ export default function setup(app) {
     // Con PowerPoint en vivo, «siguiente» y «anterior» los da PowerPoint: así pasan también las animaciones. Al
     // terminar la presentación (o antes de la primera), Manna sigue como siempre: lo que venga en el orden.
     // Qué pondrá «Siguiente» lo sabe quien la pasa: puede ser una animación.
-    peek: (item) => (item.deckcraft || item.powerpoint ? { animation: true } : null),
+    // Solo si de verdad la está pasando él, con el mismo criterio que step(): si DeckCraft no da noticias, o PowerPoint no
+    // la tiene abierta, «Siguiente» es la diapositiva de después (S4-3 de la auditoría integral).
+    peek: (item) => {
+      const id = item.source?.data?.id;
+      return (item.deckcraft && showing(id)) || (session?.showing && session.deck.id === id) ? { animation: true } : null;
+    },
     async step(item, delta) {
       // Con DeckCraft: la tecla va a la ventana del proyector. «Anterior» en el principio de la primera sigue con lo de
       // antes en el orden.
