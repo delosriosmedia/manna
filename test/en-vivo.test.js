@@ -40,7 +40,7 @@ async function start(name) {
   await as('control');
   const request = (url, options = {}) => fetch(base + url, { redirect: 'manual', ...options, headers: { ...options.headers, cookie } });
   return {
-    app, as, request,
+    app, as, request, base,
     send: async (type, payload = {}) => {
       const res = await request('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, payload }) });
       return { ...(await res.json()), http: res.status };
@@ -215,6 +215,48 @@ test('Volver: un salto se deshace mientras nadie cambie lo que está al aire', a
     assert.ok(seen);
     await s.send('projection.step', { delta: 1 });
     assert.equal((await s.send('projection.back')).http, 409);
+  } finally {
+    await s.stop();
+  }
+});
+
+// «Volver a…» (N1-7-1, N1-7-2 y N1-7-3 de la auditoría integral; decisión 80): lo deshace quien saltó o Control total, no
+// otro celular; caduca a los 10 s, también para una pantalla que se abre tarde; y cambiar de versión no es un salto.
+test('Volver: solo quien saltó o Control total, y caduca', async (t) => {
+  const s = await start('volver-quien');
+  try {
+    for (const name of ['Ana', 'Beto']) await s.send('users.create', { name, pin: name === 'Ana' ? '1357' : '2468', functions: ['alabanza'] });
+    const away = { 'Cf-Connecting-Ip': '203.0.113.30', 'X-Forwarded-For': '203.0.113.30' };
+    // Desde otro equipo (un celular por la red), cada persona con su nombre y su PIN.
+    const person = async (name, pin) => {
+      const list = await (await fetch(`${s.base}/api/session`, { headers: away })).json();
+      const user = list.users.find((u) => u.name === name).id;
+      const res = await fetch(`${s.base}/api/session`, { method: 'POST', headers: { ...away, 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'alabanza', user, pin }) });
+      const cookie = res.headers.get('set-cookie').split(';')[0];
+      return (type, payload = {}) => fetch(`${s.base}/api/action`, { method: 'POST', headers: { ...away, 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ type, payload }) })
+        .then(async (r) => ({ ...(await r.json()), http: r.status }));
+    };
+    const ana = await person('Ana', '1357');
+    const beto = await person('Beto', '2468');
+    const a = (await s.send('order.add', { kind: 'verses', data: passage(s, 3, 16, 18) })).result;
+    await s.send('order.show', { id: a.id, step: 0 });
+    await ana('projection.show', { kind: 'verses', data: passage(s, 8, 1, 1) });
+    const offer = (await s.state()).projection.back;
+    assert.equal(offer.by, 'Ana', 'se sabe quién saltó');
+    assert.ok(Math.abs(offer.at - Date.now()) < 5000, 'y cuándo, con la hora del servidor');
+    assert.equal((await beto('projection.back')).http, 409, 'otro celular no lo deshace');
+    assert.equal((await ana('projection.back')).http, 200, 'quien saltó, sí');
+    await ana('projection.show', { kind: 'verses', data: passage(s, 8, 1, 1) });
+    assert.equal((await s.send('projection.back')).http, 200, 'Control total también');
+    await ana('projection.show', { kind: 'verses', data: passage(s, 8, 1, 1) });
+    const now = Date.now();
+    t.mock.method(Date, 'now', () => now + 13_000);
+    assert.equal((await ana('projection.back')).http, 409, 'pasados los 10 s, ya no');
+    t.mock.restoreAll();
+    // Cambiar la versión de lo que está al aire no es un salto: no ofrece «Volver a…» (N1-7-3).
+    await s.send('order.show', { id: a.id, step: 0 });
+    await s.send('projection.swap', { kind: 'verses', data: passage(s, 3, 16, 18) });
+    assert.equal((await s.state()).projection.back, null);
   } finally {
     await s.stop();
   }

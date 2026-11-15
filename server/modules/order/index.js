@@ -410,10 +410,11 @@ export default function setup(app) {
 
   // Proyecta un elemento del orden. Sin step, empieza por su primer paso.
   // step null (explícito) = el elemento entero en una sola pantalla.
-  app.action('order.show', { permission: 'projection.control' }, ({ id, step = 0 }) => {
+  app.action('order.show', { permission: 'projection.control' }, ({ id, step = 0 }, ctx) => {
     const item = itemOf(inUse(), id);
     if (item.kind === 'section') throw new HttpError(400, 'Una sección no se proyecta.');
-    return services.projection.present({ kind: item.kind, data: item.data, step: Number.isInteger(step) ? step : null, orderId: id });
+    const by = ctx?.session?.user ? { id: ctx.session.user.id, name: ctx.session.user.name } : null; // quién salta (decisión 80)
+    return services.projection.present({ kind: item.kind, data: item.data, step: Number.isInteger(step) ? step : null, orderId: id, by });
   });
 
   // Los pasos de un elemento (del orden en uso o del que tiene abierto quien pide), ya resueltos, para dibujar sus

@@ -112,7 +112,10 @@ export default function setup(app) {
   //   jump      es un salto (no el paso que tocaba): se puede deshacer con `projection.back`
   let back = null; // lo que había antes de un salto: { uid, source, mode, state, at }
   let over = null; // la capa del orador
-  function present({ kind, data, step = null, orderId = null }, mode = 'live', previous = null, jump = true) {
+  const BACK_MS = 10_000; // lo que se ofrece «Volver a…» (DESIGN.md, 12 ter, regla 3)
+  const actor = (ctx) => (ctx?.session?.user ? { id: ctx.session.user.id, name: ctx.session.user.name } : null);
+  // by: quién lo pone ({ id, name } de su usuario), para que solo esa persona o Control total deshagan el salto.
+  function present({ kind, data, step = null, orderId = null, by = null }, mode = 'live', previous = null, jump = true) {
     const def = app.kinds.get(kind);
     if (def?.onlyLayer) throw new HttpError(400, 'Eso va en una capa, no se proyecta solo.');
     const content = def?.resolve(data, step);
@@ -123,12 +126,12 @@ export default function setup(app) {
     const beforeLive = store.get('live');
     uid += 1;
     const item = { kind, ...content, uid, source: { kind, data, step, orderId } };
-    back = jump && before.item ? { uid, source: before.item.source, mode: before.mode, state: beforeLive.uid === before.item.uid ? beforeLive.state : null, at: Date.now() } : null;
+    back = jump && before.item ? { uid, source: before.item.source, mode: before.mode, state: beforeLive.uid === before.item.uid ? beforeLive.state : null, at: Date.now(), by } : null;
     over = null;
     // Primero los mandos y después el contenido: cuando una pantalla recibe lo nuevo,
     // su estado en vivo ya está ahí.
     store.set('live', { uid, state: def.live?.(content, previous) ?? null });
-    setLive({ item, mode, over: null, back: back && { uid, title: titleOf(before.item), kind: before.item.kind, orderId: before.item.source?.orderId ?? null } });
+    setLive({ item, mode, over: null, back: back && { uid, title: titleOf(before.item), kind: before.item.kind, orderId: before.item.source?.orderId ?? null, at: back.at, by: by?.name ?? null, byId: by?.id ?? null } });
     scheduleEnd();
     return item;
   }
@@ -153,8 +156,8 @@ export default function setup(app) {
     try { present(restore.source, restore.mode, restore.previous, false); } catch { /* ese contenido ya no existe */ }
   });
 
-  app.action('projection.show', { permission: 'projection.control' }, ({ kind, data, step }) =>
-    present({ kind, data, step: Number.isInteger(step) ? step : null }));
+  app.action('projection.show', { permission: 'projection.control' }, ({ kind, data, step }, ctx) =>
+    present({ kind, data, step: Number.isInteger(step) ? step : null, by: actor(ctx) }));
 
   // Cambia el contenido de lo que está al aire por otro de lo mismo (el pasaje en otra versión, o en
   // dos) sin salir de donde estaba: conserva el paso y el sitio en el orden del culto (`orderId`), así
@@ -180,7 +183,7 @@ export default function setup(app) {
     // Los mandos se conservan si el tipo es el mismo (la disposición de una comparación).
     const live = store.get('live');
     const previous = kind === item.kind && live.uid === item.uid ? { state: live.state, at: Date.now() } : null;
-    return present({ kind, data, step, orderId }, mode, previous);
+    return present({ kind, data, step, orderId }, mode, previous, false); // cambiar la versión no es un salto (N1-7-3)
   });
 
   // Anterior / siguiente. Si lo proyectado viene del orden del culto, recorre sus pasos y
@@ -197,7 +200,7 @@ export default function setup(app) {
 
   // uid: lo que veía quien pulsó. Dos toques casi juntos, o dos operadores a la vez: el segundo se pulsó viendo lo de antes
   // y no pasa otra vez. Siguiente con la pantalla en «Negro» o «Solo fondo» vuelve al aire con lo que sigue.
-  app.action('projection.step', { permission: 'projection.control' }, async ({ delta, uid: seen } = {}) => {
+  app.action('projection.step', { permission: 'projection.control' }, async ({ delta, uid: seen } = {}, ctx) => {
     const { item, mode } = get();
     if (!item) return null;
     if (seen != null && seen !== (over?.uid ?? item.uid)) return item;
@@ -228,16 +231,22 @@ export default function setup(app) {
       const next = services.order.neighbor(orderId, step, d);
       // Dentro del mismo elemento, los pasos siguen en lo que está al aire (`projection.swap` pudo
       // cambiar su versión); al pasar a otro elemento vale el contenido de ese elemento.
-      return next ? present(next.orderId === orderId && def?.stepIds ? { ...next, kind, data } : next, 'live', null, sounding) : null;
+      return next ? present({ ...(next.orderId === orderId && def?.stepIds ? { ...next, kind, data } : next), by: actor(ctx) }, 'live', null, sounding) : null;
     }
     const next = def?.neighbor?.(data, step, d);
-    return next ? present({ kind, ...next }, 'live', null, sounding) : null;
+    return next ? present({ kind, ...next, by: actor(ctx) }, 'live', null, sounding) : null;
   });
 
   // Deshacer un salto: vuelve a lo de antes, al mismo punto, si nadie cambió lo que está al aire desde entonces.
-  app.action('projection.back', { permission: 'projection.control' }, () => {
+  // Lo deshace quien saltó o Control total, que lleva el culto (decisión 80); otro celular no (N1-7-1). Y solo en sus 10 s,
+  // con un margen: una pantalla que se abre tarde ya no lo ofrece, y aquí tampoco se acepta (N1-7-2).
+  app.action('projection.back', { permission: 'projection.control' }, (_, ctx) => {
     const { item } = get();
     if (!back || item?.uid !== back.uid) throw new HttpError(409, 'Ya cambió lo que está al aire.');
+    if (Date.now() - back.at > BACK_MS + 2000) throw new HttpError(409, 'Ya pasó el momento de volver.');
+    if (back.by && ctx?.session && ctx.session.role !== 'control' && ctx.session.user?.id !== back.by.id) {
+      throw new HttpError(409, `Esto lo puso ${back.by.name}: solo esa persona o Control total pueden volver atrás.`);
+    }
     const { source, mode, state, at } = back;
     const shown = present(source, mode, state ? { state, at } : null, false);
     // Lo que sonaba vuelve a sonar: su `live` lo deja en pausa donde iba.

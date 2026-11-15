@@ -1,4 +1,4 @@
-import { action, api, connectionId, silenceMs, state, stepAir, subscribe } from '../../core/api.js';
+import { action, api, connectionId, serverNow, silenceMs, state, stepAir, subscribe } from '../../core/api.js';
 import { h, dialog, guard, toast } from '../../core/dom.js';
 import { icon } from '../../core/icons.js';
 import { kindBadge, kindOf, titleOf } from '../../core/kinds.js';
@@ -411,8 +411,6 @@ export function createEnVivo(ctx, { variant = 'control' } = {}) {
 
   // ---- «Volver a…» 10 s, en un sitio fijo; «Volver al orden» mientras se esté fuera de él ----
   let lastOrder = null; // { id, step }: por dónde iba el orden antes de salir de él
-  let backUid = null;
-  let backUntil = 0;
   function paintBack() {
     const p = state.projection;
     const offer = p?.back;
@@ -420,25 +418,25 @@ export function createEnVivo(ctx, { variant = 'control' } = {}) {
     if (source?.orderId) lastOrder = { id: source.orderId, step: source.step };
     if (orator && p?.over) {
       back.hidden = false;
+      back.disabled = false;
       backText.textContent = p.item?.kind === 'slides' ? `Volver a la diapositiva ${p.item.number}` : `Volver a ${shortTitle(p.item)}`;
       backTime.textContent = '';
       back.onclick = guard(() => action('projection.overClear'));
       return;
     }
-    if (offer && offer.uid === p.item?.uid) {
-      if (backUid !== offer.uid) {
-        backUid = offer.uid;
-        backUntil = Date.now() + BACK_MS;
-      }
-      const left = Math.ceil((backUntil - Date.now()) / 1000);
-      if (left > 0) {
-        back.hidden = false;
-        backText.textContent = `Volver a ${numbered(offer.orderId, offer.title)}`;
-        backTime.textContent = `${left} s`;
-        back.onclick = guard(async () => { back.hidden = true; await action('projection.back'); });
-        return;
-      }
+    // Los 10 s cuentan desde el salto, con la hora del servidor: una pantalla que se abre tarde ya no lo ofrece (N1-7-2).
+    // Lo deshace quien saltó o Control total (decisión 80); los demás solo ven quién puso qué (N1-7-1).
+    const left = offer && offer.uid === p.item?.uid ? Math.ceil((offer.at + BACK_MS - serverNow()) / 1000) : 0;
+    if (left > 0) {
+      const mine = !offer.byId || offer.byId === ctx.user?.id || ctx.role === 'control';
+      back.hidden = false;
+      back.disabled = !mine;
+      backText.textContent = mine ? `Volver a ${numbered(offer.orderId, offer.title)}` : `${offer.by} puso ${shortTitle(p.item)}`;
+      backTime.textContent = mine ? `${left} s` : '';
+      back.onclick = mine ? guard(async () => { back.hidden = true; await action('projection.back'); }) : null;
+      return;
     }
+    back.disabled = false;
     const away = p?.item && !source?.orderId && lastOrder && numberOf(lastOrder.id);
     back.hidden = !away;
     if (away) {

@@ -246,7 +246,7 @@ Las capturas quedan para los manuales: de la propia app, nunca dibujos, y realis
 - Tras girar el dispositivo, 400 ms sin toques.
 
 **3. Todo lo que cambia el aire se puede deshacer.**
-- Un salto fuera de la secuencia, o un Siguiente que corta algo que suena, ofrece «Volver a …» durante 10 s, al mismo punto, en un sitio fijo: tapa la primera fila de la lista, sin mover nada.
+- Un salto fuera de la secuencia, o un Siguiente que corta algo que suena, ofrece «Volver a …» durante 10 s desde el salto (con la hora del equipo principal: una pantalla que se abre tarde ya no lo ve), al mismo punto, en un sitio fijo: tapa la primera fila de la lista, sin mover nada. Solo a quien saltó y a Control total (decisión 80); los demás ven en ese sitio, sin botón, quién puso qué («Ana puso Romanos 8:1»). Cambiar la versión de lo que está al aire no es un salto.
 - Negro y Solo fondo, encendidos, se llenan de blanco y dicen «Quitar»: devuelven exactamente lo que había.
 - Reiniciar, recargar y volver al principio nunca están a la vista: van en «Más».
 - Cambiar de función durante un culto pregunta antes.

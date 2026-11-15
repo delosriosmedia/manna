@@ -4,6 +4,7 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **«Volver a…» ya no lo deshace cualquiera**: solo quien saltó y Control total. Los demás celulares ven quién puso qué, sin botón: antes, Alabanza podía deshacer con un toque lo que acababa de poner el orador. Además caduca de verdad a los 10 s, también para una pantalla que se abre tarde, y cambiar la versión de la Biblia al aire ya no lo ofrece.
 - **La cita rápida entiende más formas de escribir una cita**: «Judas 24» y los demás libros de un solo capítulo; «1ra Corintios», «Primera de Corintios» y «Segunda Timoteo»; «Proverbios 3:5,6» y «Juan 3:16,18» (del 16 al 18); «Juan 3:16ss» (el 16); y «Juan 3:16-4:2», que ofrece los dos trozos, Juan 3:16-36 y Juan 4:1-2. Un versículo que no existe ya no se ofrece como cita, y «Juan 22» dice «Juan tiene 21 capítulos» en vez de solo «sin resultados».
 - **El Orador en el computador pasa las animaciones**: su «Siguiente» saltaba directo a la diapositiva siguiente, borraba el versículo puesto «Encima» y le ofrecía «Volver» a quien llevaba Control total tras cada diapositiva. Ahora es el mismo «Siguiente» que en el celular.
 - **«Siguiente» ya no hace cosas de más**: si lo que está al aire se quitó del orden, ya no sigue solo por la Biblia, y dice «Ya no está en el orden». Un elemento cuyo contenido se borró ya no lo atasca: se salta. Un «Siguiente» que tarda ya no pisa lo que otro acaba de proyectar. Y solo anuncia una animación cuando DeckCraft o PowerPoint están pasando la presentación.
