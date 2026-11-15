@@ -75,6 +75,8 @@ Una prueba nueva de interfaz se añade a `scripts/probar-chrome.mjs`; un tamaño
 
 En `/control`, pasar del computador a un tamaño de celular, o al revés, vuelve a abrir la página (`createLiveScene` en `shell.js`): en la prueba en Chrome, tras cambiar de tamaño se espera 1,5 s antes de seguir (navegar en ese momento deja a Chrome sin contestar) y se vuelve a elegir lo que hubiera elegido.
 
+**Seguir trabajando mientras corre una prueba en Chrome** (2026-11-14): su servidor vigila la huella de `server/` y, si cambia, avisa de que hay que actualizar en plena prueba. Para editar a la vez, se corre sobre una copia de la carpeta (`rsync -a` sin `data/`, `Contenido/` ni `.git`, más la `Reina Valera 1909.xmm` en `Contenido/Biblias/`). Para ver fallar una comprobación nueva con el código de antes, la misma copia con ese archivo de `git show HEAD:`.
+
 Lo que un guion lanza (el Chrome sin ventana, los servidores de prueba) se registra con `killOnExit()` de `scripts/lib/chrome.mjs`, para que se cierre con el guion aunque lo corten a medias. El 2026-10-05 se encontraron tres Chrome sin ventana de pruebas interrumpidas, y como el puerto de control era fijo, las pruebas siguientes se enganchaban al más antiguo; ahora cada Chrome usa un puerto libre.
 
 ## Lo que vigila la prueba en Chrome
