@@ -158,6 +158,7 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
     if (!def) return; // tipo que esta versión no sabe dibujar
     // Si lo nuevo no se puede dibujar, se quita lo que había y queda el fondo: nunca lo anterior, que sería un
     // versículo equivocado (N2-3-2). El siguiente cambio vuelve a empezar de cero.
+    const reused = Boolean(drawn); // la misma vista, con otro contenido (de una diapositiva a la siguiente)
     try {
       if (!drawn) drawn = { kind: item.kind, view: def.draw(content, { stage: container, sound, thumbnail }) };
       drawn.view.update(item, { mode, styles });
@@ -171,7 +172,9 @@ export function createStage(container, { sound: initialSound = false, thumbnail 
       return;
     }
     const key = keyOf(item);
-    if (key !== lastKey && mode === 'live') content.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 250 });
+    // Sin fundido entre dos de pantalla completa del mismo tipo: la imagen vieja sigue hasta que llega la nueva, y fundir
+    // pasaba por el fondo en cada «Siguiente» o devolvía la anterior un momento (E3-01 y E3-02 de la auditoría).
+    if (key !== lastKey && mode === 'live' && !(reused && def.background === false)) content.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 250 });
     lastKey = key;
     applyLive();
     placePointer();
