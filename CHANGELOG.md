@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+- **La proyección ya no se abre en otro programa**: en un computador con otro programa de proyección abierto (en Central, Holyrics con su servicio web), la ventana del proyector y el control podían mostrar «Page not found» en vez de Manna. Manna ahora se abre a sí mismo por `127.0.0.1`, donde solo contesta él. Si usas un dominio propio, en el panel de Cloudflare pon como servicio del túnel `http://127.0.0.1:80`. Al abrir así el control, el computador principal olvida una sola vez lo que recordaba (la última versión de la Biblia, el último módulo).
+
 ## 1.73.0 — 2026-11-14
 
 - **El orden en uso ya no se pierde por un borrado desde casa**: si alguien lo borraba desde la nube en plena reunión, la cola del culto se vaciaba. Ahora la iglesia lo conserva, vuelve a la nube y el Orden lo avisa. En la nube, un orden creado de noche ya no lleva la fecha de mañana. Y si la hora del equipo va desfasada, Ajustes → Nube lo dice, porque así un cambio del orden podía perderse al sincronizar.

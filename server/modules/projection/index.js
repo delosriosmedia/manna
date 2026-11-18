@@ -463,7 +463,7 @@ export default function setup(app) {
   const projector = createProjectorWindow({
     list: listScreens,
     windowless,
-    open: (screen, onExit) => openKiosk({ url: `http://localhost:${app.port}/proyeccion`, screen, profileDir: path.join(app.dataDir, 'navegador-proyeccion'), onExit }),
+    open: (screen, onExit) => openKiosk({ url: `http://127.0.0.1:${app.port}/proyeccion`, screen, profileDir: path.join(app.dataDir, 'navegador-proyeccion'), onExit }),
     isOn: () => get().display.on,
     // Solo en memoria: apagar Windows con Manna abierto también cierra la ventana, y guardarlo la dejaba apagada para
     // el domingo siguiente (N2-1-6). En disco queda solo lo que se elige en Ajustes (projection.display).

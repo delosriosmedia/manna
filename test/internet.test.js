@@ -39,7 +39,7 @@ test('tokenFrom saca la clave de lo que se pegue y explain dice por qué se cerr
   assert.match(explain('algo raro'), /vuelve a intentar/);
   const where = { me: 'este', own: true, port: 8000 };
   assert.equal(diagnose({ ok: true, status: 200, id: 'este' }, where), null, 'contesta este mismo Manna');
-  assert.match(diagnose({ ok: false, status: 502 }, where), /no llega a Manna \(responde 502\).*http:\/\/localhost:8000/, 'con dominio propio, dice qué poner en Cloudflare');
+  assert.match(diagnose({ ok: false, status: 502 }, where), /no llega a Manna \(responde 502\).*http:\/\/127\.0\.0\.1:8000/, 'con dominio propio, dice qué poner en Cloudflare');
   assert.match(diagnose({ ok: true, status: 200, id: 'otro' }, where), /otro equipo/);
   assert.match(diagnose({ error: true }, where), /tiene internet/);
 });

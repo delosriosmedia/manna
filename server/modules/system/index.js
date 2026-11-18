@@ -119,7 +119,7 @@ export default function setup(app) {
     };
     const ports = portCandidates(Number(process.env.PORT) || settings.data.port);
     const here = (await Promise.all(ports.map((port) => pingAt('127.0.0.1', port)))).find(Boolean);
-    if (here) return { here: true, where: origin('localhost', here.port), version: here.version, ...(here.official && { official: true }) };
+    if (here) return { here: true, where: origin('127.0.0.1', here.port), version: here.version, ...(here.official && { official: true }) };
     const interfaces = (await lanInterfaces()).filter((i) => !i.virtual);
     const others = await responder.probe(interfaces.map((i) => ({ via: i.address, address: i.address, netmask: i.netmask })));
     for (const address of others) {

@@ -62,7 +62,7 @@ test('con otro Manna del mismo nombre abierto, el segundo no funciona, lo dice y
   assert.ok(second, 'el segundo se abre en el puerto siguiente');
   const system = async (port) => (await (await fetch(`${at(port)}/api/state`)).json()).system;
   const blocked = await until(async () => (await system(PORT + 1)).blocked);
-  assert.deepEqual(blocked, { here: true, where: `http://localhost:${PORT}`, version: first.version }, 'dice dónde está el otro');
+  assert.deepEqual(blocked, { here: true, where: `http://127.0.0.1:${PORT}`, version: first.version }, 'dice dónde está el otro');
   assert.equal((await system(PORT)).blocked, null, 'el primero sigue como siempre');
 
   // No acepta órdenes, salvo volver a mirar y apagarse.

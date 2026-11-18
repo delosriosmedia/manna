@@ -58,7 +58,9 @@ function openInBrowser(target) {
   spawn(cmd[0], cmd[1], { stdio: 'ignore', detached: true, windowsHide: true }).on('error', () => {}).unref();
 }
 
-const localUrl = (port) => `http://localhost${port === 80 ? '' : `:${port}`}`;
+// 127.0.0.1 y no localhost: en Windows localhost va primero a ::1, donde puede contestar otro programa
+// (Holyrics en Central, 2026-11-17); Manna escucha en IPv4.
+const localUrl = (port) => `http://127.0.0.1${port === 80 ? '' : `:${port}`}`;
 
 // ¿Ya hay un Manna abierto con estos mismos datos? Devuelve { port, build }, o null.
 // Evita dos copias si se pulsa el icono dos veces: la segunda solo vuelve a mostrar el control.
