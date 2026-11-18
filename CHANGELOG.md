@@ -4,6 +4,8 @@ Lo más reciente arriba. Cada versión publicada lleva su fecha.
 
 ## Sin publicar
 
+## 1.73.1 — 2026-11-17
+
 - **La proyección ya no se abre en otro programa**: en un computador con otro programa de proyección abierto (en Central, Holyrics con su servicio web), la ventana del proyector y el control podían mostrar «Page not found» en vez de Manna. Manna ahora se abre a sí mismo por `127.0.0.1`, donde solo contesta él. Si usas un dominio propio, en el panel de Cloudflare pon como servicio del túnel `http://127.0.0.1:80`. Al abrir así el control, el computador principal olvida una sola vez lo que recordaba (la última versión de la Biblia, el último módulo).
 
 ## 1.73.0 — 2026-11-14
